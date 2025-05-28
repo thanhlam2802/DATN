@@ -3,21 +3,27 @@
     <TourCard
       v-for="tour in tours"
       :key="tour.id"
-      :image-url="tour.imageUrl"
+      :imageUrl="tour.imageUrl"
       :title="tour.title"
       :location="tour.location"
       :location-detail="tour.locationDetail"
       :price="tour.price"
       :original-price="tour.originalPrice"
       :rating="tour.rating"
+      @click="goToDetail(tour.id)"
     />
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref } from "vue";
 import TourCard from "./TourCard.vue";
+import { useRouter } from "vue-router";
+const router = useRouter();
 
+const goToDetail = (id) => {
+  router.push(`/tours/${id}`);
+};
 const tours = ref([
   {
     id: 1,

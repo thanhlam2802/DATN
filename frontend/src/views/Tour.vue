@@ -33,14 +33,6 @@ const destinations = [
   { name: "Bà Rịa - Vũng Tàu", image: "https://picsum.photos/id/1040/400/200" },
   { name: "Tỉnh Kiên Giang", image: "https://picsum.photos/id/1052/400/200" },
 ];
-
-const southeastAsia = [
-  { name: "Indonesia", image: "https://picsum.photos/id/1062/400/200" },
-  { name: "Thái Lan", image: "https://picsum.photos/id/1065/400/200" },
-  { name: "Malaysia", image: "https://picsum.photos/id/1066/400/200" },
-  { name: "Singapore", image: "https://picsum.photos/id/1067/400/200" },
-  { name: "Philippines", image: "https://picsum.photos/id/1068/400/200" },
-];
 </script>
 
 <template>

@@ -17,9 +17,9 @@
         >
 
         <router-link
-          to="/car"
+          to="/bus"
           class="select-none hover:text-gray-900"
-          :class="{ 'text-blue-700 font-bold': $route.path === '/car' }"
+          :class="{ 'text-blue-700 font-bold': $route.path === '/bus' }"
           >Bus</router-link
         >
 

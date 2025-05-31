@@ -1,9 +1,9 @@
 <template>
     <div class="container mx-auto px-4 relative z-20 w-full">
-        <div class="bg-white/20 backdrop-blur-md rounded-lg shadow-lg p-4 transition-all duration-300 hover:shadow-xl">
+       <div class="bg-white backdrop-blur-md rounded-full shadow-lg p-2.5 border border-gray-300 transition-all duration-300 hover:shadow-xl max-w-[3000px] mx-auto">
             <div class="flex flex-wrap items-end -mx-2">
                 <div class="w-full md:flex md:space-x-4">
-                    <div class="flex-1 mb-4 md:mb-0 px-2">
+                    <div class="mb-4 md:mb-0 px-6 w-[150px]">
                         <div class="flex flex-col">
                             <span class="text-sm font-semibold mb-1 text-gray-700">Địa điểm</span>
                             <div
@@ -84,7 +84,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="w-full md:w-auto mt-4 md:mt-0 px-2 md:self-end">
+                    <div class="w-full md:w-auto mt-4 md:mt-0 px-6 md:self-center">
                         <button
                             class="!rounded-button whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-full cursor-pointer flex items-center justify-center w-full md:w-auto transition-colors duration-200">
                             <i class="fas fa-search mr-2"></i>

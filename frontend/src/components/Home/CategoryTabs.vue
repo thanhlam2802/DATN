@@ -10,27 +10,27 @@
     </div>
 
     <div v-if="activeTab === 'hotels'">
-      <HorizontalScrollWrapper :item-count="hotels.length">
-        <HotelCard v-for="hotel in hotels" :key="hotel.id" :hotel="hotel" style="min-width: 300px; flex-shrink: 0;" />
+      <HorizontalScrollWrapper :key="activeTab" :itemCount="hotels.length">
+        <HotelCard v-for="hotel in hotels" :key="hotel.id" :hotel="hotel" class="min-w-[300px] flex-shrink-0 mb-4" />
       </HorizontalScrollWrapper>
     </div>
 
     <div v-else-if="activeTab === 'bus'">
-      <HorizontalScrollWrapper :item-count="buses.length">
-        <BusCard v-for="bus in buses" :key="bus.id" :bus="bus" style="min-width: 300px; flex-shrink: 0;" />
+      <HorizontalScrollWrapper :key="activeTab" :itemCount="buses.length">
+        <BusCard v-for="bus in buses" :key="bus.id" :bus="bus" class="min-w-[300px] flex-shrink-0 mb-4" />
       </HorizontalScrollWrapper>
     </div>
 
     <div v-else-if="activeTab === 'flights'">
-      <HorizontalScrollWrapper :item-count="flights.length">
+      <HorizontalScrollWrapper :key="activeTab" :itemCount="flights.length">
         <FlightCard v-for="flight in flights" :key="flight.id" :flight="flight"
-          style="min-width: 300px; flex-shrink: 0;" />
+          class="min-w-[300px] flex-shrink-0 mb-4" />
       </HorizontalScrollWrapper>
     </div>
 
     <div v-else-if="activeTab === 'tours'">
-      <HorizontalScrollWrapper :item-count="tours.length">
-        <TourHomeCard v-for="tour in tours" :key="tour.id" :tour="tour" style="min-width: 300px; flex-shrink: 0;" />
+      <HorizontalScrollWrapper :key="activeTab" :itemCount="tours.length">
+        <TourHomeCard v-for="tour in tours" :key="tour.id" :tour="tour" class="min-w-[300px] flex-shrink-0 mb-4" />
       </HorizontalScrollWrapper>
     </div>
   </div>

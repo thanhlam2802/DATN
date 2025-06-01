@@ -126,6 +126,31 @@ const formatPrice = (price) => {
   }).format(price)
 }
 
+// Methods for bus facilities
+const getBusFacilities = () => {
+  if (props.busType === 'sleeping-bus') {
+    return [
+      { name: 'WiFi miễn phí', icon: 'fas fa-wifi', color: 'text-blue-600' },
+      { name: 'Điều hòa', icon: 'fas fa-snowflake', color: 'text-cyan-600' },
+      { name: 'Chăn gối cao cấp', icon: 'fas fa-bed', color: 'text-purple-600' },
+      { name: 'TV cá nhân', icon: 'fas fa-tv', color: 'text-green-600' },
+      { name: 'Suất ăn miễn phí', icon: 'fas fa-utensils', color: 'text-orange-600' },
+      { name: 'WC riêng', icon: 'fas fa-restroom', color: 'text-gray-600' },
+      { name: 'Nước uống', icon: 'fas fa-glass-water', color: 'text-blue-500' },
+      { name: 'Ổ cắm điện', icon: 'fas fa-plug', color: 'text-yellow-600' }
+    ]
+  } else {
+    return [
+      { name: 'WiFi miễn phí', icon: 'fas fa-wifi', color: 'text-blue-600' },
+      { name: 'Điều hòa', icon: 'fas fa-snowflake', color: 'text-cyan-600' },
+      { name: 'Ghế ngả 160°', icon: 'fas fa-chair', color: 'text-purple-600' },
+      { name: 'Sạc USB', icon: 'fas fa-usb', color: 'text-green-600' },
+      { name: 'Nước uống', icon: 'fas fa-glass-water', color: 'text-blue-500' },
+      { name: 'Gối kê cổ', icon: 'fas fa-heart', color: 'text-pink-600' }
+    ]
+  }
+}
+
 // Seat CSS classes
 const getSeatClass = (seat) => {
   const baseClass = 'h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center rounded-lg border-2 transition-all duration-200 transform'
@@ -345,6 +370,67 @@ const getSeatClass = (seat) => {
                 <div class="flex items-center space-x-2">
                   <div class="h-4 w-4 rounded border-2 border-gray-300 bg-gray-100 sm:h-6 sm:w-6"></div>
                   <span class="text-xs text-gray-600 sm:text-sm">Không khả dụng</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bus Facilities -->
+            <div class="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4 shadow-sm ring-1 ring-blue-200 sm:p-6">
+              <h4 class="text-sm font-medium text-gray-900 sm:text-base mb-4 flex items-center">
+                <i class="fas fa-star mr-2 text-yellow-500"></i>
+                Tiện ích xe {{ busType === 'sleeping-bus' ? 'Giường nằm' : 'Ghế ngồi' }}
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div
+                  v-for="facility in getBusFacilities()"
+                  :key="facility.name"
+                  class="flex items-center space-x-3 p-3 bg-white rounded-lg border border-blue-100 hover:border-blue-200 transition-colors"
+                >
+                  <div class="flex-shrink-0">
+                    <i :class="[facility.icon, facility.color, 'text-lg']"></i>
+                  </div>
+                  <span class="text-sm font-medium text-gray-700">{{ facility.name }}</span>
+                </div>
+              </div>
+              
+              <!-- Special note for sleeping bus -->
+              <div v-if="busType === 'sleeping-bus'" class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div class="flex items-start space-x-2">
+                  <i class="fas fa-crown text-purple-600 mt-0.5"></i>
+                  <div class="text-sm text-purple-800">
+                    <p class="font-semibold mb-1">Dịch vụ VIP:</p>
+                    <p>Giường nằm thương gia với không gian riêng tư, chăn gối cao cấp và dịch vụ 5 sao.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bus Info -->
+            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 sm:p-6">
+              <h4 class="text-sm font-medium text-gray-900 sm:text-base mb-4 flex items-center">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                Thông tin chuyến xe
+              </h4>
+              <div class="space-y-3 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Nhà xe:</span>
+                  <span class="font-semibold text-gray-900">{{ selectedBus.company }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Tuyến đường:</span>
+                  <span class="font-medium text-gray-900">{{ selectedBus.route }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Khởi hành:</span>
+                  <span class="font-semibold text-purple-600">{{ selectedBus.departureTime }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Thời gian:</span>
+                  <span class="font-medium text-gray-900">{{ selectedBus.duration }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Đến nơi:</span>
+                  <span class="font-semibold text-gray-900">{{ selectedBus.arrivalTime }}</span>
                 </div>
               </div>
             </div>

@@ -24,287 +24,215 @@ const selectBus = (bus) => {
   emit('select-bus', bus)
 }
 
-// Mock additional bus details - sẽ được thay thế bằng API từ backend
+// Mock additional bus details cho API dễ dàng hơn
 const getBusDetails = (bus) => {
   return {
-    rating: 4.5,
+    rating: (4.0 + Math.random() * 1).toFixed(1),
     totalReviews: Math.floor(Math.random() * 500) + 100,
-    licensePlate: bus.id === 1 ? '51B-123.45' : '79A-567.89',
-    capacity: bus.busType.includes('Giường nằm') ? '34 giường' : '45 ghế',
-    facilities: bus.busType.includes('Giường nằm') 
-      ? ['WiFi miễn phí', 'Điều hòa', 'Giường nằm', 'Tivi', 'Nghỉ ăn', 'WC riêng']
-      : ['WiFi miễn phí', 'Điều hòa', 'Ghế ngả', 'Sạc điện thoại'],
-    policies: [
-      'Hoàn vé trước 2h: 70% giá vé',
-      'Đổi vé trước 4h: Phí 20.000đ',
-      'Mang theo CMND/CCCD'
-    ],
-    pickupPoints: ['Bến xe Miền Đông', 'Sân bay Tân Sơn Nhất', 'Bến xe An Sương'],
-    dropOffPoints: ['Bến xe Đà Nẵng', 'Sân bay Đà Nẵng', 'Trung tâm thành phố']
+    licensePlate: `${Math.floor(Math.random() * 90) + 10}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}-${Math.floor(Math.random() * 900) + 100}.${Math.floor(Math.random() * 90) + 10}`,
+    discount: Math.random() > 0.7 ? Math.floor(Math.random() * 20) + 5 : null,
+    lastUpdated: '5 phút trước'
   }
+}
+
+// Format currency without symbol
+const formatPriceShort = (price) => {
+  return new Intl.NumberFormat('vi-VN').format(price)
 }
 </script>
 
 <template>
-  <div class="space-y-4 sm:space-y-6">
-    <!-- Enhanced Header với responsive -->
-    <div class="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
-      <h2 class="text-xl sm:text-2xl font-bold text-gray-800 text-center sm:text-left">
-        Tìm thấy {{ results.length }} chuyến xe
-      </h2>
-      <div class="flex items-center justify-center sm:justify-end space-x-2 sm:space-x-4 text-sm text-gray-600">
-        <span class="hidden sm:inline">Sắp xếp theo:</span>
-        <span class="sm:hidden">Sắp xếp:</span>
-        <select class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+  <div class="space-y-6">
+    <!-- Enhanced Filter & Sort Header -->
+    <div class="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+      <div class="flex items-center space-x-3">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800">
+          {{ results.length }} chuyến xe được tìm thấy
+        </h2>
+        <span class="hidden sm:inline-block px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+          {{ busType === 'sleeping-bus' ? 'Giường nằm' : 'Ghế ngồi' }}
+        </span>
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        <span class="text-sm text-gray-600 hidden sm:block">Sắp xếp:</span>
+        <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white">
           <option>Giá thấp nhất</option>
           <option>Giờ khởi hành</option>
-          <option>Thời gian di chuyển</option>
           <option>Đánh giá cao nhất</option>
+          <option>Thời gian ngắn nhất</option>
         </select>
+        <button class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <i class="fas fa-filter text-gray-600"></i>
+        </button>
       </div>
     </div>
 
-    <!-- Enhanced Results List với responsive tối ưu -->
-    <div class="space-y-4 sm:space-y-6">
+    <!-- Simplified Card Grid Layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <div
         v-for="bus in results"
         :key="bus.id"
-        class="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 transform hover:-translate-y-1"
+        class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 group cursor-pointer transform hover:-translate-y-1"
+        @click="selectBus(bus)"
       >
-        <div class="p-4 sm:p-6">
-          <!-- Main Bus Information với responsive grid -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 mb-4 sm:mb-6">
-            <!-- Bus Image với responsive sizing -->
-            <div class="lg:col-span-3">
-              <div class="relative">
-                <img
-                  :src="bus.image"
-                  :alt="bus.company"
-                  class="w-full h-32 sm:h-40 object-cover rounded-lg"
-                />
-                <!-- Enhanced License Plate với responsive positioning -->
-                <div class="absolute bottom-2 left-2 sm:bottom-3 sm:left-3">
-                  <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-md shadow-sm backdrop-blur-sm">
-                    {{ getBusDetails(bus).licensePlate }}
-                  </span>
-                </div>
-              </div>
+        <!-- Card Header với Image và Badge -->
+        <div class="relative h-48 overflow-hidden">
+          <img
+            :src="bus.image"
+            :alt="bus.company"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          
+          <!-- Overlay Gradient -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+          
+          <!-- Top Badges -->
+          <div class="absolute top-3 left-3 flex space-x-2">
+            <span class="px-2 py-1 bg-white/90 backdrop-blur-sm text-gray-800 rounded-full text-xs font-medium">
+              {{ getBusDetails(bus).licensePlate }}
+            </span>
+            <span v-if="getBusDetails(bus).discount" class="px-2 py-1 bg-red-500 text-white rounded-full text-xs font-medium">
+              -{{ getBusDetails(bus).discount }}%
+            </span>
+          </div>
+          
+          <!-- Rating Badge -->
+          <div class="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
+            <i class="fas fa-star text-yellow-500 text-xs"></i>
+            <span class="text-xs font-medium text-gray-800">{{ getBusDetails(bus).rating }}</span>
+          </div>
+          
+          <!-- Bottom Company Info -->
+          <div class="absolute bottom-3 left-3 right-3">
+            <h3 class="text-white font-bold text-lg mb-1 truncate">{{ bus.company }}</h3>
+            <p class="text-white/90 text-sm">{{ bus.busType }}</p>
+          </div>
+        </div>
+
+        <!-- Simplified Card Body -->
+        <div class="p-4 space-y-4">
+          <!-- Route & Time -->
+          <div class="space-y-3">
+            <div class="flex items-center text-gray-700">
+              <i class="fas fa-route text-purple-600 mr-2"></i>
+              <span class="font-medium text-sm truncate">{{ bus.route }}</span>
             </div>
-
-            <!-- Bus Information với enhanced responsive layout -->
-            <div class="lg:col-span-6 space-y-3 sm:space-y-4">
-              <!-- Company & Rating với responsive typography -->
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                <div>
-                  <h3 class="text-lg sm:text-xl font-bold text-gray-800 truncate">{{ bus.company }}</h3>
-                  <p class="text-sm text-gray-600">{{ bus.busType }}</p>
-                </div>
-                <div class="text-left sm:text-right">
-                  <div class="flex items-center space-x-1">
-                    <span class="text-yellow-500 text-lg">★</span>
-                    <span class="font-medium text-sm sm:text-base">{{ getBusDetails(bus).rating }}</span>
-                    <span class="text-gray-500 text-xs sm:text-sm">({{ getBusDetails(bus).totalReviews }})</span>
-                  </div>
-                  <p class="text-xs text-gray-500 mt-1">{{ getBusDetails(bus).capacity }}</p>
-                </div>
+            
+            <!-- Time Info Grid -->
+            <div class="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-500 mb-1">Khởi hành</p>
+                <p class="font-bold text-purple-600">{{ bus.departureTime }}</p>
               </div>
-
-              <!-- Route Information với enhanced responsive layout -->
-              <div class="bg-gray-50 rounded-lg p-3 sm:p-4">
-                <div class="flex items-center text-gray-700 mb-2 sm:mb-3">
-                  <i class="fas fa-route mr-2 text-purple-600 text-sm sm:text-base"></i>
-                  <span class="font-medium text-sm sm:text-base truncate">{{ bus.route }}</span>
-                </div>
-                
-                <!-- Time Information với responsive grid -->
-                <div class="grid grid-cols-3 gap-2 sm:gap-4 text-sm">
-                  <div class="text-center">
-                    <p class="text-gray-500 text-xs sm:text-sm">Khởi hành</p>
-                    <p class="font-bold text-base sm:text-lg text-purple-600">{{ bus.departureTime }}</p>
-                  </div>
-                  <div class="text-center">
-                    <p class="text-gray-500 text-xs sm:text-sm">Thời gian</p>
-                    <p class="font-medium text-gray-700 text-sm sm:text-base">{{ bus.duration }}</p>
-                    <div class="flex justify-center mt-1">
-                      <div class="w-6 sm:w-8 border-t border-gray-300"></div>
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <p class="text-gray-500 text-xs sm:text-sm">Đến nơi</p>
-                    <p class="font-bold text-base sm:text-lg text-gray-800">{{ bus.arrivalTime }}</p>
-                  </div>
-                </div>
+              <div class="text-center">
+                <p class="text-xs text-gray-500 mb-1">Thời gian</p>
+                <p class="font-medium text-gray-700 text-sm">{{ bus.duration }}</p>
               </div>
-
-              <!-- Available Seats với responsive layout -->
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                <div class="flex items-center text-sm">
-                  <i class="fas fa-chair mr-2 text-green-600"></i>
-                  <span class="text-green-600 font-medium">
-                    Còn {{ bus.availableSeats }} chỗ trống
-                  </span>
-                </div>
-                <div class="text-sm text-gray-600">
-                  <i class="fas fa-clock mr-1"></i>
-                  <span class="text-xs sm:text-sm">Cập nhật 5 phút trước</span>
-                </div>
+              <div class="text-center">
+                <p class="text-xs text-gray-500 mb-1">Đến nơi</p>
+                <p class="font-bold text-gray-800">{{ bus.arrivalTime }}</p>
               </div>
-            </div>
-
-            <!-- Price & Action với responsive layout -->
-            <div class="lg:col-span-3 flex flex-row lg:flex-col justify-between lg:justify-between items-center lg:items-end space-x-4 lg:space-x-0 lg:space-y-4 mt-4 lg:mt-0">
-              <div class="text-left lg:text-right">
-                <p class="text-sm text-gray-500">Giá từ</p>
-                <p class="text-2xl sm:text-3xl font-bold text-purple-600">
-                  {{ formatPrice(bus.price) }}
-                </p>
-                <p class="text-xs text-gray-400">/người</p>
-                <p class="text-xs text-green-600 mt-1">
-                  <i class="fas fa-tag mr-1"></i>Giá tốt nhất
-                </p>
-              </div>
-
-              <button
-                @click="selectBus(bus)"
-                class="w-full sm:w-auto lg:w-full px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 bg-purple-600 hover:bg-purple-700 whitespace-nowrap"
-              >
-                <i class="fas fa-ticket-alt mr-2"></i>
-                <span class="hidden sm:inline">Chọn chuyến này</span>
-                <span class="sm:hidden">Chọn</span>
-              </button>
             </div>
           </div>
 
-          <!-- Detailed Information Tabs với responsive grid -->
-          <div class="border-t border-gray-100 pt-4 sm:pt-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              <!-- Facilities với enhanced mobile layout -->
+          <!-- Availability & Price -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-1">
+                <i class="fas fa-chair text-green-600 text-sm"></i>
+                <span class="text-green-600 font-medium text-sm">{{ bus.availableSeats }} chỗ trống</span>
+              </div>
+              <span class="text-xs text-gray-500">{{ getBusDetails(bus).lastUpdated }}</span>
+            </div>
+
+            <!-- Price Section -->
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
               <div>
-                <h4 class="font-medium text-gray-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
-                  <i class="fas fa-star mr-2 text-yellow-500"></i>
-                  Tiện ích
-                </h4>
-                <div class="flex flex-wrap gap-1.5 sm:gap-2">
-                  <span
-                    v-for="facility in getBusDetails(bus).facilities.slice(0, 4)"
-                    :key="facility"
-                    class="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
-                  >
-                    {{ facility }}
-                  </span>
-                  <span v-if="getBusDetails(bus).facilities.length > 4" class="text-xs text-blue-600 cursor-pointer hover:underline">
-                    +{{ getBusDetails(bus).facilities.length - 4 }} khác
-                  </span>
+                <div class="flex items-baseline space-x-1">
+                  <span class="text-2xl font-bold text-purple-600">{{ formatPriceShort(bus.price) }}</span>
+                  <span class="text-sm text-gray-500">VNĐ</span>
                 </div>
+                <p class="text-xs text-gray-400">mỗi người</p>
               </div>
-
-              <!-- Pickup Points với mobile optimization -->
-              <div>
-                <h4 class="font-medium text-gray-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
-                  <i class="fas fa-map-marker-alt mr-2 text-green-500"></i>
-                  Điểm đón
-                </h4>
-                <div class="space-y-1">
-                  <p
-                    v-for="point in getBusDetails(bus).pickupPoints.slice(0, 2)"
-                    :key="point"
-                    class="text-xs sm:text-sm text-gray-600 truncate"
-                  >
-                    • {{ point }}
-                  </p>
-                  <p class="text-xs text-blue-600 cursor-pointer hover:underline">
-                    + {{ getBusDetails(bus).pickupPoints.length - 2 }} điểm khác
-                  </p>
-                </div>
-              </div>
-
-              <!-- Policies với responsive layout -->
-              <div class="sm:col-span-2 lg:col-span-1">
-                <h4 class="font-medium text-gray-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
-                  <i class="fas fa-info-circle mr-2 text-orange-500"></i>
-                  Chính sách
-                </h4>
-                <div class="space-y-1">
-                  <p
-                    v-for="policy in getBusDetails(bus).policies.slice(0, 2)"
-                    :key="policy"
-                    class="text-xs sm:text-sm text-gray-600"
-                  >
-                    • {{ policy }}
-                  </p>
-                  <p class="text-xs text-blue-600 cursor-pointer hover:underline">
-                    Xem thêm chính sách
-                  </p>
-                </div>
-              </div>
+              
+              <button class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 focus:ring-2 focus:ring-purple-500 focus:ring-offset-1">
+                <i class="fas fa-ticket-alt mr-1"></i>
+                Chọn
+              </button>
             </div>
           </div>
+        </div>
 
-          <!-- Enhanced Premium Features cho sleeping bus -->
-          <div v-if="busType === 'sleeping-bus'" class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
-            <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-3 sm:p-4">
-              <h4 class="font-medium text-gray-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
-                <i class="fas fa-crown mr-2 text-purple-600"></i>
-                Dịch vụ cao cấp
-              </h4>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs">
-                <div class="flex items-center">
-                  <i class="fas fa-bed mr-1 text-purple-600"></i>
-                  <span class="truncate">Giường nằm thương gia</span>
-                </div>
-                <div class="flex items-center">
-                  <i class="fas fa-utensils mr-1 text-orange-600"></i>
-                  <span class="truncate">Suất ăn miễn phí</span>
-                </div>
-                <div class="flex items-center">
-                  <i class="fas fa-blanket mr-1 text-blue-600"></i>
-                  <span class="truncate">Chăn gối cao cấp</span>
-                </div>
-                <div class="flex items-center">
-                  <i class="fas fa-headphones mr-1 text-green-600"></i>
-                  <span class="truncate">Hệ thống giải trí</span>
-                </div>
-              </div>
+        <!-- Quick Info Footer -->
+        <div class="px-4 pb-4">
+          <div class="flex justify-between items-center text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+            <div class="flex items-center space-x-2">
+              <i class="fas fa-info-circle text-blue-500"></i>
+              <span>{{ busType === 'sleeping-bus' ? 'Chọn ghế trước khi đặt' : 'Đặt vé ngay' }}</span>
             </div>
-          </div>
-
-          <!-- Enhanced Quick Actions với responsive layout -->
-          <div class="mt-4 sm:mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 text-sm">
-            <div class="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4">
-              <button class="text-blue-600 hover:text-blue-800 flex items-center transition-colors">
-                <i class="fas fa-map mr-1 text-xs"></i>
-                <span class="text-xs sm:text-sm">Xem lộ trình</span>
-              </button>
-              <button class="text-blue-600 hover:text-blue-800 flex items-center transition-colors">
-                <i class="fas fa-comments mr-1 text-xs"></i>
-                <span class="text-xs sm:text-sm">Đánh giá ({{ getBusDetails(bus).totalReviews }})</span>
-              </button>
-              <button class="text-blue-600 hover:text-blue-800 flex items-center transition-colors">
-                <i class="fas fa-share mr-1 text-xs"></i>
-                <span class="text-xs sm:text-sm">Chia sẻ</span>
-              </button>
-            </div>
-            <div class="text-gray-500 text-center sm:text-right">
-              <span class="text-xs sm:text-sm">Mã chuyến: BUS{{ bus.id.toString().padStart(6, '0') }}</span>
+            <div class="flex items-center space-x-1">
+              <i class="fas fa-eye text-gray-400"></i>
+              <span>{{ getBusDetails(bus).totalReviews }} lượt xem</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Enhanced No Results với responsive layout -->
-    <div v-if="results.length === 0" class="text-center py-8 sm:py-12">
-      <i class="fas fa-search text-4xl sm:text-6xl text-gray-300 mb-3 sm:mb-4"></i>
-      <h3 class="text-lg sm:text-xl font-medium text-gray-600 mb-2">
-        Không tìm thấy chuyến xe phù hợp
-      </h3>
-      <p class="text-sm sm:text-base text-gray-500">
-        Vui lòng thử thay đổi điều kiện tìm kiếm
-      </p>
+    <!-- Load More Button -->
+    <div v-if="results.length > 0" class="text-center pt-6">
+      <button class="px-6 py-3 border border-purple-600 text-purple-600 font-semibold rounded-lg hover:bg-purple-50 transition-all duration-200">
+        <i class="fas fa-plus mr-2"></i>
+        Xem thêm chuyến xe
+      </button>
+    </div>
+
+    <!-- Empty State -->
+    <div v-if="results.length === 0" class="text-center py-12">
+      <div class="max-w-sm mx-auto">
+        <div class="bg-gray-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-search text-3xl text-gray-400"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Không tìm thấy chuyến xe</h3>
+        <p class="text-gray-600 mb-6">Thử thay đổi điều kiện tìm kiếm hoặc ngày khởi hành khác</p>
+        <button class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          Tìm kiếm lại
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Add any additional styling if needed */
+/* Enhanced Card Hover Effects */
+.group:hover .bg-gradient-to-t {
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent, transparent);
+}
+
+/* Smooth image transitions */
+img {
+  transition: transform 0.3s ease;
+}
+
+/* Enhanced focus states */
+button:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .xl\:grid-cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style> 

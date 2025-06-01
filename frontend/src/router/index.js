@@ -6,6 +6,7 @@ import Bus from "../views/Bus.vue";
 import Plane from "../views/Plane.vue";
 import Hotel from "../views/Hotel.vue";
 import TourDetail from "../views/TourDetail.vue";
+import BookingPage from "../views/BookingPage.vue";
 
 const routes = [
   { path: "/", name: "Home", component: Home },
@@ -18,6 +19,11 @@ const routes = [
     name: "TourDetail",
     component: TourDetail,
     props: true,
+  },
+  {
+    path: "/booking",
+    name: "BookingPage",
+    component: BookingPage
   },
 ];
 

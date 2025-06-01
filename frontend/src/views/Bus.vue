@@ -1,16 +1,17 @@
 <script setup>
 import { ref, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import BusSearchForm from '../components/Bus/BusSearchForm.vue'
 import BusResultList from '../components/Bus/BusResultList.vue'
-import BusBooking from '../components/Bus/BusBooking.vue'
 import BusSeatSelection from '../components/Bus/BusSeatSelection.vue'
+
+const router = useRouter()
 
 // State management
 const activeTab = ref('sleeping-bus') // 'sleeping-bus' hoặc 'shuttle-bus'
 const searchResults = ref([])
 const showResults = ref(false)
 const selectedBus = ref(null)
-const showBooking = ref(false)
 const showSeatSelection = ref(false)
 
 // Scroll position management để fix lỗi scroll reset
@@ -93,7 +94,6 @@ const handleSearch = (searchData) => {
   
   searchResults.value = mockResults
   showResults.value = true
-  showBooking.value = false
   showSeatSelection.value = false
 }
 
@@ -113,12 +113,20 @@ const handleSelectBus = (bus) => {
     document.body.style.width = '100%'
     
     showSeatSelection.value = true
-    showBooking.value = false
   } else {
     // Xe trung chuyển đi thẳng đến trang đặt vé (không cần chọn ghế)
-    showBooking.value = true
-    showSeatSelection.value = false
-    showResults.value = false // Ẩn results để hiển thị booking page
+    // Lưu dữ liệu để truyền sang trang booking
+    localStorage.setItem('selectedBus', JSON.stringify(bus))
+    localStorage.setItem('busType', activeTab.value)
+    
+    // Chuyển sang trang booking riêng
+    router.push({
+      name: 'BookingPage',
+      state: {
+        selectedBus: bus,
+        busType: activeTab.value
+      }
+    })
   }
 }
 
@@ -136,17 +144,17 @@ const handleSeatSelected = (seatData) => {
   document.body.style.top = ''
   document.body.style.width = ''
   
-  // Chuyển sang trang đặt vé
-  showSeatSelection.value = false
-  showBooking.value = true
-  showResults.value = false // Ẩn results để hiển thị booking page
+  // Lưu dữ liệu để truyền sang trang booking
+  localStorage.setItem('selectedBus', JSON.stringify(selectedBus.value))
+  localStorage.setItem('busType', activeTab.value)
   
-  // Scroll to top cho booking page
-  nextTick(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
+  // Chuyển sang trang booking riêng
+  router.push({
+    name: 'BookingPage',
+    state: {
+      selectedBus: selectedBus.value,
+      busType: activeTab.value
+    }
   })
 }
 
@@ -168,36 +176,6 @@ const handleCloseSeatSelection = () => {
       behavior: 'auto' // Instant restore, không cần smooth vì user mong đợi quay về vị trí cũ
     })
   })
-}
-
-const handleBackToResults = () => {
-  showBooking.value = false
-  showSeatSelection.value = false
-  showResults.value = true // Hiển thị lại results
-  selectedBus.value = null
-  
-  // Restore scroll nếu cần
-  if (document.body.style.overflow === 'hidden') {
-    document.body.style.overflow = ''
-    document.body.style.position = ''
-    document.body.style.top = ''
-    document.body.style.width = ''
-    
-    nextTick(() => {
-      window.scrollTo({
-        top: savedScrollPosition.value,
-        behavior: 'smooth'
-      })
-    })
-  } else {
-    // Scroll về vị trí search results
-    nextTick(() => {
-      window.scrollTo({
-        top: 300, // Scroll to results section
-        behavior: 'smooth'
-      })
-    })
-  }
 }
 </script>
 
@@ -314,7 +292,7 @@ const handleBackToResults = () => {
       </div>
 
       <!-- Enhanced Booking Form Section với responsive tối ưu -->
-      <div v-if="!showBooking && !showSeatSelection" class="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-md sm:shadow-lg lg:shadow-xl border border-gray-100 p-3 sm:p-4 lg:p-6 xl:p-8 mb-4 sm:mb-6 lg:mb-8 animate-slide-in-left">
+      <div v-if="!showSeatSelection" class="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-md sm:shadow-lg lg:shadow-xl border border-gray-100 p-3 sm:p-4 lg:p-6 xl:p-8 mb-4 sm:mb-6 lg:mb-8 animate-slide-in-left">
         <!-- Enhanced Tabs với mobile optimization hoàn toàn -->
         <div class="flex flex-col space-y-3 sm:space-y-4 lg:space-y-6 mb-4 sm:mb-6 lg:mb-8">
           <!-- Tabs container responsive -->
@@ -324,7 +302,7 @@ const handleBackToResults = () => {
                 <button
                   v-for="tab in tabs"
                   :key="tab.id"
-                  @click="activeTab = tab.id; searchResults = []; showResults = false; showBooking = false; showSeatSelection = false;"
+                  @click="activeTab = tab.id; searchResults = []; showResults = false; showSeatSelection = false;"
                   class="flex-1 sm:flex-none flex items-center justify-center space-x-1 sm:space-x-2 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 rounded-md sm:rounded-lg text-xs sm:text-sm lg:text-base font-semibold transition-all duration-300 transform hover:scale-105"
                   :class="activeTab === tab.id 
                     ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md sm:shadow-lg scale-105' 
@@ -358,7 +336,7 @@ const handleBackToResults = () => {
       </div>
 
       <!-- Search Results với enhanced responsive -->
-      <div v-if="showResults && !showBooking && !showSeatSelection" class="animate-fade-in">
+      <div v-if="showResults && !showSeatSelection" class="animate-fade-in">
         <div class="mb-3 sm:mb-4 lg:mb-6 flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
           <div class="text-center sm:text-left">
             <h3 class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800">Kết quả tìm kiếm</h3>
@@ -395,33 +373,9 @@ const handleBackToResults = () => {
         @close="handleCloseSeatSelection"
       />
 
-      <!-- Enhanced Booking Page với responsive design -->
-      <div v-if="showBooking && selectedBus" class="animate-slide-in-right">
-        <!-- Enhanced Breadcrumb cho mobile -->
-        <div class="mb-3 sm:mb-4 lg:mb-6 flex items-center space-x-2 text-sm text-gray-600">
-          <button @click="handleBackToResults" class="flex items-center space-x-1 hover:text-purple-600 transition-colors">
-            <i class="fas fa-arrow-left"></i>
-            <span>Quay lại</span>
-          </button>
-          <i class="fas fa-chevron-right text-xs"></i>
-          <span class="truncate">
-            {{ activeTab === 'sleeping-bus' ? 'Thông tin đặt vé - Giường nằm' : 'Thông tin đặt vé - Ghế ngồi' }}
-          </span>
-        </div>
-        
-        <!-- Enhanced container cho booking page -->
-        <div class="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-md sm:shadow-lg lg:shadow-xl border border-gray-100 overflow-hidden">
-          <BusBooking 
-            :selectedBus="selectedBus"
-            :busType="activeTab"
-            @back="handleBackToResults"
-          />
-        </div>
-      </div>
-
       <!-- Enhanced floating action button cho mobile -->
       <div class="fixed bottom-4 right-4 sm:hidden z-30">
-        <div v-if="!showBooking && !showSeatSelection" class="relative">
+        <div v-if="!showSeatSelection" class="relative">
           <button class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all duration-300 transform hover:scale-110">
             <i class="fas fa-search text-base sm:text-lg"></i>
           </button>

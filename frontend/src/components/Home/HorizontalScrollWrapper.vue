@@ -34,11 +34,10 @@ export default {
     },
     computed: {
         dotCount() {
-            const itemsPerPage = Math.floor(
-                (this.$refs.scrollContainer?.clientWidth || 900) / this.itemWidth
-            );
+            const containerWidth = this.$refs.scrollContainer?.clientWidth || window.innerWidth;
+            const itemsPerPage = Math.floor(containerWidth / this.itemWidth) || 1;
             return Math.ceil(this.itemCount / itemsPerPage);
-        },
+        }
     },
     methods: {
         applyFocusEffect() {
@@ -69,22 +68,45 @@ export default {
         },
         updateActiveDot() {
             const container = this.$refs.scrollContainer;
-            const itemsPerPage = Math.floor(container.clientWidth / this.itemWidth);
-            const dotWidth = itemsPerPage * this.itemWidth;
-            this.activeDot = Math.floor(container.scrollLeft / dotWidth);
+            const itemsPerPage = Math.floor(container.clientWidth / this.itemWidth) || 1;
+            const scrollLeft = container.scrollLeft;
+            const scrollPerPage = itemsPerPage * this.itemWidth;
+            const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+            if (scrollLeft >= maxScrollLeft - 1) {
+                this.activeDot = this.dotCount - 1;
+            } else {
+                this.activeDot = Math.floor(scrollLeft / scrollPerPage);
+            }
         },
         autoScroll() {
             const container = this.$refs.scrollContainer;
+            const itemsPerPage = Math.floor(container.clientWidth / this.itemWidth) || 1;
+            const scrollStep = itemsPerPage * this.itemWidth;
+
             const maxScrollLeft = container.scrollWidth - container.clientWidth;
-            let nextScrollLeft = container.scrollLeft + 400;
-            if (nextScrollLeft > maxScrollLeft) nextScrollLeft = 0;
-            container.scrollTo({ left: nextScrollLeft, behavior: "smooth" });
-            this.onScroll();
+            let nextScrollLeft = container.scrollLeft + scrollStep;
+
+            if (nextScrollLeft >= maxScrollLeft - 1) {
+                container.scrollTo({ left: maxScrollLeft, behavior: "smooth" });
+                this.activeDot = this.dotCount - 1;
+
+                setTimeout(() => {
+                    container.scrollTo({ left: 0, behavior: "smooth" });
+                    this.activeDot = 0;
+                }, 2000);
+            } else {
+                container.scrollTo({ left: nextScrollLeft, behavior: "smooth" });
+                this.activeDot = Math.floor(nextScrollLeft / scrollStep);
+            }
+
+            this.applyFocusEffect();
         },
         scrollToDot(index) {
             const container = this.$refs.scrollContainer;
-            const itemsPerPage = Math.floor(container.clientWidth / this.itemWidth);
+            const itemsPerPage = Math.floor(container.clientWidth / this.itemWidth) || 1;
             const scrollPos = index * itemsPerPage * this.itemWidth;
+
             container.scrollTo({ left: scrollPos, behavior: "smooth" });
             this.activeDot = index;
             this.restartAutoScroll();
@@ -92,7 +114,7 @@ export default {
         },
         startAutoScroll() {
             if (this.autoScrollTimer) return;
-            this.autoScrollTimer = setInterval(this.autoScroll, 4000);
+            this.autoScrollTimer = setInterval(this.autoScroll, 4500);
         },
         pauseAutoScroll() {
             clearInterval(this.autoScrollTimer);
@@ -106,7 +128,12 @@ export default {
     mounted() {
         this.startAutoScroll();
         this.$refs.scrollContainer.addEventListener('scroll', this.onScroll);
-        this.$nextTick(this.applyFocusEffect);
+
+        this.$nextTick(() => {
+            setTimeout(() => {
+                this.applyFocusEffect();
+            }, 200);
+        });
     },
     beforeUnmount() {
         this.pauseAutoScroll();

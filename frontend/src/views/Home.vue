@@ -1,7 +1,7 @@
 <template>
-  <div class="w-full min-h-screen text-lg md:text-xl relative" style="padding-top: 27px;">
+  <div class="w-full min-h-screen text-lg md:text-xl relative" style="padding-top: 23px;">
     <HeroSection />
-    <div class="absolute top-[0.2%] left-1/2 transform -translate-x-1/2 z-30 w-full px-4 max-w-7xl">
+    <div class="absolute top-[0.33%] left-1/2 transform -translate-x-1/2 z-30 w-full px-4 max-w-7xl">
       <SearchBarHome />
     </div>
     <SignatureSection />

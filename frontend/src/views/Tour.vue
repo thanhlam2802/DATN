@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from "vue";
-import SearchBar from "../components/SearchBar.vue";
-import SideBar from "../components/Sidebar.vue";
-import TourGrid from "../components/TourGrid.vue";
+import SearchBar from "../components/Tours/SearchBar.vue";
+import SideBar from "../components/Tours/Sidebar.vue";
+import TourGrid from "../components/Tours/TourGrid.vue";
 import { useGeolocation } from "../composables/useGeolocation";
 
 // Constants

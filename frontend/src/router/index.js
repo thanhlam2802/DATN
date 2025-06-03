@@ -4,7 +4,7 @@ import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
 import Bus from "@/views/Bus.vue";
 import Plane from "@/views/Plane.vue";
-import Hotel from "@/views/Hotel.vue";
+import Hotel from "@/views/hotel/Hotel.vue";
 import TourDetail from "@/views/TourDetail.vue";
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";

@@ -43,20 +43,40 @@ onBeforeUnmount(() => {
       <img src="https://storage.googleapis.com/a1aa/image/9358955a-d854-4fb1-1842-35be93c6eea2.jpg" alt="Logo"
         class="w-8 h-8" />
       <nav class="ml-8 flex space-x-6 text-sm font-medium text-gray-700">
-        <router-link to="/" class="select-none"
-          :class="{ 'text-blue-700 font-bold': $route.path === '/' }">Trending</router-link>
+        <router-link
+          to="/"
+          class="select-none"
+          :class="{ 'text-blue-700 font-bold': $route.path === '/' }"
+          >Trending</router-link
+        >
 
-        <router-link to="/car" class="select-none hover:text-gray-900"
-          :class="{ 'text-blue-700 font-bold': $route.path === '/car' }">Bus</router-link>
+        <router-link
+          to="/bus"
+          class="select-none hover:text-gray-900"
+          :class="{ 'text-blue-700 font-bold': $route.path === '/bus' }"
+          >Bus</router-link
+        >
 
-        <router-link to="/plane" class="select-none hover:text-gray-900"
-          :class="{ 'text-blue-700 font-bold': $route.path === '/plane' }">Flights</router-link>
+        <router-link
+          to="/plane"
+          class="select-none hover:text-gray-900"
+          :class="{ 'text-blue-700 font-bold': $route.path === '/plane' }"
+          >Flights</router-link
+        >
 
-        <router-link to="/hotel" class="select-none hover:text-gray-900"
-          :class="{ 'text-blue-700 font-bold': $route.path === '/hotel' }">Hotels</router-link>
+        <router-link
+          to="/hotel"
+          class="select-none hover:text-gray-900"
+          :class="{ 'text-blue-700 font-bold': $route.path === '/hotel' }"
+          >Hotels</router-link
+        >
 
-        <router-link to="/tour" class="select-none hover:text-gray-900"
-          :class="{ 'text-blue-700 font-bold': $route.path === '/tour' }">Tours</router-link>
+        <router-link
+          to="/tour"
+          class="select-none hover:text-gray-900"
+          :class="{ 'text-blue-700 font-bold': $route.path === '/tour' }"
+          >Tours</router-link
+        >
       </nav>
     </div>
 

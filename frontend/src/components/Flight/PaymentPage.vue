@@ -202,7 +202,7 @@
                 <!-- 🎉 Nút Confirm and Pay -->
                 <div class="flex justify-center">
                     <router-link to="/plane/getticket" @click="confirmAndPay"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-md">
+                        class="w-full block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-md">
                         Confirm and Pay
                     </router-link>
                 </div>

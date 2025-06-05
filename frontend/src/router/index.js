@@ -15,6 +15,7 @@ import AccountSecurity from "@/components/User/AccountSecurity.vue";
 import BookingPage from "@/views/BookingPage.vue";
 import NotificationSetting from "@/components/User/NotificationSetting.vue";
 import PayFlight from "@/components/Flight/PaymentPage.vue"
+import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue"
 import GetTicket from "@/components/Flight/TicketReceipt.vue"
 const routes = [
     {path: "/", name: "Home", component: Home},
@@ -24,6 +25,7 @@ const routes = [
     {path: "/hotel", name: "Hotel", component: Hotel},
     {path: "/plane/pay", name: "PayFlight", component: PayFlight},
     {path: "/plane/getticket", name: "Get ticket", component: GetTicket},
+    {path: "/plane/admin", name: "Get ticket", component: AdminFight},
     {
         path: "/tours/:id",
         name: "TourDetail",

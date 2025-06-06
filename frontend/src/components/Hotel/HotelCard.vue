@@ -8,18 +8,17 @@
 
         <div class="flex flex-1 justify-between">
             <div class="pr-8 flex-1">
-                <p class="text-sm text-gray-500 mb-2">{{ subtitle }}</p>
+                <p class="text-sm text-gray-500 mb-2">{{ location }}</p>
                 <h3 class="font-semibold text-xl mb-2 pt-2">{{ title }}</h3>
                 <p class="text-base text-gray-700 mb-2 pt-2">{{ details }}</p>
                 <p class="text-base text-gray-700 mb-2 pt-2">{{ amenities }}</p>
                 <div class="flex items-center mb-1 pt-2">
                     <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded text-sm">
-                        {{ rating }}/5
+                        {{ rating }}
                     </span>
                     <div class="ml-2 flex space-x-1 text-yellow-400 text-sm">
-                        <i v-for="n in starCounts.full" :key="'full-' + n" class="fas fa-star"></i>
-                        <i v-if="starCounts.half === 1" class="fas fa-star-half-alt"></i>
-                        <i v-for="n in starCounts.empty" :key="'empty-' + n" class="far fa-star text-gray-300"></i>
+                        <i v-for="n in Math.floor(ratingValue)" :key="'full-' + n" class="fas fa-star"></i>
+                        <i v-if="ratingValue % 1 >= 0.5" class="fas fa-star-half-alt"></i>
                     </div>
                 </div>
                 <span class="text-gray-400 text-sm block mb-2 pt-2">({{ reviews }} reviews)</span>
@@ -33,11 +32,14 @@
                 </button>
 
                 <div class="text-right mt-4">
-                    <span class="text-sm text-gray-400 line-through">{{ originalPrice }}</span>
-                    <div class="font-bold text-xl text-indigo-600">
-                        {{ price }}
-                        <span class="font-normal text-base">/night</span>
+                    <span class="text-sm text-gray-400 line-through">{{ formatCurrency(originalPrice) }}</span>
+                    <div class="font-bold text-lg text-indigo-600 whitespace-nowrap">
+                        {{ formatCurrency(price) }}<span class="font-normal text-sm ml-1">/đêm</span>
                     </div>
+                    <button
+                        class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        Chọn phòng
+                    </button>
                 </div>
             </div>
         </div>
@@ -45,30 +47,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 
 const ratingValue = computed(() => parseFloat(props.rating) || 0)
-
-const starCounts = computed(() => {
-    const full = Math.floor(ratingValue.value)
-    const half = ratingValue.value - full >= 0.5 ? 1 : 0
-    const empty = 5 - full - half
-    return { full, half, empty }
-})
 
 const props = defineProps({
     image: String,
     alt: String,
-    subtitle: String,
+    location: String,
     title: String,
     details: String,
     amenities: String,
     rating: String,
     reviews: String,
-    originalPrice: String,
-    price: String,
+    originalPrice: Number,
+    price: Number,
 })
 
 const isFavorited = ref(false)
@@ -77,4 +70,9 @@ const toggleFavorite = (event) => {
     isFavorited.value = !isFavorited.value
 }
 
+const formatCurrency = (value) => {
+    return value
+        ? new Intl.NumberFormat('vi-VN').format(value) + ' VND'
+        : '';
+}
 </script>

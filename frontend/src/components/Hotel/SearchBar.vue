@@ -1,65 +1,116 @@
 <template>
     <div
-        class="flex items-center gap-2 bg-white border border-gray-300 rounded-full shadow-md px-3 py-2 w-full max-w-lg mx-auto text-sm text-gray-800">
-        <div class="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-gray-100 cursor-pointer select-none">
-            <i class="fas fa-map-marker-alt text-indigo-500"></i>
-            <span class="font-medium">Hồ Chí Minh</span>
-            <button @click="getCurrentLocation" aria-label="Get current location"
-                class="ml-2 text-indigo-600 hover:text-indigo-800" title="Vị trí hiện tại">
-                <i class="fas fa-location-arrow"></i>
-            </button>
+        class="flex flex-wrap gap-3 bg-white border border-gray-300 rounded-full shadow-md px-6 py-5 w-full max-w-7xl mx-auto text-base text-gray-800">
+        <div class="relative flex-1 min-w-[180px]">
+            <div class="border border-gray-300 rounded-lg px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                @click="toggleLocationDropdown">
+                <div class="flex items-center gap-2 truncate">
+                    <i class="fas fa-map-marker-alt text-indigo-500"></i>
+                    <span class="font-medium truncate">{{ selectedLocation }}</span>
+                </div>
+                <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
+            </div>
+            <ul v-if="showLocationDropdown"
+                class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <li v-for="location in locations" :key="location" @click="selectLocation(location)"
+                    class="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                    {{ location }}
+                </li>
+            </ul>
         </div>
 
-        <span class="border-l h-6 border-gray-300"></span>
+        <span class="border-l h-6 border-gray-300 hidden sm:inline-block"></span>
 
-        <input type="date" v-model="date"
-            class="px-2 py-1 rounded-full border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            aria-label="Select date" />
+        <div class="flex gap-2 flex-wrap sm:flex-nowrap">
+            <div class="border border-gray-300 rounded-lg px-4 py-2 flex items-center gap-2">
+                <label class="text-gray-600 whitespace-nowrap">Nhận phòng:</label>
+                <input type="date" v-model="checkIn" :min="today"
+                    class="flex-1 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+            </div>
+            <div class="border border-gray-300 rounded-lg px-4 py-2 flex items-center gap-2">
+                <label class="text-gray-600 whitespace-nowrap">Trả phòng:</label>
+                <input type="date" v-model="checkOut" :min="minCheckOut"
+                    class="flex-1 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+            </div>
+        </div>
 
-        <span class="border-l h-6 border-gray-300"></span>
+        <span class="border-l h-6 border-gray-300 hidden sm:inline-block"></span>
 
-        <select v-model="guests"
-            class="px-2 py-1 rounded-full border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            aria-label="Select number of guests">
-            <option v-for="n in 10" :key="n" :value="n">{{ n }} người</option>
-        </select>
+        <div class="flex gap-2 flex-wrap sm:flex-nowrap">
+            <div class="border border-gray-300 rounded-lg px-4 py-2 flex items-center gap-2">
+                <label class="text-gray-600 whitespace-nowrap">Người lớn:</label>
+                <input type="number" v-model="adults" min="1"
+                    class="w-16 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+            </div>
+            <div class="border border-gray-300 rounded-lg px-4 py-2 flex items-center gap-2">
+                <label class="text-gray-600 whitespace-nowrap">Trẻ em:</label>
+                <input type="number" v-model="children" min="0"
+                    class="w-16 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+            </div>
+        </div>
 
         <button aria-label="Search"
-            class="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-7 py-2 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-8 py-3 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
             @click="onSearch">
-            <i class="fas fa-search text-sm"></i>
+            <i class="fas fa-search text-base"></i>
         </button>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-const date = ref('')
-const guests = ref(2)
+const selectedLocation = ref('Hồ Chí Minh')
+const showLocationDropdown = ref(false)
+const locations = [
+    'Hồ Chí Minh',
+    'Hà Nội',
+    'Đà Nẵng',
+    'Nha Trang',
+    'Cần Thơ',
+    'Vũng Tàu',
+    'Huế',
+    'Hội An'
+]
 
-function getCurrentLocation() {
-    if (!navigator.geolocation) {
-        alert('Trình duyệt của bạn không hỗ trợ vị trí.')
-        return
+const today = new Date().toISOString().split('T')[0]
+const checkIn = ref(today)
+const checkOut = ref('')
+const adults = ref(1)
+const children = ref(0)
+
+const minCheckOut = computed(() => {
+    if (checkIn.value) {
+        const date = new Date(checkIn.value)
+        date.setDate(date.getDate() + 1)
+        return date.toISOString().split('T')[0]
     }
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            console.log('Vị trí hiện tại:', position.coords.latitude, position.coords.longitude)
-            alert(`Vị trí hiện tại: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`)
-        },
-        (error) => {
-            alert('Không thể lấy vị trí hiện tại: ' + error.message)
-        }
-    )
+    return today
+})
+
+function toggleLocationDropdown() {
+    showLocationDropdown.value = !showLocationDropdown.value
+}
+
+function selectLocation(location) {
+    selectedLocation.value = location
+    showLocationDropdown.value = false
 }
 
 function onSearch() {
-    alert(`Tìm kiếm: Địa điểm = Hồ Chí Minh, Ngày = ${date.value}, Số người = ${guests.value}`)
+    alert(`Tìm kiếm:
+  - Địa điểm: ${selectedLocation.value}
+  - Nhận phòng: ${checkIn.value}
+  - Trả phòng: ${checkOut.value}
+  - Người lớn: ${adults.value}
+  - Trẻ em: ${children.value}`)
 }
 </script>
 
 <style scoped>
-/* Nếu bạn muốn input và select đồng bộ height, border-radius: full và padding giống nhau */
-/* Có thể tùy chỉnh thêm */
+@media (max-width: 640px) {
+    .border-l {
+        display: none !important;
+    }
+}
 </style>

@@ -3,8 +3,10 @@ import { createRouter, createWebHistory } from "vue-router";
 import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
 import Bus from "@/views/Bus.vue";
-import Plane from "@/views/Plane.vue";
+
+import Plane from "@/components/Flight/FlightHome.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
+
 import TourDetail from "@/views/TourDetail.vue";
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
@@ -14,6 +16,10 @@ import PaymentDetails from "@/components/User/PaymentDetails.vue";
 import AccountSecurity from "@/components/User/AccountSecurity.vue";
 import BookingPage from "@/views/BookingPage.vue";
 import NotificationSetting from "@/components/User/NotificationSetting.vue";
+
+import PayFlight from "@/components/Flight/PaymentPage.vue";
+import GetTicket from "@/components/Flight/TicketReceipt.vue";
+
 import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
@@ -24,6 +30,10 @@ const routes = [
   { path: "/tour", name: "Tour", component: Tour },
   { path: "/bus", name: "Bus", component: Bus },
   { path: "/plane", name: "Plane", component: Plane },
+
+  { path: "/plane/pay", name: "PayFlight", component: PayFlight },
+  { path: "/plane/getticket", name: "Get ticket", component: GetTicket },
+
   {
     path: "/hotel",
     name: "Hotel",
@@ -53,6 +63,7 @@ const routes = [
       },
     ],
   },
+
   {
     path: "/tours/:id",
     name: "TourDetail",

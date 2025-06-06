@@ -25,16 +25,11 @@
 <script setup>
 import {ref} from 'vue'
 import EmailNotificationSetting from '@/components/User/components/EmailNotificationSetting.vue'
-
-// Example dummy component for SMS (optional)
-const SMSPlaceholder = {
-  template: '<p>SMS notification settings content goes here.</p>',
-}
+import SmsNotificationSetting from "@/components/User/components/SmsNotificationSetting.vue";
 
 const tabs = [
   {label: 'Email', component: EmailNotificationSetting},
-  {label: 'SMS', component: SMSPlaceholder},
+  {label: 'SMS', component: SmsNotificationSetting},
 ]
-
 const activeTab = ref(0)
 </script>

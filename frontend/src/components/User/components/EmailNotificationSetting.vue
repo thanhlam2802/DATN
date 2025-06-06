@@ -8,7 +8,7 @@
           <div class="flex items-center justify-between" v-for="option in item.options" :key="option.title">
             <p>{{ option.title }}</p>
             <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" class="sr-only peer" v-model="is2FAEnabled"/>
+              <input type="checkbox" class="sr-only peer" v-model="option.enable"/>
               <div
                   class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-green-600 transition-colors duration-300">
               </div>
@@ -25,6 +25,12 @@
 
 
 <script>
+import { useI18n } from 'vue-i18n'
+
+const { messages, locale } = useI18n()
+
+const currentMessages = messages[locale.value]
+console.log("curr",currentMessages)
 export default {
   name: "EmailNotificationSetting",
   data() {
@@ -35,7 +41,7 @@ export default {
           options: [
             {
               title: "Thông báo giá",
-              enable: true,
+              enable: false,
               id: 1
             },
             {
@@ -50,7 +56,7 @@ export default {
           options: [
             {
               title: "Lời nhắc đưa ra nhận xét",
-              enable: true,
+              enable: false,
               id: 1
             },
             {

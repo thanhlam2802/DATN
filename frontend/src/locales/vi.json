@@ -3,19 +3,95 @@
     "EMAIL": [
       {
         "title": "Khuyến mãi và ưu đãi",
-        "options": [{
-          "title": "Thông báo giá",
-          "type": "PRICE"
-        }]
+        "options": [
+          {
+            "title": "Thông báo giá",
+            "description": "Giá đã thay đổi trên các mục đã lưu.",
+            "type": "PRICE"
+          },
+          {
+            "title": "Thông báo khuyến mãi",
+            "description": "Nhận thông tin về các chương trình khuyến mãi và mã giảm giá.",
+            "type": "PROMOTION"
+          }
+        ]
+      },
+      {
+        "title": "Phản  hồi",
+        "options": [
+          {
+            "title": "Lời đưa ra nhận xét",
+            "description": "Nhắc nhở để đánh giá hoặc phản hồi về trải nghiệm gần đây.",
+            "type": "PRICE"
+          },
+          {
+            "title": "Khảo sát",
+            "description": "Cập nhật khảo sát để giúp cải thiện dịch vụ.",
+            "type": "SURVEY"
+          }
+        ]
+      },
+      {
+        "title": "Tài khoản và đặt chỗ",
+        "options": [
+          {
+            "title": "Đặt chỗ",
+            "description": "Thông báo về xác nhận và thay đổi đặt chỗ.",
+            "type": "BOOKING"
+          },
+          {
+            "title": "Nhật ký hoạt động",
+            "description": "Thông báo về các hoạt động mới liên quan đến tài khoản.",
+            "type": "ACTIVITY"
+          }
+        ]
       }
     ],
-    "SMS":  [
+    "SMS": [
       {
         "title": "Khuyến mãi và ưu đãi",
-        "options": [{
-          "title": "Thông báo giá",
-          "type": "PRICE"
-        }]
+        "options": [
+          {
+            "title": "Thông báo giá",
+            "description": "Giá đã thay đổi trên các mục đã lưu.",
+            "type": "PRICE"
+          },
+          {
+            "title": "Thông báo khuyến mãi",
+            "description": "Nhận thông tin về các chương trình khuyến mãi và mã giảm giá.",
+            "type": "PROMOTION"
+          }
+        ]
+      },
+      {
+        "title": "Phản  hồi",
+        "options": [
+          {
+            "title": "Lời đưa ra nhận xét",
+            "description": "Nhắc nhở để đánh giá hoặc phản hồi về trải nghiệm gần đây.",
+            "type": "PRICE"
+          },
+          {
+            "title": "Khảo sát",
+            "description": "Cập nhật khảo sát để giúp cải thiện dịch vụ.",
+            "type": "SURVEY"
+          }
+        ]
+      },
+      {
+        "title": "Tài khoản và đặt chỗ",
+        "options": [
+          {
+            "title": "Đặt chỗ",
+            "description": "Thông báo về xác nhận và thay đổi đặt chỗ.",
+            "type": "BOOKING"
+          },
+          {
+            "title": "Nhật ký hoạt động",
+            "description": "Thông báo về các hoạt động mới liên quan đến tài khoản.",
+            "type": "ACTIVITY"
+          }
+        ]
       }
     ]
   }

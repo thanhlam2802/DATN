@@ -1,5 +1,4 @@
 {
-  "appName": "",
   "notificationSettings": {
     "EMAIL": [
       {
@@ -10,8 +9,14 @@
         }]
       }
     ],
-    "SMS": {
-
-    }
+    "SMS":  [
+      {
+        "title": "Khuyến mãi và ưu đãi",
+        "options": [{
+          "title": "Thông báo giá",
+          "type": "PRICE"
+        }]
+      }
+    ]
   }
 }

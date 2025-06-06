@@ -5,10 +5,14 @@
           class="flex flex-col p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition mb-5">
         <h2 class="font-semibold text-gray-800 mb-4">{{ item.title }}</h2>
         <div class="flex flex-col gap-2">
-          <div class="flex items-center justify-between" v-for="option in item.options" :key="option.title">
+          <div
+              class="flex items-center justify-between"
+              v-for="option in item.options"
+              :key="option.title"
+          >
             <p>{{ option.title }}</p>
             <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" class="sr-only peer" v-model="option.enable"/>
+              <input type="checkbox" class="sr-only peer" v-model="option.enable" />
               <div
                   class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-green-600 transition-colors duration-300">
               </div>
@@ -23,71 +27,79 @@
   </div>
 </template>
 
-
 <script>
-import { useI18n } from 'vue-i18n'
-
-const { messages, locale } = useI18n()
-
-const currentMessages = messages[locale.value]
-console.log("curr",currentMessages)
 export default {
   name: "EmailNotificationSetting",
   data() {
     return {
-      notificationSections: [
-        {
-          title: "Khuyến mãi và ưu đãi",
-          options: [
-            {
-              title: "Thông báo giá",
-              enable: false,
-              id: 1
-            },
-            {
-              title: "Thông báo khuyến mãi",
-              enable: true,
-              id: 2
-            }
-          ]
-        },
-        {
-          title: "Phản hôi",
-          options: [
-            {
-              title: "Lời nhắc đưa ra nhận xét",
-              enable: false,
-              id: 1
-            },
-            {
-              title: "Khảo sát",
-              enable: true,
-              id: 2
-            }
-          ]
-        },
-        {
-          title: "Tài khoản và đặt chỗ",
-          options: [
-            {
-              title: "Nhật ký hoạt động",
-              enable: true,
-              id: 1
-            },
-            {
-              title: "Đặt chỗ",
-              enable: true,
-              id: 2
-            },
-            {
-              title: "Phần thưởng và chương trình thành viên thân thiết",
-              enable: true,
-              id: 3
-            }
-          ]
-        }
-      ]
+      notificationSections: [],
     };
+  },
+  created() {
+    this.initializeSections();
+  },
+  watch: {
+    // Reinitialize sections when locale changes
+    '$i18n.locale'() {
+      this.initializeSections();
+    }
+  },
+  methods: {
+    initializeSections() {
+      console.log(this.$t)
+      this.notificationSections = [
+        {
+          title: this.$t("notifications.promotion"),
+          options: [
+            {
+              title: this.$t("notifications.priceAlert"),
+              enable: false,
+              id: 1,
+            },
+            {
+              title: this.$t("notifications.promoAlert"),
+              enable: true,
+              id: 2,
+            },
+          ],
+        },
+        {
+          title: this.$t("notifications.feedback"),
+          options: [
+            {
+              title: this.$t("notifications.reviewReminder"),
+              enable: false,
+              id: 1,
+            },
+            {
+              title: this.$t("notifications.survey"),
+              enable: true,
+              id: 2,
+            },
+          ],
+        },
+        {
+          title: this.$t("notifications.accountBooking"),
+          options: [
+            {
+              title: this.$t("notifications.activityLog"),
+              enable: true,
+              id: 1,
+            },
+            {
+              title: this.$t("notifications.booking"),
+              enable: true,
+              id: 2,
+            },
+            {
+              title: this.$t("notifications.rewards"),
+              enable: true,
+              id: 3,
+            },
+          ],
+        },
+      ];
+    },
   },
 };
 </script>

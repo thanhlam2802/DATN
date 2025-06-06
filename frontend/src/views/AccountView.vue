@@ -18,7 +18,8 @@
 </template>
 
 <script>
-import AccountSidebar from "@/components/user/AccountSidebar.vue";
+
+import AccountSidebar from "@/components/User/AccountSidebar.vue";
 
 export default {
   name: "AccountView",

@@ -27,7 +27,6 @@ import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
 
 
-
 const routes = [
     {path: "/", name: "Home", component: Home},
     {path: "/tour", name: "Tour", component: Tour},
@@ -36,41 +35,36 @@ const routes = [
 
     {path: "/plane/pay", name: "PayFlight", component: PayFlight},
     {path: "/plane/getticket", name: "Get ticket", component: GetTicket},
-<<<<<<< HEAD
     {path: "/plane/admin", name: "Get ticket", component: AdminFight},
-=======
-
     {
-    path: "/hotel",
-    name: "Hotel",
-    component: Hotel,
-    children: [
-      {
-        path: '',
-        name: 'HotelListing',
-        component: HotelListingPage,
-      },
-      {
-        path: ':id',
-        name: 'HotelDetail',
-        component: HotelDetail,
-        props: true,
-      },
-      {
-        path: ':id/booking',
-        name: 'HotelBooking',
-        component: HotelBooking,
-        props: true,
-      },
-      {
-        path: ':id/booking/success',
-        name: 'BookingSuccess',
-        component: BookingSuccess,
-      }
-    ],
-  },
-
->>>>>>> 3abe751fdf1f1188774e80d14f8973404d96db28
+        path: "/hotel",
+        name: "Hotel",
+        component: Hotel,
+        children: [
+            {
+                path: '',
+                name: 'HotelListing',
+                component: HotelListingPage,
+            },
+            {
+                path: ':id',
+                name: 'HotelDetail',
+                component: HotelDetail,
+                props: true,
+            },
+            {
+                path: ':id/booking',
+                name: 'HotelBooking',
+                component: HotelBooking,
+                props: true,
+            },
+            {
+                path: ':id/booking/success',
+                name: 'BookingSuccess',
+                component: BookingSuccess,
+            }
+        ],
+    },
     {
         path: "/tours/:id",
         name: "TourDetail",

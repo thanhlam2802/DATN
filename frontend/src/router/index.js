@@ -1,4 +1,4 @@
-import {createRouter, createWebHistory} from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
 import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
@@ -25,22 +25,30 @@ import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
-
+import AdminLayout from "@/components/HotelAdmin/AdminLayout.vue";
+import Dashboard from "@/views/hotel/admin/Dashboard.vue";
 
 
 const routes = [
-    {path: "/", name: "Home", component: Home},
-    {path: "/tour", name: "Tour", component: Tour},
-    {path: "/bus", name: "Bus", component: Bus},
-    {path: "/plane", name: "Plane", component: Plane},
+  { path: "/", name: "Home", component: Home },
+  { path: "/tour", name: "Tour", component: Tour },
+  { path: "/bus", name: "Bus", component: Bus },
+  { path: "/plane", name: "Plane", component: Plane },
 
-    {path: "/plane/pay", name: "PayFlight", component: PayFlight},
-    {path: "/plane/getticket", name: "Get ticket", component: GetTicket},
-<<<<<<< HEAD
-    {path: "/plane/admin", name: "Get ticket", component: AdminFight},
-=======
+  { path: "/plane/pay", name: "PayFlight", component: PayFlight },
+  { path: "/plane/getticket", name: "Get ticket", component: GetTicket },
+  { path: "/plane/admin", name: "Get ticket", component: AdminFight },
 
-    {
+  {
+    path: '/hotel/admin',
+    component: AdminLayout,
+    children: [
+      { path: 'dashboard', component: Dashboard },
+      { path: '', redirect: '/dashboard' }
+    ]
+  },
+
+  {
     path: "/hotel",
     name: "Hotel",
     component: Hotel,
@@ -70,37 +78,36 @@ const routes = [
     ],
   },
 
->>>>>>> 3abe751fdf1f1188774e80d14f8973404d96db28
-    {
-        path: "/tours/:id",
-        name: "TourDetail",
-        component: TourDetail,
-        props: true,
-    },
-    {path: '/login', name: 'Login', component: Login},
-    {path: '/register', name: 'Register', component: Register},
-    {path: '/account', name: 'Account', component: AccountView},
-    {
-        path: '/account',
-        component: AccountView,
-        children: [
-            {path: '', redirect: 'personal'},
-            {path: 'personal', component: AccountDetails},
-            {path: 'payment', component: PaymentDetails},
-            {path: 'security', component: AccountSecurity},
-            {path: 'notifications', component: NotificationSetting},
-        ]
-    },
-    {
-        path: "/booking",
-        name: "BookingPage",
-        component: BookingPage
-    },
+  {
+    path: "/tours/:id",
+    name: "TourDetail",
+    component: TourDetail,
+    props: true,
+  },
+  { path: '/login', name: 'Login', component: Login },
+  { path: '/register', name: 'Register', component: Register },
+  { path: '/account', name: 'Account', component: AccountView },
+  {
+    path: '/account',
+    component: AccountView,
+    children: [
+      { path: '', redirect: 'personal' },
+      { path: 'personal', component: AccountDetails },
+      { path: 'payment', component: PaymentDetails },
+      { path: 'security', component: AccountSecurity },
+      { path: 'notifications', component: NotificationSetting },
+    ]
+  },
+  {
+    path: "/booking",
+    name: "BookingPage",
+    component: BookingPage
+  },
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 });
 
 export default router;

@@ -43,6 +43,16 @@
           :class="{ 'text-blue-700 font-bold': $route.path === '/tour' }"
           >Tours</router-link
         >
+
+        <!-- this part we will check if the user is busUser -->
+        <!-- <router-link
+          to="/bus-management"
+          class="select-none hover:text-gray-900 bg-blue-50 px-3 py-1 rounded-md border border-blue-200"
+          :class="{ 'text-blue-700 font-bold bg-blue-100': $route.path === '/bus-management' }"
+          >
+          <i class="fas fa-cogs mr-1"></i>
+          Quản Lý Bus
+        </router-link> -->
       </nav>
     </div>
 

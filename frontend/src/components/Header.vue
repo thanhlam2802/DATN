@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import UserMenu from './User/UserMenu.vue';
-import NotificationMenu from './User/Notification.vue';
+import NotificationMenu from './User/NotificationPopup.vue';
 
 const isUserMenuVisible = ref(false);
 const isNotificationVisible = ref(false);

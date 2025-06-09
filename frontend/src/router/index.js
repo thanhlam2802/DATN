@@ -32,6 +32,10 @@ import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
+
+import AdminLayout from "@/components/HotelAdmin/AdminLayout.vue";
+import Dashboard from "@/views/hotel/admin/Dashboard.vue";
+
 import TourManager from "../layouts/TourManager.vue";
 const routes = [
 
@@ -40,11 +44,33 @@ const routes = [
   { path: "/bus", name: "Bus", component: Bus },
   { path: "/plane", name: "Plane", component: Plane },
 
+
   { path: "/plane/pay", name: "PayFlight", component: PayFlight },
   { path: "/plane/getticket", name: "Get ticket", component: GetTicket },
 
+
+const routes = [
+  { path: "/", name: "Home", component: Home },
+  { path: "/tour", name: "Tour", component: Tour },
+  { path: "/bus", name: "Bus", component: Bus },
+  { path: "/plane", name: "Plane", component: Plane },
+
+  { path: "/plane/pay", name: "PayFlight", component: PayFlight },
+  { path: "/plane/getticket", name: "Get ticket", component: GetTicket },
+  { path: "/plane/admin", name: "Get ticket", component: AdminFight },
+
+  {
+    path: '/hotel/admin',
+    component: AdminLayout,
+    children: [
+      { path: 'dashboard', component: Dashboard },
+      { path: '', redirect: '/dashboard' }
+    ]
+  },
+
   { path: "/plane/admin", name: "Get ticket", component: AdminFight },
   { path: "/Tour/admin", name: "TourManager", component: TourManager },
+
   {
     path: "/hotel",
     name: "Hotel",
@@ -74,6 +100,7 @@ const routes = [
       },
     ],
   },
+
 
 
   {
@@ -124,12 +151,28 @@ const routes = [
     component: BookingPage,
   },
 
+
   {
     path: "/tours/:id",
     name: "TourDetail",
     component: TourDetail,
     props: true,
   },
+
+  { path: '/login', name: 'Login', component: Login },
+  { path: '/register', name: 'Register', component: Register },
+  { path: '/account', name: 'Account', component: AccountView },
+  {
+    path: '/account',
+    component: AccountView,
+    children: [
+      { path: '', redirect: 'personal' },
+      { path: 'personal', component: AccountDetails },
+      { path: 'payment', component: PaymentDetails },
+      { path: 'security', component: AccountSecurity },
+      { path: 'notifications', component: NotificationSetting },
+    ]
+
   { path: "/login", name: "Login", component: Login },
   { path: "/register", name: "Register", component: Register },
   { path: "/account", name: "Account", component: AccountView },
@@ -143,11 +186,14 @@ const routes = [
       { path: "security", component: AccountSecurity },
       { path: "notifications", component: NotificationSetting },
     ],
+
   },
   {
     path: "/booking",
     name: "BookingPage",
+
     component: BookingPage,
+
 
   },
 ];

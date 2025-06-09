@@ -48,8 +48,8 @@ const routes = [
   { path: "/plane/pay", name: "PayFlight", component: PayFlight },
   { path: "/plane/getticket", name: "Get ticket", component: GetTicket },
 
-
 const routes = [
+
   { path: "/", name: "Home", component: Home },
   { path: "/tour", name: "Tour", component: Tour },
   { path: "/bus", name: "Bus", component: Bus },

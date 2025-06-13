@@ -202,13 +202,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Mô tả <span class="text-red-500">*</span>
           </label>
-          <textarea
-            v-model="tourForm.mo_ta"
-            required
-            rows="4"
-            :disabled="isViewMode"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-          ></textarea>
+          <Ckeditor v-model="tourForm.mo_ta" :disabled="isViewMode" />
         </div>
       </div>
 
@@ -397,7 +391,7 @@
 
 <script setup>
 import { ref, watch, computed, onUnmounted, onMounted } from "vue";
-
+import Ckeditor from "../components/Ckeditor.vue";
 const props = defineProps({
   tourData: {
     type: Object,
@@ -662,7 +656,52 @@ const removeDepartureDate = (index) => {
 };
 
 const handleSubmit = () => {
-  emit("submit", tourForm.value);
+  // Validate required fields
+  if (
+    !tourForm.value.ten_tour ||
+    !tourForm.value.mo_ta ||
+    !tourForm.value.gia ||
+    !tourForm.value.thoi_gian ||
+    !tourForm.value.diem_khoi_hanh ||
+    !tourForm.value.diem_den
+  ) {
+    alert("Vui lòng điền đầy đủ thông tin bắt buộc");
+    return;
+  }
+
+  // Validate at least one schedule day
+  if (tourForm.value.lich_trinh.length === 0) {
+    alert("Vui lòng thêm ít nhất một ngày trong lịch trình");
+    return;
+  }
+
+  // Validate at least one departure date
+  if (tourForm.value.ngay_khoi_hanh.length === 0) {
+    alert("Vui lòng thêm ít nhất một ngày khởi hành");
+    return;
+  }
+
+  // Format the data
+  const formattedData = {
+    ...tourForm.value,
+    gia: Number(tourForm.value.gia),
+    hinh_anh: tourForm.value.hinh_anh.map((img) => {
+      if (img instanceof File) {
+        return URL.createObjectURL(img);
+      }
+      return img;
+    }),
+    ngay_khoi_hanh: tourForm.value.ngay_khoi_hanh.map((date) => ({
+      ...date,
+      gia_nguoi_lon: Number(date.gia_nguoi_lon),
+      gia_tre_em: Number(date.gia_tre_em),
+      giam_gia: Number(date.giam_gia || 0),
+      so_cho: Number(date.so_cho),
+      so_cho_da_dat: Number(date.so_cho_da_dat || 0),
+    })),
+  };
+
+  emit("submit", formattedData);
 };
 
 const handleCancel = () => {

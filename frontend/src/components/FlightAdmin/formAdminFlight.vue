@@ -434,7 +434,6 @@
               </div>
             </div>
 
-            <!-- Nút thêm hạng ghế -->
             <div class="mb-6">
               <button
                 type="button"

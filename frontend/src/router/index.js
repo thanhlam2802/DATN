@@ -41,7 +41,35 @@ const routes = [
       { path: "tour", name: "Tour", component: Tour },
       { path: "bus", name: "Bus", component: Bus },
       { path: "plane", name: "Plane", component: Plane },
-      { path: "hotel", name: "Hotel", component: Hotel },
+      {
+        path: "hotel",
+        name: "Hotel",
+        component: Hotel,
+        children: [
+          {
+            path: "",
+            name: "HotelListing",
+            component: HotelListingPage,
+          },
+          {
+            path: ":id",
+            name: "HotelDetail",
+            component: HotelDetail,
+            props: true,
+          },
+          {
+            path: ":id/booking",
+            name: "HotelBooking",
+            component: HotelBooking,
+            props: true,
+          },
+          {
+            path: ":id/booking/success",
+            name: "BookingSuccess",
+            component: BookingSuccess,
+          },
+        ],
+      },
       {
         path: "tours/:id",
         name: "TourDetail",
@@ -90,35 +118,6 @@ const routes = [
     children: [
       { path: "dashboard", component: Dashboard },
       { path: "", redirect: "/hotel/admin/dashboard" },
-    ],
-  },
-
-  {
-    path: "/hotel",
-    component: Hotel,
-    children: [
-      {
-        path: "",
-        name: "HotelListing",
-        component: HotelListingPage,
-      },
-      {
-        path: ":id",
-        name: "HotelDetail",
-        component: HotelDetail,
-        props: true,
-      },
-      {
-        path: ":id/booking",
-        name: "HotelBooking",
-        component: HotelBooking,
-        props: true,
-      },
-      {
-        path: ":id/booking/success",
-        name: "BookingSuccess",
-        component: BookingSuccess,
-      },
     ],
   },
 

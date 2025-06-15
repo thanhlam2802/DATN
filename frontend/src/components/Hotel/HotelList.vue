@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <section class="space-y-4">
         <HotelCard v-for="hotel in hotels" :key="hotel.id" v-bind="hotel" @click="goToDetail(hotel.id)" />
     </section>
@@ -20,4 +20,4 @@ const props = defineProps({
 const goToDetail = (id) => {
     router.push({ name: 'HotelDetail', params: { id } })
 }
-</script>
+</script> -->

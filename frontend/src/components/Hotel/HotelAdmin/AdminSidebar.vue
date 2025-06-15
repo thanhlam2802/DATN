@@ -1,5 +1,5 @@
 <template>
-    <aside class="w-64 bg-white rounded-xl shadow-xl flex flex-col sticky top-6 self-start h-screen overflow-auto">
+    <aside class="w-64 bg-white rounded-xl shadow-xl flex flex-col sticky top-6 self-start">
         <div class="p-6 border-b border-slate-200">
             <div class="flex items-center">
                 <i class="fas fa-hotel text-blue-600 text-2xl mr-3"></i>
@@ -14,8 +14,8 @@
                 <i class="fas fa-tachometer-alt w-5 text-center"></i>
                 <span>Dashboard</span>
             </router-link>
-            <router-link to="/hotel/admin/hotels"
-                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/hotels')
+            <router-link to="/hotel/admin/hotelform"
+                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/hotelform')
                     ? 'text-blue-600 bg-slate-100 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
                 <i class="fas fa-building w-5 text-center"></i>

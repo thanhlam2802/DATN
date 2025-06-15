@@ -14,11 +14,11 @@ import TourDetail from "@/views/TourDetail.vue";
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
-import AccountDetails from "@/components/User/AccountDetails.vue";
-import PaymentDetails from "@/components/User/PaymentDetails.vue";
-import AccountSecurity from "@/components/User/AccountSecurity.vue";
+import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
+import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
+import AccountSecurity from "@/components/User/Sidebar/AccountSecurity.vue";
 import BookingPage from "@/views/BookingPage.vue";
-import NotificationSetting from "@/components/User/NotificationSetting.vue";
+import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.vue";
 
 import PayFlight from "@/components/Flight/PaymentPage.vue";
 import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
@@ -108,6 +108,11 @@ const routes = [
                 name: "BookingPage",
                 component: BookingPage
             },
+            {
+                path: "account",
+                name: "AccountSettings",
+                component: AccountDetails
+            }
         ]
     },
 

@@ -4,7 +4,7 @@
               after:rounded-full after:-top-56 after:left-6 after:blur-3xl
               before:absolute before:w-80 before:h-80 before:bg-gradient-to-br before:from-indigo-300 before:to-blue-400 before:-z-10
               before:rounded-full before:top-[300px] before:right-[-200px] before:blur-3xl">
-    <div class="max-w-[80%] mx-auto px-4">
+    <div class="max-w-[100%] mx-auto px-4">
       <!-- ========== HEADER ========== -->
       <div class="mb-8 text-center relative">
         <h1 class="text-5xl font-extrabold text-indigo-700">Admin Đăng Chuyến Bay</h1>
@@ -434,7 +434,6 @@
               </div>
             </div>
 
-            <!-- Nút thêm hạng ghế -->
             <div class="mb-6">
               <button
                 type="button"
@@ -615,6 +614,13 @@ export default {
     },
     removePricing(idx) {
       if (this.pricingList.length > 1) this.pricingList.splice(idx, 1);
+    },
+
+    formatCurrency(value) {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(value);
     },
   },
 };

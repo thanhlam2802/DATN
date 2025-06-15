@@ -1,78 +1,79 @@
 <template>
-    <div
-        class="sticky top-19 bg-white z-10 flex flex-wrap items-center gap-3 border border-gray-300 rounded-full shadow-md px-4 py-4 w-full max-w-[1000px] mx-auto text-base text-gray-800">
-        <div class="relative flex-1 min-w-0 max-w-[170px] pl-4">
-            <div class="flex items-center justify-between border border-gray-300 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50"
+    <div class="sticky top-16 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-4">
+        <div class="flex items-stretch h-15 border border-gray-300 rounded-lg">
+            <div ref="locationContainer"
+                class="relative flex flex-grow cursor-pointer items-center p-3 bg-white hover:bg-gray-50 border-r border-gray-200 min-w-[220px] rounded-l-md"
                 @click="toggleLocationDropdown">
-                <div class="flex items-center gap-2 truncate">
-                    <i class="fas fa-map-marker-alt text-indigo-500"></i>
-                    <span class="font-medium truncate">{{ selectedLocation }}</span>
+                <i class="fas fa-map-marker-alt text-blue-500 text-xl pr-3"></i>
+                <div class="flex-1">
+                    <span class="font-semibold truncate text-gray-800">{{ selectedLocation }}</span>
                 </div>
-                <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
+                <ul v-if="showLocationDropdown"
+                    class="absolute top-full mt-2 left-0 z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                    <li v-for="location in locations" :key="location" @click.stop="selectLocation(location)"
+                        class="px-4 py-2 hover:bg-blue-100 cursor-pointer truncate">
+                        {{ location }}
+                    </li>
+                </ul>
             </div>
-            <ul v-if="showLocationDropdown"
-                class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
-                <li v-for="location in locations" :key="location" @click="selectLocation(location)"
-                    class="px-4 py-2 hover:bg-gray-100 cursor-pointer truncate">
-                    {{ location }}
-                </li>
-            </ul>
+
+            <div
+                class="flex flex-grow-[2] items-center p-3 bg-white hover:bg-gray-50 border-r border-gray-200 min-w-[320px]">
+                <i class="fas fa-calendar-alt text-blue-500 text-xl pr-3"></i>
+                <div class="flex flex-1 items-center">
+                    <div class="flex-1">
+                        <label class="text-xs text-gray-500">Ngày nhận</label>
+                        <input type="date" v-model="checkIn" :min="today"
+                            class="w-full bg-transparent font-semibold focus:outline-none" />
+                    </div>
+
+                    <div class="px-4 text-center">
+                        <div v-if="numberOfNights > 0"
+                            class="text-xs font-semibold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 whitespace-nowrap">
+                            {{ numberOfNights }} đêm
+                        </div>
+                        <div v-else class="text-gray-400">-</div>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-gray-500">Ngày trả</label>
+                        <input type="date" v-model="checkOut" :min="minCheckOut"
+                            class="w-full bg-transparent font-semibold focus:outline-none" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-grow items-center p-3 bg-white hover:bg-gray-50 max-w-[430px]">
+                <i class="fas fa-users text-blue-500 text-xl pr-3"></i>
+                <div class="flex-1">
+                    <label class="text-xs text-gray-500">Người lớn</label>
+                    <input type="number" v-model.number="adults" min="1"
+                        class="w-full bg-transparent font-semibold focus:outline-none" />
+                </div>
+                <div class="flex-1 ml-2">
+                    <label class="text-xs text-gray-500">Trẻ em</label>
+                    <input type="number" v-model.number="children" min="0"
+                        class="w-full bg-transparent font-semibold focus:outline-none" />
+                </div>
+            </div>
+
+            <button aria-label="Search"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 font-bold transition flex items-center justify-center rounded-r-md"
+                @click="onSearch">
+                <i class="fas fa-search"></i>
+            </button>
         </div>
-
-        <span class="border-l h-6 border-gray-300 hidden sm:inline-block"></span>
-
-        <div class="flex gap-2 flex-1 min-w-0 max-w-[500px]">
-            <div class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-3 flex items-center gap-2">
-                <label class="text-gray-600 whitespace-nowrap text-sm">Ngày nhận:</label>
-                <input type="date" v-model="checkIn" :min="today"
-                    class="flex-1 min-w-0 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm" />
-            </div>
-            <div class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-3 flex items-center gap-2">
-                <label class="text-gray-600 whitespace-nowrap text-sm">Ngày trả:</label>
-                <input type="date" v-model="checkOut" :min="minCheckOut"
-                    class="flex-1 min-w-0 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm" />
-            </div>
-        </div>
-
-        <span class="border-l h-6 border-gray-300 hidden sm:inline-block"></span>
-
-        <div class="flex gap-2 flex-1 min-w-0 max-w-[300px]">
-            <div class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-3 flex items-center gap-2">
-                <label class="text-gray-600 whitespace-nowrap text-sm">Người lớn:</label>
-                <input type="number" v-model.number="adults" min="1"
-                    class="w-16 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm" />
-            </div>
-            <div class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-3 flex items-center gap-2">
-                <label class="text-gray-600 whitespace-nowrap text-sm">Trẻ em:</label>
-                <input type="number" v-model.number="children" min="0"
-                    class="w-16 bg-transparent text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm" />
-            </div>
-        </div>
-
-        <button aria-label="Search"
-            class="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-3 mr-4 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            @click="onSearch">
-            <i class="fas fa-search"></i>
-        </button>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
+const locationContainer = ref(null);
 const selectedLocation = ref('Hồ Chí Minh');
 const showLocationDropdown = ref(false);
 const locations = [
-    'Hồ Chí Minh',
-    'Hà Nội',
-    'Đà Nẵng',
-    'Nha Trang',
-    'Cần Thơ',
-    'Vũng Tàu',
-    'Huế',
-    'Hội An',
+    'Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Nha Trang', 'Cần Thơ', 'Vũng Tàu', 'Huế', 'Hội An',
 ];
-
 const today = new Date().toISOString().split('T')[0];
 const checkIn = ref(today);
 const checkOut = ref('');
@@ -88,35 +89,69 @@ const minCheckOut = computed(() => {
     return today;
 });
 
+const numberOfNights = computed(() => {
+    if (checkIn.value && checkOut.value) {
+        const startDate = new Date(checkIn.value);
+        const endDate = new Date(checkOut.value);
+
+        if (endDate <= startDate) {
+            return 0;
+        }
+
+        const diffTime = endDate.getTime() - startDate.getTime();
+
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays;
+    }
+    return 0;
+});
+
 function toggleLocationDropdown() {
     showLocationDropdown.value = !showLocationDropdown.value;
 }
-
 function selectLocation(location) {
     selectedLocation.value = location;
     showLocationDropdown.value = false;
 }
-
 function onSearch() {
-    alert(`Tìm kiếm:
-  - Địa điểm: ${selectedLocation.value}
-  - Nhận phòng: ${checkIn.value}
-  - Trả phòng: ${checkOut.value}
-  - Người lớn: ${adults.value}
-  - Trẻ em: ${children.value}`);
+    alert(`Tìm kiếm: ${selectedLocation.value}, ${checkIn.value} - ${checkOut.value} (${numberOfNights.value} đêm), ${adults.value} lớn, ${children.value} trẻ em`);
 }
+const handleClickOutside = (event) => {
+    if (locationContainer.value && !locationContainer.value.contains(event.target)) {
+        showLocationDropdown.value = false;
+    }
+};
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>
-@media (max-width: 640px) {
-    .flex-wrap {
-        gap: 2px !important;
-        padding: 0.5rem !important;
-    }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
 
-    input,
-    button {
-        font-size: 0.875rem !important;
-    }
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+input:focus {
+    outline: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
 }
 </style>

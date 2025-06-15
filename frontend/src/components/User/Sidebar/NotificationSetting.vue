@@ -24,8 +24,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import EmailNotificationSetting from '@/components/User/components/EmailNotificationSetting.vue';
-import SmsNotificationSetting from '@/components/User/components/SmsNotificationSetting.vue';
+import EmailNotificationSetting from '@/components/User/Sidebar/components/EmailNotificationSetting.vue';
+import SmsNotificationSetting from '@/components/User/Sidebar/components/SmsNotificationSetting.vue';
 
 const tabs = [
    { label: 'Email', component: EmailNotificationSetting },

@@ -19,7 +19,7 @@ import AccountSecurity from "@/components/User/AccountSecurity.vue";
 import NotificationSetting from "@/components/User/NotificationSetting.vue";
 
 import PayFlight from "@/components/Flight/PaymentPage.vue";
-import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
+import AdminFight from "@/components/FlightAdmin/FlightAdminLayout.vue";
 import GetTicket from "@/components/Flight/TicketReceipt.vue";
 
 import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
@@ -41,7 +41,37 @@ const routes = [
       { path: "tour", name: "Tour", component: Tour },
       { path: "bus", name: "Bus", component: Bus },
       { path: "plane", name: "Plane", component: Plane },
-      { path: "hotel", name: "Hotel", component: Hotel },
+
+      {
+        path: "hotel",
+        name: "Hotel",
+        component: Hotel,
+        children: [
+          {
+            path: "",
+            name: "HotelListing",
+            component: HotelListingPage,
+          },
+          {
+            path: ":id",
+            name: "HotelDetail",
+            component: HotelDetail,
+            props: true,
+          },
+          {
+            path: ":id/booking",
+            name: "HotelBooking",
+            component: HotelBooking,
+            props: true,
+          },
+          {
+            path: ":id/booking/success",
+            name: "BookingSuccess",
+            component: BookingSuccess,
+          },
+        ],
+      },
+
       {
         path: "tours/:id",
         name: "TourDetail",
@@ -93,35 +123,38 @@ const routes = [
     ],
   },
 
-  {
-    path: "/hotel",
-    component: Hotel,
-    children: [
-      {
-        path: "",
-        name: "HotelListing",
-        component: HotelListingPage,
-      },
-      {
-        path: ":id",
-        name: "HotelDetail",
-        component: HotelDetail,
-        props: true,
-      },
-      {
-        path: ":id/booking",
-        name: "HotelBooking",
-        component: HotelBooking,
-        props: true,
-      },
-      {
-        path: ":id/booking/success",
-        name: "BookingSuccess",
-        component: BookingSuccess,
-      },
-    ],
-  },
+  // <<<<<<< HEAD
+  //   {
+  //     path: "/hotel",
+  //     component: Hotel,
+  //     children: [
+  //       {
+  //         path: "",
+  //         name: "HotelListing",
+  //         component: HotelListingPage,
+  //       },
+  //       {
+  //         path: ":id",
+  //         name: "HotelDetail",
+  //         component: HotelDetail,
+  //         props: true,
+  //       },
+  //       {
+  //         path: ":id/booking",
+  //         name: "HotelBooking",
+  //         component: HotelBooking,
+  //         props: true,
+  //       },
+  //       {
+  //         path: ":id/booking/success",
+  //         name: "BookingSuccess",
+  //         component: BookingSuccess,
+  //       },
+  //     ],
+  //   },
 
+  // =======
+  // >>>>>>> 3715e202a621207299cf2018ebf14836be163c7c
   { path: "/login", name: "Login", component: Login },
   { path: "/register", name: "Register", component: Register },
 

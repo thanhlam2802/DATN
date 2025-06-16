@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
+    "element-plus": "^2.10.1",
     "lucide-vue-next": "^0.511.0",
     "pinia": "^3.0.3",
     "swiper": "^8.4.7",

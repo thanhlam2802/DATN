@@ -130,9 +130,34 @@
       <h2 class="text-2xl font-bold text-gray-800 mb-6">
         Những phòng trống tại {{ hotel.title }}
       </h2>
-
+      <section class="bg-white rounded-xl shadow p-6 mb-8">
+        <h3 class="text-lg font-bold text-gray-800 pb-4 mb-2">
+          Tìm kiếm nhanh hơn bằng cách chọn những tiện nghi bạn cần
+        </h3>
+        <div class="flex flex-wrap gap-4">
+          <div
+            v-for="filter in amenityFilters"
+            :key="filter.id"
+            class="flex items-center"
+          >
+            <input
+              :id="`filter-${filter.id}`"
+              type="checkbox"
+              :value="filter.id"
+              v-model="selectedAmenities"
+              class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label
+              :for="`filter-${filter.id}`"
+              class="ml-2 block text-sm text-gray-900"
+            >
+              {{ filter.label }}
+            </label>
+          </div>
+        </div>
+      </section>
       <div
-        v-for="(room, idx) in roomTypes"
+        v-for="(room, idx) in filteredRoomTypes"
         :key="idx"
         class="flex flex-col md:flex-row gap-6 border border-gray-200 rounded-lg p-5 mb-6"
       >
@@ -301,47 +326,253 @@
           </table>
         </div>
       </div>
+      <div v-if="!filteredRoomTypes.length" class="text-center py-10">
+        <p class="text-xl text-gray-700">
+          Không tìm thấy phòng nào phù hợp với lựa chọn của bạn.
+        </p>
+      </div>
     </section>
 
-    <section class="bg-white rounded-xl shadow p-6">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">
-        Đánh giá ({{ hotel.reviews }})
-      </h2>
-      <div class="max-h-96 overflow-y-auto space-y-4 mb-4 pr-2">
-        <ul>
-          <li
-            v-for="(review, index) in reviewsList"
-            :key="index"
-            class="p-4 rounded-lg border border-gray-200 bg-gray-50 shadow-sm"
+    <section class="w-full bg-[#d9f0ff] rounded-lg p-6 shadow-sm mb-8">
+      <div
+        class="flex flex-col md:flex-row md:justify-between md:items-start gap-4"
+      >
+        <div class="flex-1">
+          <h2
+            class="font-sans font-extrabold text-xl leading-6 mb-1 text-[#0a0a0a]"
           >
-            <div class="flex items-center mb-3">
-              <img
-                :alt="review.name"
-                class="w-12 h-12 rounded-full object-cover border-2 border-blue-400"
-                :src="review.avatar"
-              />
-              <div class="ml-4">
-                <h3 class="text-base font-semibold text-gray-900">
-                  {{ review.name }}
-                </h3>
-                <div class="flex items-center text-yellow-400 text-sm mt-1">
-                  <i
-                    v-for="i in Math.floor(review.rating)"
-                    :key="i"
-                    class="fas fa-star"
-                  ></i>
-                  <i
-                    v-if="review.rating % 1 >= 0.5"
-                    class="fas fa-star-half-alt"
-                  ></i>
+            Cơ sở lưu trú khác bạn có thể thích
+          </h2>
+          <p class="font-sans text-sm text-[#1a1a1a] opacity-90">
+            Cơ sở lưu trú tương tự đã được khách chọn
+          </p>
+        </div>
+        <div>
+          <div
+            class="bg-white rounded-lg p-3 w-64 text-xs font-sans text-[#1a1a1a] shadow-md cursor-pointer select-none"
+          >
+            <div class="mb-1">Hiển thị giá</div>
+            <button
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="text-[#0071c2] font-semibold flex items-center gap-1"
+            >
+              Tổng giá (bao gồm thuế và phí)
+              <svg
+                class="w-3 h-3"
+                fill="none"
+                stroke="#0071c2"
+                stroke-width="2"
+                viewbox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M19 9l-7 7-7-7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        aria-label="Accommodation suggestions"
+        class="mt-6 flex gap-4 overflow-x-auto no-scrollbar pb-2"
+        role="list"
+      >
+        <article
+          v-for="other in otherHotels"
+          :key="other.id"
+          class="bg-white rounded-lg shadow-sm min-w-[220px] max-w-[220px] flex-shrink-0 cursor-pointer hover:shadow-md transition"
+          role="listitem"
+          @click="
+            router.push({ name: 'HotelDetail', params: { id: other.id } })
+          "
+        >
+          <div class="relative">
+            <img
+              :alt="other.alt || other.title"
+              class="w-full h-[160px] object-cover rounded-t-lg"
+              height="160"
+              loading="lazy"
+              :src="other.image"
+              width="220"
+            />
+            <div
+              class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-semibold px-2 py-[2px] rounded-sm select-none"
+              v-if="other.rating >= 4"
+            >
+              4-5 sao giá tốt
+            </div>
+          </div>
+          <div class="p-3">
+            <h3
+              class="font-sans font-bold text-sm leading-5 mb-0.5 text-[#0a0a0a]"
+            >
+              {{ other.title }}
+            </h3>
+            <p class="font-sans text-xs text-[#1a1a1a] mb-2">
+              {{ other.details }}
+            </p>
+            <div class="flex items-center gap-1 mb-1">
+              <div class="text-yellow-400 text-xs leading-none">
+                <i
+                  class="fas fa-star"
+                  v-for="n in Math.round(other.rating)"
+                  :key="n"
+                ></i>
+              </div>
+              <span
+                class="text-[#0071c2] text-xs font-semibold leading-none flex items-center gap-0.5"
+              >
+                {{ other.rating }}
+              </span>
+              <span class="text-xs text-gray-500">/ 10</span>
+              <span class="text-xs text-gray-500">({{ other.reviews }})</span>
+            </div>
+            <div class="flex items-center gap-1 text-xs text-gray-500 mb-3">
+              <i class="fas fa-map-marker-alt text-xs"></i>
+              <span>{{ other.location }}</span>
+            </div>
+            <div
+              class="text-xs text-gray-400 line-through select-none"
+              v-if="other.originalPrice"
+            >
+              {{ other.originalPrice }} VND
+            </div>
+            <div class="text-sm font-semibold text-[#d94a1a] select-none">
+              {{ other.price }} VND
+            </div>
+            <div class="text-[9px] text-gray-600 mt-0.5 select-none">
+              Bao gồm thuế và phí
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="bg-white-50 rounded-xl shadow-inner p-6 md:p-8">
+      <div class="flex items-center gap-4 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800">
+          {{ hotel.reviews }} đánh giá
+        </h2>
+      </div>
+
+      <div class="space-y-6">
+        <div
+          v-for="(review, index) in paginatedReviews"
+          :key="index"
+          class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-lg hover:border-purple-300 transition-all duration-300 ease-in-out"
+        >
+          <div class="flex items-start gap-6">
+            <div class="flex-shrink-0 w-40">
+              <div class="flex items-center gap-4">
+                <img
+                  :alt="review.name"
+                  class="w-12 h-12 rounded-full object-cover"
+                  :src="review.avatar"
+                />
+                <div>
+                  <h3 class="text-base font-bold text-gray-900">
+                    {{ review.name }}
+                  </h3>
+                  <p class="text-sm text-gray-500 mt-0.5">
+                    <span
+                      class="hover:underline cursor-pointer"
+                      title="Đã đánh giá vào ngày này"
+                      >{{ review.date }}</span
+                    >
+                  </p>
                 </div>
               </div>
             </div>
-            <p class="text-sm text-gray-700 leading-relaxed">
-              {{ review.comment }}
-            </p>
-          </li>
-        </ul>
+
+            <div class="flex-grow">
+              <div class="flex items-center justify-between mb-2">
+                <div
+                  class="flex items-center gap-1.5 bg-blue-100 text-blue-800 font-bold text-sm px-2.5 py-1 rounded-full"
+                >
+                  <i class="fas fa-star text-xs"></i>
+                  <span>{{ review.rating }}</span>
+                </div>
+              </div>
+
+              <p class="text-gray-700 leading-relaxed">
+                {{ review.comment }}
+              </p>
+
+              <div
+                class="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-3"
+              >
+                <p class="text-sm font-medium text-gray-600">
+                  Đánh giá này có hữu ích không?
+                </p>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="flex items-center gap-1.5 rounded-full bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-800 px-3 py-1 text-xs font-semibold transition-colors"
+                  >
+                    <i class="fas fa-thumbs-up"></i>
+                    <span>Có</span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded-full bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-800 px-3 py-1 text-xs font-semibold transition-colors"
+                  >
+                    <i class="fas fa-thumbs-down"></i>
+                    <span>Không</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4"
+      >
+        <div class="flex items-center gap-2">
+          <label
+            for="reviews-per-page"
+            class="text-sm font-medium text-gray-700"
+            >Hiển thị:</label
+          >
+          <select
+            id="reviews-per-page"
+            v-model="reviewsPerPage"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5"
+          >
+            <option
+              v-for="option in reviewsPerPageOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.text }}
+            </option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <span class="text-sm font-medium text-gray-700">
+            Trang {{ currentPage }} / {{ totalPages }}
+          </span>
+          <div class="flex items-center gap-2">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 1"
+              class="inline-flex items-center justify-center h-8 w-8 rounded-full border bg-white text-gray-600 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <button
+              @click="nextPage"
+              :disabled="currentPage === totalPages"
+              class="inline-flex items-center justify-center h-8 w-8 rounded-full border bg-white text-gray-600 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -490,9 +721,13 @@ import { useRouter, useRoute } from "vue-router";
 const roomsSectionRef = ref(null);
 
 const minRoomPrice = computed(() => {
-  if (!roomTypes.value.length) return "";
+  const roomsToPrice =
+    filteredRoomTypes.value.length > 0
+      ? filteredRoomTypes.value
+      : roomTypes.value;
+  if (!roomsToPrice.length) return "";
   let min = Number.POSITIVE_INFINITY;
-  roomTypes.value.forEach((room) => {
+  roomsToPrice.forEach((room) => {
     room.variants.forEach((variant) => {
       const price = parseFloat(
         (variant.discountedPrice + "").replace(/\./g, "").replace(/,/g, "")
@@ -517,51 +752,134 @@ const selectedRoom = ref(null);
 
 const roomImageIndex = ref({});
 
+const amenityFilters = ref([
+  { id: "freeCancellation", label: "Miễn phí hủy phòng" },
+  { id: "freeBreakfast", label: "Miễn phí bữa sáng" },
+  { id: "payAtHotel", label: "Thanh toán tại khách sạn" },
+  { id: "noBreakfast", label: "Không bao gồm bữa sáng" },
+]);
+const selectedAmenities = ref([]);
+
+const filteredRoomTypes = computed(() => {
+  if (selectedAmenities.value.length === 0) {
+    return roomTypes.value;
+  }
+  return roomTypes.value.filter((room) => {
+    return selectedAmenities.value.every((amenity) => {
+      return room.variants.some((variant) => {
+        if (amenity === "freeCancellation") return variant.cancellable;
+        if (amenity === "freeBreakfast") return variant.hasBreakfast;
+        if (amenity === "payAtHotel") return variant.payAtHotel;
+        if (amenity === "noBreakfast") return !variant.hasBreakfast;
+        return false;
+      });
+    });
+  });
+});
+
 const reviewsList = ref([
   {
     name: "John Smith",
     avatar: "https://randomuser.me/api/portraits/men/32.jpg",
     rating: 4.5,
+    date: "Tháng 6, 2025",
     comment:
-      "Great place, excellent service, and very clean. Highly recommended!",
+      "Nơi tuyệt vời, dịch vụ xuất sắc và rất sạch sẽ. Rất khuyến khích!",
   },
   {
     name: "Emily Johnson",
     avatar: "https://randomuser.me/api/portraits/women/45.jpg",
     rating: 5,
-    comment: "Perfect location and super helpful host!",
+    date: "Tháng 5, 2025",
+    comment: "Vị trí hoàn hảo và chủ nhà siêu nhiệt tình!",
   },
   {
     name: "Michael Brown",
     avatar: "https://randomuser.me/api/portraits/men/28.jpg",
     rating: 4,
-    comment: "Nice room, a bit noisy nhưng manageable.",
+    date: "Tháng 5, 2025",
+    comment: "Phòng đẹp, hơi ồn ào một chút nhưng có thể chấp nhận được.",
   },
   {
     name: "Sarah Davis",
     avatar: "https://randomuser.me/api/portraits/women/55.jpg",
     rating: 4.5,
-    comment: "Very comfy beds and great amenities.",
+    date: "Tháng 4, 2025",
+    comment: "Giường rất thoải mái và tiện nghi tuyệt vời.",
   },
   {
     name: "Tom Wilson",
     avatar: "https://randomuser.me/api/portraits/men/52.jpg",
     rating: 3.5,
-    comment: "Could improve on cleanliness, but overall fine.",
+    date: "Tháng 4, 2025",
+    comment: "Có thể cải thiện về độ sạch sẽ, nhưng nhìn chung là ổn.",
   },
   {
     name: "Alex Martin",
     avatar: "https://randomuser.me/api/portraits/men/45.jpg",
     rating: 4,
-    comment: "Good value for money and friendly staff.",
+    date: "Tháng 3, 2025",
+    comment: "Giá trị tốt so với số tiền bỏ ra và nhân viên thân thiện.",
+  },
+  {
+    name: "Jessica Lee",
+    avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+    rating: 5,
+    date: "Tháng 3, 2025",
+    comment: "Chắc chắn sẽ quay lại! Một trong những nơi tốt nhất tôi từng ở.",
+  },
+  {
+    name: "David Chen",
+    avatar: "https://randomuser.me/api/portraits/men/75.jpg",
+    rating: 4,
+    date: "Tháng 2, 2025",
+    comment: "Mọi thứ đều tốt. Wifi hơi chậm vào buổi tối.",
   },
 ]);
+
+const currentPage = ref(1);
+const reviewsPerPage = ref(5);
+const reviewsPerPageOptions = ref([
+  { value: 5, text: "5" },
+  { value: 10, text: "10" },
+  { value: reviewsList.value.length, text: "Tất cả" },
+]);
+
+const totalPages = computed(() => {
+  return Math.ceil(reviewsList.value.length / reviewsPerPage.value);
+});
+
+const paginatedReviews = computed(() => {
+  const start = (currentPage.value - 1) * reviewsPerPage.value;
+  const end = start + reviewsPerPage.value;
+  return reviewsList.value.slice(start, end);
+});
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+};
+
+watch(reviewsPerPage, () => {
+  currentPage.value = 1;
+});
 
 const props = defineProps({
   id: {
     type: [String, Number],
     required: true,
   },
+});
+
+const otherHotels = computed(() => {
+  return hotels.filter((h) => h.id !== hotel.value?.id).slice(0, 6);
 });
 
 const hotel = ref(null);
@@ -731,7 +1049,7 @@ const findHotel = () => {
             breakfast: "Bao gồm bữa sáng + minibar",
             hasBreakfast: true,
             cancellable: true,
-            payAtHotel: false,
+            payAtHotel: true,
             originalPrice: "1.700.000",
             discountedPrice: "1.300.000",
           },

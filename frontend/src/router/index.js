@@ -1,10 +1,14 @@
 import {createRouter, createWebHistory} from "vue-router";
 
+import Home from "@/views/Home.vue";
+import Tour from "@/views/Tour.vue";
+import Bus from "@/views/Bus.vue";
+import Hotel from "@/views/hotel/Hotel.vue";
+import TourDetail from "@/views/TourDetail.vue";
+import BookingPage from "@/views/BookingPage.vue";
 
-import Home from "../views/Home.vue";
-import Tour from "../views/Tour.vue";
-import Bus from "../views/Bus.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
+import Plane from "@/components/Flight/FlightHome.vue";
 import MainLayout from "@/layouts/Main.vue";
 
 import Plane from "@/components/Flight/FlightHome.vue";
@@ -28,11 +32,10 @@ import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
-
-import AdminLayout from "@/components/HotelAdmin/AdminLayout.vue";
+import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
-
-import TourManager from "../layouts/TourManager.vue";
+import HotelForm from "@/views/hotel/admin/HotelForm.vue";
+import TourManager from "@/layouts/TourManager.vue";
 
 const routes = [
   {
@@ -85,6 +88,9 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
+
+    ]
+
         {
             path: "/account",
             component: AccountView,
@@ -97,8 +103,8 @@ const routes = [
             ],
         },
     ],
-  },
 
+  },
   {
     path: "/bus-management",
     name: "BusManagement",
@@ -128,12 +134,13 @@ const routes = [
   },
 
   {
-    path: "/hotel/admin",
+    path: '/hotel/admin',
     component: AdminLayout,
     children: [
-      { path: "dashboard", component: Dashboard },
-      { path: "", redirect: "/hotel/admin/dashboard" },
-    ],
+      { path: 'dashboard', component: Dashboard },
+      { path: 'hotelform', component: HotelForm },
+      { path: '', redirect: '/dashboard' }
+    ]
   },
 
 

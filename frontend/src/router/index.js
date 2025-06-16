@@ -1,20 +1,15 @@
-import {createRouter, createWebHistory} from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
 import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
 import Bus from "@/views/Bus.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
+import Plane from "@/components/Flight/FlightHome.vue";
 import TourDetail from "@/views/TourDetail.vue";
-import BookingPage from "@/views/BookingPage.vue";
 
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
-import Plane from "@/components/Flight/FlightHome.vue";
 import MainLayout from "@/layouts/Main.vue";
 
-import Plane from "@/components/Flight/FlightHome.vue";
-import Hotel from "@/views/hotel/Hotel.vue";
-
-import TourDetail from "@/views/TourDetail.vue";
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
@@ -73,8 +68,8 @@ const routes = [
             name: "BookingSuccess",
             component: BookingSuccess,
           },
-            { path: "/login", name: "Login", component: Login },
-            { path: "/register", name: "Register", component: Register },
+          { path: "/login", name: "Login", component: Login },
+          { path: "/register", name: "Register", component: Register },
         ],
       },
       {
@@ -88,22 +83,18 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
-
-    ]
-
-        {
-            path: "/account",
-            component: AccountView,
-            children: [
-                { path: "", redirect: "personal" },
-                { path: "personal", component: AccountDetails },
-                { path: "payment", component: PaymentDetails },
-                { path: "security", component: AccountSecurity },
-                { path: "notifications", component: NotificationSetting },
-            ],
-        },
+      {
+        path: "/account",
+        component: AccountView,
+        children: [
+          { path: "", redirect: "personal" },
+          { path: "personal", component: AccountDetails },
+          { path: "payment", component: PaymentDetails },
+          { path: "security", component: AccountSecurity },
+          { path: "notifications", component: NotificationSetting },
+        ],
+      },
     ],
-
   },
   {
     path: "/bus-management",
@@ -147,8 +138,8 @@ const routes = [
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 });
 
 export default router;

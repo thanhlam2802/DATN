@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import {createRouter, createWebHistory} from "vue-router";
 
 import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
@@ -6,20 +6,26 @@ import Bus from "@/views/Bus.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
 import TourDetail from "@/views/TourDetail.vue";
 import BookingPage from "@/views/BookingPage.vue";
+
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import Plane from "@/components/Flight/FlightHome.vue";
 import MainLayout from "@/layouts/Main.vue";
 
+import Plane from "@/components/Flight/FlightHome.vue";
+import Hotel from "@/views/hotel/Hotel.vue";
+
+import TourDetail from "@/views/TourDetail.vue";
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
-import AccountDetails from "@/components/User/AccountDetails.vue";
-import PaymentDetails from "@/components/User/PaymentDetails.vue";
-import AccountSecurity from "@/components/User/AccountSecurity.vue";
-import NotificationSetting from "@/components/User/NotificationSetting.vue";
+import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
+import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
+import AccountSecurity from "@/components/User/Sidebar/AccountSecurity.vue";
+import BookingPage from "@/views/BookingPage.vue";
+import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.vue";
 
 import PayFlight from "@/components/Flight/PaymentPage.vue";
-import AdminFight from "@/components/FlightAdmin/FlightAdminLayout.vue";
+import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
 import GetTicket from "@/components/Flight/TicketReceipt.vue";
 
 import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
@@ -67,6 +73,8 @@ const routes = [
             name: "BookingSuccess",
             component: BookingSuccess,
           },
+            { path: "/login", name: "Login", component: Login },
+            { path: "/register", name: "Register", component: Register },
         ],
       },
       {
@@ -80,7 +88,22 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
+
     ]
+
+        {
+            path: "/account",
+            component: AccountView,
+            children: [
+                { path: "", redirect: "personal" },
+                { path: "personal", component: AccountDetails },
+                { path: "payment", component: PaymentDetails },
+                { path: "security", component: AccountSecurity },
+                { path: "notifications", component: NotificationSetting },
+            ],
+        },
+    ],
+
   },
   {
     path: "/bus-management",
@@ -120,25 +143,12 @@ const routes = [
     ]
   },
 
-  { path: "/login", name: "Login", component: Login },
-  { path: "/register", name: "Register", component: Register },
 
-  {
-    path: "/account",
-    component: AccountView,
-    children: [
-      { path: "", redirect: "personal" },
-      { path: "personal", component: AccountDetails },
-      { path: "payment", component: PaymentDetails },
-      { path: "security", component: AccountSecurity },
-      { path: "notifications", component: NotificationSetting },
-    ],
-  },
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes,
+    history: createWebHistory(),
+    routes,
 });
 
 export default router;

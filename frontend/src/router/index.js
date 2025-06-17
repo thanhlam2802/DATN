@@ -5,13 +5,10 @@ import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
 import Bus from "@/views/Bus.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
-import Plane from "@/components/Flight/FlightHome.vue";
+
 import TourDetail from "@/views/TourDetail.vue";
 
 import BookingPage from "@/views/BookingPage.vue";
-
-import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
-import MainLayout from "@/layouts/Main.vue";
 
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";

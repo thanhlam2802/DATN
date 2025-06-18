@@ -1,6 +1,5 @@
 <template>
-    <div class="w-[420px] flex-shrink-0 rounded-2xl bg-white overflow-hidden shadow-2xl transition-all duration-300 scale-[0.95]"
-        style="min-width: 450px; max-width: 450px;">
+    <div class="w-[350px] h-[350px] flex-shrink-0 rounded-2xl bg-white overflow-hidden shadow-2xl transition-all duration-300 scale-[0.95]">
         <div class="relative h-48 overflow-hidden">
             <img :src="tour.image" :alt="tour.name"
                 class="w-full h-full object-cover object-center transition-transform duration-300" />

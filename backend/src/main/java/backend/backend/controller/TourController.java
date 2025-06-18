@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -68,23 +69,10 @@ public class TourController {
         List<TourSchedule> tourSchedules = tourScheduleService.getSchedulesByTourId(id);
         return ResponseFactory.success(tourSchedules, "Lấy lịch trình tour thành công");
     }
-    public record BookingRequest(
-            String selectedDate,
-            Integer adults,
-            Integer children,
-            Integer infants
-        ) {}
-
-        @PostMapping("/book")
-        public ResponseEntity<String> handleBooking(@RequestBody BookingRequest bookingRequest) {
-            LocalDate bookingDate = LocalDate.parse(bookingRequest.selectedDate());
-
-            System.out.println("Received booking request:");
-            System.out.println("Date: " + bookingRequest.selectedDate());
-            System.out.println("Adults: " + bookingRequest.adults());
-            System.out.println("Children: " + bookingRequest.children());
-            System.out.println("Infants: " + bookingRequest.infants());
-
-            return ResponseEntity.ok("Booking request received successfully!");
-        }
+//    @PostMapping("/book-tour")
+//    public ResponseEntity<ApiResponse<BookingConfirmationDto>> handleTourBooking(
+//            @Valid @RequestBody BookingRequestDto bookingRequest) {
+//        BookingConfirmationDto confirmation = bookingService.createBooking(bookingRequest);
+//        return ResponseFactory.success(confirmation, "Đặt tour thành công!", HttpStatus.CREATED);
+//    }
 }

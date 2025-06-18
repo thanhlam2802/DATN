@@ -2,7 +2,6 @@ package backend.backend.service;
 
 import java.util.List;
 
-import backend.backend.controller.TourController.BookingRequest;
 import backend.backend.dto.DepartureDto;
 import backend.backend.dto.PageDto;
 import backend.backend.dto.ReviewDto;

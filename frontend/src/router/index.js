@@ -5,8 +5,9 @@ import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
 import Bus from "@/views/Bus.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
+import Plane from "@/components/Flight/FlightHome.vue";
 import TourDetail from "@/views/TourDetail.vue";
-import BookingPage from "@/views/BookingPage.vue";
+
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
@@ -68,6 +69,10 @@ const routes = [
             name: "BookingSuccess",
             component: BookingSuccess,
           },
+
+          { path: "/login", name: "Login", component: Login },
+          { path: "/register", name: "Register", component: Register },
+
         ],
       },
       {
@@ -76,6 +81,7 @@ const routes = [
         component: TourDetail,
         props: true,
       },
+
       { path: "booking", name: "BookingPage", component: BookingPage },
     ],
   },
@@ -94,6 +100,24 @@ const routes = [
       { path: "payment", component: PaymentDetails },
       { path: "security", component: AccountSecurity },
       { path: "notifications", component: NotificationSetting },
+
+      {
+        path: "booking",
+        name: "BookingPage",
+        component: BookingPage,
+      },
+      {
+        path: "/account",
+        component: AccountView,
+        children: [
+          { path: "", redirect: "personal" },
+          { path: "personal", component: AccountDetails },
+          { path: "payment", component: PaymentDetails },
+          { path: "security", component: AccountSecurity },
+          { path: "notifications", component: NotificationSetting },
+        ],
+      },
+
     ],
   },
 

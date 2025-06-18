@@ -8,7 +8,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
+//import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -121,26 +121,26 @@ public class JwtTokenUtil {
      * @param userDetails Chi tiết thông tin người dùng.
      * @return Chuỗi JWT được tạo ra.
      */
-    public String generateToken(UserDetails userDetails) {
-        return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-              
-                .signWith(secretKey)
-                .compact();
-    }
-
-    /**
-     * Xác thực token có hợp lệ với thông tin người dùng hay không.
-     *
-     * @param token       Chuỗi JWT cần xác thực.
-     * @param userDetails Chi tiết thông tin người dùng để so sánh.
-     * @return true nếu token hợp lệ, ngược lại false.
-     */
-    public Boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-     
-        return (username != null && username.equals(userDetails.getUsername()));
-    }
+//    public String generateToken(UserDetails userDetails) {
+//        return Jwts.builder()
+//                .setSubject(userDetails.getUsername())
+//                .setIssuedAt(new Date(System.currentTimeMillis()))
+//                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+//              
+//                .signWith(secretKey)
+//                .compact();
+//    }
+//
+//    /**
+//     * Xác thực token có hợp lệ với thông tin người dùng hay không.
+//     *
+//     * @param token       Chuỗi JWT cần xác thực.
+//     * @param userDetails Chi tiết thông tin người dùng để so sánh.
+//     * @return true nếu token hợp lệ, ngược lại false.
+//     */
+//    public Boolean validateToken(String token, UserDetails userDetails) {
+//        final String username = extractUsername(token);
+//     
+//        return (username != null && username.equals(userDetails.getUsername()));
+//    }
 }

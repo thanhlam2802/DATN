@@ -1,6 +1,6 @@
 <template>
     <main class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-x-8 gap-y-6">
-        <aside class="pt-40">
+        <aside class="pt-40 pb-5">
             <FilterSidebar v-model:filters="activeFilters" />
         </aside>
 

@@ -3,6 +3,7 @@ package backend.backend.entity;
 
 
 import lombok.Data;
+import lombok.Getter;
 import jakarta.persistence.*;
 import java.io.Serializable;
 
@@ -13,6 +14,7 @@ class TourImageId implements Serializable {
     private Integer imageId;
 }
 
+@Getter
 @Data
 @Entity
 @Table(name = "tour_images")

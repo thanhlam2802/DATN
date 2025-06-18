@@ -6,6 +6,7 @@ package backend.backend.utils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import backend.backend.dto.TourScheduleDto;
 import backend.backend.entity.ApiResponse;
 
 public class ResponseFactory {
@@ -33,4 +34,10 @@ public class ResponseFactory {
      public static <T> ResponseEntity<ApiResponse<T>> error(HttpStatus status, String message) {
         return error(status, message, null);
     }
+
+	public static ResponseEntity<ApiResponse<TourScheduleDto>> success(TourScheduleDto createdSchedule, String string,
+			HttpStatus created) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

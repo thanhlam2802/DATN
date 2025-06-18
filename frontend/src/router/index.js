@@ -1,33 +1,28 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-// View Pages
 import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
 import Bus from "@/views/Bus.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
-
+import Plane from "@/components/Flight/FlightHome.vue";
 import TourDetail from "@/views/TourDetail.vue";
 
-import BookingPage from "@/views/BookingPage.vue";
+import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
+import MainLayout from "@/layouts/Main.vue";
 
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
-
-// Account Sidebar Components
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
 import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
 import AccountSecurity from "@/components/User/Sidebar/AccountSecurity.vue";
+import BookingPage from "@/views/BookingPage.vue";
 import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.vue";
 
-// Plane & Bus
-import Plane from "@/components/Flight/FlightHome.vue";
-import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import PayFlight from "@/components/Flight/PaymentPage.vue";
 import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
 import GetTicket from "@/components/Flight/TicketReceipt.vue";
 
-// Hotel components
 import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
@@ -35,9 +30,6 @@ import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
 import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
 import HotelForm from "@/views/hotel/admin/HotelForm.vue";
-
-// Layouts
-import MainLayout from "@/layouts/Main.vue";
 import TourManager from "@/layouts/TourManager.vue";
 
 const routes = [
@@ -51,32 +43,8 @@ const routes = [
       { path: "plane", name: "Plane", component: Plane },
       {
         path: "hotel",
+        name: "Hotel",
         component: Hotel,
-<<<<<<< HEAD
-        children: [
-          { path: "", name: "HotelListing", component: HotelListingPage },
-          {
-            path: ":id",
-            name: "HotelDetail",
-            component: HotelDetail,
-            props: true,
-          },
-          {
-            path: ":id/booking",
-            name: "HotelBooking",
-            component: HotelBooking,
-            props: true,
-          },
-          {
-            path: ":id/booking/success",
-            name: "BookingSuccess",
-            component: BookingSuccess,
-          },
-
-          { path: "/login", name: "Login", component: Login },
-          { path: "/register", name: "Register", component: Register },
-        ],
-=======
       },
       {
         path: "hotel/listing",
@@ -99,7 +67,6 @@ const routes = [
         path: "hotel/:id/booking/success",
         name: "BookingSuccess",
         component: BookingSuccess,
->>>>>>> 4c78fa81e7b48b6f26941198d315325ed3ebc59f
       },
       {
         path: "tours/:id",
@@ -127,47 +94,41 @@ const routes = [
       },
     ],
   },
-
-  // Auth
-  { path: "/login", name: "Login", component: Login },
-  { path: "/register", name: "Register", component: Register },
-
-  // Account
-  {
-    path: "/account",
-    component: AccountView,
-    children: [
-      { path: "", redirect: "personal" },
-      { path: "personal", component: AccountDetails },
-      { path: "payment", component: PaymentDetails },
-      { path: "security", component: AccountSecurity },
-      { path: "notifications", component: NotificationSetting },
-    ],
-  },
-
-  // Bus Management
   {
     path: "/bus-management",
     name: "BusManagement",
     component: BusManagementLayout,
   },
 
-  // Plane Booking
-  { path: "/plane/pay", name: "PayFlight", component: PayFlight },
-  { path: "/plane/getticket", name: "GetTicket", component: GetTicket },
-  { path: "/plane/admin", name: "AdminFight", component: AdminFight },
+  {
+    path: "/plane/pay",
+    name: "PayFlight",
+    component: PayFlight,
+  },
+  {
+    path: "/plane/getticket",
+    name: "GetTicket",
+    component: GetTicket,
+  },
+  {
+    path: "/plane/admin",
+    name: "AdminFight",
+    component: AdminFight,
+  },
 
-  // Tour Admin
-  { path: "/tour/admin", name: "TourManager", component: TourManager },
+  {
+    path: "/tour/admin",
+    name: "TourManager",
+    component: TourManager,
+  },
 
-  // Hotel Admin
   {
     path: "/hotel/admin",
     component: AdminLayout,
     children: [
       { path: "dashboard", component: Dashboard },
       { path: "hotelform", component: HotelForm },
-      { path: "", redirect: "dashboard" },
+      { path: "", redirect: "/dashboard" },
     ],
   },
 ];

@@ -45,32 +45,28 @@ const routes = [
         path: "hotel",
         name: "Hotel",
         component: Hotel,
-        children: [
-          {
-            path: "",
-            name: "HotelListing",
-            component: HotelListingPage,
-          },
-          {
-            path: ":id",
-            name: "HotelDetail",
-            component: HotelDetail,
-            props: true,
-          },
-          {
-            path: ":id/booking",
-            name: "HotelBooking",
-            component: HotelBooking,
-            props: true,
-          },
-          {
-            path: ":id/booking/success",
-            name: "BookingSuccess",
-            component: BookingSuccess,
-          },
-          { path: "/login", name: "Login", component: Login },
-          { path: "/register", name: "Register", component: Register },
-        ],
+      },
+      {
+        path: "hotel/listing",
+        name: "HotelListing",
+        component: HotelListingPage,
+      },
+      {
+        path: "hotel/:id",
+        name: "HotelDetail",
+        component: HotelDetail,
+        props: true,
+      },
+      {
+        path: "hotel/:id/booking",
+        name: "HotelBooking",
+        component: HotelBooking,
+        props: true,
+      },
+      {
+        path: "hotel/:id/booking/success",
+        name: "BookingSuccess",
+        component: BookingSuccess,
       },
       {
         path: "tours/:id",
@@ -83,6 +79,8 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
+      { path: "/login", name: "Login", component: Login },
+      { path: "/register", name: "Register", component: Register },
       {
         path: "/account",
         component: AccountView,

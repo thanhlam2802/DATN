@@ -19,7 +19,7 @@ import AccountSecurity from "@/components/User/Sidebar/AccountSecurity.vue";
 import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.vue";
 
 // Plane & Bus
-import Plane from "@/components/Flight/FlightHome.vue";
+
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import PayFlight from "@/components/Flight/PaymentPage.vue";
 import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
@@ -72,7 +72,6 @@ const routes = [
 
           { path: "/login", name: "Login", component: Login },
           { path: "/register", name: "Register", component: Register },
-
         ],
       },
       {
@@ -81,8 +80,6 @@ const routes = [
         component: TourDetail,
         props: true,
       },
-
-      { path: "booking", name: "BookingPage", component: BookingPage },
     ],
   },
 
@@ -102,11 +99,6 @@ const routes = [
       { path: "notifications", component: NotificationSetting },
 
       {
-        path: "booking",
-        name: "BookingPage",
-        component: BookingPage,
-      },
-      {
         path: "/account",
         component: AccountView,
         children: [
@@ -117,7 +109,6 @@ const routes = [
           { path: "notifications", component: NotificationSetting },
         ],
       },
-
     ],
   },
 

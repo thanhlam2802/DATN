@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full bg-slate-50">
+  <div class="w-full">
     <SearchBar ref="searchBarRef" />
 
     <div class="font-sans py-12">

@@ -33,6 +33,7 @@ import AdminLayout from "@/components/HotelAdmin/AdminLayout.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
+import BookingHistory from "@/views/BookingHistory.vue";
 
 const routes = [
   {
@@ -94,6 +95,7 @@ const routes = [
                 { path: "payment", component: PaymentDetails },
                 { path: "security", component: AccountSecurity },
                 { path: "notifications", component: NotificationSetting },
+                { path: "bookings", component: BookingHistory},
             ],
         },
     ],
@@ -136,6 +138,11 @@ const routes = [
     ],
   },
 
+  {
+    path: "/account/bookings",
+    name: BookingHistory,
+    component: BookingHistory
+  },
 
 ];
 

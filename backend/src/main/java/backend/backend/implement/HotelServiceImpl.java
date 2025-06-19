@@ -38,6 +38,7 @@ public class HotelServiceImpl implements HotelService {
     private HotelRoomVariantDAO hotelRoomVariantDAO;
 
     @Override
+    @Transactional(readOnly = true)
     public PageDto<HotelDto> searchHotels(HotelSearchRequestDto requestDto) {
         Specification<Hotel> spec = HotelSpecifications.from(requestDto);
         Pageable pageable = createPageable(requestDto);
@@ -71,6 +72,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ReviewDto> getReviewsForHotel(Integer hotelId) {
         if (!hotelDAO.existsById(hotelId)) {
             throw new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId);

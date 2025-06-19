@@ -33,6 +33,12 @@ public class HotelRoom {
     @Column(name = "max_children")
     private Short maxChildren;
 
+    @Column(name = "room_quantity", nullable = false)
+    private Short roomQuantity = 1;
+
+    @Column(name = "room_area")
+    private Integer roomArea;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

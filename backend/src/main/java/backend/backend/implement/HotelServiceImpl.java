@@ -12,6 +12,7 @@ import backend.backend.entity.Review;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.HotelService;
 import backend.backend.specification.HotelSpecifications;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -52,6 +53,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public HotelDetailDto getHotelDetails(Integer hotelId, HotelSearchRequestDto requestDto) {
         Hotel hotel = hotelDAO.findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId));

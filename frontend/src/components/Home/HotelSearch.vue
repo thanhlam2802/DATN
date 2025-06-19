@@ -67,7 +67,7 @@
                             </div>
                             <div class="grid grid-cols-7 gap-1 text-center text-sm">
                                 <div v-for="day in weekdays" :key="day" class="font-semibold text-gray-500 p-1">{{ day
-                                }}</div>
+                                    }}</div>
                                 <div v-for="day in days" :key="day.date.toISOString()" @click="selectDate(day)" :class="[
                                     'p-1 rounded-full cursor-pointer flex items-center justify-center w-9 h-9 mx-auto',
                                     day.isCurrentMonth ? 'text-gray-800' : 'text-gray-300',
@@ -149,10 +149,11 @@
                 </div>
             </div>
 
-            <div class="w-full lg:w-1/12">
+            <div class="w-full lg:w-3/12 flex items-center justify-center pt-0">
                 <button @click="onSearch"
                     class="w-full h-16 bg-orange-500 hover:bg-orange-600 transition-colors text-white font-bold text-xl rounded-lg shadow-lg flex items-center justify-center gap-3">
                     <i class="fas fa-search"></i>
+                    <span>Tìm kiếm</span>
                 </button>
             </div>
         </div>

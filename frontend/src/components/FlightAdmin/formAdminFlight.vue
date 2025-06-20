@@ -40,15 +40,15 @@
       <div>
         <!-- ==== TAB 1: Thông tin cơ bản ==== -->
         <div v-show="currentTab === 'basic'">
-          <div class="relative bg-white rounded-2xl shadow-xl p-8 mb-10 transform transition hover:-translate-y-1 hover:shadow-2xl overflow-hidden">
+          <div class="relative bg-white rounded-2xl shadow-xl p-8 mb-10 transform transition hover:-translate-y-1 hover:shadow-2xl overflow-hidden  after:absolute after:w-96 after:h-96 after:bg-sky-300 after:-z-10 after:rounded-full after:-top-70 after:left-4 after:blur-xl after:[box-shadow:-100px_50px_30px_100px_#7dd3fc]">
             <h2 class="text-2xl font-semibold text-gray-800 mb-6">Thông tin cơ bản</h2>
             <form @submit.prevent="goToSchedule">
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6 ">
                 <!-- Hãng hàng không -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Hãng hàng không</label>
                   <select
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4e3af4] focus:ring focus:ring focus:ring-[#4e3af4] sm:text-sm p-2 z-10 bg-white"
                     v-model="basic.airline">
                     <option value="" disabled>Chọn hãng hàng không</option>
                     <option v-for="(label, key) in airlineOptions" :key="key" :value="key">
@@ -62,7 +62,7 @@
                   <label class="block text-sm font-medium text-gray-700 mb-1">Số hiệu chuyến bay</label>
                   <input
                     type="text"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 z-10 bg-white block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4e3af4] focus:ring focus:ring-[#4e3af4] focus:outline-none p-2 sm:text-sm"
                     placeholder="Ví dụ: VN123, VJ456"
                     v-model="basic.flightNumber"
                   />
@@ -72,7 +72,7 @@
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Loại máy bay</label>
                   <select
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 z-10 bg-white block w-full rounded-md border-gray-300 shadow-sm  focus:border-[#4e3af4] focus:ring focus:ring-[#4e3af4] focus:outline-none p-2 sm:text-sm"
                     v-model="basic.planeType">
                     <option value="" disabled>Chọn loại máy bay</option>
                     <option v-for="type in planeTypes" :key="type">{{ type }}</option>
@@ -83,7 +83,7 @@
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Loại chuyến bay</label>
                   <select
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 z-10 bg-white block w-full rounded-md border-gray-300 shadow-sm  focus:border-[#4e3af4] focus:ring focus:ring-[#4e3af4] focus:outline-none p-2 sm:text-sm"
                     v-model="basic.flightType">
                     <option value="" disabled>Chọn loại chuyến bay</option>
                     <option value="Nội địa">Nội địa</option>
@@ -95,7 +95,7 @@
                 <div class="sm:col-span-2 lg:col-span-3">
                   <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
                   <textarea
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+class="mt-1 block w-full z-10 bg-white rounded-md border-gray-300 shadow-sm  focus:border-[#4e3af4] focus:ring focus:ring-[#4e3af4] focus:outline-none p-2 sm:text-sm"
                     rows="4"
                     placeholder="Mô tả về chuyến bay…"
                     v-model="basic.description"
@@ -107,14 +107,14 @@
                   <label class="block text-sm font-medium text-gray-700 mb-2">Hình ảnh</label>
                   <div class="flex flex-wrap gap-4">
                     <div
-                      class="w-1/2 border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center
+                      class="z-10 bg-white w-1/2 border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center
                              hover:border-indigo-400 hover:bg-indigo-50 transition cursor-pointer">
                       <i class="fa-solid fa-plane text-3xl text-gray-400 mb-2"></i>
                       <p class="text-gray-500 text-sm">Thêm ảnh máy bay</p>
                       <input type="file" class="mt-2" @change="onFileChange($event, 'plane')" />
                     </div>
                     <div
-                      class="w-1/2 border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center
+                      class="z-10 bg-white w-1/2 border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center
                              hover:border-indigo-400 hover:bg-indigo-50 transition cursor-pointer">
                       <i class="fa-solid fa-couch text-3xl text-gray-400 mb-2"></i>
                       <p class="text-gray-500 text-sm">Thêm ảnh nội thất</p>
@@ -127,13 +127,13 @@
               <div class="mt-8 flex justify-end space-x-4">
                 <button
                   type="button"
-                  class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition"
+                  class="z-10 bg-white px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition"
                   @click="resetBasic">
                   Làm mới
                 </button>
                 <button
                   type="submit"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+                  class="z-10 bg-white px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
                   Tiếp
                 </button>
               </div>

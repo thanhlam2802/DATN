@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen  py-8 px-4 md:px-12 w-full">
-    <a class="inline-flex items-center text-xs text-gray-500 mb-6 hover:underline" href="#">
+    <a class="inline-flex items-center text-xs text-gray-500 mb-6 hover:underline" href="/">
       <i class="fas fa-chevron-left mr-1"></i>
       Back
     </a>

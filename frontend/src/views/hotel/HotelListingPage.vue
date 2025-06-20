@@ -1,99 +1,448 @@
 <template>
-    <div>
-        <p class="text-xs text-gray-700 font-semibold mb-4">
-            {{ paginatedHotels.length }} stays in Tokyo, Japan
-            <span v-if="totalHotels > paginatedHotels.length"> (of {{ totalHotels }})</span>
-        </p>
-        <HotelList :hotels="paginatedHotels" />
+    <main class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-x-8 gap-y-6">
+        <aside class="pt-40">
+            <FilterSidebar v-model:filters="activeFilters" />
+        </aside>
 
-        <div aria-label="Pagination"
-            class="flex justify-center items-center space-x-2 mt-12 text-gray-700 text-sm select-none">
-            <button aria-label="Previous page"
-                class="hover:text-white hover:bg-indigo-600 border border-gray-300 px-2 py-1 rounded-full transition"
-                :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }" :disabled="currentPage === 1"
-                @click="goToPage(currentPage - 1)">
-                <i class="fas fa-chevron-left"></i>
-            </button>
+        <div>
+            <div class="sticky top-16 w-full flex justify-center mb-6 lg:-translate-x-[156px] z-30 mt-4">
+                <div class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
+                    <div
+                        class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
 
-            <template v-for="page in pagesToShow" :key="page">
-                <span v-if="typeof page === 'string'" class="px-2">{{ page }}</span>
-                <button v-else :aria-current="currentPage === page ? 'page' : null"
-                    :class="{ 'bg-indigo-600 text-white': currentPage === page, 'hover:text-indigo-600': currentPage !== page }"
-                    class="rounded-full w-8 h-8 flex items-center justify-center font-semibold"
-                    @click="goToPage(page)">
-                    {{ page }}
-                </button>
-            </template>
+                        <div ref="locationContainer"
+                            class="relative flex flex-grow cursor-pointer items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[200px] rounded-t-md md:rounded-l-md md:rounded-tr-none">
+                            <i class="fas fa-map-marker-alt text-blue-500 text-xl pr-3"></i>
+                            <div class="flex-1">
+                                <label class="text-xs text-gray-500">Địa điểm hoặc khách sạn</label>
+                                <input type="text" v-model="searchParams.location" @focus="handleLocationFocus"
+                                    class="w-full bg-transparent font-semibold focus:outline-none text-gray-800"
+                                    placeholder="Tìm kiếm..." />
+                            </div>
+                            <ul v-if="showLocationDropdown"
+                                class="absolute top-full mt-2 left-0 z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                                <li v-for="loc in filteredLocations" :key="loc" @click.stop="selectLocation(loc)"
+                                    class="px-4 py-2 hover:bg-blue-100 cursor-pointer truncate">
+                                    {{ loc }}
+                                </li>
+                            </ul>
+                        </div>
 
-            <button aria-label="Next page"
-                class="hover:text-white hover:bg-indigo-600 border border-gray-300 px-2 py-1 rounded-full transition"
-                :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
-                :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
-                <i class="fas fa-chevron-right"></i>
-            </button>
+                        <div
+                            class="flex flex-grow-[2] items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[300px]">
+                            <i class="fas fa-calendar-alt text-blue-500 text-xl pr-3"></i>
+                            <div class="flex flex-1 items-center">
+                                <div class="flex-1">
+                                    <label class="text-xs text-gray-500">Ngày nhận</label>
+                                    <input type="date" v-model="searchParams.checkin" :min="today"
+                                        class="w-full bg-transparent font-semibold focus:outline-none" />
+                                </div>
+                                <div class="px-4 text-center">
+                                    <div v-if="numberOfNights > 0"
+                                        class="text-xs font-semibold text-blue-600 bg-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">
+                                        {{ numberOfNights }} đêm
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-xs text-gray-500">Ngày trả</label>
+                                    <input type="date" v-model="searchParams.checkout" :min="minCheckOut"
+                                        class="w-full bg-transparent font-semibold focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div ref="guestsContainer" class="relative flex-grow">
+                            <div @click="showGuestsDropdown = !showGuestsDropdown"
+                                class="flex items-center p-3 bg-white hover:bg-gray-50 cursor-pointer h-full max-w-[300px]">
+                                <i class="fas fa-users text-blue-500 text-xl pr-3"></i>
+                                <div class="flex-1">
+                                    <label class="text-xs text-gray-500">Khách và Phòng</label>
+                                    <p class="font-semibold truncate text-gray-800">{{ guestsDisplay }}</p>
+                                </div>
+                            </div>
+                            <div v-if="showGuestsDropdown" aria-label="Guest and room selection"
+                                class="absolute top-full mt-2 right-0 z-30 w-[320px] bg-white rounded-lg shadow-lg border border-gray-200 p-4"
+                                role="listbox">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <i class="fas fa-user text-lg text-gray-600 w-5 text-center"></i>
+                                    <span class="text-gray-900 font-semibold text-base">Người lớn</span>
+                                    <div class="ml-auto flex items-center gap-2">
+                                        <button @click.stop="updateGuests('adults', -1)"
+                                            :disabled="searchParams.adults <= 1"
+                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                                            type="button">−</button>
+                                        <span
+                                            class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                                                searchParams.adults }}</span>
+                                        <button @click.stop="updateGuests('adults', 1)"
+                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                            type="button">+</button>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 mb-4">
+                                    <i class="fas fa-child text-lg text-gray-600 w-5 text-center"></i>
+                                    <span class="text-gray-900 font-semibold text-base">Trẻ em</span>
+                                    <div class="ml-auto flex items-center gap-2">
+                                        <button @click.stop="updateGuests('children', -1)"
+                                            :disabled="searchParams.children <= 0"
+                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                                            type="button">−</button>
+                                        <span
+                                            class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                                                searchParams.children }}</span>
+                                        <button @click.stop="updateGuests('children', 1)"
+                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                            type="button">+</button>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-bed text-lg text-gray-600 w-5 text-center"></i>
+                                    <span class="text-gray-900 font-semibold text-base">Phòng</span>
+                                    <div class="ml-auto flex items-center gap-2">
+                                        <button @click.stop="updateGuests('rooms', -1)"
+                                            :disabled="searchParams.rooms <= 1"
+                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                                            type="button">−</button>
+                                        <span
+                                            class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                                                searchParams.rooms }}</span>
+                                        <button @click.stop="updateGuests('rooms', 1)"
+                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                            type="button">+</button>
+                                    </div>
+                                </div>
+                                <p v-if="guestsError" class="text-red-500 text-xs mt-3 text-center">{{ guestsError }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <button aria-label="Search"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 font-bold transition flex items-center justify-center rounded-b-md md:rounded-l-none md:rounded-r-md"
+                            @click="onSearch">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pt-7">
+                <h1 class="text-xl font-bold text-gray-800">
+                    {{ cityLabel }}:
+                    <span class="text-indigo-600 font-semibold">{{ filteredHotels.length.toLocaleString() }}</span> nơi
+                    trú
+                </h1>
+                <div class="flex items-center space-x-4 mt-2 sm:mt-0">
+                    <select v-model="sortKey"
+                        class="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 shadow-sm">
+                        <option value="default">Mặc định</option>
+                        <option value="priceAsc">Giá thấp nhất</option>
+                        <option value="priceDesc">Giá cao nhất</option>
+                        <option value="ratingDesc">Đánh giá cao nhất</option>
+                    </select>
+                    <div class="flex items-center border border-gray-300 rounded-md p-0.5 shadow-sm">
+                        <button @click="viewMode = 'list'"
+                            :class="viewMode === 'list' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
+                            class="px-2 py-1 rounded-md transition-colors duration-200"
+                            aria-label="Chế độ xem danh sách"><i class="fas fa-list fa-fw"></i></button>
+                        <button @click="viewMode = 'grid'"
+                            :class="viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
+                            class="px-2 py-1 rounded-md transition-colors duration-200" aria-label="Chế độ xem lưới"><i
+                                class="fas fa-th-large fa-fw"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="viewMode === 'list'" class="space-y-4">
+                <HotelCard v-for="hotel in paginatedHotels" :key="hotel.id" v-bind="mapHotelProps(hotel)"
+                    :view-mode="viewMode" @click="goToDetail(hotel.id)" />
+            </div>
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <HotelCard v-for="hotel in paginatedHotels" :key="hotel.id" v-bind="mapHotelProps(hotel)"
+                    :view-mode="viewMode" @click="goToDetail(hotel.id)" />
+            </div>
+
+            <div aria-label="Pagination"
+                class="flex justify-center items-center space-x-2 mt-8 mb-3 text-gray-700 text-sm select-none">
+                <button aria-label="Previous page"
+                    class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
+                    :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }" :disabled="currentPage === 1"
+                    @click="goToPage(currentPage - 1)"><i class="fas fa-chevron-left"></i></button>
+                <template v-for="page in pagesToShow" :key="page">
+                    <span v-if="typeof page === 'string'" class="px-2">...</span>
+                    <button v-else :aria-current="currentPage === page ? 'page' : null" :class="[
+                        'rounded-full w-8 h-8 flex items-center justify-center font-semibold',
+                        currentPage === page
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'hover:bg-indigo-100 hover:text-indigo-600'
+                    ]" @click="goToPage(page)">
+                        {{ page }}
+                    </button>
+                </template>
+                <button aria-label="Next page"
+                    class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
+                    :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
+                    :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)"><i
+                        class="fas fa-chevron-right"></i></button>
+            </div>
         </div>
-    </div>
+    </main>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import HotelList from '@/components/Hotel/HotelList.vue';
-import { hotels as allHotels } from '@/data/hotelData.js';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import HotelCard from '@/components/Hotel/HotelCard.vue'
+import FilterSidebar from '@/components/Hotel/FilterSidebar.vue'
+import { hotels as allHotels } from '@/data/hotelData.js'
 
-const itemsPerPage = 5; 
-const currentPage = ref(1); 
+const route = useRoute()
+const router = useRouter()
 
-const totalHotels = computed(() => allHotels.length);
+const locationContainer = ref(null)
+const guestsContainer = ref(null);
+const showLocationDropdown = ref(false)
+const showGuestsDropdown = ref(false);
+const guestsError = ref('');
+const errorTimeout = ref(null);
 
-const totalPages = computed(() => Math.ceil(totalHotels.value / itemsPerPage));
+const today = new Date().toISOString().split('T')[0]
+const locations = [
+    'Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Nha Trang',
+    'Cần Thơ', 'Vũng Tàu', 'Huế', 'Hội An',
+    'Phú Quốc', 'Đà Lạt'
+]
 
-const paginatedHotels = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    return allHotels.slice(start, end);
+const searchParams = ref({
+    location: '',
+    checkin: '',
+    checkout: '',
+    adults: 2,
+    children: 0,
+    rooms: 1,
+})
+
+const lastLocation = ref('');
+const activeLocationQuery = ref('');
+
+const guestsDisplay = computed(() => {
+    return `${searchParams.value.adults} người lớn, ${searchParams.value.children} trẻ em, ${searchParams.value.rooms} phòng`;
 });
 
-const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+const filteredLocations = computed(() => {
+    if (!searchParams.value.location) return locations;
+    return locations.filter(location =>
+        location.toLowerCase().includes(searchParams.value.location.toLowerCase())
+    );
+});
+
+const minCheckOut = computed(() => {
+    if (searchParams.value.checkin) {
+        const d = new Date(searchParams.value.checkin)
+        d.setDate(d.getDate() + 1)
+        return d.toISOString().split('T')[0]
+    }
+    return today
+})
+
+const numberOfNights = computed(() => {
+    if (searchParams.value.checkin && searchParams.value.checkout) {
+        const s = new Date(searchParams.value.checkin)
+        const e = new Date(searchParams.value.checkout)
+        if (e <= s) return 0
+        const diff = e - s
+        return Math.ceil(diff / (1000 * 60 * 60 * 24))
+    }
+    return 0
+})
+
+watch(() => searchParams.value.checkin, nv => {
+    const s = new Date(nv)
+    const e = new Date(searchParams.value.checkout)
+    if (e <= s) {
+        const ne = new Date(s)
+        ne.setDate(ne.getDate() + 1)
+        searchParams.value.checkout = ne.toISOString().split('T')[0]
+    }
+})
+
+function handleLocationFocus() {
+    lastLocation.value = searchParams.value.location;
+    searchParams.value.location = '';
+    showLocationDropdown.value = true;
+}
+
+function selectLocation(loc) {
+    searchParams.value.location = loc
+    lastLocation.value = loc;
+    showLocationDropdown.value = false
+}
+
+function updateGuests(type, amount) {
+    const params = searchParams.value;
+    if (errorTimeout.value) clearTimeout(errorTimeout.value);
+    guestsError.value = '';
+
+    if (type === 'adults') {
+        const newAdults = params.adults + amount;
+        if (newAdults >= 1) {
+            params.adults = newAdults;
+            if (params.adults < params.rooms) {
+                params.rooms = params.adults;
+            }
+        }
+    } else if (type === 'children') {
+        params.children = Math.max(0, params.children + amount);
+    } else if (type === 'rooms') {
+        const newRooms = params.rooms + amount;
+        if (amount > 0) {
+            if (newRooms > params.adults) {
+                guestsError.value = 'Số phòng không thể nhiều hơn số người lớn.';
+                errorTimeout.value = setTimeout(() => { guestsError.value = '' }, 3000);
+            } else {
+                params.rooms = newRooms;
+            }
+        } else {
+            params.rooms = Math.max(1, newRooms);
+        }
+    }
+}
+
+function onSearch() {
+    if (searchParams.value.location) {
+        lastLocation.value = searchParams.value.location;
+    } else {
+        searchParams.value.location = lastLocation.value;
+    }
+    router.push({ query: { ...searchParams.value, page: 1 } })
+}
+
+const handleClickOutside = (event) => {
+    if (locationContainer.value && !locationContainer.value.contains(event.target)) {
+        showLocationDropdown.value = false
+        if (searchParams.value.location === '') {
+            searchParams.value.location = lastLocation.value;
+        }
+    }
+    if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
+        showGuestsDropdown.value = false;
     }
 };
 
-const pagesToShow = computed(() => {
-    const maxPagesDisplay = 5;
-    const pages = [];
-
-    if (totalPages.value <= maxPagesDisplay) {
-        for (let i = 1; i <= totalPages.value; i++) {
-            pages.push(i);
-        }
-    } else {
-        const startPage = Math.max(1, currentPage.value - Math.floor(maxPagesDisplay / 2));
-        const endPage = Math.min(totalPages.value, startPage + maxPagesDisplay - 1);
-
-        if (startPage > 1) {
-            pages.push(1);
-            if (startPage > 2) {
-                pages.push('...');
-            }
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(i);
-        }
-
-        if (endPage < totalPages.value) {
-            if (endPage < totalPages.value - 1) {
-                pages.push('...');
-            }
-            pages.push(totalPages.value);
-        }
-    }
-    return pages;
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside)
 });
 
-// watch(allHotels, () => {
-//     currentPage.value = 1;
-// });
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+});
+
+const activeFilters = ref({ starRating: 0, priceRange: [0, 20000000], amenities: {} })
+const sortKey = ref('default')
+const viewMode = ref('list')
+
+const filteredHotels = computed(() => {
+    let arr = allHotels
+
+    if (activeLocationQuery.value) {
+        const searchTerm = activeLocationQuery.value.toLowerCase();
+        arr = arr.filter(h =>
+            h.location.toLowerCase().includes(searchTerm) ||
+            h.title.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    if (activeFilters.value.starRating) {
+        arr = arr.filter(h => h.stars === activeFilters.value.starRating)
+    }
+    const ams = Object.keys(activeFilters.value.amenities).filter(k => activeFilters.value.amenities[k])
+    if (ams.length) arr = arr.filter(h => ams.every(a => h.amenities.includes(a)))
+    const [minP, maxP] = activeFilters.value.priceRange
+    return arr.filter(h => h.price >= minP && h.price <= maxP)
+})
+
+const sortedHotels = computed(() => {
+    const arr = [...filteredHotels.value]
+    if (sortKey.value === 'priceAsc') return arr.sort((a, b) => a.price - b.price)
+    if (sortKey.value === 'priceDesc') return arr.sort((a, b) => b.price - a.price)
+    if (sortKey.value === 'ratingDesc') return arr.sort((a, b) => b.rating - a.rating)
+    return arr
+})
+
+const itemsPerPage = 6
+const currentPage = ref(1)
+const totalPages = computed(() => Math.ceil(sortedHotels.value.length / itemsPerPage))
+
+const cityLabel = computed(() =>
+    activeLocationQuery.value
+        ? `Kết quả tại "${activeLocationQuery.value}"`
+        : 'Tất cả địa điểm'
+)
+
+const paginatedHotels = computed(() =>
+    sortedHotels.value.slice((currentPage.value - 1) * itemsPerPage, currentPage.value * itemsPerPage)
+)
+
+const pagesToShow = computed(() => {
+    const maxD = 5, p = [], tp = totalPages.value, cp = currentPage.value
+    if (tp <= maxD + 2) {
+        for (let i = 1; i <= tp; i++) p.push(i)
+    } else {
+        p.push(1)
+        if (cp > 3) p.push('...')
+        let start = Math.max(2, cp - 1), end = Math.min(tp - 1, cp + 1)
+        if (cp <= 3) { start = 2; end = 4 }
+        if (cp >= tp - 2) { start = tp - 3; end = tp - 1 }
+        for (let i = start; i <= end; i++) p.push(i)
+        if (cp < tp - 2) p.push('...')
+        p.push(tp)
+    }
+    return [...new Set(p)]
+})
+
+watch([sortKey, activeFilters], () => { currentPage.value = 1 }, { deep: true })
+
+watch(() => route.query, q => {
+    const locationFromQuery = q.location || '';
+
+    searchParams.value = {
+        location: locationFromQuery,
+        checkin: q.checkin || today,
+        checkout: q.checkout || minCheckOut.value,
+        adults: Number(q.adults) || 2,
+        children: Number(q.children) || 0,
+        rooms: Number(q.rooms) || 1,
+    }
+
+    lastLocation.value = locationFromQuery;
+    activeLocationQuery.value = locationFromQuery;
+
+    currentPage.value = Number(q.page) || 1
+}, { immediate: true, deep: true })
+
+function goToPage(pg) {
+    if (pg >= 1 && pg <= totalPages.value) {
+        currentPage.value = pg
+        router.push({ query: { ...route.query, page: pg } })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+}
+
+function goToDetail(id) {
+    router.push({ name: 'HotelDetail', params: { id }, query: route.query })
+}
+
+const mapHotelProps = h => ({
+    image: h.image,
+    alt: h.title,
+    location: h.location,
+    title: h.title,
+    details: h.details,
+    amenities: h.amenities,
+    rating: h.rating,
+    reviews: h.reviews,
+    originalPrice: Number(h.originalPrice),
+    price: Number(h.price)
+})
 </script>
+
+<style scoped></style>

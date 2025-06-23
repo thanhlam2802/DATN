@@ -351,8 +351,6 @@
     <div
       class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 lg:mx-0 overflow-hidden relative flex flex-col md:flex-row"
       style="max-height: 80vh">
-      <button @click="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 z-10"><i
-          class="fas fa-times fa-lg"></i></button>
       <div class="md:w-1/2 w-full flex flex-col bg-gray-50">
         <div class="flex-grow flex items-center justify-center p-4"><img
             v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length"
@@ -386,7 +384,7 @@
             </div>
           </div>
         </div>
-        <div class="flex-shrink-0 p-6 border-t border-gray-200 bg-white">
+        <div class="sticky bottom-0 flex-shrink-0 p-6 border-t border-gray-200 bg-white">
           <div v-if="selectedRoom && selectedRoom.availableVariants && selectedRoom.availableVariants.length > 0">
             <h3 class="text-lg font-semibold text-gray-800 mb-2">Giá khởi điểm từ:</h3>
             <div class="flex items-baseline gap-2">
@@ -407,6 +405,8 @@
           </div>
         </div>
       </div>
+      <button @click="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 z-50"><i
+          class="fas fa-times fa-lg"></i></button>
     </div>
   </div>
 </template>

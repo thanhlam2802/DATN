@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full min-h-screen text-lg md:text-xl relative bg-gray-50">
+  <div class="w-full min-h-screen text-lg md:text-xl relative">
     <div class="relative">
       <BannerAndSearch />
     </div>

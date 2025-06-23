@@ -4,7 +4,7 @@
 
         <div class="relative h-48 overflow-hidden">
             <img :src="hotel.imageUrl || 'https://placehold.co/350x192/EBF5FF/7F9CF5?text=No+Image'" :alt="hotel.name"
-                class="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-110" />
+                class="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-110" />
             <p
                 class="absolute top-3 left-3 bg-black bg-opacity-50 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center z-10">
                 <i class="fas fa-map-marker-alt mr-2"></i>

@@ -1,12 +1,12 @@
 <template>
-  <div v-if="loading" class="flex justify-center items-center min-h-screen bg-gray-50">
+  <div v-if="loading" class="flex justify-center items-center min-h-screen bg-gray-50 w-full">
     <div class="text-center">
       <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
       <p class="text-xl text-gray-600 mt-4">Đang tải chi tiết khách sạn...</p>
     </div>
   </div>
 
-  <div v-else-if="error" class="text-center py-20 bg-red-50">
+  <div v-else-if="error" class="text-center py-20 bg-red-50 w-full">
     <p class="text-2xl text-red-600">Rất tiếc, đã có lỗi xảy ra!</p>
     <p class="text-gray-700 mt-2">{{ error }}</p>
     <router-link to="/" class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
@@ -14,7 +14,7 @@
     </router-link>
   </div>
 
-  <main v-else-if="hotel" class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gray-50" style="padding-top: 1rem;">
+  <main v-else-if="hotel" class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8" style="padding-top: 1rem;">
     <div class="sticky top-16 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
       <div class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
         <div
@@ -38,7 +38,7 @@
             <div class="px-4 text-center">
               <div v-if="numberOfNights > 0"
                 class="text-xs font-semibold text-blue-600 bg-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">{{
-                numberOfNights }} đêm</div>
+                  numberOfNights }} đêm</div>
             </div>
             <div class="flex-1">
               <label class="text-xs text-gray-500">Ngày trả</label>
@@ -57,7 +57,7 @@
 
     <section class="bg-white rounded-xl shadow p-6 mb-8">
       <div class="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 mb-8 h-auto lg:h-[500px]">
-        <div class="flex-shrink-0 w-full lg:w-8/12 h-96 lg:h-full overflow-hidden rounded-lg shadow-md">
+        <div class="flex-shrink-0 w-full lg:w-9/12 h-96 lg:h-full overflow-hidden rounded-lg shadow-md">
           <img v-if="hotel.imageUrls && hotel.imageUrls.length" :src="hotel.imageUrls[0]" :alt="hotel.name"
             class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
         </div>
@@ -87,10 +87,10 @@
         </div>
         <div class="flex items-center gap-4 mt-4 sm:mt-0">
           <div class="text-left"><span class="text-gray-500 text-sm block">Giá/phòng/đêm từ</span>
-            <div class="text-2xl font-bold text-indigo-600 whitespace-nowrap">{{ minRoomPrice }}</div>
+            <div class="text-2xl font-bold text-orange-500 whitespace-nowrap">{{ minRoomPrice }}</div>
           </div>
           <button
-            class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-2 text-base font-semibold transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-6 py-2 text-base font-semibold transition focus:outline-none focus:ring-2 focus:ring-orange-500"
             @click="scrollToRooms">Chọn phòng</button>
         </div>
       </div>
@@ -105,11 +105,11 @@
 
             <ul class="space-y-2 pt-4">
               <li class="flex items-start"><i class="fas fa-map-marker-alt text-blue-500 w-5 mt-1"></i><span>{{
-                  hotel.address }}</span></li>
+                hotel.address }}</span></li>
               <li class="flex items-center"><i class="fas fa-phone-alt text-blue-500 w-5"></i><span>{{ hotel.phone
-                  }}</span></li>
+              }}</span></li>
               <li class="flex items-center"><i class="fas fa-envelope text-blue-500 w-5"></i><span>{{ hotel.email
-                  }}</span></li>
+              }}</span></li>
             </ul>
           </div>
         </div>
@@ -122,7 +122,7 @@
               <span>{{ amenity.name }}</span>
             </div>
           </div>
-          <button v-if="allHotelAmenities.length > 6" @click="showAllAmenities = !showAllAmenities"
+          <button v-if="allUniqueRoomAmenities.length > INITIAL_AMENITIES_COUNT" @click="showAllAmenities = !showAllAmenities"
             class="mt-2 text-sm border border-gray-300 text-gray-700 rounded-full px-4 py-2 hover:bg-gray-100 focus:outline-none transition-colors duration-200">{{
               showAllAmenities ? "Ẩn bớt" : "Xem tất cả tiện ích" }}</button>
         </div>
@@ -133,14 +133,36 @@
       <h2 class="text-2xl font-bold text-gray-800 mb-6">Những phòng trống tại {{ hotel.name }}</h2>
 
       <section class="bg-gray-50 rounded-xl shadow-inner p-6 mb-8">
-        <h3 class="text-lg font-bold text-gray-800 pb-4 mb-2">Tìm kiếm nhanh hơn bằng cách chọn những tiện nghi bạn cần
-        </h3>
-        <div class="flex flex-wrap gap-4">
-          <div v-for="filter in amenityFilters" :key="filter.id" class="flex items-center">
-            <input :id="`filter-${filter.id}`" type="checkbox" :value="filter.id" v-model="selectedAmenities"
-              class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
-            <label :for="`filter-${filter.id}`" class="ml-2 block text-sm text-gray-900 cursor-pointer">{{ filter.label
-              }}</label>
+        <div class="flex flex-col lg:flex-row gap-8">
+          <div class="lg:w-2/3">
+            <h3 class="text-lg font-bold text-gray-800 pb-4 mb-2 border-b border-gray-200">Tìm kiếm nhanh hơn bằng cách
+              chọn những tiện nghi bạn cần</h3>
+            <div class="flex flex-wrap gap-x-6 gap-y-3 pt-2">
+              <div v-for="filter in amenityFilters" :key="filter.id" class="flex items-center">
+                <input :id="`filter-${filter.id}`" type="checkbox" :value="filter.id" v-model="selectedAmenities"
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer" />
+                <label :for="`filter-${filter.id}`" class="ml-2 block text-sm text-gray-900 cursor-pointer">{{
+                  filter.label }}</label>
+              </div>
+            </div>
+          </div>
+          <div class="lg:w-1/3 lg:border-l lg:pl-8 border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800 pb-4 mb-2 border-b border-gray-200">Lựa chọn hiển thị giá</h3>
+            <div class="space-y-3 pt-2">
+              <div>
+                <input type="radio" id="price-exclusive" value="price" v-model="priceDisplayMode"
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer" />
+                <label for="price-exclusive" class="ml-2 text-sm text-gray-900 cursor-pointer">Tổng giá (chưa bao gồm
+                  thuế và
+                  phí)</label>
+              </div>
+              <div>
+                <input type="radio" id="price-inclusive" value="totalPrice" v-model="priceDisplayMode"
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer" />
+                <label for="price-inclusive" class="ml-2 text-sm text-gray-900 cursor-pointer">Tổng giá (bao gồm thuế và
+                  phí)</label>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -180,7 +202,7 @@
             class="font-bold text-sm flex items-center gap-1 hover:underline mt-2 text-blue-600"><i
               class="fas fa-info-circle"></i> Xem chi tiết phòng</button>
         </div>
-        <div class="md:w-2/3 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+        <div class="md:w-2/3 border border-gray-100 rounded-lg shadow-sm">
           <table class="w-full text-sm text-gray-700 border-collapse">
             <thead class="bg-gray-50 text-gray-800 font-bold">
               <tr>
@@ -199,7 +221,7 @@
                     'Không bao gồm bữa sáng' }}</p>
                   <div class="mt-2 space-y-1">
                     <div class="flex items-center gap-1 text-gray-500 text-xs"><i class="fas fa-bed w-4"></i><span>{{
-                        room.bedType }}</span></div>
+                      room.bedType }}</span></div>
                     <div v-if="variant.cancellable" class="flex items-center gap-1 text-green-600 text-xs"><i
                         class="fas fa-check-circle w-4"></i><span>Miễn phí hủy phòng</span></div>
                     <div v-if="variant.payAtHotel" class="flex items-center gap-1 text-green-600 text-xs"><i
@@ -209,16 +231,43 @@
                 <td class="text-center align-top py-4 px-4 text-xl text-gray-600 relative group">
                   <i class="fas fa-user-friends cursor-pointer pt-10"></i>
                   <div
-                    class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    Tối đa {{ room.maxAdults }} người lớn, {{ room.maxChildren }} trẻ em
+                    class="absolute bottom-full left-1/2 -translate-x-1/2 translate-y-9 w-max bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                    {{ room.maxAdults }} người lớn<span v-if="room.maxChildren && room.maxChildren > 0">, {{
+                      room.maxChildren }} trẻ em</span>
                     <div
                       class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800">
                     </div>
                   </div>
                 </td>
                 <td class="text-center align-middle py-4 px-4">
-                  <p class="text-red-600 font-bold text-base">{{ formatPrice(variant.price) }}</p>
-                  <p class="text-xs text-gray-400 font-normal mt-1">Chưa bao gồm thuế và phí</p>
+                  <div class="relative inline-block">
+                    <p class="text-orange-500 font-bold text-base peer">
+                      {{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) :
+                        variant.price) }}
+                    </p>
+                    <p class="text-xs text-gray-400 font-normal mt-1">
+                      {{ priceDisplayMode === 'totalPrice' ? 'Đã bao gồm thuế và phí' : 'Chưa bao gồm thuế và phí' }}
+                    </p>
+                    <div
+                      class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 translate-z-0 w-max max-w-[280px] bg-gray-800 text-white text-xs rounded-lg py-2 px-3 opacity-0 peer-hover:opacity-100 transition-opacity whitespace-nowrap z-9999 shadow-lg cursor-default">
+                      <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-left">
+                        <span class="font-medium text-gray-300">Giá phòng:</span>
+                        <span class="text-right font-semibold">{{ formatPrice(variant.price) }}</span>
+
+                        <span class="font-medium text-gray-300">Thuế và phí:</span>
+                        <span class="text-right font-semibold">{{ formatPrice(getTaxesAndFees(variant)) }}</span>
+
+                        <div class="col-span-2 border-t border-gray-600 my-1"></div>
+
+                        <span class="font-bold text-gray-100">Tổng cộng:</span>
+                        <span class="text-right font-bold text-gray-100">{{ formatPrice(variant.totalPrice ??
+                          variant.price) }}</span>
+                      </div>
+                      <div
+                        class="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800">
+                      </div>
+                    </div>
+                  </div>
                 </td>
                 <td class="text-center align-middle py-4 px-4"><button
                     class="rounded-lg px-5 py-2 text-sm font-semibold transition-colors duration-200 shadow-md bg-blue-600 text-white hover:bg-blue-700">Chọn</button>
@@ -252,7 +301,8 @@
               <div class="flex items-center justify-between mb-2">
                 <div
                   class="flex items-center gap-1.5 bg-blue-100 text-blue-800 font-bold text-sm px-2.5 py-1 rounded-full">
-                  <i class="fas fa-star text-xs"></i><span>{{ review.rating.toFixed(1) }}</span></div>
+                  <i class="fas fa-star text-xs"></i><span>{{ review.rating.toFixed(1) }}</span>
+                </div>
               </div>
               <p class="text-gray-700 leading-relaxed">{{ review.comment }}</p>
             </div>
@@ -287,7 +337,7 @@
         <h2 class="font-sans font-extrabold text-xl leading-6 text-gray-800">Cơ sở lưu trú khác bạn có thể thích</h2>
         <p class="font-sans text-sm text-gray-600">Những khách sạn tương tự trong khu vực</p>
       </div>
-      <div aria-label="Accommodation suggestions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div aria-label="Accommodation suggestions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-40">
         <HotelCard v-for="other in otherHotels" :key="other.id" :hotel="other" />
       </div>
     </section>
@@ -331,25 +381,65 @@
             </div>
           </div>
         </div>
-        <div>
-          <h3 class="text-lg font-semibold text-gray-800 mb-2">Các lựa chọn dịch vụ & giá:</h3>
-          <table class="w-full text-sm text-gray-700 border-collapse">
-            <thead class="bg-gray-50 text-gray-800 font-semibold">
-              <tr>
-                <th class="text-left py-2 px-4 border-b border-gray-200">Lựa chọn</th>
-                <th class="text-center py-2 px-4 border-b border-gray-200">Giá</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="variant in selectedRoom.availableVariants" :key="variant.id"
-                class="border-b border-gray-100 last:border-b-0">
-                <td class="py-3 px-4">
-                  <div class="font-semibold">{{ variant.variantName }}</div>
-                </td>
-                <td class="text-center py-3 px-4 text-red-600 font-semibold">{{ formatPrice(variant.price) }}</td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="mt-4">
+          <div
+            v-if="selectedRoom && selectedRoom.availableVariants && selectedRoom.availableVariants.length > 0 && !showAllVariantsInModal"
+            class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-1">Giá thấp nhất từ:</h3>
+            <p class="text-2xl font-bold text-red-600">{{ formatPrice(minPriceOfSelectedRoom) }}</p>
+            <p class="text-sm text-gray-500 -mt-1">
+              / phòng / đêm <span v-if="priceDisplayMode === 'totalPrice'">(đã bao gồm thuế phí)</span>
+              <span v-else>(chưa bao gồm thuế phí)</span>
+            </p>
+            <button @click="showAllVariantsInModal = true"
+              class="mt-3 text-sm text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
+              Thêm sự lựa chọn <i class="fas fa-chevron-down text-xs"></i>
+            </button>
+          </div>
+
+          <div
+            v-if="selectedRoom && selectedRoom.availableVariants && selectedRoom.availableVariants.length > 0 && showAllVariantsInModal">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-lg font-semibold text-gray-800">Các lựa chọn dịch vụ & giá:</h3>
+              <button @click="showAllVariantsInModal = false"
+                class="text-sm text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
+                Ẩn bớt lựa chọn <i class="fas fa-chevron-up text-xs"></i>
+              </button>
+            </div>
+            <table class="w-full text-sm text-gray-700 border-collapse">
+              <thead class="bg-gray-50 text-gray-800 font-semibold">
+                <tr>
+                  <th class="text-left py-2 px-4 border-b border-gray-200 w-3/5">Lựa chọn</th>
+                  <th class="text-center py-2 px-4 border-b border-gray-200 w-2/5">Giá</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="variant in selectedRoom.availableVariants" :key="variant.id"
+                  class="border-b border-gray-100 last:border-b-0">
+                  <td class="py-3 px-4">
+                    <div class="font-semibold">{{ variant.variantName }}</div>
+                    <div class="mt-1 space-y-0.5 text-xs text-gray-500">
+                      <p v-if="variant.hasBreakfast">Bao gồm bữa sáng</p>
+                      <p v-if="variant.cancellable" class="text-green-600">Miễn phí hủy phòng</p>
+                      <p v-if="variant.payAtHotel" class="text-green-600">Thanh toán tại khách sạn</p>
+                    </div>
+                  </td>
+                  <td class="text-center py-3 px-4 text-red-600 font-semibold">
+                    {{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) :
+                      variant.price) }}
+                    <p class="text-xs text-gray-400 font-normal mt-0.5">
+                      {{ priceDisplayMode === 'totalPrice' ? 'Đã bao gồm thuế và phí' : 'Chưa bao gồm thuế và phí' }}
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="!selectedRoom || !selectedRoom.availableVariants || selectedRoom.availableVariants.length === 0">
+            <p class="text-gray-600 py-4">Hiện không có lựa chọn giá nào cho loại phòng này.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -385,6 +475,7 @@ const selectedRoom = ref(null);
 const roomImageIndex = ref({});
 const modalImageIndex = ref(0);
 const slideDirection = ref("next");
+const showAllVariantsInModal = ref(false);
 const roomsSectionRef = ref(null);
 const locationContainer = ref(null);
 const guestsContainer = ref(null);
@@ -393,6 +484,7 @@ const showGuestsDropdown = ref(false);
 const guestsError = ref('');
 const errorTimeout = ref(null);
 const lastLocation = ref('');
+const priceDisplayMode = ref('price');
 
 const amenityFilters = ref([
   { id: "cancellable", label: "Miễn phí hủy phòng" },
@@ -444,7 +536,7 @@ const fetchOtherHotels = async (provinceId, currentHotelId) => {
   try {
     const response = await searchHotels({ provinceId: provinceId, size: 4 });
     if (response.data?.statusCode === 200) {
-      otherHotels.value = response.data.data.content.filter(h => h.id !== currentHotelId).slice(0, 3);
+      otherHotels.value = response.data.data.content.filter(h => h.id != currentHotelId).slice(0, 3);
     }
   } catch (err) {
     console.error("Lỗi khi tải khách sạn tương tự:", err);
@@ -471,7 +563,7 @@ const numberOfNights = computed(() => {
 
 const guestsDisplay = computed(() => `${searchParams.value.adults} người lớn, ${searchParams.value.children} trẻ em, ${searchParams.value.rooms} phòng`);
 
-const allHotelAmenities = computed(() => {
+const allUniqueRoomAmenities = computed(() => {
   if (!hotel.value?.availableRooms) return [];
   const amenitiesMap = new Map();
   hotel.value.availableRooms.forEach(room => {
@@ -484,7 +576,30 @@ const allHotelAmenities = computed(() => {
   return Array.from(amenitiesMap.values());
 });
 
-const visibleAmenities = computed(() => showAllAmenities.value ? allHotelAmenities.value : allHotelAmenities.value.slice(0, 6));
+const INITIAL_AMENITIES_COUNT = 6;
+const EXPANDED_AMENITIES_COUNT = 15;
+const randomizedExpandedAmenities = ref([]);
+
+const shuffleArray = (array) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+watch(allUniqueRoomAmenities, (newAmenities) => {
+  const shuffled = shuffleArray(newAmenities);
+  randomizedExpandedAmenities.value = shuffled.slice(0, EXPANDED_AMENITIES_COUNT);
+}, { immediate: true, deep: true });
+
+const visibleAmenities = computed(() => {
+  if (showAllAmenities.value) {
+    return randomizedExpandedAmenities.value;
+  }
+  return randomizedExpandedAmenities.value.slice(0, INITIAL_AMENITIES_COUNT);
+});
 
 const filteredRoomTypes = computed(() => {
   if (!hotel.value?.availableRooms) return [];
@@ -510,11 +625,35 @@ const minRoomPrice = computed(() => {
   let minPrice = Infinity;
   hotel.value.availableRooms.forEach(room => {
     room.availableVariants.forEach(variant => {
-      if (variant.price < minPrice) minPrice = variant.price;
+      const priceToCompare = priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+      if (typeof priceToCompare === 'number' && priceToCompare < minPrice) {
+        minPrice = priceToCompare;
+      }
     });
   });
   return minPrice === Infinity ? "Liên hệ" : formatPrice(minPrice);
 });
+
+const minPriceOfSelectedRoom = computed(() => {
+  if (!selectedRoom.value?.availableVariants?.length) {
+    return null;
+  }
+  const variants = selectedRoom.value.availableVariants;
+  if (priceDisplayMode.value === 'totalPrice') {
+    const prices = variants.map(v => (typeof v.totalPrice === 'number' ? v.totalPrice : v.price));
+    return Math.min(...prices);
+  }
+  return Math.min(...variants.map(v => v.price));
+});
+
+const getTaxesAndFees = (variant) => {
+  if (typeof variant.totalPrice === 'number' &&
+    typeof variant.price === 'number' &&
+    variant.totalPrice >= variant.price) {
+    return variant.totalPrice - variant.price;
+  }
+  return null;
+};
 
 const currentPage = ref(1);
 const reviewsPerPage = ref(5);
@@ -590,6 +729,7 @@ const prevRoomImage = (roomId) => {
 const openModal = (room) => {
   selectedRoom.value = room;
   modalImageIndex.value = 0;
+  showAllVariantsInModal.value = false;
   showModal.value = true;
 };
 const closeModal = () => {

@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.criteria.Order;
@@ -37,17 +38,17 @@ public class HotelDAOImpl implements HotelDAOCustom {
 
         Subquery<Double> avgRatingSubquery = query.subquery(Double.class);
         Root<Review> reviewRootAvg = avgRatingSubquery.from(Review.class);
-        avgRatingSubquery.select(cb.coalesce(cb.avg(reviewRootAvg.get("rating")), 0.0))
-                .where(cb.equal(reviewRootAvg.get("entityId"), hotelRoot.get("id")),
-                        cb.equal(reviewRootAvg.get("entityType"), "Hotel"));
+        avgRatingSubquery.select(cb.coalesce(cb.avg(reviewRootAvg.get("rating")), 0.0)).where(
+                cb.equal(reviewRootAvg.get("entityId"), hotelRoot.get("id")),
+                cb.equal(reviewRootAvg.get("entityType"), "Hotel"));
 
         Subquery<Long> reviewCountSubquery = query.subquery(Long.class);
         Root<Review> reviewRootCt = reviewCountSubquery.from(Review.class);
-        reviewCountSubquery.select(cb.count(reviewRootCt.get("id")))
-                .where(cb.equal(reviewRootCt.get("entityId"), hotelRoot.get("id")),
-                        cb.equal(reviewRootCt.get("entityType"), "Hotel"));
+        reviewCountSubquery.select(cb.count(reviewRootCt.get("id"))).where(
+                cb.equal(reviewRootCt.get("entityId"), hotelRoot.get("id")),
+                cb.equal(reviewRootCt.get("entityType"), "Hotel"));
 
-        Subquery<java.math.BigDecimal> minPriceSubquery = query.subquery(java.math.BigDecimal.class);
+        Subquery<BigDecimal> minPriceSubquery = query.subquery(BigDecimal.class);
         Root<HotelRoomVariant> variantRoot = minPriceSubquery.from(HotelRoomVariant.class);
         minPriceSubquery.select(cb.min(variantRoot.get("price")))
                 .where(cb.equal(variantRoot.get("room").get("hotel"), hotelRoot));

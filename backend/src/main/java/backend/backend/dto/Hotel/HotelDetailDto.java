@@ -14,44 +14,49 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HotelDetailDto {
-    private Integer id;
-    private String name;
-    private String address;
-    private String description;
-    private Short starRating;
-    private String email;
-    private String phone;
-    private String provinceName;
-    private List<String> imageUrls;
-    private double rating;
-    private int reviewCount;
-    private List<HotelRoomDto> availableRooms;
+        private Integer id;
+        private String name;
+        private String address;
+        private String description;
+        private Short starRating;
+        private String email;
+        private String phone;
 
-    public static HotelDetailDto fromEntity(Hotel hotel, double rating, int reviewCount,
-            Set<Integer> bookedVariantIds) {
-        List<String> images = hotel.getHotelImages() != null ? hotel.getHotelImages().stream()
-                .map(img -> img.getImage().getUrl())
-                .collect(Collectors.toList()) : Collections.emptyList();
+        private Integer provinceId;
+        private String provinceName;
 
-        List<HotelRoomDto> roomDtoList = hotel.getHotelRooms() != null ? hotel.getHotelRooms().stream()
-                .map(room -> HotelRoomDto.fromEntity(room, bookedVariantIds))
-                .filter(roomDto -> !roomDto.getAvailableVariants().isEmpty())
-                .collect(Collectors.toList()) : Collections.emptyList();
+        private List<String> imageUrls;
+        private double rating;
+        private int reviewCount;
+        private List<HotelRoomDto> availableRooms;
 
-        String province = hotel.getProvince() != null ? hotel.getProvince().getName() : null;
+        public static HotelDetailDto fromEntity(Hotel hotel, double rating, int reviewCount,
+                        Set<Integer> bookedVariantIds) {
+                List<String> images = hotel.getHotelImages() != null ? hotel.getHotelImages().stream()
+                                .map(img -> img.getImage().getUrl())
+                                .collect(Collectors.toList()) : Collections.emptyList();
 
-        return new HotelDetailDto(
-                hotel.getId(),
-                hotel.getName(),
-                hotel.getAddress(),
-                hotel.getDescription(),
-                hotel.getStarRating(),
-                hotel.getEmail(),
-                hotel.getPhone(),
-                province,
-                images,
-                rating,
-                reviewCount,
-                roomDtoList);
-    }
+                List<HotelRoomDto> roomDtoList = hotel.getHotelRooms() != null ? hotel.getHotelRooms().stream()
+                                .map(room -> HotelRoomDto.fromEntity(room, bookedVariantIds))
+                                .filter(roomDto -> !roomDto.getAvailableVariants().isEmpty())
+                                .collect(Collectors.toList()) : Collections.emptyList();
+
+                Integer pId = (hotel.getProvince() != null) ? hotel.getProvince().getId() : null;
+                String pName = (hotel.getProvince() != null) ? hotel.getProvince().getName() : null;
+
+                return new HotelDetailDto(
+                                hotel.getId(),
+                                hotel.getName(),
+                                hotel.getAddress(),
+                                hotel.getDescription(),
+                                hotel.getStarRating(),
+                                hotel.getEmail(),
+                                hotel.getPhone(),
+                                pId,
+                                pName,
+                                images,
+                                rating,
+                                reviewCount,
+                                roomDtoList);
+        }
 }

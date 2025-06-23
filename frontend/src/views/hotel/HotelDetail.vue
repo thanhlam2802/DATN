@@ -14,7 +14,7 @@
     </router-link>
   </div>
 
-  <main v-else-if="hotel" class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8" style="padding-top: 1rem;">
+  <main v-else-if="hotel" class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:w-[1320px]" style="padding-top: 1rem;">
     <div class="sticky top-16 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
       <div class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
         <div
@@ -56,14 +56,14 @@
     </div>
 
     <section class="bg-white rounded-xl shadow p-6 mb-8">
-      <div class="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 mb-8 h-auto lg:h-[500px]">
-        <div class="flex-shrink-0 w-full lg:w-9/12 h-96 lg:h-full overflow-hidden rounded-lg shadow-md">
+      <div class="flex flex-col lg:flex-row lg:items-start space-y-3 lg:space-y-0 lg:space-x-3 mb-8">
+        <div class="flex-shrink-0 w-full lg:w-[480px] h-96 lg:h-[332px] overflow-hidden rounded-lg shadow-md">
           <img v-if="hotel.imageUrls && hotel.imageUrls.length" :src="hotel.imageUrls[0]" :alt="hotel.name"
             class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
         </div>
-        <div class="flex lg:flex-col w-full lg:w-4/12 h-auto lg:h-full justify-between gap-3">
-          <div v-for="(img, idx) in hotel.imageUrls.slice(1, 4)" :key="idx"
-            class="h-48 lg:h-[160px] w-1/3 lg:w-full overflow-hidden rounded-lg shadow-md">
+        <div class="grid grid-cols-3 grid-rows-2 gap-3 flex-1">
+          <div v-for="(img, idx) in hotel.imageUrls.slice(1, 7)" :key="idx"
+            class="w-full h-full overflow-hidden rounded-lg shadow-md">
             <img :src="img" :alt="`Additional image ${idx + 1}`"
               class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
           </div>
@@ -107,9 +107,9 @@
               <li class="flex items-start"><i class="fas fa-map-marker-alt text-blue-500 w-5 mt-1"></i><span>{{
                 hotel.address }}</span></li>
               <li class="flex items-center"><i class="fas fa-phone-alt text-blue-500 w-5"></i><span>{{ hotel.phone
-              }}</span></li>
+                  }}</span></li>
               <li class="flex items-center"><i class="fas fa-envelope text-blue-500 w-5"></i><span>{{ hotel.email
-              }}</span></li>
+                  }}</span></li>
             </ul>
           </div>
         </div>
@@ -122,14 +122,15 @@
               <span>{{ amenity.name }}</span>
             </div>
           </div>
-          <button v-if="allUniqueRoomAmenities.length > INITIAL_AMENITIES_COUNT" @click="showAllAmenities = !showAllAmenities"
+          <button v-if="allUniqueRoomAmenities.length > INITIAL_AMENITIES_COUNT"
+            @click="showAllAmenities = !showAllAmenities"
             class="mt-2 text-sm border border-gray-300 text-gray-700 rounded-full px-4 py-2 hover:bg-gray-100 focus:outline-none transition-colors duration-200">{{
               showAllAmenities ? "Ẩn bớt" : "Xem tất cả tiện ích" }}</button>
         </div>
       </div>
     </section>
 
-    <section ref="roomsSectionRef" class="bg-white rounded-xl p-6 mb-8">
+    <section ref="roomsSectionRef" class="bg-white rounded-xl p-6 mb-8 scroll-mt-37">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">Những phòng trống tại {{ hotel.name }}</h2>
 
       <section class="bg-gray-50 rounded-xl shadow-inner p-6 mb-8">
@@ -148,19 +149,20 @@
           </div>
           <div class="lg:w-1/3 lg:border-l lg:pl-8 border-gray-200">
             <h3 class="text-lg font-bold text-gray-800 pb-4 mb-2 border-b border-gray-200">Lựa chọn hiển thị giá</h3>
-            <div class="space-y-3 pt-2">
-              <div>
-                <input type="radio" id="price-exclusive" value="price" v-model="priceDisplayMode"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer" />
-                <label for="price-exclusive" class="ml-2 text-sm text-gray-900 cursor-pointer">Tổng giá (chưa bao gồm
-                  thuế và
-                  phí)</label>
-              </div>
-              <div>
-                <input type="radio" id="price-inclusive" value="totalPrice" v-model="priceDisplayMode"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer" />
-                <label for="price-inclusive" class="ml-2 text-sm text-gray-900 cursor-pointer">Tổng giá (bao gồm thuế và
-                  phí)</label>
+            <div class="pt-2 relative" ref="priceDropdownRef">
+              <button @click="showPriceDropdown = !showPriceDropdown"
+                class="w-full bg-white border border-gray-300 text-blue-600 font-semibold text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 cursor-pointer flex justify-between items-center">
+                <span>{{ selectedPriceLabel }}</span>
+                <i class="fas fa-chevron-down text-gray-500"></i>
+              </button>
+              <div v-if="showPriceDropdown"
+                class="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                <div v-for="option in priceOptions" :key="option.value" @click="selectPriceOption(option.value)"
+                  class="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors duration-150"
+                  :class="{ 'bg-blue-100 text-blue-600 font-semibold': priceDisplayMode === option.value }">
+                  <span>{{ option.label }}</span>
+                  <i v-if="priceDisplayMode === option.value" class="fas fa-check text-blue-600 ml-2"></i>
+                </div>
               </div>
             </div>
           </div>
@@ -363,81 +365,44 @@
             @click="modalImageIndex = idx" />
         </div>
       </div>
-      <div class="md:w-1/2 w-full p-6 overflow-y-auto" style="max-height: 80vh">
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">{{ selectedRoom.roomType }}</h2>
-        <div class="mb-6 text-sm text-gray-700">
-          <p class="flex items-center mb-2"><i class="fas fa-ruler-combined text-blue-500 mr-2"></i>Diện tích: <span
-              class="font-semibold ml-1">{{ selectedRoom.roomArea }} m²</span></p>
-          <p class="flex items-center"><i class="fas fa-user-friends text-blue-500 mr-2"></i>Sức chứa: <span
-              class="font-semibold ml-1">{{ selectedRoom.maxAdults }} người lớn</span>, <span
-              class="font-semibold ml-1">{{ selectedRoom.maxChildren }} trẻ em</span></p>
-        </div>
-        <div class="mb-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-2">Toàn bộ tiện ích:</h3>
-          <div class="flex flex-wrap gap-2">
-            <div v-for="amenity in selectedRoom.amenities" :key="amenity.name"
-              class="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-1 text-xs text-gray-700 mb-2">
-              <i :class="amenity.icon || 'fas fa-check'" class="text-green-600"></i><span>{{ amenity.name }}</span>
+      <div class="md:w-1/2 w-full flex flex-col h-full">
+        <div class="flex-grow overflow-y-auto p-6">
+          <h2 class="text-2xl font-bold text-gray-800 mb-4">{{ selectedRoom.roomType }}</h2>
+          <div class="mb-6 text-sm text-gray-700">
+            <p class="flex items-center mb-2"><i class="fas fa-ruler-combined text-blue-500 mr-2"></i>Diện tích: <span
+                class="font-semibold ml-1">{{ selectedRoom.roomArea }} m²</span></p>
+            <p class="flex items-center"><i class="fas fa-user-friends text-blue-500 mr-2"></i>Sức chứa: <span
+                class="font-semibold ml-1">{{ selectedRoom.maxAdults }} người lớn</span><span
+                v-if="selectedRoom.maxChildren && selectedRoom.maxChildren > 0">,<span class="font-semibold ml-1">{{
+                  selectedRoom.maxChildren }} trẻ em</span></span></p>
+          </div>
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Toàn bộ tiện ích:</h3>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+              <div v-for="amenity in selectedRoom.amenities" :key="amenity.name"
+                class="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-1 text-xs text-gray-700 w-fit">
+                <i :class="amenity.icon || 'fas fa-check'" class="text-green-600"></i><span>{{ amenity.name }}</span>
+              </div>
             </div>
           </div>
         </div>
-
-        <div class="mt-4">
-          <div
-            v-if="selectedRoom && selectedRoom.availableVariants && selectedRoom.availableVariants.length > 0 && !showAllVariantsInModal"
-            class="mb-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-1">Giá thấp nhất từ:</h3>
-            <p class="text-2xl font-bold text-red-600">{{ formatPrice(minPriceOfSelectedRoom) }}</p>
-            <p class="text-sm text-gray-500 -mt-1">
-              / phòng / đêm <span v-if="priceDisplayMode === 'totalPrice'">(đã bao gồm thuế phí)</span>
+        <div class="flex-shrink-0 p-6 border-t border-gray-200 bg-white">
+          <div v-if="selectedRoom && selectedRoom.availableVariants && selectedRoom.availableVariants.length > 0">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Giá khởi điểm từ:</h3>
+            <div class="flex items-baseline gap-2">
+              <p class="text-2xl font-bold text-red-600">{{ formatPrice(minPriceOfSelectedRoom) }}</p>
+              <span class="text-sm text-gray-600 font-medium">/ phòng / đêm</span>
+            </div>
+            <p class="text-xs text-gray-500">
+              <span v-if="priceDisplayMode === 'totalPrice'">(đã bao gồm thuế phí)</span>
               <span v-else>(chưa bao gồm thuế phí)</span>
             </p>
-            <button @click="showAllVariantsInModal = true"
-              class="mt-3 text-sm text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
-              Thêm sự lựa chọn <i class="fas fa-chevron-down text-xs"></i>
+            <button @click="closeModal"
+              class="mt-4 w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+              Thêm sự lựa chọn
             </button>
           </div>
-
-          <div
-            v-if="selectedRoom && selectedRoom.availableVariants && selectedRoom.availableVariants.length > 0 && showAllVariantsInModal">
-            <div class="flex justify-between items-center mb-2">
-              <h3 class="text-lg font-semibold text-gray-800">Các lựa chọn dịch vụ & giá:</h3>
-              <button @click="showAllVariantsInModal = false"
-                class="text-sm text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
-                Ẩn bớt lựa chọn <i class="fas fa-chevron-up text-xs"></i>
-              </button>
-            </div>
-            <table class="w-full text-sm text-gray-700 border-collapse">
-              <thead class="bg-gray-50 text-gray-800 font-semibold">
-                <tr>
-                  <th class="text-left py-2 px-4 border-b border-gray-200 w-3/5">Lựa chọn</th>
-                  <th class="text-center py-2 px-4 border-b border-gray-200 w-2/5">Giá</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="variant in selectedRoom.availableVariants" :key="variant.id"
-                  class="border-b border-gray-100 last:border-b-0">
-                  <td class="py-3 px-4">
-                    <div class="font-semibold">{{ variant.variantName }}</div>
-                    <div class="mt-1 space-y-0.5 text-xs text-gray-500">
-                      <p v-if="variant.hasBreakfast">Bao gồm bữa sáng</p>
-                      <p v-if="variant.cancellable" class="text-green-600">Miễn phí hủy phòng</p>
-                      <p v-if="variant.payAtHotel" class="text-green-600">Thanh toán tại khách sạn</p>
-                    </div>
-                  </td>
-                  <td class="text-center py-3 px-4 text-red-600 font-semibold">
-                    {{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) :
-                      variant.price) }}
-                    <p class="text-xs text-gray-400 font-normal mt-0.5">
-                      {{ priceDisplayMode === 'totalPrice' ? 'Đã bao gồm thuế và phí' : 'Chưa bao gồm thuế và phí' }}
-                    </p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div v-if="!selectedRoom || !selectedRoom.availableVariants || selectedRoom.availableVariants.length === 0">
+          <div v-else>
             <p class="text-gray-600 py-4">Hiện không có lựa chọn giá nào cho loại phòng này.</p>
           </div>
         </div>
@@ -475,7 +440,6 @@ const selectedRoom = ref(null);
 const roomImageIndex = ref({});
 const modalImageIndex = ref(0);
 const slideDirection = ref("next");
-const showAllVariantsInModal = ref(false);
 const roomsSectionRef = ref(null);
 const locationContainer = ref(null);
 const guestsContainer = ref(null);
@@ -484,6 +448,8 @@ const showGuestsDropdown = ref(false);
 const guestsError = ref('');
 const errorTimeout = ref(null);
 const lastLocation = ref('');
+const priceDropdownRef = ref(null);
+const showPriceDropdown = ref(false);
 const priceDisplayMode = ref('price');
 
 const amenityFilters = ref([
@@ -634,6 +600,17 @@ const minRoomPrice = computed(() => {
   return minPrice === Infinity ? "Liên hệ" : formatPrice(minPrice);
 });
 
+const priceOptions = computed(() => [
+  { value: 'price', label: 'Tổng giá (chưa bao gồm thuế và phí)' },
+  { value: 'totalPrice', label: 'Tổng giá (bao gồm thuế và phí)' },
+]);
+
+const selectedPriceLabel = computed(() => {
+  const selected = priceOptions.value.find(option => option.value === priceDisplayMode.value);
+  return selected ? selected.label : 'Chọn hiển thị giá';
+});
+
+
 const minPriceOfSelectedRoom = computed(() => {
   if (!selectedRoom.value?.availableVariants?.length) {
     return null;
@@ -729,7 +706,6 @@ const prevRoomImage = (roomId) => {
 const openModal = (room) => {
   selectedRoom.value = room;
   modalImageIndex.value = 0;
-  showAllVariantsInModal.value = false;
   showModal.value = true;
 };
 const closeModal = () => {
@@ -777,6 +753,10 @@ const handleClickOutside = (event) => {
   if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
     showGuestsDropdown.value = false;
   }
+
+  if (priceDropdownRef.value && !priceDropdownRef.value.contains(event.target)) {
+    showPriceDropdown.value = false;
+  }
 };
 
 watch(() => route.params.id, (newId, oldId) => {
@@ -796,6 +776,11 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
+
+const selectPriceOption = (value) => {
+  priceDisplayMode.value = value;
+  showPriceDropdown.value = false;
+};
 </script>
 
 <style scoped>

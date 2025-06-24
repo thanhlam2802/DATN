@@ -10,8 +10,6 @@ import TourDetail from "@/views/TourDetail.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import MainLayout from "@/layouts/Main.vue";
 
-import Login from "@/views/Login.vue";
-import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
 import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
@@ -28,9 +26,11 @@ import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
 import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
+import HotelForm from "@/views/hotel/admin/HotelForm.vue"
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
+
 
 const routes = [
   {

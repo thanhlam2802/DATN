@@ -1,16 +1,15 @@
-import {createRouter, createWebHistory} from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
+import Home from "@/views/Home.vue";
+import Tour from "@/views/Tour.vue";
+import Bus from "@/views/Bus.vue";
+import Hotel from "@/views/hotel/Hotel.vue";
+import Plane from "@/components/Flight/FlightHome.vue";
+import TourDetail from "@/views/TourDetail.vue";
 
-import Home from "../views/Home.vue";
-import Tour from "../views/Tour.vue";
-import Bus from "../views/Bus.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import MainLayout from "@/layouts/Main.vue";
 
-import Plane from "@/components/Flight/FlightHome.vue";
-import Hotel from "@/views/hotel/Hotel.vue";
-
-import TourDetail from "@/views/TourDetail.vue";
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
@@ -28,12 +27,10 @@ import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
-
-import AdminLayout from "@/components/HotelAdmin/AdminLayout.vue";
+import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
-import BookingHistory from "@/views/BookingHistory.vue";
 
 const routes = [
   {
@@ -48,32 +45,28 @@ const routes = [
         path: "hotel",
         name: "Hotel",
         component: Hotel,
-        children: [
-          {
-            path: "",
-            name: "HotelListing",
-            component: HotelListingPage,
-          },
-          {
-            path: ":id",
-            name: "HotelDetail",
-            component: HotelDetail,
-            props: true,
-          },
-          {
-            path: ":id/booking",
-            name: "HotelBooking",
-            component: HotelBooking,
-            props: true,
-          },
-          {
-            path: ":id/booking/success",
-            name: "BookingSuccess",
-            component: BookingSuccess,
-          },
-            { path: "/login", name: "Login", component: Login },
-            { path: "/register", name: "Register", component: Register },
-        ],
+      },
+      {
+        path: "hotel/listing",
+        name: "HotelListing",
+        component: HotelListingPage,
+      },
+      {
+        path: "hotel/:id",
+        name: "HotelDetail",
+        component: HotelDetail,
+        props: true,
+      },
+      {
+        path: "hotel/:id/booking",
+        name: "HotelBooking",
+        component: HotelBooking,
+        props: true,
+      },
+      {
+        path: "hotel/:id/booking/success",
+        name: "BookingSuccess",
+        component: BookingSuccess,
       },
       {
         path: "tours/:id",
@@ -95,12 +88,10 @@ const routes = [
                 { path: "payment", component: PaymentDetails },
                 { path: "security", component: AccountSecurity },
                 { path: "notifications", component: NotificationSetting },
-                { path: "bookings", component: BookingHistory},
             ],
         },
     ],
   },
-
   {
     path: "/bus-management",
     name: "BusManagement",
@@ -134,21 +125,17 @@ const routes = [
     component: AdminLayout,
     children: [
       { path: "dashboard", component: Dashboard },
-      { path: "", redirect: "/hotel/admin/dashboard" },
+      { path: "hotelform", component: HotelForm },
+      { path: "", redirect: "/dashboard" },
     ],
   },
 
-  {
-    path: "/account/bookings",
-    name: BookingHistory,
-    component: BookingHistory
-  },
 
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 });
 
 export default router;

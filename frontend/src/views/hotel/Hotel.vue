@@ -185,7 +185,7 @@
 
 <script setup>
 import SearchBar from "@/components/Hotel/SearchBar.vue";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { searchHotels } from "@/api/hotelApi";
 import { getAllProvinces } from "@/api/provinceApi";
@@ -207,10 +207,12 @@ const fetchProvinces = async () => {
     loading.value.provinces = true;
     const response = await getAllProvinces();
     if (response.data?.statusCode === 200) {
-      provinces.value = [{ id: null, name: 'Tất cả' }, ...response.data.data];
-      hotDestinations.value = response.data.data
-        .sort((a, b) => b.hotelCount - a.hotelCount)
-        .slice(0, 12);
+      const sortedProvinces = [...response.data.data].sort((a, b) => b.hotelCount - a.hotelCount);
+      provinces.value = sortedProvinces;
+      hotDestinations.value = sortedProvinces.slice(0, 12);
+      if (provinces.value.length > 0) {
+        activeProvinceId.value = provinces.value[0].id;
+      }
     }
   } catch (e) {
     error.value.provinces = "Không thể tải danh sách tỉnh.";
@@ -253,9 +255,14 @@ const searchForHotDestination = (provinceName) => {
 const scrollContainer = ref(null);
 const provinceScrollContainer = ref(null);
 
+watch(activeProvinceId, (newId) => {
+  if (newId) {
+    fetchHotels(newId);
+  }
+});
+
 onMounted(() => {
   fetchProvinces();
-  fetchHotels();
 });
 </script>
 

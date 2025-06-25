@@ -19,8 +19,10 @@
                 </h3>
 
                 <div class="mt-2">
-                    <div class="flex items-center text-yellow-400 text-sm">
-                        <i v-for="n in hotel.starRating" :key="'full-' + n" class="fas fa-star"></i>
+                    <div class="flex items-center text-gray-600 text-sm">
+                        <i class="fas fa-hotel mr-2 text-blue-500"></i>
+                        <span class="mr-2">Khách sạn</span>
+                        <i v-for="n in hotel.starRating" :key="'full-' + n" class="fas fa-star text-yellow-400"></i>
                     </div>
 
                     <div class="text-gray-600 text-xs mt-2 flex items-center">

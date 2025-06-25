@@ -1,12 +1,12 @@
 <template>
-    <main class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-x-8 gap-y-6">
+    <main class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-x-8 gap-y-6 max-w-full lg:w-[1320px]">
         <aside class="pt-40 pb-5">
             <FilterSidebar v-model:filters="activeFilters" />
         </aside>
 
         <div>
             <div class="sticky top-16 w-full flex justify-center mb-6 lg:-translate-x-[156px] z-30 mt-4">
-                <div class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
+                <div ref="searchWidgetContainer" class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
                     <div
                         class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
 
@@ -17,15 +17,23 @@
                                 <label class="text-xs text-gray-500">Địa điểm hoặc khách sạn</label>
                                 <input type="text" v-model="searchParams.location" @focus="handleLocationFocus"
                                     class="w-full bg-transparent font-semibold focus:outline-none text-gray-800"
-                                    placeholder="Tìm kiếm..." />
+                                    placeholder="Tìm kiếm..." autocomplete="off" />
                             </div>
-                            <ul v-if="showLocationDropdown"
+                            <div v-if="showLocationDropdown && suggestions.length > 0"
                                 class="absolute top-full mt-2 left-0 z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
-                                <li v-for="loc in filteredLocations" :key="loc" @click.stop="selectLocation(loc)"
-                                    class="px-4 py-2 hover:bg-blue-100 cursor-pointer truncate">
-                                    {{ loc }}
-                                </li>
-                            </ul>
+                                <ul>
+                                    <li v-for="loc in suggestions" :key="loc.type + '-' + loc.id"
+                                        @click="selectLocation(loc.name)"
+                                        class="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-3">
+                                        <i
+                                            :class="loc.type === 'Province' ? 'fas fa-map-marked-alt text-gray-400' : 'fas fa-hotel text-gray-400'"></i>
+                                        <div>
+                                            <p class="font-semibold">{{ loc.name }}</p>
+                                            <p class="text-xs text-gray-500">{{ loc.type === 'Province' ? 'Tỉnh/Thành phố' : 'Khách sạn' }}</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
 
                         <div
@@ -126,14 +134,14 @@
             </div>
 
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pt-7">
-                <h1 class="text-xl font-bold text-gray-800">
-                    {{ cityLabel }}:
-                    <span class="text-indigo-600 font-semibold">{{ filteredHotels.length.toLocaleString() }}</span> nơi
-                    trú
+                <h1 class="font-bold text-gray-800">
+                    <span class="block text-2xl">{{ locationDisplay }}</span>
+                    <span class="block text-base font-normal text-gray-600">{{ hotelCountDisplay }}</span>
                 </h1>
                 <div class="flex items-center space-x-4 mt-2 sm:mt-0">
+                    <span class="text-sm font-semibold">Xếp theo:</span>
                     <select v-model="sortKey"
-                        class="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 shadow-sm">
+                        class="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 shadow-sm mr-5">
                         <option value="default">Mặc định</option>
                         <option value="priceAsc">Giá thấp nhất</option>
                         <option value="priceDesc">Giá cao nhất</option>
@@ -152,13 +160,13 @@
                 </div>
             </div>
 
-            <div v-if="viewMode === 'list'" class="space-y-4">
-                <HotelCard v-for="hotel in paginatedHotels" :key="hotel.id" v-bind="mapHotelProps(hotel)"
-                    :view-mode="viewMode" @click="goToDetail(hotel.id)" />
-            </div>
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                <HotelCard v-for="hotel in paginatedHotels" :key="hotel.id" v-bind="mapHotelProps(hotel)"
-                    :view-mode="viewMode" @click="goToDetail(hotel.id)" />
+            <div :class="viewMode === 'list' ? 'space-y-4' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'">
+                <HotelCard v-for="hotel in paginatedHotels" :key="hotel.id" :view-mode="viewMode" :image="hotel.image"
+                    :alt="hotel.title" :location="hotel.location" :title="hotel.title" :stars="hotel.stars"
+                    :rating="hotel.rating" :full-address="hotel.fullAddress" :reviews="hotel.reviews"
+                    :details="hotel.details" :amenities="hotel.amenities" :original-price="hotel.originalPrice"
+                    :price="hotel.price" :is-favorited="favoritedHotels.has(hotel.id)" @click="goToDetail(hotel.id)"
+                    @toggle-favorite="toggleFavorite(hotel.id)" />
             </div>
 
             <div aria-label="Pagination"
@@ -171,8 +179,8 @@
                     <span v-if="typeof page === 'string'" class="px-2">...</span>
                     <button v-else :aria-current="currentPage === page ? 'page' : null" :class="[
                         'rounded-full w-8 h-8 flex items-center justify-center font-semibold',
-                        currentPage === page
-                            ? 'bg-indigo-600 text-white shadow-md'
+                        currentPage === page ?
+                            'bg-indigo-600 text-white shadow-md'
                             : 'hover:bg-indigo-100 hover:text-indigo-600'
                     ]" @click="goToPage(page)">
                         {{ page }}
@@ -193,12 +201,14 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HotelCard from '@/components/Hotel/HotelCard.vue'
 import FilterSidebar from '@/components/Hotel/FilterSidebar.vue'
-import { hotels as allHotels } from '@/data/hotelData.js'
+import { searchHotels } from '@/api/hotelApi.js'
+import { getAllProvinces } from '@/api/provinceApi.js'
 
 const route = useRoute()
 const router = useRouter()
 
 const locationContainer = ref(null)
+const searchWidgetContainer = ref(null);
 const guestsContainer = ref(null);
 const showLocationDropdown = ref(false)
 const showGuestsDropdown = ref(false);
@@ -206,11 +216,12 @@ const guestsError = ref('');
 const errorTimeout = ref(null);
 
 const today = new Date().toISOString().split('T')[0]
-const locations = [
-    'Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Nha Trang',
-    'Cần Thơ', 'Vũng Tàu', 'Huế', 'Hội An',
-    'Phú Quốc', 'Đà Lạt'
-]
+
+const hotels = ref([]);
+const provinces = ref([]);
+const hotelSuggestions = ref([]);
+const debounceTimer = ref(null);
+const locationBeforeEdit = ref('');
 
 const searchParams = ref({
     location: '',
@@ -221,18 +232,19 @@ const searchParams = ref({
     rooms: 1,
 })
 
-const lastLocation = ref('');
 const activeLocationQuery = ref('');
 
 const guestsDisplay = computed(() => {
     return `${searchParams.value.adults} người lớn, ${searchParams.value.children} trẻ em, ${searchParams.value.rooms} phòng`;
 });
 
-const filteredLocations = computed(() => {
-    if (!searchParams.value.location) return locations;
-    return locations.filter(location =>
-        location.toLowerCase().includes(searchParams.value.location.toLowerCase())
-    );
+const suggestions = computed(() => {
+    const keyword = searchParams.value.location.toLowerCase();
+    const provinceResults = provinces.value
+        .filter(p => p.name.toLowerCase().includes(keyword))
+        .map(p => ({ id: `p-${p.id}`, name: p.name, type: 'Province' }));
+    const hotelResults = hotelSuggestions.value.map(h => ({ id: `h-${h.id}`, name: h.name, type: 'Hotel' }));
+    return [...provinceResults, ...hotelResults];
 });
 
 const minCheckOut = computed(() => {
@@ -265,15 +277,33 @@ watch(() => searchParams.value.checkin, nv => {
     }
 })
 
+watch(() => searchParams.value.location, (newKeyword) => {
+    if (newKeyword && newKeyword !== activeLocationQuery.value) {
+        clearTimeout(debounceTimer.value);
+        debounceTimer.value = setTimeout(() => {
+            fetchHotelSuggestions(newKeyword);
+        }, 300);
+    } else {
+        hotelSuggestions.value = [];
+    }
+});
+
 function handleLocationFocus() {
-    lastLocation.value = searchParams.value.location;
-    searchParams.value.location = '';
+    locationBeforeEdit.value = searchParams.value.location;
     showLocationDropdown.value = true;
 }
 
+const fetchHotelSuggestions = async (keyword) => {
+    try {
+        const response = await searchHotels({ keyword: keyword, size: 5 });
+        if (response.data?.statusCode === 200) {
+            hotelSuggestions.value = response.data.data.content;
+        }
+    } catch (error) { console.error("Could not fetch hotel suggestions:", error); }
+};
+
 function selectLocation(loc) {
     searchParams.value.location = loc
-    lastLocation.value = loc;
     showLocationDropdown.value = false
 }
 
@@ -308,27 +338,53 @@ function updateGuests(type, amount) {
 }
 
 function onSearch() {
-    if (searchParams.value.location) {
-        lastLocation.value = searchParams.value.location;
-    } else {
-        searchParams.value.location = lastLocation.value;
+    const searchData = {
+        location: searchParams.value.location,
+        checkin: searchParams.value.checkin,
+        checkout: searchParams.value.checkout,
+        adults: searchParams.value.adults,
+        children: searchParams.value.children,
+        rooms: searchParams.value.rooms,
+    };
+    localStorage.setItem('lastSearchParams', JSON.stringify(searchData));
+
+    const query = {
+        ...route.query,
+        keyword: searchParams.value.location,
+        checkInDate: searchParams.value.checkin,
+        checkOutDate: searchParams.value.checkout,
+        numAdults: searchParams.value.adults,
+        numChildren: searchParams.value.children,
+        rooms: searchParams.value.rooms,
+        page: 1
     }
-    router.push({ query: { ...searchParams.value, page: 1 } })
+    router.push({ query })
 }
 
 const handleClickOutside = (event) => {
-    if (locationContainer.value && !locationContainer.value.contains(event.target)) {
-        showLocationDropdown.value = false
-        if (searchParams.value.location === '') {
-            searchParams.value.location = lastLocation.value;
-        }
-    }
-    if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
+    if (searchWidgetContainer.value && !searchWidgetContainer.value.contains(event.target)) {
+        showLocationDropdown.value = false;
         showGuestsDropdown.value = false;
+        if (searchParams.value.location.trim() === '' && locationBeforeEdit.value) {
+            searchParams.value.location = locationBeforeEdit.value;
+        }
+    } else {
+        if (locationContainer.value && !locationContainer.value.contains(event.target)) {
+            showLocationDropdown.value = false;
+        }
+        if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
+            showGuestsDropdown.value = false;
+        }
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
+    try {
+        const response = await getAllProvinces();
+        provinces.value = response.data?.data || [];
+    } catch (error) {
+        console.error("Could not fetch provinces:", error);
+    }
     document.addEventListener('click', handleClickOutside)
 });
 
@@ -341,16 +397,7 @@ const sortKey = ref('default')
 const viewMode = ref('list')
 
 const filteredHotels = computed(() => {
-    let arr = allHotels
-
-    if (activeLocationQuery.value) {
-        const searchTerm = activeLocationQuery.value.toLowerCase();
-        arr = arr.filter(h =>
-            h.location.toLowerCase().includes(searchTerm) ||
-            h.title.toLowerCase().includes(searchTerm)
-        );
-    }
-
+    let arr = hotels.value
     if (activeFilters.value.starRating) {
         arr = arr.filter(h => h.stars === activeFilters.value.starRating)
     }
@@ -372,12 +419,17 @@ const itemsPerPage = 6
 const currentPage = ref(1)
 const totalPages = computed(() => Math.ceil(sortedHotels.value.length / itemsPerPage))
 
-const cityLabel = computed(() =>
-    activeLocationQuery.value
-        ? `Kết quả tại "${activeLocationQuery.value}"`
-        : 'Tất cả địa điểm'
-)
+const locationDisplay = computed(() => {
+    if (activeLocationQuery.value) {
+        return activeLocationQuery.value;
+    }
+    return 'Tất cả địa điểm';
+});
 
+const hotelCountDisplay = computed(() => {
+    const count = filteredHotels.value.length.toLocaleString();
+    return `${count} nơi lưu trú được tìm thấy`;
+});
 const paginatedHotels = computed(() =>
     sortedHotels.value.slice((currentPage.value - 1) * itemsPerPage, currentPage.value * itemsPerPage)
 )
@@ -401,22 +453,56 @@ const pagesToShow = computed(() => {
 
 watch([sortKey, activeFilters], () => { currentPage.value = 1 }, { deep: true })
 
-watch(() => route.query, q => {
-    const locationFromQuery = q.location || '';
-
-    searchParams.value = {
-        location: locationFromQuery,
-        checkin: q.checkin || today,
-        checkout: q.checkout || minCheckOut.value,
-        adults: Number(q.adults) || 2,
-        children: Number(q.children) || 0,
-        rooms: Number(q.rooms) || 1,
+const fetchHotels = async (queryParams) => {
+    try {
+        const apiParams = {
+            keyword: queryParams.keyword,
+            checkInDate: queryParams.checkInDate,
+            checkOutDate: queryParams.checkOutDate,
+            numAdults: queryParams.numAdults,
+            numChildren: queryParams.numChildren,
+            rooms: queryParams.rooms,
+            size: 1000
+        };
+        const response = await searchHotels(apiParams);
+        if (response.data?.statusCode === 200) {
+            const hotelDtos = response.data.data.content;
+            hotels.value = hotelDtos.map(h => ({
+                id: h.id,
+                title: h.name,
+                location: h.provinceName || h.address,
+                details: h.description,
+                amenities: h.amenities?.map(a => a.name).join(', '),
+                rating: h.rating?.toFixed(1) || 'N/A',
+                reviews: h.reviewCount || 0,
+                originalPrice: null,
+                price: h.startingPrice || 0,
+                image: h.imageUrl || 'https://via.placeholder.com/320x230.png?text=Hotel+Image',
+                stars: h.starRating,
+                fullAddress: h.address
+            }));
+        } else {
+            hotels.value = [];
+        }
+    } catch (error) {
+        console.error("Failed to fetch hotels:", error);
+        hotels.value = [];
     }
+};
 
-    lastLocation.value = locationFromQuery;
-    activeLocationQuery.value = locationFromQuery;
-
-    currentPage.value = Number(q.page) || 1
+watch(() => route.query, q => {
+    const queryParams = {
+        keyword: q.keyword || '',
+        checkin: q.checkInDate || today,
+        checkout: q.checkOutDate || minCheckOut.value,
+        adults: Number(q.numAdults) || 2,
+        children: Number(q.numChildren) || 0,
+        rooms: Number(q.rooms) || 1,
+    };
+    searchParams.value = { ...queryParams, location: queryParams.keyword };
+    activeLocationQuery.value = queryParams.keyword;
+    currentPage.value = Number(q.page) || 1;
+    fetchHotels(queryParams);
 }, { immediate: true, deep: true })
 
 function goToPage(pg) {
@@ -431,18 +517,31 @@ function goToDetail(id) {
     router.push({ name: 'HotelDetail', params: { id }, query: route.query })
 }
 
-const mapHotelProps = h => ({
-    image: h.image,
-    alt: h.title,
-    location: h.location,
-    title: h.title,
-    details: h.details,
-    amenities: h.amenities,
-    rating: h.rating,
-    reviews: h.reviews,
-    originalPrice: Number(h.originalPrice),
-    price: Number(h.price)
-})
+const favoritedHotels = ref(new Set());
+
+const toggleFavorite = (hotelId) => {
+    if (favoritedHotels.value.has(hotelId)) {
+        favoritedHotels.value.delete(hotelId);
+    } else {
+        favoritedHotels.value.add(hotelId);
+    }
+};
 </script>
 
-<style scoped></style>
+<style scoped>
+.line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+</style>

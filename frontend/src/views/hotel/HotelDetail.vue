@@ -15,24 +15,41 @@
   </div>
 
   <main v-else-if="hotel" class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:w-[1320px]" style="padding-top: 1rem;">
-    <div class="sticky top-16 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
+    <div ref="searchWidgetContainer"
+      class="sticky top-16 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
       <div class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
-        <div
-          class="relative flex flex-grow items-center p-3 bg-white border-b md:border-b-0 md:border-r border-gray-200 min-w-[200px] rounded-t-md md:rounded-l-md md:rounded-tr-none">
+        <div ref="locationContainer"
+          class="relative flex flex-grow cursor-pointer items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[200px] rounded-t-md md:rounded-l-md md:rounded-tr-none">
           <i class="fas fa-map-marker-alt text-blue-500 text-xl pr-3"></i>
           <div class="flex-1">
             <label class="text-xs text-gray-500">Địa điểm hoặc khách sạn</label>
-            <input type="text" v-model="hotel.name"
-              class="w-full bg-transparent font-semibold focus:outline-none text-gray-800" readonly />
+            <input type="text" v-model="searchParams.location" @focus="handleLocationFocus"
+              class="w-full bg-transparent font-semibold focus:outline-none text-gray-800" placeholder="Tìm kiếm..."
+              autocomplete="off" />
+          </div>
+          <div v-if="showLocationDropdown && suggestions.length > 0"
+            class="absolute top-full mt-2 left-0 z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+            <ul>
+              <li v-for="loc in suggestions" :key="loc.type + '-' + loc.id" @click="selectLocation(loc.name)"
+                class="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-3">
+                <i
+                  :class="loc.type === 'Province' ? 'fas fa-map-marked-alt text-gray-400' : 'fas fa-hotel text-gray-400'"></i>
+                <div>
+                  <p class="font-semibold">{{ loc.name }}</p>
+                  <p class="text-xs text-gray-500">{{ loc.type === 'Province' ? 'Tỉnh/Thành phố' : 'Khách sạn' }}</p>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
+
         <div
           class="flex flex-grow-[2] items-center p-3 bg-white border-b md:border-b-0 md:border-r border-gray-200 min-w-[300px]">
           <i class="fas fa-calendar-alt text-blue-500 text-xl pr-3"></i>
           <div class="flex flex-1 items-center">
             <div class="flex-1">
               <label class="text-xs text-gray-500">Ngày nhận</label>
-              <input type="date" v-model="searchParams.checkInDate" :min="today"
+              <input type="date" v-model="searchParams.checkin" :min="today"
                 class="w-full bg-transparent font-semibold focus:outline-none" />
             </div>
             <div class="px-4 text-center">
@@ -42,15 +59,78 @@
             </div>
             <div class="flex-1">
               <label class="text-xs text-gray-500">Ngày trả</label>
-              <input type="date" v-model="searchParams.checkOutDate" :min="minCheckOut"
+              <input type="date" v-model="searchParams.checkout" :min="minCheckOut"
                 class="w-full bg-transparent font-semibold focus:outline-none" />
             </div>
           </div>
         </div>
+
+        <div ref="guestsContainer" class="relative flex-grow">
+          <div @click="showGuestsDropdown = !showGuestsDropdown"
+            class="flex items-center p-3 bg-white hover:bg-gray-50 cursor-pointer h-full max-w-[300px]">
+            <i class="fas fa-users text-blue-500 text-xl pr-3"></i>
+            <div class="flex-1">
+              <label class="text-xs text-gray-500">Khách và Phòng</label>
+              <p class="font-semibold truncate text-gray-800">{{ guestsDisplay }}</p>
+            </div>
+          </div>
+          <div v-if="showGuestsDropdown" aria-label="Guest and room selection"
+            class="absolute top-full mt-2 right-0 z-30 w-[320px] bg-white rounded-lg shadow-lg border border-gray-200 p-4"
+            role="listbox">
+            <div class="flex items-center gap-3 mb-4">
+              <i class="fas fa-user text-lg text-gray-600 w-5 text-center"></i>
+              <span class="text-gray-900 font-semibold text-base">Người lớn</span>
+              <div class="ml-auto flex items-center gap-2">
+                <button @click.stop="updateGuests('adults', -1)" :disabled="searchParams.adults <= 1"
+                  class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                  type="button">−</button>
+                <span
+                  class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                    searchParams.adults }}</span>
+                <button @click.stop="updateGuests('adults', 1)"
+                  class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                  type="button">+</button>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mb-4">
+              <i class="fas fa-child text-lg text-gray-600 w-5 text-center"></i>
+              <span class="text-gray-900 font-semibold text-base">Trẻ em</span>
+              <div class="ml-auto flex items-center gap-2">
+                <button @click.stop="updateGuests('children', -1)" :disabled="searchParams.children <= 0"
+                  class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                  type="button">−</button>
+                <span
+                  class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                    searchParams.children }}</span>
+                <button @click.stop="updateGuests('children', 1)"
+                  class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                  type="button">+</button>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <i class="fas fa-bed text-lg text-gray-600 w-5 text-center"></i>
+              <span class="text-gray-900 font-semibold text-base">Phòng</span>
+              <div class="ml-auto flex items-center gap-2">
+                <button @click.stop="updateGuests('rooms', -1)" :disabled="searchParams.rooms <= 1"
+                  class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                  type="button">−</button>
+                <span
+                  class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                    searchParams.rooms }}</span>
+                <button @click.stop="updateGuests('rooms', 1)"
+                  class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                  type="button">+</button>
+              </div>
+            </div>
+            <p v-if="guestsError" class="text-red-500 text-xs mt-3 text-center">{{ guestsError }}
+            </p>
+          </div>
+        </div>
+
         <button aria-label="Search"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 font-bold transition flex items-center justify-center rounded-b-md md:rounded-l-none md:rounded-r-md"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 font-bold transition flex items-center justify-center rounded-b-md md:rounded-l-none md:rounded-r-md gap-2"
           @click="onSearch">
-          <i class="fas fa-search"></i>&nbsp; Cập nhật
+          <i class="fas fa-search"></i><span>Tìm</span>
         </button>
       </div>
     </div>
@@ -415,6 +495,7 @@
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getHotelById, getHotelReviews, searchHotels } from "@/api/hotelApi";
+import { getAllProvinces } from "@/api/provinceApi.js";
 import HotelCard from '@/components/Home/HotelCard.vue';
 
 const hotel = ref(null);
@@ -426,11 +507,11 @@ const route = useRoute();
 const router = useRouter();
 const searchParams = ref({
   location: '',
-  checkin: route.query.checkin || new Date().toISOString().split("T")[0],
-  checkout: route.query.checkout || '',
-  adults: Number(route.query.adults) || 2,
-  children: Number(route.query.children) || 0,
-  rooms: Number(route.query.rooms) || 1,
+  checkin: '',
+  checkout: '',
+  adults: 2,
+  children: 0,
+  rooms: 1,
 });
 
 const showMoreOverview = ref(false);
@@ -441,16 +522,20 @@ const roomImageIndex = ref({});
 const modalImageIndex = ref(0);
 const slideDirection = ref("next");
 const roomsSectionRef = ref(null);
+const searchWidgetContainer = ref(null);
 const locationContainer = ref(null);
 const guestsContainer = ref(null);
 const showLocationDropdown = ref(false);
 const showGuestsDropdown = ref(false);
 const guestsError = ref('');
 const errorTimeout = ref(null);
-const lastLocation = ref('');
+const locationBeforeEdit = ref('');
 const priceDropdownRef = ref(null);
 const showPriceDropdown = ref(false);
 const priceDisplayMode = ref('price');
+const provinces = ref([]);
+const hotelSuggestions = ref([]);
+const debounceTimer = ref(null);
 
 const amenityFilters = ref([
   { id: "cancellable", label: "Miễn phí hủy phòng" },
@@ -458,6 +543,7 @@ const amenityFilters = ref([
   { id: "payAtHotel", label: "Thanh toán tại khách sạn" },
 ]);
 const selectedAmenities = ref([]);
+const today = new Date().toISOString().split('T')[0];
 
 const fetchHotelData = async (hotelId) => {
   loading.value = true;
@@ -475,7 +561,7 @@ const fetchHotelData = async (hotelId) => {
     if (hotelResponse.data?.statusCode === 200) {
       hotel.value = hotelResponse.data.data;
       searchParams.value.location = hotel.value.name;
-      lastLocation.value = hotel.value.name;
+      locationBeforeEdit.value = hotel.value.name;
       initializeRoomImageIndices();
       if (hotel.value.provinceId) {
         fetchOtherHotels(hotel.value.provinceId, hotelId);
@@ -511,7 +597,7 @@ const fetchOtherHotels = async (provinceId, currentHotelId) => {
 }
 
 const minCheckOut = computed(() => {
-  if (!searchParams.value.checkin) return new Date().toISOString().split("T")[0];
+  if (!searchParams.value.checkin) return today;
   const d = new Date(searchParams.value.checkin);
   d.setDate(d.getDate() + 1);
   return d.toISOString().split("T")[0];
@@ -528,6 +614,15 @@ const numberOfNights = computed(() => {
 });
 
 const guestsDisplay = computed(() => `${searchParams.value.adults} người lớn, ${searchParams.value.children} trẻ em, ${searchParams.value.rooms} phòng`);
+
+const suggestions = computed(() => {
+  const keyword = searchParams.value.location.toLowerCase();
+  const provinceResults = provinces.value
+    .filter(p => p.name.toLowerCase().includes(keyword))
+    .map(p => ({ id: `p-${p.id}`, name: p.name, type: 'Province' }));
+  const hotelResults = hotelSuggestions.value.map(h => ({ id: `h-${h.id}`, name: h.name, type: 'Hotel' }));
+  return [...provinceResults, ...hotelResults];
+});
 
 const allUniqueRoomAmenities = computed(() => {
   if (!hotel.value?.availableRooms) return [];
@@ -670,19 +765,35 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-const onSearch = () => {
-  fetchHotelData(route.params.id);
-  router.push({
-    query: {
-      checkin: searchParams.value.checkin,
-      checkout: searchParams.value.checkout,
-      adults: searchParams.value.adults,
-      children: searchParams.value.children,
-      rooms: searchParams.value.rooms,
-    }
-  });
-};
+const onSearch = async () => {
+  const searchData = {
+    location: searchParams.value.location,
+    checkin: searchParams.value.checkin,
+    checkout: searchParams.value.checkout,
+    adults: searchParams.value.adults,
+    children: searchParams.value.children,
+    rooms: searchParams.value.rooms,
+  };
+  localStorage.setItem('lastSearchParams', JSON.stringify(searchData));
 
+  if (searchParams.value.location.trim() !== hotel.value.name) {
+    router.push({
+      name: 'HotelListing',
+      query: {
+        keyword: searchParams.value.location,
+        checkInDate: searchParams.value.checkin,
+        checkOutDate: searchParams.value.checkout,
+        numAdults: searchParams.value.adults,
+        numChildren: searchParams.value.children,
+        rooms: searchParams.value.rooms,
+      }
+    });
+  } else {
+    const newQuery = { ...route.query, checkInDate: searchParams.value.checkin, checkOutDate: searchParams.value.checkout, numAdults: searchParams.value.adults, numChildren: searchParams.value.children, rooms: searchParams.value.rooms };
+    await router.replace({ query: newQuery });
+    fetchHotelData(route.params.id);
+  }
+};
 const scrollToRooms = () => roomsSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
 const initializeRoomImageIndices = () => {
@@ -714,9 +825,22 @@ const closeModal = () => {
 };
 
 const handleLocationFocus = () => {
-  lastLocation.value = searchParams.value.location;
-  searchParams.value.location = '';
-  showLocationDropdown.value = false;
+  locationBeforeEdit.value = searchParams.value.location;
+  showLocationDropdown.value = true;
+};
+
+const fetchHotelSuggestions = async (keyword) => {
+  try {
+    const response = await searchHotels({ keyword: keyword, size: 5 });
+    if (response.data?.statusCode === 200) {
+      hotelSuggestions.value = response.data.data.content;
+    }
+  } catch (error) { console.error("Could not fetch hotel suggestions:", error); }
+};
+
+const selectLocation = (loc) => {
+  searchParams.value.location = loc
+  showLocationDropdown.value = false
 };
 
 const updateGuests = (type, amount) => {
@@ -750,14 +874,44 @@ const updateGuests = (type, amount) => {
 };
 
 const handleClickOutside = (event) => {
-  if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
+  if (searchWidgetContainer.value && !searchWidgetContainer.value.contains(event.target)) {
+    showLocationDropdown.value = false;
     showGuestsDropdown.value = false;
-  }
-
-  if (priceDropdownRef.value && !priceDropdownRef.value.contains(event.target)) {
-    showPriceDropdown.value = false;
+    if (searchParams.value.location.trim() === '' && locationBeforeEdit.value) {
+      searchParams.value.location = locationBeforeEdit.value;
+    }
+  } else {
+    if (locationContainer.value && !locationContainer.value.contains(event.target)) {
+      showLocationDropdown.value = false;
+    }
+    if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
+      showGuestsDropdown.value = false;
+    }
+    if (priceDropdownRef.value && !priceDropdownRef.value.contains(event.target))
+      showPriceDropdown.value = false;
   }
 };
+
+watch(() => searchParams.value.checkin, (newCheckin) => {
+  if (newCheckin && searchParams.value.checkout) {
+    const checkinDate = new Date(newCheckin);
+    const checkoutDate = new Date(searchParams.value.checkout);
+    if (checkoutDate <= checkinDate) {
+      const nextDay = new Date(checkinDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      searchParams.value.checkout = nextDay.toISOString().split('T')[0];
+    }
+  }
+});
+
+watch(() => route.query, (q) => {
+  searchParams.value.location = q.keyword || hotel.value?.name || '';
+  searchParams.value.checkin = q.checkInDate || today;
+  searchParams.value.checkout = q.checkOutDate || minCheckOut.value;
+  searchParams.value.adults = Number(q.numAdults) || 2;
+  searchParams.value.children = Number(q.numChildren) || 0;
+  searchParams.value.rooms = Number(q.rooms) || 1;
+}, { deep: true, immediate: true });
 
 watch(() => route.params.id, (newId, oldId) => {
   if (newId && newId !== oldId) {
@@ -766,10 +920,24 @@ watch(() => route.params.id, (newId, oldId) => {
   }
 }, { immediate: true });
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
-  if (!searchParams.value.checkout || new Date(searchParams.value.checkout) <= new Date(searchParams.value.checkin)) {
-    searchParams.value.checkout = minCheckOut.value;
+  try {
+    const response = await getAllProvinces();
+    provinces.value = response.data?.data || [];
+  } catch (error) {
+    console.error("Could not fetch provinces:", error);
+  }
+});
+
+watch(() => searchParams.value.location, (newKeyword) => {
+  if (newKeyword && newKeyword !== hotel.value?.name) {
+    clearTimeout(debounceTimer.value);
+    debounceTimer.value = setTimeout(() => {
+      fetchHotelSuggestions(newKeyword);
+    }, 300);
+  } else {
+    hotelSuggestions.value = [];
   }
 });
 

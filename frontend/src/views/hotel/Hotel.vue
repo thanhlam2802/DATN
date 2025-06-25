@@ -87,8 +87,7 @@
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div v-for="city in hotDestinations" :key="city.id"
-                class="relative rounded-md overflow-hidden shadow-md group cursor-pointer"
-                @click="searchForHotDestination(city.id)">
+                class="relative rounded-md overflow-hidden shadow-md group cursor-pointer" @click="searchForHotDestination(city.name)">
                 <img :alt="city.name"
                   class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" height="250"
                   :src="city.imageUrl || 'https://placehold.co/400x250'" width="400" />
@@ -244,10 +243,10 @@ const selectProvince = (provinceId) => {
   fetchHotels(provinceId);
 };
 
-const searchForHotDestination = (provinceId) => {
+const searchForHotDestination = (provinceName) => {
   router.push({
     name: "HotelListing",
-    query: { provinceId: provinceId },
+    query: { keyword: provinceName },
   });
 };
 

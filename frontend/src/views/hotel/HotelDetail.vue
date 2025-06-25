@@ -24,7 +24,7 @@
           <div class="flex-1">
             <label class="text-xs text-gray-500">Địa điểm hoặc khách sạn</label>
             <input type="text" v-model="searchParams.location" @focus="handleLocationFocus"
-              class="w-full bg-transparent font-semibold focus:outline-none text-gray-800" placeholder="Tìm kiếm..."
+              class="w-full bg-transparent font-semibold focus:outline-none text-gray-800 truncate" placeholder="Tìm kiếm..."
               autocomplete="off" />
           </div>
           <div v-if="showLocationDropdown && suggestions.length > 0"
@@ -143,7 +143,7 @@
         </div>
         <div class="grid grid-cols-3 grid-rows-2 gap-3 flex-1">
           <div v-for="(img, idx) in hotel.imageUrls.slice(1, 7)" :key="idx"
-            class="w-full h-full overflow-hidden rounded-lg shadow-md">
+            class="w-full h-full overflow-hidden rounded-lg shadow-md lg:w-[234.67px] h-96 lg:h-[162px]">
             <img :src="img" :alt="`Additional image ${idx + 1}`"
               class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
           </div>
@@ -154,14 +154,17 @@
         <div class="flex-1 text-left">
           <h1 class="text-3xl font-extrabold text-gray-900 mb-1">{{ hotel.name }}</h1>
           <div class="flex items-center flex-wrap gap-x-2 text-sm text-gray-600">
-            <div class="flex items-center text-yellow-400">
+            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded-full">Khách sạn</span>
+            <div class="flex items-center text-yellow-400 ml-1">
               <i v-for="n in hotel.starRating" :key="n" class="fas fa-star"></i>
             </div>
             <span class="mx-2">•</span>
             <i class="fas fa-thumbs-up text-blue-500"></i>
             <span class="text-blue-600 font-semibold">{{ hotel.rating.toFixed(1) }}</span>
             <span>({{ hotel.reviewCount }} đánh giá)</span>
-            <span class="mx-2">•</span>
+          </div>
+          <div class="flex items-center text-sm text-gray-600 mt-2">
+            <i class="fas fa-map-marker-alt text-gray-500 mr-2"></i>
             <span>{{ hotel.provinceName }}</span>
           </div>
         </div>

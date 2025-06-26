@@ -93,7 +93,7 @@
             <div class="relative" ref="guestsContainer">
                 <label class="block mb-1 text-xs font-normal text-[#4a4a4a]">Khách và Phòng</label>
                 <button @click="showGuestsDropdown = !showGuestsDropdown" type="button"
-                    class="flex items-center justify-between w-full gap-2 border border-gray-300 rounded-md px-3 py-2 text-sm text-[#4a4a4a] cursor-pointer">
+                    class="flex items-center justify-between w-[560px] gap-2 border border-gray-300 rounded-md px-3 py-2 text-sm text-[#4a4a4a] cursor-pointer">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-user-friends text-[#0072c6]"></i>
                         <span class="font-semibold">{{ guestsDisplay }}</span>
@@ -145,10 +145,10 @@
             </div>
 
             <button
-                class="h-10 w-full md:w-auto bg-[#ff5c00] hover:bg-[#e04e00] text-white font-semibold text-lg rounded-md px-12 flex items-center justify-center gap-2"
+                class="h-10 w-[270px] bg-[#ff5c00] hover:bg-[#e04e00] text-white font-semibold text-lg rounded-md px-12 flex items-center justify-center gap-2"
                 type="submit">
                 <i class="fas fa-search"></i>
-                <span>Tìm</span>
+                <span>Tìm khách sạn</span>
             </button>
         </div>
     </form>
@@ -298,7 +298,7 @@ function onSearch() {
     localStorage.setItem('lastSearchParams', JSON.stringify({
         location: searchParams.value.keyword,
         checkin: searchParams.value.checkin,
-        checkout: checkoutDate.value.toISOString().split('T')[0],
+        nights: searchParams.value.nights,
         adults: searchParams.value.adults,
         children: searchParams.value.children,
         rooms: searchParams.value.rooms,
@@ -337,21 +337,21 @@ onMounted(async () => {
     const savedSearch = localStorage.getItem('lastSearchParams');
     if (savedSearch) {
         const parsedParams = JSON.parse(savedSearch);
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        let checkinDate = new Date(parsedParams.checkin || todayStr);
+        const todayDate = new Date(todayStr);
+
+        if (checkinDate < todayDate) {
+            checkinDate = todayDate;
+        }
+
+        searchParams.value.checkin = checkinDate.toISOString().split('T')[0];
+        searchParams.value.nights = parsedParams.nights || 1;
         searchParams.value.keyword = parsedParams.location || '';
-        searchParams.value.checkin = parsedParams.checkin || today;
         searchParams.value.adults = parsedParams.adults || 2;
         searchParams.value.children = parsedParams.children || 0;
         searchParams.value.rooms = parsedParams.rooms || 1;
-
-        if (parsedParams.checkin && parsedParams.checkout) {
-            const checkin = new Date(parsedParams.checkin);
-            const checkout = new Date(parsedParams.checkout);
-            if (checkout > checkin) {
-                const diffTime = checkout.getTime() - checkin.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                searchParams.value.nights = diffDays;
-            }
-        }
     }
     try {
         const response = await getAllProvinces();

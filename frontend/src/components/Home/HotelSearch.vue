@@ -237,7 +237,15 @@ async function onSearch() {
     }
 
     isSearching.value = true;
-    localStorage.setItem('lastSearchParams', JSON.stringify(hotelSearchParams));
+    const paramsToSave = {
+        location: hotelSearchParams.location,
+        checkin: hotelSearchParams.checkin,
+        nights: numberOfNights.value,
+        adults: hotelSearchParams.adults,
+        children: hotelSearchParams.children,
+        rooms: hotelSearchParams.rooms,
+    };
+    localStorage.setItem('lastSearchParams', JSON.stringify(paramsToSave));
 
     const query = {
         keyword: hotelSearchParams.location,
@@ -434,7 +442,26 @@ const fetchHotelSuggestions = async (keyword) => {
 onMounted(async () => {
     const savedSearch = localStorage.getItem('lastSearchParams');
     if (savedSearch) {
-        Object.assign(hotelSearchParams, JSON.parse(savedSearch));
+        const parsedParams = JSON.parse(savedSearch);
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        let checkinDate = new Date(parsedParams.checkin || todayStr);
+        const todayDate = new Date(todayStr);
+
+        if (checkinDate < todayDate) {
+            checkinDate = todayDate;
+        }
+
+        const nights = parsedParams.nights || 1;
+        const checkoutDate = new Date(checkinDate);
+        checkoutDate.setDate(checkoutDate.getDate() + nights);
+
+        hotelSearchParams.checkin = checkinDate.toISOString().split('T')[0];
+        hotelSearchParams.checkout = checkoutDate.toISOString().split('T')[0];
+        hotelSearchParams.location = parsedParams.location || 'Hồ Chí Minh';
+        hotelSearchParams.adults = parsedParams.adults || 2;
+        hotelSearchParams.children = parsedParams.children || 0;
+        hotelSearchParams.rooms = parsedParams.rooms || 1;
         lastSelectedLocation.value = hotelSearchParams.location;
     } else {
         hotelSearchParams.location = 'Hồ Chí Minh';

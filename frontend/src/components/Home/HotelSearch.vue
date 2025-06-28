@@ -20,9 +20,16 @@
                     </div>
                     <ul v-if="showLocationDropdown"
                         class="absolute top-full mt-1 z-30 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
-                        <li v-for="loc in filteredLocations" :key="loc" @click.stop="selectLocation(loc)"
-                            class="px-4 py-3 hover:bg-blue-100 cursor-pointer truncate font-semibold">
-                            {{ loc }}
+                        <li v-for="loc in suggestions" :key="loc.type + '-' + loc.id"
+                            @click.stop="selectLocation(loc.name)"
+                            class="px-4 py-2 hover:bg-blue-100 cursor-pointer flex items-center gap-3">
+                            <i
+                                :class="loc.type === 'Province' ? 'fas fa-map-marked-alt text-gray-400' : 'fas fa-hotel text-gray-400'"></i>
+                            <div>
+                                <p class="font-semibold">{{ loc.name }}</p>
+                                <p class="text-xs text-gray-500">{{ loc.type === 'Province' ? 'Tỉnh/Thành phố' : 'Khách sạn'
+                                }}</p>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -67,7 +74,7 @@
                             </div>
                             <div class="grid grid-cols-7 gap-1 text-center text-sm">
                                 <div v-for="day in weekdays" :key="day" class="font-semibold text-gray-500 p-1">{{ day
-                                }}</div>
+                                    }}</div>
                                 <div v-for="day in days" :key="day.date.toISOString()" @click="selectDate(day)" :class="[
                                     'p-1 rounded-full cursor-pointer flex items-center justify-center w-9 h-9 mx-auto',
                                     day.isCurrentMonth ? 'text-gray-800' : 'text-gray-300',
@@ -149,10 +156,19 @@
                 </div>
             </div>
 
-            <div class="w-full lg:w-1/12">
-                <button @click="onSearch"
-                    class="w-full h-16 bg-orange-500 hover:bg-orange-600 transition-colors text-white font-bold text-xl rounded-lg shadow-lg flex items-center justify-center gap-3">
-                    <i class="fas fa-search"></i>
+            <div class="w-full lg:w-3/12 flex items-center justify-center pt-0">
+                <button @click="onSearch" :disabled="isSearching"
+                    class="w-full h-16 bg-orange-500 hover:bg-orange-600 transition-colors text-white font-bold text-xl rounded-lg shadow-lg flex items-center justify-center gap-3"
+                    :class="{ 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed': isSearching }">
+                    <div v-if="isSearching" class="flex items-center justify-center space-x-1">
+                        <span class="w-2.5 h-2.5 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span class="w-2.5 h-2.5 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span class="w-2.5 h-2.5 bg-white rounded-full animate-bounce"></span>
+                    </div>
+                    <div v-else class="flex items-center justify-center gap-3">
+                        <i class="fas fa-search"></i>
+                        <span>Tìm kiếm</span>
+                    </div>
                 </button>
             </div>
         </div>
@@ -162,24 +178,27 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { getAllProvinces } from '@/api/provinceApi';
+import { searchHotels } from '@/api/hotelApi';
 
 const router = useRouter();
 
-// Refs for DOM elements
 const locationContainer = ref(null);
 const locationInput = ref(null);
 const guestsContainer = ref(null);
 const dateContainer = ref(null);
 const guestsDropdown = ref(null);
-const calendarDropdown = ref(null); // Ref for the calendar itself
+const calendarDropdown = ref(null);
 
-// Component State
 const showLocationDropdown = ref(false);
 const showGuestsDropdown = ref(false);
 const guestsError = ref('');
 const today = new Date().toISOString().split('T')[0];
+const isSearching = ref(false);
+const provinces = ref([]);
+const hotelSuggestions = ref([]);
+const debounceTimer = ref(null);
 
-// Search Parameters
 const hotelSearchParams = reactive({
     location: '',
     checkin: today,
@@ -189,18 +208,17 @@ const hotelSearchParams = reactive({
     rooms: 1,
 });
 
-// Location Logic
 const lastSelectedLocation = ref('');
-const allLocations = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Nha Trang', 'Cần Thơ', 'Vũng Tàu', 'Huế', 'Hội An', 'Phú Quốc', 'Đà Lạt', 'Quy Nhơn', 'Phan Thiết'];
 
-const filteredLocations = computed(() => {
-    if (!hotelSearchParams.location) return allLocations;
-    return allLocations.filter(loc =>
-        loc.toLowerCase().includes(hotelSearchParams.location.toLowerCase())
-    );
+const suggestions = computed(() => {
+    const keyword = hotelSearchParams.location.toLowerCase();
+    const provinceResults = provinces.value
+        .filter(p => p.name.toLowerCase().includes(keyword))
+        .map(p => ({ id: `p-${p.id}`, name: p.name, type: 'Province' }));
+    const hotelResults = hotelSuggestions.value.map(h => ({ id: `h-${h.id}`, name: h.name, type: 'Hotel' }));
+    return [...provinceResults, ...hotelResults];
 });
 
-// Computed property for number of nights
 const numberOfNights = computed(() => {
     if (!hotelSearchParams.checkin || !hotelSearchParams.checkout) return 0;
     const start = new Date(hotelSearchParams.checkin);
@@ -210,37 +228,62 @@ const numberOfNights = computed(() => {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
 });
 
-// --- SEARCH & LOCATION FUNCTIONS ---
-function onSearch() {
-    if (!hotelSearchParams.location && lastSelectedLocation.value) {
+async function onSearch() {
+    if (!hotelSearchParams.location.trim() && lastSelectedLocation.value) {
         hotelSearchParams.location = lastSelectedLocation.value;
     }
-    sessionStorage.setItem('lastSearchLocation', hotelSearchParams.location);
-    router.push({
-        name: 'HotelListing',
-        query: { ...hotelSearchParams }
-    });
+    if (!hotelSearchParams.location.trim()) {
+        return;
+    }
+
+    isSearching.value = true;
+    const paramsToSave = {
+        location: hotelSearchParams.location,
+        checkin: hotelSearchParams.checkin,
+        nights: numberOfNights.value,
+        adults: hotelSearchParams.adults,
+        children: hotelSearchParams.children,
+        rooms: hotelSearchParams.rooms,
+    };
+    localStorage.setItem('lastSearchParams', JSON.stringify(paramsToSave));
+
+    const query = {
+        keyword: hotelSearchParams.location,
+        checkInDate: hotelSearchParams.checkin,
+        checkOutDate: hotelSearchParams.checkout,
+        numAdults: hotelSearchParams.adults,
+        numChildren: hotelSearchParams.children,
+        rooms: hotelSearchParams.rooms,
+    };
+
+    try {
+        await router.push({ name: 'HotelListing', query });
+    } catch (error) {
+        console.error("Navigation failed:", error);
+    } finally {
+        isSearching.value = false;
+    }
 }
 
 function selectLocation(location) {
     hotelSearchParams.location = location;
     lastSelectedLocation.value = location;
     showLocationDropdown.value = false;
+    hotelSuggestions.value = [];
 }
 
 function handleLocationFocus() {
+    lastSelectedLocation.value = hotelSearchParams.location;
     hotelSearchParams.location = '';
     showLocationDropdown.value = true;
 }
 
-
-// --- CALENDAR LOGIC (WITH TELEPORT) ---
 const calendarState = reactive({
     visible: false,
     target: 'checkin',
     viewDate: new Date(),
 });
-const calendarPosition = ref({}); // Store calendar position dynamically
+const calendarPosition = ref({});
 const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const monthYearLabel = computed(() => calendarState.viewDate.toLocaleString('vi-VN', { month: 'long', year: 'numeric', timeZone: 'UTC' }));
 
@@ -289,14 +332,13 @@ function nextMonth() {
     calendarState.viewDate = new Date(calendarState.viewDate);
 }
 
-// MODIFIED: Function to open calendar and calculate its position
 function openCalendar(target) {
     if (!dateContainer.value) return;
 
     const rect = dateContainer.value.getBoundingClientRect();
     calendarPosition.value = {
         position: 'absolute',
-        top: `${rect.bottom + window.scrollY + 4}px`, // position below the input + 4px margin
+        top: `${rect.bottom + window.scrollY + 4}px`,
         left: `${rect.left + window.scrollX}px`,
     };
 
@@ -323,7 +365,6 @@ function getDayOfWeek(dateString) {
     return new Date(dateString).toLocaleDateString('vi-VN', options);
 }
 
-// --- GUESTS LOGIC ---
 function updateGuests(type, amount) {
     guestsError.value = '';
     const params = hotelSearchParams;
@@ -346,7 +387,6 @@ function updateGuests(type, amount) {
     }
 }
 
-// --- WATCHERS & LIFECYCLE ---
 watch(() => hotelSearchParams.checkin, (newVal) => {
     const checkinDate = new Date(newVal);
     const checkoutDate = new Date(hotelSearchParams.checkout);
@@ -358,21 +398,18 @@ watch(() => hotelSearchParams.checkin, (newVal) => {
 }, { immediate: true });
 
 const handleClickOutside = (event) => {
-    // Close location dropdown
     if (locationContainer.value && !locationContainer.value.contains(event.target)) {
         showLocationDropdown.value = false;
         if (hotelSearchParams.location === '') {
             hotelSearchParams.location = lastSelectedLocation.value;
         }
     }
-    // Close guests dropdown
     if (
         guestsContainer.value && !guestsContainer.value.contains(event.target) &&
         (!guestsDropdown.value || !guestsDropdown.value.contains(event.target))
     ) {
         showGuestsDropdown.value = false;
     }
-    // Close calendar
     if (
         calendarState.visible &&
         dateContainer.value && !dateContainer.value.contains(event.target) &&
@@ -382,14 +419,60 @@ const handleClickOutside = (event) => {
     }
 };
 
-onMounted(() => {
-    const savedLocation = sessionStorage.getItem('lastSearchLocation');
-    if (savedLocation) {
-        hotelSearchParams.location = savedLocation;
-        lastSelectedLocation.value = savedLocation;
+watch(() => hotelSearchParams.location, (newKeyword) => {
+    if (!showLocationDropdown.value || !newKeyword) {
+        hotelSuggestions.value = [];
+        return;
+    }
+    clearTimeout(debounceTimer.value);
+    debounceTimer.value = setTimeout(() => {
+        fetchHotelSuggestions(newKeyword);
+    }, 300);
+});
+
+const fetchHotelSuggestions = async (keyword) => {
+    try {
+        const response = await searchHotels({ keyword: keyword, size: 5 });
+        if (response.data?.statusCode === 200) {
+            hotelSuggestions.value = response.data.data.content;
+        }
+    } catch (error) { console.error("Could not fetch hotel suggestions:", error); }
+};
+
+onMounted(async () => {
+    const savedSearch = localStorage.getItem('lastSearchParams');
+    if (savedSearch) {
+        const parsedParams = JSON.parse(savedSearch);
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        let checkinDate = new Date(parsedParams.checkin || todayStr);
+        const todayDate = new Date(todayStr);
+
+        if (checkinDate < todayDate) {
+            checkinDate = todayDate;
+        }
+
+        const nights = parsedParams.nights || 1;
+        const checkoutDate = new Date(checkinDate);
+        checkoutDate.setDate(checkoutDate.getDate() + nights);
+
+        hotelSearchParams.checkin = checkinDate.toISOString().split('T')[0];
+        hotelSearchParams.checkout = checkoutDate.toISOString().split('T')[0];
+        hotelSearchParams.location = parsedParams.location || 'Hồ Chí Minh';
+        hotelSearchParams.adults = parsedParams.adults || 2;
+        hotelSearchParams.children = parsedParams.children || 0;
+        hotelSearchParams.rooms = parsedParams.rooms || 1;
+        lastSelectedLocation.value = hotelSearchParams.location;
     } else {
         hotelSearchParams.location = 'Hồ Chí Minh';
         lastSelectedLocation.value = 'Hồ Chí Minh';
+    }
+
+    try {
+        const response = await getAllProvinces();
+        provinces.value = response.data?.data || [];
+    } catch (error) {
+        console.error("Could not fetch provinces:", error);
     }
     document.addEventListener('click', handleClickOutside, true);
 });

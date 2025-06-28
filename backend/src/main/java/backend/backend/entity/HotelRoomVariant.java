@@ -37,6 +37,9 @@ public class HotelRoomVariant {
     @Column(length = 50)
     private String status = "available";
 
+    @Column(name = "tax_and_fee_amount", nullable = true, precision = 12, scale = 2)
+    private BigDecimal taxAndFeeAmount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

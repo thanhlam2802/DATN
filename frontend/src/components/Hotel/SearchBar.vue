@@ -11,9 +11,12 @@
         <div v-if="isSearchFormActive" @click="isSearchFormActive = false" class="fixed inset-0 bg-black/70 z-5"></div>
     </transition>
 
-    <section class="relative w-full">
-        <img alt="Thành phố Dubai về đêm" class="w-full h-72 md:h-96 object-cover"
-            src="https://cdn.pixabay.com/photo/2020/03/04/21/18/dubai-4902764_1280.jpg" />
+    <section class="relative w-full max-w-7xl mx-auto px-4 mt-4">
+        <div class="relative shadow-lg rounded-xl overflow-hidden h-96">
+            <img alt="Thành phố Dubai về đêm" class="w-full h-full object-cover"
+                src="https://cdn.pixabay.com/photo/2021/12/11/07/59/hotel-6862159_1280.jpg" />
+            <div class="absolute inset-0 bg-black/20"></div>
+        </div>
     </section>
 
     <form aria-label="Hotel search form" @submit.prevent="onSearch" @click="isSearchFormActive = true"

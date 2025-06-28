@@ -9,10 +9,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AmenityDto {
+    private Integer id;
     private String name;
     private String icon;
 
     public static AmenityDto fromEntity(Amenity amenity) {
-        return new AmenityDto(amenity.getName(), amenity.getIcon());
+        if (amenity == null) {
+            return null;
+        }
+        return new AmenityDto(amenity.getId(), amenity.getName(), amenity.getIcon());
     }
 }

@@ -15,14 +15,14 @@
         <div class="flex flex-1 flex-col sm:flex-row p-4 sm:p-6 justify-between gap-4">
             <div class="flex-1">
                 <h3 class="font-semibold text-xl truncate">{{ title }}</h3>
-                <div class="flex items-center text-gray-600 text-sm my-1.5">
+                <div class="flex items-center text-gray-600 text-sm my-1.5 pt-2">
                     <i class="fas fa-hotel mr-2 text-blue-500"></i>
                     <span class="mr-2">Khách sạn</span>
                     <div class="flex items-center text-yellow-400">
                         <i v-for="n in stars" :key="'star-' + n" class="fas fa-star text-sm"></i>
                     </div>
                 </div>
-                <div class="flex items-center mb-2">
+                <div class="flex items-center mb-2 pt-2">
                     <i class="far fa-thumbs-up mr-1.5 text-blue-500"></i>
                     <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-sm font-semibold">
                         {{ rating }}
@@ -30,14 +30,17 @@
                     <span class="text-gray-500 text-xs ml-2">({{ reviews }} đánh giá)</span>
                 </div>
                 <p v-if="details" class="text-base text-gray-600 mb-2 line-clamp-2">{{ details }}</p>
-                <p v-if="amenities" class="text-sm text-gray-600 mb-1 line-clamp-1">
-                    {{ amenities }}
-                </p>
-                <p v-if="fullAddress"
-                    class="text-sm text-gray-600 flex items-start mt-12 pt-2 border-t border-gray-100">
-                    <i class="fas fa-map-marker-alt mr-2 text-gray-400 mt-1 flex-shrink-0"></i>
-                    <span>{{ fullAddress }}</span>
-                </p>
+                <div v-if="amenities && amenities.length > 0" class="flex flex-wrap items-center gap-2 mt-2 mb-2 pt-2">
+                    <div v-for="amenity in visibleAmenities" :key="amenity.id"
+                        class="flex items-center px-2.5 py-1 bg-gray-100 rounded-full text-xs text-gray-700 font-medium">
+                        <i :class="amenity.icon || 'fas fa-check'" class="mr-1.5 text-gray-500"></i>
+                        <span>{{ amenity.name }}</span>
+                    </div>
+                    <div v-if="hiddenAmenitiesCount > 0"
+                        class="flex items-center px-2.5 py-1 bg-gray-100 rounded-full text-xs text-gray-700 font-medium">
+                        <span>+{{ hiddenAmenitiesCount }}</span>
+                    </div>
+                </div>
             </div>
 
             <div class="hidden sm:block border-l border-gray-200 mx-2"></div>
@@ -116,6 +119,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 
 const props = defineProps({
     image: {
@@ -129,7 +133,10 @@ const props = defineProps({
     location: String,
     title: String,
     details: String,
-    amenities: String,
+    amenities: {
+        type: Array,
+        default: () => [],
+    },
     fullAddress: String,
     stars: {
         type: Number,
@@ -153,6 +160,16 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['click', 'toggle-favorite']);
+
+const visibleAmenities = computed(() => {
+    if (!props.amenities) return [];
+    return props.amenities.slice(0, 3);
+});
+
+const hiddenAmenitiesCount = computed(() => {
+    if (!props.amenities || props.amenities.length <= 3) return 0;
+    return props.amenities.length - 3;
+});
 
 const toggleFavorite = (event) => {
     event.stopPropagation();

@@ -1,5 +1,6 @@
 package backend.backend.dao.Hotel;
 
+import backend.backend.dto.Hotel.AmenityDto;
 import backend.backend.dto.Hotel.HotelDto;
 import backend.backend.entity.*;
 import jakarta.persistence.EntityManager;
@@ -12,8 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.criteria.Order;
 
 public class HotelDAOImpl implements HotelDAOCustom {
@@ -75,10 +77,19 @@ public class HotelDAOImpl implements HotelDAOCustom {
         if (pageable.getSort().isSorted()) {
             List<Order> orders = new ArrayList<>();
             pageable.getSort().forEach(order -> {
-                if (order.isAscending()) {
-                    orders.add(cb.asc(hotelRoot.get(order.getProperty())));
+                Expression<?> sortExpression;
+                if ("startingPrice".equalsIgnoreCase(order.getProperty())) {
+                    sortExpression = minPriceSubquery.getSelection();
+                } else if ("rating".equalsIgnoreCase(order.getProperty())) {
+                    sortExpression = avgRatingSubquery.getSelection();
                 } else {
-                    orders.add(cb.desc(hotelRoot.get(order.getProperty())));
+                    sortExpression = hotelRoot.get(order.getProperty());
+                }
+
+                if (order.isAscending()) {
+                    orders.add(cb.asc(sortExpression));
+                } else {
+                    orders.add(cb.desc(sortExpression));
                 }
             });
             query.orderBy(orders);
@@ -89,6 +100,14 @@ public class HotelDAOImpl implements HotelDAOCustom {
         typedQuery.setMaxResults(pageable.getPageSize());
         List<HotelDto> resultList = typedQuery.getResultList();
 
+        if (!resultList.isEmpty()) {
+            List<Integer> hotelIds = resultList.stream().map(HotelDto::getId).collect(Collectors.toList());
+
+            Map<Integer, List<AmenityDto>> amenitiesByHotelId = findAmenitiesForHotels(hotelIds);
+
+            resultList.forEach(hotelDto -> hotelDto
+                    .setAmenities(amenitiesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList())));
+        }
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<Hotel> countRoot = countQuery.from(Hotel.class);
         Predicate countPredicate = spec.toPredicate(countRoot, countQuery, cb);
@@ -99,5 +118,24 @@ public class HotelDAOImpl implements HotelDAOCustom {
         Long total = em.createQuery(countQuery).getSingleResult();
 
         return new PageImpl<>(resultList, pageable, total);
+    }
+
+    private Map<Integer, List<AmenityDto>> findAmenitiesForHotels(List<Integer> hotelIds) {
+        String jpql = "SELECT DISTINCT h.id, a FROM Hotel h " +
+                "JOIN h.hotelRooms r " +
+                "JOIN r.amenities a " +
+                "WHERE h.id IN :hotelIds";
+
+        TypedQuery<Object[]> query = em.createQuery(jpql, Object[].class);
+        query.setParameter("hotelIds", hotelIds);
+
+        List<Object[]> results = query.getResultList();
+
+        return results.stream()
+                .collect(Collectors.groupingBy(
+                        row -> (Integer) row[0],
+                        Collectors.mapping(
+                                row -> AmenityDto.fromEntity((Amenity) row[1]),
+                                Collectors.toList())));
     }
 }

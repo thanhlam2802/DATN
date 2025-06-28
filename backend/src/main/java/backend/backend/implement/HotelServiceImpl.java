@@ -92,20 +92,20 @@ public class HotelServiceImpl implements HotelService {
     private Pageable createPageable(HotelSearchRequestDto requestDto) {
         String sortBy = requestDto.getSortBy();
         Sort sort;
-
-        switch (sortBy != null ? sortBy : "popular") {
-            case "price-asc":
-                sort = Sort.by("starRating").ascending();
+        switch (sortBy != null ? sortBy.toLowerCase() : "default") {
+            case "priceasc":
+                sort = Sort.by("startingPrice").ascending();
                 break;
-            case "price-desc":
-                sort = Sort.by("starRating").descending();
+            case "pricedesc":
+                sort = Sort.by("startingPrice").descending();
                 break;
-            case "rating":
-                sort = Sort.by("starRating").descending();
+            case "ratingdesc":
+                sort = Sort.by("rating").descending();
                 break;
             case "popular":
+            case "default":
             default:
-                sort = Sort.by("starRating").descending().and(Sort.by("createdAt").descending());
+                sort = Sort.by("rating").descending().and(Sort.by("createdAt").descending());
                 break;
         }
         return PageRequest.of(requestDto.getPage(), requestDto.getSize(), sort);

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,4 +19,18 @@ public class HotelDto {
     private double rating;
     private int reviewCount;
     private BigDecimal startingPrice;
+    private List<AmenityDto> amenities;
+
+    public HotelDto(Integer id, String name, String imageUrl, String address, String provinceName, Short starRating,
+            double rating, int reviewCount, BigDecimal startingPrice) {
+        this.id = id;
+        this.name = name;
+        this.imageUrl = imageUrl;
+        this.address = address;
+        this.provinceName = provinceName;
+        this.starRating = starRating;
+        this.rating = rating;
+        this.reviewCount = reviewCount;
+        this.startingPrice = startingPrice;
+    }
 }

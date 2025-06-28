@@ -41,7 +41,7 @@
         </div>
 
         <div class="mt-8 text-center">
-          <router-link :to="{ name: 'HotelListing' }" class="inline-block bg-blue-50 text-blue-700 font-semibold rounded-lg px-6 py-3 hover:bg-blue-100
+          <router-link :to="{ name: 'Hotel' }" class="inline-block bg-blue-50 text-blue-700 font-semibold rounded-lg px-6 py-3 hover:bg-blue-100
             transition-colors duration-200">
             Xem thêm Khách sạn
           </router-link>

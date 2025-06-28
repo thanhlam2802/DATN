@@ -6,7 +6,8 @@
 
         <div>
             <div class="sticky top-16 w-full flex justify-center mb-6 lg:-translate-x-[156px] z-30 mt-4">
-                <div ref="searchWidgetContainer" class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
+                <div ref="searchWidgetContainer"
+                    class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
                     <div
                         class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
 
@@ -140,7 +141,7 @@
                 </h1>
                 <div class="flex items-center space-x-4 mt-2 sm:mt-0">
                     <span class="text-sm font-semibold">Xếp theo:</span>
-                    <select v-model="sortKey"
+                    <select v-model="sortKey" @change="onFilterOrSortChange"
                         class="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 shadow-sm mr-5">
                         <option value="default">Mặc định</option>
                         <option value="priceAsc">Giá thấp nhất</option>
@@ -160,37 +161,46 @@
                 </div>
             </div>
 
-            <div :class="viewMode === 'list' ? 'space-y-4' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'">
-                <HotelCard v-for="hotel in paginatedHotels" :key="hotel.id" :view-mode="viewMode" :image="hotel.image"
-                    :alt="hotel.title" :location="hotel.location" :title="hotel.title" :stars="hotel.stars"
-                    :rating="hotel.rating" :full-address="hotel.fullAddress" :reviews="hotel.reviews"
-                    :details="hotel.details" :amenities="hotel.amenities" :original-price="hotel.originalPrice"
-                    :price="hotel.price" :is-favorited="favoritedHotels.has(hotel.id)" @click="goToDetail(hotel.id)"
-                    @toggle-favorite="toggleFavorite(hotel.id)" />
-            </div>
+            <template v-if="hotels.length > 0">
+                <div
+                    :class="viewMode === 'list' ? 'space-y-4' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'">
+                    <HotelCard v-for="hotel in hotels" :key="hotel.id" :view-mode="viewMode"
+                        :image="hotel.image" :alt="hotel.title" :location="hotel.location" :title="hotel.title"
+                        :stars="hotel.stars" :rating="hotel.rating" :full-address="hotel.fullAddress"
+                        :reviews="hotel.reviews" :details="hotel.details" :amenities="hotel.amenities"
+                        :original-price="hotel.originalPrice" :price="hotel.price"
+                        :is-favorited="favoritedHotels.has(hotel.id)" @click="goToDetail(hotel.id)"
+                        @toggle-favorite="toggleFavorite(hotel.id)" />
+                </div>
 
-            <div aria-label="Pagination"
-                class="flex justify-center items-center space-x-2 mt-8 mb-3 text-gray-700 text-sm select-none">
-                <button aria-label="Previous page"
-                    class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
-                    :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }" :disabled="currentPage === 1"
-                    @click="goToPage(currentPage - 1)"><i class="fas fa-chevron-left"></i></button>
-                <template v-for="page in pagesToShow" :key="page">
-                    <span v-if="typeof page === 'string'" class="px-2">...</span>
-                    <button v-else :aria-current="currentPage === page ? 'page' : null" :class="[
-                        'rounded-full w-8 h-8 flex items-center justify-center font-semibold',
-                        currentPage === page ?
-                            'bg-indigo-600 text-white shadow-md'
-                            : 'hover:bg-indigo-100 hover:text-indigo-600'
-                    ]" @click="goToPage(page)">
-                        {{ page }}
-                    </button>
-                </template>
-                <button aria-label="Next page"
-                    class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
-                    :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
-                    :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)"><i
-                        class="fas fa-chevron-right"></i></button>
+                <div v-if="totalPages > 1" aria-label="Pagination"
+                    class="flex justify-center items-center space-x-2 mt-8 mb-3 text-gray-700 text-sm select-none">
+                    <button aria-label="Previous page"
+                        class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
+                        :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }" :disabled="currentPage === 1"
+                        @click="goToPage(currentPage - 1)"><i class="fas fa-chevron-left"></i></button>
+                    <template v-for="page in pagesToShow" :key="page">
+                        <span v-if="typeof page === 'string'" class="px-2">...</span>
+                        <button v-else :aria-current="currentPage === page ? 'page' : null" :class="[
+                            'rounded-full w-8 h-8 flex items-center justify-center font-semibold',
+                            currentPage === page ?
+                                'bg-indigo-600 text-white shadow-md'
+                                : 'hover:bg-indigo-100 hover:text-indigo-600'
+                        ]" @click="goToPage(page)">
+                            {{ page }}
+                        </button>
+                    </template>
+                    <button aria-label="Next page"
+                        class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
+                        :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
+                        :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)"><i
+                            class="fas fa-chevron-right"></i></button>
+                </div>
+            </template>
+            <div v-else class="text-center py-16 bg-gray-50 rounded-lg">
+                <i class="fas fa-search-dollar text-5xl text-gray-400 mb-4"></i>
+                <p class="text-xl font-semibold text-gray-700">Không tìm thấy khách sạn phù hợp</p>
+                <p class="text-gray-500 mt-2">Vui lòng thử thay đổi khoảng giá hoặc các bộ lọc khác của bạn.</p>
             </div>
         </div>
     </main>
@@ -396,28 +406,9 @@ const activeFilters = ref({ starRating: 0, priceRange: [0, 20000000], amenities:
 const sortKey = ref('default')
 const viewMode = ref('list')
 
-const filteredHotels = computed(() => {
-    let arr = hotels.value
-    if (activeFilters.value.starRating) {
-        arr = arr.filter(h => h.stars === activeFilters.value.starRating)
-    }
-    const ams = Object.keys(activeFilters.value.amenities).filter(k => activeFilters.value.amenities[k])
-    if (ams.length) arr = arr.filter(h => ams.every(a => h.amenities.includes(a)))
-    const [minP, maxP] = activeFilters.value.priceRange
-    return arr.filter(h => h.price >= minP && h.price <= maxP)
-})
-
-const sortedHotels = computed(() => {
-    const arr = [...filteredHotels.value]
-    if (sortKey.value === 'priceAsc') return arr.sort((a, b) => a.price - b.price)
-    if (sortKey.value === 'priceDesc') return arr.sort((a, b) => b.price - a.price)
-    if (sortKey.value === 'ratingDesc') return arr.sort((a, b) => b.rating - a.rating)
-    return arr
-})
-
-const itemsPerPage = 6
-const currentPage = ref(1)
-const totalPages = computed(() => Math.ceil(sortedHotels.value.length / itemsPerPage))
+const currentPage = ref(1);
+const totalPages = ref(1); 
+const totalHotels = ref(0);
 
 const locationDisplay = computed(() => {
     if (activeLocationQuery.value) {
@@ -427,12 +418,9 @@ const locationDisplay = computed(() => {
 });
 
 const hotelCountDisplay = computed(() => {
-    const count = filteredHotels.value.length.toLocaleString();
+    const count = totalHotels.value.toLocaleString();
     return `${count} nơi lưu trú được tìm thấy`;
 });
-const paginatedHotels = computed(() =>
-    sortedHotels.value.slice((currentPage.value - 1) * itemsPerPage, currentPage.value * itemsPerPage)
-)
 
 const pagesToShow = computed(() => {
     const maxD = 5, p = [], tp = totalPages.value, cp = currentPage.value
@@ -451,28 +439,63 @@ const pagesToShow = computed(() => {
     return [...new Set(p)]
 })
 
-watch([sortKey, activeFilters], () => { currentPage.value = 1 }, { deep: true })
+function onFilterOrSortChange() {
+    const query = { ...route.query, page: 1 };
+    if (activeFilters.value.starRating > 0) query.minStarRating = activeFilters.value.starRating; else delete query.minStarRating;
+    query.minPrice = activeFilters.value.priceRange[0];
+    query.maxPrice = activeFilters.value.priceRange[1];
+    const selectedAmenities = Object.keys(activeFilters.value.amenities)
+        .filter(key => activeFilters.value.amenities[key]);
+    if (selectedAmenities.length > 0) query.amenities = selectedAmenities.join(','); else delete query.amenities;
+    query.sortBy = sortKey.value;
+
+    router.push({ query });
+}
+
+watch(activeFilters, onFilterOrSortChange, { deep: true });
+watch(sortKey, onFilterOrSortChange);
 
 const fetchHotels = async (queryParams) => {
     try {
+        const itemsPerPage = 6;
+        let amenitiesToSend = '';
+        if (queryParams.amenities) {
+            amenitiesToSend = queryParams.amenities;
+        } else {
+            const selectedAmenities = Object.keys(activeFilters.value.amenities)
+                .filter(key => activeFilters.value.amenities[key]);
+            amenitiesToSend = selectedAmenities.join(',');
+        }
+
+        const actualCheckInDate = queryParams.checkInDate || today;
+        const actualCheckOutDate = queryParams.checkOutDate || minCheckOut.value; 
+
         const apiParams = {
             keyword: queryParams.keyword,
-            checkInDate: queryParams.checkInDate,
-            checkOutDate: queryParams.checkOutDate,
+            checkInDate: actualCheckInDate,
+            checkOutDate: actualCheckOutDate,
             numAdults: queryParams.numAdults,
             numChildren: queryParams.numChildren,
-            rooms: queryParams.rooms,
-            size: 1000
+            page: currentPage.value - 1,
+            size: itemsPerPage,
+            minStarRating: queryParams.minStarRating || null,
+            minPrice: queryParams.minPrice || 0,
+            maxPrice: queryParams.maxPrice || 20000000,
+            amenities: amenitiesToSend,
+            sortBy: queryParams.sortBy || 'default',
         };
         const response = await searchHotels(apiParams);
         if (response.data?.statusCode === 200) {
-            const hotelDtos = response.data.data.content;
+            const pageData = response.data.data;
+            const hotelDtos = pageData.content;
+            totalPages.value = pageData.totalPages;
+            totalHotels.value = pageData.totalElements;
             hotels.value = hotelDtos.map(h => ({
                 id: h.id,
                 title: h.name,
                 location: h.provinceName || h.address,
                 details: h.description,
-                amenities: h.amenities?.map(a => a.name).join(', '),
+                amenities: h.amenities || [],
                 rating: h.rating?.toFixed(1) || 'N/A',
                 reviews: h.reviewCount || 0,
                 originalPrice: null,
@@ -483,33 +506,63 @@ const fetchHotels = async (queryParams) => {
             }));
         } else {
             hotels.value = [];
+            totalPages.value = 1;
+            totalHotels.value = 0;
         }
     } catch (error) {
         console.error("Failed to fetch hotels:", error);
         hotels.value = [];
+        totalPages.value = 1;
+        totalHotels.value = 0;
     }
 };
 
 watch(() => route.query, q => {
-    const queryParams = {
+    const queryParamsForWidget = {
         keyword: q.keyword || '',
-        checkin: q.checkInDate || today,
-        checkout: q.checkOutDate || minCheckOut.value,
-        adults: Number(q.numAdults) || 2,
-        children: Number(q.numChildren) || 0,
+        checkInDate: q.checkInDate || today,
+        checkOutDate: q.checkOutDate || minCheckOut.value,
+        numAdults: Number(q.numAdults) || 2,
+        numChildren: Number(q.numChildren) || 0,
         rooms: Number(q.rooms) || 1,
     };
-    searchParams.value = { ...queryParams, location: queryParams.keyword };
-    activeLocationQuery.value = queryParams.keyword;
+    searchParams.value = {
+        location: queryParamsForWidget.keyword,
+        checkin: queryParamsForWidget.checkInDate,
+        checkout: queryParamsForWidget.checkOutDate,
+        adults: queryParamsForWidget.numAdults,
+        children: queryParamsForWidget.numChildren,
+        rooms: queryParamsForWidget.rooms,
+    };
+    activeLocationQuery.value = queryParamsForWidget.keyword;
+
+    activeFilters.value.starRating = Number(q.minStarRating) || 0;
+
+    activeFilters.value.priceRange = [
+        Number(q.minPrice) || 0,
+        Number(q.maxPrice) || 20000000
+    ];
+
+    const queryAmenities = q.amenities ? String(q.amenities).split(',') : [];
+    const newAmenitiesFilter = {};
+    queryAmenities.forEach(amenity => {
+        if (amenity) {
+            newAmenitiesFilter[amenity] = true;
+        }
+    });
+    activeFilters.value.amenities = newAmenitiesFilter;
+
+    sortKey.value = q.sortBy || 'default';
+
     currentPage.value = Number(q.page) || 1;
-    fetchHotels(queryParams);
+
+    fetchHotels(q);
 }, { immediate: true, deep: true })
 
 function goToPage(pg) {
     if (pg >= 1 && pg <= totalPages.value) {
         currentPage.value = pg
         router.push({ query: { ...route.query, page: pg } })
-        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 }
 

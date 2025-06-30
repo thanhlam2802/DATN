@@ -184,7 +184,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getFlightBookingDetail } from '@/api/flightApi'
+
+const bookingId = ref('') // Lấy bookingId từ route hoặc props thực tế
+const ticket = ref(null)
+const loading = ref(false)
+const error = ref('')
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await getFlightBookingDetail(bookingId.value)
+    ticket.value = res.data
+  } catch (e) {
+    error.value = 'Không thể tải thông tin vé.'
+  } finally {
+    loading.value = false
+  }
+})
 
 // --- Dữ liệu mẫu (bạn có thể thay bằng props hoặc API) ---
 const flightDate   = ref(new Date(2025, 5, 13)) // Tháng bắt đầu từ 0 → 5 = tháng 6

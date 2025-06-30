@@ -148,7 +148,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getAdminFlights } from '@/api/flightApi'
 
 // State
 const searchQuery = ref('')
@@ -156,27 +157,21 @@ const statusFilter = ref('')
 const dateFilter = ref('')
 const currentPage = ref(1)
 const pageSize = 10
+const flights = ref([])
+const loading = ref(false)
+const error = ref('')
 
-// Mock data - Replace with actual API calls
-const flights = ref([
-  {
-    id: 1,
-    flightNumber: 'VN123',
-    route: 'Hà Nội - TP.HCM',
-    departureTime: '2024-03-20T10:00:00',
-    airline: 'Vietnam Airlines',
-    status: 'scheduled'
-  },
-  {
-    id: 2,
-    flightNumber: 'VN456',
-    route: 'TP.HCM - Đà Nẵng',
-    departureTime: '2024-03-20T14:30:00',
-    airline: 'Vietnam Airlines',
-    status: 'in-progress'
-  },
-  // Add more mock data as needed
-])
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await getAdminFlights()
+    flights.value = res.data
+  } catch (e) {
+    error.value = 'Không thể tải danh sách chuyến bay.'
+  } finally {
+    loading.value = false
+  }
+})
 
 // Computed
 const filteredFlights = computed(() => {

@@ -817,7 +817,7 @@
         </div>
 
         <!-- 3.3. Bạn có thể thêm footer, điều khoản, v.v. -->
-        <!-- Ví dụ: một nút “Tiếp tục thanh toán” -->
+        <!-- Ví dụ: một nút "Tiếp tục thanh toán" -->
         <div class="mt-8 flex">
           <router-link
             to="/plane/pay"
@@ -833,6 +833,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import axios from "axios";
 
 /** ========== Tab State ========== **/
 const currentTab = ref("one-way");
@@ -840,16 +841,17 @@ const tabActiveClass = "bg-indigo-600 text-white";
 const tabInactiveClass = "bg-white text-gray-600 hover:bg-gray-100";
 const showBookingModal = ref(false);
 const selectedFlight = ref(null);
+
 function openBooking(flight) {
   selectedFlight.value = flight;
   showBookingModal.value = true;
 }
 
-// Đóng modal và xoá `selectedFlight`
 function closeBooking() {
   showBookingModal.value = false;
   selectedFlight.value = null;
 }
+
 /** ========== Filter State ========== **/
 const filters = ref({
   from: "",
@@ -896,112 +898,48 @@ function toggleStop(key) {
   else filters.value.stops.splice(idx, 1);
 }
 
-// Xử lý nút Search (hiện chỉ console.log; bạn hook API vào đây)
-function onSearch() {
-  console.log("Search với filters:", filters.value, "Tab:", currentTab.value);
-  // TODO: Gọi API backend, rồi gán kết quả cho allFlights.value
-  currentPage.value = 1; // reset pagination về trang 1
+const allFlights = ref([]);
+const loading = ref(false);
+const error = ref("");
+
+async function onSearch() {
+  loading.value = true;
+  error.value = "";
+  try {
+    const res = await axios.get("/api/flights/search", {
+      params: {
+        departure: filters.value.from,
+        destination: filters.value.to,
+        departureDate: filters.value.departDate,
+        returnDate: filters.value.returnDate,
+        passengerCount: filters.value.passengers,
+        seatClass: filters.value.cabinClass,
+      },
+    });
+    // Mapping backend FlightDto về frontend format nếu cần
+    allFlights.value = res.data.map(f => ({
+      id: f.id,
+      title: f.code + ' - ' + (f.airline || ''),
+      subtitle: f.departure + ' → ' + f.destination,
+      price: f.price ? f.price.toLocaleString('vi-VN') + ' VND' : '',
+      image: '', // Nếu backend có trường image thì lấy, không thì để mặc định
+      departureTime: f.departureTime,
+      arrivalTime: f.arrivalTime,
+      availableSeats: f.availableSeats,
+      seatClass: f.seatClass,
+      flightCategory: f.flightCategory,
+      airline: f.airline,
+      code: f.code,
+    }));
+  } catch (e) {
+    error.value = "Không thể tải dữ liệu chuyến bay.";
+  } finally {
+    loading.value = false;
+  }
 }
 
-/** ========== Dữ liệu mẫu về các chuyến bay ========== **/
-const allFlights = ref([
-  {
-    id: 1,
-    title: "NYC Flight",
-    subtitle: "Nonstop to New York",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 2,
-    title: "LA Flight",
-    subtitle: "1 stop in Dallas",
-    price: "1000.000 VND",
-    image:
-      "https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946",
-  },
-  {
-    id: 3,
-    title: "Hawaii Trip",
-    subtitle: "2 stops in Miami & DC",
-    price: "1000.000 VND",
-    image:
-      "https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946",
-  },
-  {
-    id: 4,
-    title: "London Flight",
-    subtitle: "Nonstop to London",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 5,
-    title: "Chicago Trip",
-    subtitle: "1 stop in Chicago",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 6,
-    title: "Tokyo Flight",
-    subtitle: "Nonstop to Tokyo",
-    price: "1000.000 VND",
-    image:
-      "https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946",
-  },
-  {
-    id: 7,
-    title: "Paris Flight",
-    subtitle: "1 stop in Reykjavik",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 8,
-    title: "Sydney Trip",
-    subtitle: "2 stops in LA & Auckland",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1526779259212-1c1b7ded44b9?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 9,
-    title: "Dubai Flight",
-    subtitle: "Nonstop to Dubai",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1496588152823-1aefdb1f9c7b?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 10,
-    title: "Berlin Trip",
-    subtitle: "1 stop in Frankfurt",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 11,
-    title: "Rome Flight",
-    subtitle: "Nonstop to Rome",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1526481280693-3bfa7568f9d3?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 12,
-    title: "Bangkok Trip",
-    subtitle: "1 stop in Doha",
-    price: "1000.000 VND    ",
-    image:
-      "https://images.unsplash.com/photo-1554374405-ae162c4cca41?auto=format&fit=crop&w=800&q=60",
-  },
-]);
+// Khi load trang, show all flights
+onSearch();
 
 /** ========== Pagination ========== **/
 const itemsPerPage = 6;
@@ -1009,7 +947,6 @@ const currentPage = ref(1);
 const totalPages = computed(() =>
   Math.ceil(allFlights.value.length / itemsPerPage)
 );
-
 const paginatedFlights = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   return allFlights.value.slice(start, start + itemsPerPage);

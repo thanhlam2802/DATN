@@ -214,6 +214,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { payForFlight } from '@/api/flightApi'
 
 const router = useRouter()
 
@@ -316,6 +317,25 @@ function confirmAndPay() {
     alert('Thanh toán thành công! Cảm ơn bạn đã đặt vé.')
     // Sau khi thanh toán xong, chuyển hướng về trang hoàn tất hoặc trang Dashboard người dùng
     router.push({ name: 'BookingSuccess', params: { orderId: 'ABC12345' } })
+}
+
+const bookingId = ref('') // Lấy bookingId từ route hoặc props thực tế
+const paymentMethod = ref('credit_card')
+const paymentStatus = ref(null)
+const loading = ref(false)
+const error = ref('')
+
+async function handlePayment() {
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await payForFlight({ bookingId: bookingId.value, paymentMethod: paymentMethod.value })
+    paymentStatus.value = res.data
+  } catch (e) {
+    error.value = 'Thanh toán thất bại.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

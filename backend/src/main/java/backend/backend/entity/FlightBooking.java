@@ -38,4 +38,7 @@ public class FlightBooking {
 
     @OneToMany(mappedBy = "flightBooking")
     private List<TicketDetail> ticketDetails;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Customer> customers;
 }

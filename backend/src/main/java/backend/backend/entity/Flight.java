@@ -2,6 +2,7 @@ package backend.backend.entity;
 
 
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -33,7 +34,7 @@ public class Flight {
     @Column(name = "arrival_time", nullable = false)
     private LocalDateTime arrivalTime;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private FlightCategory category;
 
@@ -47,7 +48,7 @@ public class Flight {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @OneToMany(mappedBy = "flight")
+    @OneToMany(mappedBy = "flight",fetch = FetchType.EAGER)
     private List<FlightSlot> flightSlots;
 
     @OneToMany(mappedBy = "flight")

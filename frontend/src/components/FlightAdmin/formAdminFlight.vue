@@ -465,6 +465,33 @@ class="mt-1 block w-full z-10 bg-white rounded-md border-gray-300 shadow-sm  foc
   </div>
 </template>
 
+<script setup>
+import { ref } from 'vue';
+import { createAdminFlight, updateAdminFlight } from '@/api/flightApi';
+
+const isEdit = ref(false);
+const flightData = ref({});
+const loading = ref(false);
+const error = ref('');
+
+async function submitFlight() {
+  loading.value = true;
+  error.value = '';
+  try {
+    if (isEdit.value) {
+      await updateAdminFlight(flightData.value.id, flightData.value);
+    } else {
+      await createAdminFlight(flightData.value);
+    }
+    // Có thể emit event hoặc chuyển tab sau khi thành công
+  } catch (e) {
+    error.value = 'Lưu chuyến bay thất bại.';
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
+
 <script>
 export default {
   data() {

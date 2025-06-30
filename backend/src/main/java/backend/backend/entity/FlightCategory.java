@@ -2,6 +2,7 @@ package backend.backend.entity;
 
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.util.List;

@@ -213,7 +213,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getAdminFlightBookings } from '@/api/flightApi'
 
 // State
 const searchQuery = ref('')
@@ -222,28 +223,9 @@ const dateFilter = ref('')
 const currentPage = ref(1)
 const pageSize = 10
 const selectedBooking = ref(null)
-
-// Mock data - Replace with actual API calls
-const bookings = ref([
-  {
-    id: 1,
-    bookingNumber: 'BK001',
-    flight: 'VN123 - Hà Nội → TP.HCM',
-    passenger: 'Nguyễn Văn A',
-    bookingDate: '2024-03-19T10:00:00',
-    totalAmount: 2500000,
-    status: 'confirmed'
-  },
-  {
-    id: 2,
-    bookingNumber: 'BK002',
-    flight: 'VN456 - TP.HCM → Đà Nẵng',
-    passenger: 'Trần Thị B',
-    bookingDate: '2024-03-19T14:30:00',
-    totalAmount: 1800000,
-    status: 'pending'
-  }
-])
+const bookings = ref([])
+const loading = ref(false)
+const error = ref('')
 
 // Computed
 const filteredBookings = computed(() => {
@@ -350,4 +332,16 @@ const cancelBooking = (booking) => {
   // Implement cancel functionality
   console.log('Cancel booking:', booking)
 }
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await getAdminFlightBookings()
+    bookings.value = res.data
+  } catch (e) {
+    error.value = 'Không thể tải danh sách booking.'
+  } finally {
+    loading.value = false
+  }
+})
 </script> 

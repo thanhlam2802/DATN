@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,6 +30,7 @@ public class HotelDetailDto {
         private double rating;
         private int reviewCount;
         private List<HotelRoomDto> availableRooms;
+        private List<AmenityDto> amenities;
 
         public static HotelDetailDto fromEntity(Hotel hotel, double rating, int reviewCount,
                         Set<Integer> bookedVariantIds) {
@@ -40,6 +42,14 @@ public class HotelDetailDto {
                                 .map(room -> HotelRoomDto.fromEntity(room, bookedVariantIds))
                                 .filter(roomDto -> !roomDto.getAvailableVariants().isEmpty())
                                 .collect(Collectors.toList()) : Collections.emptyList();
+
+                List<AmenityDto> allAmenities = hotel.getHotelRooms() != null ? hotel.getHotelRooms().stream()
+                                .flatMap(room -> room.getAmenities().stream())
+                                .distinct()
+                                .map(AmenityDto::fromEntity)
+                                .sorted(Comparator.comparing(AmenityDto::getId))
+                                .collect(Collectors.toList())
+                                : Collections.emptyList();
 
                 Integer pId = (hotel.getProvince() != null) ? hotel.getProvince().getId() : null;
                 String pName = (hotel.getProvince() != null) ? hotel.getProvince().getName() : null;
@@ -57,6 +67,7 @@ public class HotelDetailDto {
                                 images,
                                 rating,
                                 reviewCount,
-                                roomDtoList);
+                                roomDtoList,
+                                allAmenities);
         }
 }

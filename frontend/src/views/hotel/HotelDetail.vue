@@ -137,7 +137,7 @@
 
     <section class="bg-white rounded-xl shadow p-6 mb-8">
       <div class="flex flex-col lg:flex-row lg:items-start space-y-3 lg:space-y-0 lg:space-x-3 mb-8">
-        <div class="flex-shrink-0 w-full lg:w-[480px] h-96 lg:h-[332px] overflow-hidden rounded-lg shadow-md">
+        <div class="flex-shrink-0 w-full lg:w-[480px] h-96 lg:h-[336px] overflow-hidden rounded-lg shadow-md">
           <img v-if="hotel.imageUrls && hotel.imageUrls.length" :src="hotel.imageUrls[0]" :alt="hotel.name"
             class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
         </div>
@@ -205,7 +205,7 @@
               <span>{{ amenity.name }}</span>
             </div>
           </div>
-          <button v-if="allUniqueRoomAmenities.length > INITIAL_AMENITIES_COUNT"
+          <button v-if="hotel.amenities && hotel.amenities.length > INITIAL_AMENITIES_COUNT"
             @click="showAllAmenities = !showAllAmenities"
             class="mt-2 text-sm border border-gray-300 text-gray-700 rounded-full px-4 py-2 hover:bg-gray-100 focus:outline-none transition-colors duration-200">{{
               showAllAmenities ? "Ẩn bớt" : "Xem tất cả tiện ích" }}</button>
@@ -627,42 +627,16 @@ const suggestions = computed(() => {
   return [...provinceResults, ...hotelResults];
 });
 
-const allUniqueRoomAmenities = computed(() => {
-  if (!hotel.value?.availableRooms) return [];
-  const amenitiesMap = new Map();
-  hotel.value.availableRooms.forEach(room => {
-    room.amenities?.forEach(amenity => {
-      if (!amenitiesMap.has(amenity.name)) {
-        amenitiesMap.set(amenity.name, { ...amenity, icon: amenity.icon || 'fas fa-check' });
-      }
-    });
-  });
-  return Array.from(amenitiesMap.values());
-});
-
 const INITIAL_AMENITIES_COUNT = 6;
-const EXPANDED_AMENITIES_COUNT = 15;
-const randomizedExpandedAmenities = ref([]);
-
-const shuffleArray = (array) => {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-};
-
-watch(allUniqueRoomAmenities, (newAmenities) => {
-  const shuffled = shuffleArray(newAmenities);
-  randomizedExpandedAmenities.value = shuffled.slice(0, EXPANDED_AMENITIES_COUNT);
-}, { immediate: true, deep: true });
 
 const visibleAmenities = computed(() => {
-  if (showAllAmenities.value) {
-    return randomizedExpandedAmenities.value;
+  if (!hotel.value?.amenities) {
+    return [];
   }
-  return randomizedExpandedAmenities.value.slice(0, INITIAL_AMENITIES_COUNT);
+  if (showAllAmenities.value) {
+    return hotel.value.amenities;
+  }
+  return hotel.value.amenities.slice(0, INITIAL_AMENITIES_COUNT);
 });
 
 const filteredRoomTypes = computed(() => {

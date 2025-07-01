@@ -105,8 +105,12 @@ public class HotelDAOImpl implements HotelDAOCustom {
 
             Map<Integer, List<AmenityDto>> amenitiesByHotelId = findAmenitiesForHotels(hotelIds);
 
-            resultList.forEach(hotelDto -> hotelDto
-                    .setAmenities(amenitiesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList())));
+            Map<Integer, List<String>> imagesByHotelId = findImagesForHotels(hotelIds);
+
+            resultList.forEach(hotelDto -> {
+                hotelDto.setAmenities(amenitiesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList()));
+                hotelDto.setImageUrls(imagesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList()));
+            });
         }
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<Hotel> countRoot = countQuery.from(Hotel.class);
@@ -142,5 +146,37 @@ public class HotelDAOImpl implements HotelDAOCustom {
                         Collectors.mapping(
                                 row -> AmenityDto.fromEntity((Amenity) row[1]),
                                 Collectors.toList())));
+    }
+
+    private Map<Integer, List<String>> findImagesForHotels(List<Integer> hotelIds) {
+        if (hotelIds == null || hotelIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Object[]> query = cb.createQuery(Object[].class);
+        Root<HotelImage> hotelImageRoot = query.from(HotelImage.class);
+        Join<HotelImage, Image> imageJoin = hotelImageRoot.join("image");
+
+        query.multiselect(
+                hotelImageRoot.get("hotel").get("id"),
+                imageJoin.get("url"),
+                hotelImageRoot.get("id").get("imageId")).where(hotelImageRoot.get("hotel").get("id").in(hotelIds))
+                .orderBy(cb.asc(hotelImageRoot.get("hotel").get("id")),
+                        cb.asc(hotelImageRoot.get("id").get("imageId")));
+
+        List<Object[]> results = em.createQuery(query).getResultList();
+
+        Map<Integer, List<String>> imagesByHotelId = new HashMap<>();
+
+        for (Object[] row : results) {
+            Integer hotelId = (Integer) row[0];
+            String imageUrl = (String) row[1];
+            imagesByHotelId.computeIfAbsent(hotelId, k -> new ArrayList<>());
+            if (imagesByHotelId.get(hotelId).size() < 3) {
+                imagesByHotelId.get(hotelId).add(imageUrl);
+            }
+        }
+        return imagesByHotelId;
     }
 }

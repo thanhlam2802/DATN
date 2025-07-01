@@ -1,18 +1,34 @@
 <template>
     <article v-if="viewMode === 'list'"
-        class="w-full flex border border-gray-200 rounded-xl overflow-hidden shadow-md bg-white cursor-pointer min-h-[230px]"
+        class="lg:w-[996px] flex border border-gray-200 rounded-xl overflow-hidden shadow-md bg-white cursor-pointer lg:h-[226px]"
         @click="$emit('click')">
         <div class="w-80 flex-shrink-0 relative">
-            <img :src="image" :alt="alt"
-                class="w-full h-full object-cover transition-transform duration-300 ease-in-out hover:scale-105" />
-            <p
-                class="absolute top-3 left-3 bg-black bg-opacity-50 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center z-10">
-                <i class="fas fa-map-marker-alt mr-2"></i>
-                <span>{{ location }}</span>
-            </p>
+            <div class="w-full h-full flex flex-col">
+                <div class="flex-1 relative overflow-hidden lg:w-[300px] lg:h-[160px]">
+                    <img :src="mainImage" :alt="alt"
+                        class="w-full h-full object-cover transition-transform duration-300 ease-in-out hover:scale-105" />
+                    <p
+                        class="absolute top-3 left-3 bg-black bg-opacity-50 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center z-10">
+                        <i class="fas fa-map-marker-alt mr-2"></i>
+                        <span>{{ location }}</span>
+                    </p>
+                </div>
+
+                <div v-if="hasMultipleImages" class="flex gap-1 lg:w-[300px] lg:h-[64px] pt-1">
+                    <div v-for="(img, index) in displayImages.slice(0, 3)" :key="index"
+                        class="flex-1 relative overflow-hidden lg:w-[100px] lg:h-[64px]">
+                        <img :src="img" :alt="`${alt} ${index + 1}`"
+                            class="w-full h-full object-cover transition-transform duration-300 ease-in-out hover:scale-105" />
+                        <div v-if="index === 2 && additionalImagesCount > 0"
+                            class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center text-white text-xs font-semibold">
+                            +{{ additionalImagesCount }}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="flex flex-1 flex-col sm:flex-row p-4 sm:p-6 justify-between gap-4">
+        <div class="flex flex-1 flex-col sm:flex-row sm:p-6 sm:pl-1 sm:pt-5 justify-between gap-4">
             <div class="flex-1">
                 <h3 class="font-semibold text-xl truncate">{{ title }}</h3>
                 <div class="flex items-center text-gray-600 text-sm my-1.5 pt-2">
@@ -70,7 +86,7 @@
         class="border border-gray-200 rounded-xl overflow-hidden shadow-md bg-white cursor-pointer flex flex-col"
         @click="$emit('click')">
         <div class="w-full h-48 overflow-hidden relative">
-            <img :src="image" :alt="alt"
+            <img :src="mainImage" :alt="alt"
                 class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
             <p
                 class="absolute top-3 left-3 bg-black bg-opacity-50 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center z-10">
@@ -126,6 +142,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    images: {
+        type: Array,
+        default: () => [],
+    },
     alt: {
         type: String,
         default: 'Hotel Image',
@@ -160,6 +180,28 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['click', 'toggle-favorite']);
+
+const mainImage = computed(() => {
+    return props.image || 'https://via.placeholder.com/320x230.png?text=Hotel+Image';
+});
+
+const displayImages = computed(() => {
+    if (props.images && props.images.length > 0) {
+        return props.images;
+    }
+    return [props.image];
+});
+
+const hasMultipleImages = computed(() => {
+    return props.images && props.images.length > 1;
+});
+
+const additionalImagesCount = computed(() => {
+    if (props.images && props.images.length > 3) {
+        return props.images.length - 3;
+    }
+    return 0;
+});
 
 const visibleAmenities = computed(() => {
     if (!props.amenities) return [];

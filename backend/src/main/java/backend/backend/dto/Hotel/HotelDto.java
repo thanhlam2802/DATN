@@ -13,6 +13,7 @@ public class HotelDto {
     private Integer id;
     private String name;
     private String imageUrl;
+    private List<String> imageUrls;
     private String address;
     private String provinceName;
     private Short starRating;
@@ -26,6 +27,21 @@ public class HotelDto {
         this.id = id;
         this.name = name;
         this.imageUrl = imageUrl;
+        this.address = address;
+        this.provinceName = provinceName;
+        this.starRating = starRating;
+        this.rating = rating;
+        this.reviewCount = reviewCount;
+        this.startingPrice = startingPrice;
+    }
+
+    public HotelDto(Integer id, String name, String imageUrl, List<String> imageUrls, String address,
+            String provinceName, Short starRating,
+            double rating, int reviewCount, BigDecimal startingPrice) {
+        this.id = id;
+        this.name = name;
+        this.imageUrl = imageUrl;
+        this.imageUrls = imageUrls;
         this.address = address;
         this.provinceName = provinceName;
         this.starRating = starRating;

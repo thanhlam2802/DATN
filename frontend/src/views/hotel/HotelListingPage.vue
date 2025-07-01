@@ -166,8 +166,8 @@
             <template v-if="hotels.length > 0">
                 <div
                     :class="viewMode === 'list' ? 'space-y-4' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'">
-                    <HotelCard v-for="hotel in hotels" :key="hotel.id" :view-mode="viewMode"
-                        :image="hotel.image" :alt="hotel.title" :location="hotel.location" :title="hotel.title"
+                    <HotelCard v-for="hotel in hotels" :key="hotel.id" :view-mode="viewMode" :image="hotel.image"
+                        :images="hotel.images" :alt="hotel.title" :location="hotel.location" :title="hotel.title"
                         :stars="hotel.stars" :rating="hotel.rating" :full-address="hotel.fullAddress"
                         :reviews="hotel.reviews" :details="hotel.details" :amenities="hotel.amenities"
                         :original-price="hotel.originalPrice" :price="hotel.price"
@@ -503,6 +503,7 @@ const fetchHotels = async (queryParams) => {
                 originalPrice: null,
                 price: h.startingPrice || 0,
                 image: h.imageUrl || 'https://via.placeholder.com/320x230.png?text=Hotel+Image',
+                images: h.imageUrls || [],
                 stars: h.starRating,
                 fullAddress: h.address
             }));

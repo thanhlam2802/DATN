@@ -136,27 +136,29 @@
 
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pt-7">
                 <h1 class="font-bold text-gray-800">
-                    <span class="block text-2xl">{{ locationDisplay }}</span>
-                    <span class="block text-base font-normal text-gray-600">{{ hotelCountDisplay }}</span>
+                    <span class="block text-base">{{ locationDisplay }}</span>
+                    <span class="block text-xs font-normal text-gray-600">{{ hotelCountDisplay }}</span>
                 </h1>
-                <div class="flex items-center space-x-4 mt-2 sm:mt-0">
-                    <span class="text-sm font-semibold">Xếp theo:</span>
+                <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+                    <span class="text-xs font-medium text-gray-600">Xếp theo:</span>
                     <select v-model="sortKey" @change="onFilterOrSortChange"
-                        class="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 shadow-sm mr-5">
+                        class="bg-white border border-gray-300 rounded-full px-3 py-1 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
                         <option value="default">Mặc định</option>
                         <option value="priceAsc">Giá thấp nhất</option>
                         <option value="priceDesc">Giá cao nhất</option>
                         <option value="ratingDesc">Đánh giá cao nhất</option>
                     </select>
-                    <div class="flex items-center border border-gray-300 rounded-md p-0.5 shadow-sm">
+                    <div class="border-l border-gray-200 h-4"></div>
+                    <span class="text-xs font-medium text-gray-600">Xem:</span>
+                    <div class="flex items-center bg-gray-100 rounded-full p-0.5">
                         <button @click="viewMode = 'list'"
-                            :class="viewMode === 'list' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
-                            class="px-2 py-1 rounded-md transition-colors duration-200"
-                            aria-label="Chế độ xem danh sách"><i class="fas fa-list fa-fw"></i></button>
+                            :class="viewMode === 'list' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500 hover:text-gray-800'"
+                            class="w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200"
+                            aria-label="Chế độ xem danh sách"><i class="fas fa-list fa-fw text-sm"></i></button>
                         <button @click="viewMode = 'grid'"
-                            :class="viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
-                            class="px-2 py-1 rounded-md transition-colors duration-200" aria-label="Chế độ xem lưới"><i
-                                class="fas fa-th-large fa-fw"></i></button>
+                            :class="viewMode === 'grid' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500 hover:text-gray-800'"
+                            class="w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200"
+                            aria-label="Chế độ xem lưới"><i class="fas fa-th-large fa-fw text-sm"></i></button>
                     </div>
                 </div>
             </div>

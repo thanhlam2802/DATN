@@ -121,16 +121,21 @@ public class HotelDAOImpl implements HotelDAOCustom {
     }
 
     private Map<Integer, List<AmenityDto>> findAmenitiesForHotels(List<Integer> hotelIds) {
-        String jpql = "SELECT DISTINCT h.id, a FROM Hotel h " +
-                "JOIN h.hotelRooms r " +
-                "JOIN r.amenities a " +
-                "WHERE h.id IN :hotelIds";
+        if (hotelIds == null || hotelIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Object[]> query = cb.createQuery(Object[].class);
+        Root<Hotel> hotelRoot = query.from(Hotel.class);
 
-        TypedQuery<Object[]> query = em.createQuery(jpql, Object[].class);
-        query.setParameter("hotelIds", hotelIds);
+        Join<Hotel, HotelRoom> roomJoin = hotelRoot.join("hotelRooms");
+        Join<HotelRoom, Amenity> amenityJoin = roomJoin.join("amenities");
 
-        List<Object[]> results = query.getResultList();
+        query.multiselect(hotelRoot.get("id"), amenityJoin)
+                .where(hotelRoot.get("id").in(hotelIds))
+                .distinct(true);
 
+        List<Object[]> results = em.createQuery(query).getResultList();
         return results.stream()
                 .collect(Collectors.groupingBy(
                         row -> (Integer) row[0],

@@ -31,6 +31,8 @@ import HotelForm from "@/views/hotel/admin/HotelForm.vue"
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
+import Register from "@/views/Register.vue";
+import Login from "@/views/Login.vue";
 
 
 const routes = [
@@ -39,6 +41,8 @@ const routes = [
     component: MainLayout,
     children: [
       { path: "", name: "Home", component: Home },
+      { path: "register", name: "Register", component: Register },
+      { path: "login", name: "Login", component: Login },
       { path: "tour", name: "Tour", component: Tour },
       { path: "bus", name: "Bus", component: Bus },
       { path: "plane", name: "Plane", component: Plane },
@@ -80,18 +84,18 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
-        {
-            path: "/account",
-            component: AccountView,
-            children: [
-                { path: "", redirect: "personal" },
-                { path: "personal", component: AccountDetails },
-                { path: "bookings", component: BookingHistory },
-                { path: "payment", component: PaymentDetails },
-                { path: "security", component: AccountSecurity },
-                { path: "notifications", component: NotificationSetting },
-            ],
-        },
+      {
+        path: "/account",
+        component: AccountView,
+        children: [
+          { path: "", redirect: "personal" },
+          { path: "personal", component: AccountDetails },
+          { path: "bookings", component: BookingHistory },
+          { path: "payment", component: PaymentDetails },
+          { path: "security", component: AccountSecurity },
+          { path: "notifications", component: NotificationSetting },
+        ],
+      },
     ],
   },
   {

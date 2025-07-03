@@ -1,18 +1,24 @@
 package backend.backend.utils;
 
 
-
+import backend.backend.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -20,6 +26,7 @@ import java.util.function.Function;
  * như tạo, xác thực, và trích xuất thông tin từ token.
  */
 @Component
+@RequiredArgsConstructor
 public class JwtTokenUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenUtil.class);
@@ -42,12 +49,12 @@ public class JwtTokenUtil {
     }
 
     /**
-     * Trích xuất username từ JWT token.
+     * Trích xuất useremail từ JWT token.
      *
      * @param token Chuỗi JWT.
-     * @return Username chứa trong token.
+     * @return user email chứa trong token.
      */
-    public String extractUsername(String token) {
+    public String extractUserEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -107,18 +114,23 @@ public class JwtTokenUtil {
     /**
      * Tạo ra một JWT token mới cho người dùng.
      *
-     * @param userDetails Chi tiết thông tin người dùng.
+     * @param user Chi tiết thông tin người dùng.
      * @return Chuỗi JWT được tạo ra.
      */
-//    public String generateToken(UserDetails userDetails) {
-//        return Jwts.builder()
-//                .setSubject(userDetails.getUsername())
-//                .setIssuedAt(new Date(System.currentTimeMillis()))
-//                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-//              
-//                .signWith(secretKey)
-//                .compact();
-//    }
+
+    public String generateToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", user.getId());
+        claims.put("name", user.getName());
+        claims.put("email", user.getEmail());
+        return Jwts.builder()
+                .setSubject(user.getEmail())
+                .addClaims(claims)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .signWith(secretKey)
+                .compact();
+    }
 //
 //    /**
 //     * Xác thực token có hợp lệ với thông tin người dùng hay không.
@@ -129,7 +141,7 @@ public class JwtTokenUtil {
 //     */
 //    public Boolean validateToken(String token, UserDetails userDetails) {
 //        final String username = extractUsername(token);
-//     
+//
 //        return (username != null && username.equals(userDetails.getUsername()));
 //    }
 }

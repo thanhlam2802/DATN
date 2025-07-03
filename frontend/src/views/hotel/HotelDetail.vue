@@ -410,7 +410,7 @@
         <h2 class="font-sans font-extrabold text-xl leading-6 text-gray-800">Cơ sở lưu trú khác bạn có thể thích</h2>
         <p class="font-sans text-sm text-gray-600">Những khách sạn tương tự trong khu vực</p>
       </div>
-      <div aria-label="Accommodation suggestions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-40">
+      <div aria-label="Accommodation suggestions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-70">
         <HotelCard v-for="other in otherHotels" :key="other.id" :hotel="other" />
       </div>
     </section>

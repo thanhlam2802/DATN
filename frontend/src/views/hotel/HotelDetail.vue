@@ -24,8 +24,8 @@
           <div class="flex-1">
             <label class="text-xs text-gray-500">Địa điểm hoặc khách sạn</label>
             <input type="text" v-model="searchParams.location" @focus="handleLocationFocus"
-              class="w-full bg-transparent font-semibold focus:outline-none text-gray-800 truncate" placeholder="Tìm kiếm..."
-              autocomplete="off" />
+              class="w-full bg-transparent font-semibold focus:outline-none text-gray-800 truncate"
+              placeholder="Tìm kiếm..." autocomplete="off" />
           </div>
           <div v-if="showLocationDropdown && suggestions.length > 0"
             class="absolute top-full mt-2 left-0 z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
@@ -181,34 +181,71 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-10">
         <div>
           <h2 class="text-xl font-bold text-gray-800 mb-4">Tổng quan</h2>
-          <div class="text-sm text-gray-700 leading-relaxed space-y-3">
-            <p :class="!showMoreOverview && 'line-clamp-4'" v-html="hotel.description"></p>
-            <button @click="showMoreOverview = !showMoreOverview"
-              class="text-blue-600 font-semibold text-sm hover:underline focus:outline-none">{{ showMoreOverview ? "Thu gọn" : "Xem thêm" }}</button>
-
-            <ul class="space-y-2 pt-4">
-              <li class="flex items-start"><i class="fas fa-map-marker-alt text-blue-500 w-5 mt-1"></i><span>{{
-                hotel.address }}</span></li>
-              <li class="flex items-center"><i class="fas fa-phone-alt text-blue-500 w-5"></i><span>{{ hotel.phone
-                  }}</span></li>
-              <li class="flex items-center"><i class="fas fa-envelope text-blue-500 w-5"></i><span>{{ hotel.email
-                  }}</span></li>
-            </ul>
+          <div class="text-sm text-gray-700 leading-relaxed space-y-4">
+            <div>
+              <div :class="!showMoreOverview && 'line-clamp-4'"
+                class="prose prose-sm max-w-none text-justify text-gray-700" v-html="hotel.description"></div>
+              <button @click="showMoreOverview = !showMoreOverview"
+                class="text-blue-600 font-semibold text-sm hover:underline focus:outline-none mt-2 inline-flex items-center gap-1.5">
+                <span>{{ showMoreOverview ? "Thu gọn" : "Xem thêm" }}</span>
+                <i class="fas fa-chevron-down transition-transform duration-200"
+                  :class="{ 'rotate-180': showMoreOverview }"></i>
+              </button>
+            </div>
+            <div class="border-t border-gray-200 pt-4 mt-4">
+              <ul class="space-y-4">
+                <li class="flex items-start gap-4">
+                  <div
+                    class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-map-marker-alt"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">Địa chỉ</p>
+                    <p class="font-medium text-gray-800">{{ hotel.address }}</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-4">
+                  <div
+                    class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-phone-alt text-lg"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">Điện thoại</p>
+                    <a :href="`tel:${hotel.phone}`"
+                      class="font-medium text-gray-800 hover:text-blue-600 hover:underline">{{ hotel.phone }}</a>
+                  </div>
+                </li>
+                <li class="flex items-start gap-4">
+                  <div
+                    class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-envelope text-lg"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">Email</p>
+                    <a :href="`mailto:${hotel.email}`"
+                      class="font-medium text-gray-800 hover:text-blue-600 hover:underline">{{ hotel.email }}</a>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
         <div>
           <h3 class="text-xl font-bold text-gray-800 mb-4">Các tiện ích nổi bật</h3>
-          <div class="grid grid-cols-2 gap-y-3 text-sm text-gray-700 mb-4">
+          <div class="grid grid-cols-2 gap-3">
             <div v-for="amenity in visibleAmenities" :key="amenity.name"
-              class="flex items-center space-x-2 font-medium">
-              <i :class="amenity.icon || 'fas fa-check'" class="text-green-500 w-5"></i>
-              <span>{{ amenity.name }}</span>
+              class="flex items-center gap-2 rounded-lg bg-gray-50 p-2 transition-colors hover:bg-gray-100">
+              <i :class="amenity.icon || 'fas fa-check-circle'" class="text-base text-blue-600 w-5 text-center"></i>
+              <span class="font-medium text-gray-800 text-sm">{{ amenity.name }}</span>
             </div>
           </div>
           <button v-if="hotel.amenities && hotel.amenities.length > INITIAL_AMENITIES_COUNT"
             @click="showAllAmenities = !showAllAmenities"
-            class="mt-2 text-sm border border-gray-300 text-gray-700 rounded-full px-4 py-2 hover:bg-gray-100 focus:outline-none transition-colors duration-200">{{
-              showAllAmenities ? "Ẩn bớt" : "Xem tất cả tiện ích" }}</button>
+            class="mt-4 text-sm font-semibold text-blue-600 hover:underline focus:outline-none inline-flex items-center gap-1.5">
+            <span>{{ showAllAmenities ? "Ẩn bớt" : "Xem tất cả tiện ích" }}</span>
+            <i class="fas fa-chevron-down transition-transform duration-200"
+              :class="{ 'rotate-180': showAllAmenities }"></i>
+          </button>
         </div>
       </div>
     </section>
@@ -354,13 +391,27 @@
                     </div>
                   </div>
                 </td>
-                <td class="text-center align-middle py-4 px-4"><button
-                    class="rounded-lg px-5 py-2 text-sm font-semibold transition-colors duration-200 shadow-md bg-blue-600 text-white hover:bg-blue-700">Chọn</button>
+                <td class="text-center align-middle py-4 px-4">
+                  <button
+                    class="rounded-lg px-5 py-2 text-sm font-semibold transition-colors duration-200 shadow-md bg-blue-600 text-white hover:bg-blue-700"
+                    @click="goToBooking(room, variant)">
+                    Chọn
+                  </button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <section v-if="otherHotels.length > 0" class="w-full bg-[#f0f8ff] rounded-lg p-6 shadow-sm mb-8">
+      <div class="mb-6">
+        <h2 class="font-sans font-extrabold text-xl leading-6 text-gray-800">Cơ sở lưu trú khác bạn có thể thích</h2>
+        <p class="font-sans text-sm text-gray-600">Những khách sạn tương tự trong khu vực</p>
+      </div>
+      <div aria-label="Accommodation suggestions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-40">
+        <HotelCard v-for="other in otherHotels" :key="other.id" :hotel="other" />
       </div>
     </section>
 
@@ -416,17 +467,6 @@
         </div>
       </div>
     </section>
-
-    <section v-if="otherHotels.length > 0" class="w-full bg-[#f0f8ff] rounded-lg p-6 shadow-sm mb-8">
-      <div class="mb-6">
-        <h2 class="font-sans font-extrabold text-xl leading-6 text-gray-800">Cơ sở lưu trú khác bạn có thể thích</h2>
-        <p class="font-sans text-sm text-gray-600">Những khách sạn tương tự trong khu vực</p>
-      </div>
-      <div aria-label="Accommodation suggestions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-40">
-        <HotelCard v-for="other in otherHotels" :key="other.id" :hotel="other" />
-      </div>
-    </section>
-
   </main>
 
   <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center pt-15"
@@ -435,14 +475,17 @@
       class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 lg:mx-0 overflow-hidden relative flex flex-col md:flex-row"
       style="max-height: 80vh">
       <div class="md:w-1/2 w-full flex flex-col bg-gray-50">
-        <div class="flex-grow flex items-center justify-center p-4"><img
-            v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length"
-            :src="selectedRoom.imageUrls[modalImageIndex]" :alt="selectedRoom.roomType"
-            class="object-contain max-h-full w-full rounded-lg transition-all duration-200" /></div>
-        <div class="flex gap-2 justify-center p-2 bg-white">
+        <div class="flex-grow flex items-center justify-center p-4">
+          <div class="w-full h-80 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden shadow">
+            <img v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length"
+              :src="selectedRoom.imageUrls[modalImageIndex]" :alt="selectedRoom.roomType"
+              class="w-full h-full object-cover transition-all duration-200" />
+          </div>
+        </div>
+        <div class="flex gap-3 justify-center p-3 bg-white">
           <img v-for="(img, idx) in selectedRoom.imageUrls" :key="idx" :src="img" :alt="`Ảnh ${idx + 1}`"
-            class="w-16 h-16 object-cover rounded cursor-pointer border-2"
-            :class="modalImageIndex === idx ? 'border-blue-500' : 'border-transparent'"
+            class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 transition-all duration-200"
+            :class="modalImageIndex === idx ? 'border-blue-500 shadow-lg scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'"
             @click="modalImageIndex = idx" />
         </div>
       </div>
@@ -539,6 +582,33 @@ const priceDisplayMode = ref('price');
 const provinces = ref([]);
 const hotelSuggestions = ref([]);
 const debounceTimer = ref(null);
+
+const goToBooking = (room, variant) => {
+  router.push({
+    name: 'HotelBooking',
+    query: {
+      hotelTitle: hotel.value.name,
+      hotellocation: hotel.value.provinceName,
+      hotelRating: hotel.value.rating,
+      hotelReviews: hotel.value.reviewCount,
+      hotelImages: JSON.stringify(hotel.value.imageUrls),
+      starRating: hotel.value.starRating,
+      variantName: variant.variantName,
+      variantBreakfast: variant.hasBreakfast ? 'Gồm bữa sáng' : 'Không gồm bữa sáng',
+      roomBed: room.bedType,
+      variantOriginalPrice: variant.price,
+      variantDiscountedPrice: variant.totalPrice ?? variant.price,
+      nights: numberOfNights.value || 1,
+      checkin: searchParams.value.checkin,
+      checkout: searchParams.value.checkout,
+      maxAdults: room.maxAdults,
+      maxChildren: room.maxChildren,
+      discount: 0,
+      serviceFee: 0,
+      rooms: searchParams.value.rooms,
+    }
+  });
+};
 
 const amenityFilters = ref([
   { id: "cancellable", label: "Miễn phí hủy phòng" },

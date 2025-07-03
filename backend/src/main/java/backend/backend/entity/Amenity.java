@@ -1,16 +1,14 @@
 package backend.backend.entity;
 
-
-
 import lombok.Data;
 import jakarta.persistence.*;
-
 import java.util.List;
 
 @Data
 @Entity
 @Table(name = "amenities")
 public class Amenity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

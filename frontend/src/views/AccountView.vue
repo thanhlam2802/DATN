@@ -5,8 +5,8 @@
       Back
     </a>
 
-    <div class="flex flex-col md:flex-row gap-8">
-      <div class="w-full md:w-[250px] h-fit bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+    <div class="flex flex-col md:flex-row gap-4">
+      <div class="md:w-[270px] h-fit bg-white rounded-lg border border-gray-200 shadow-sm px-2">
         <AccountSidebar/>
       </div>
       <div class="flex-1 bg-white p-5 pt-0">

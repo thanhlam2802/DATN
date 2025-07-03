@@ -1,4 +1,4 @@
-package backend.backend.cogfig;
+package backend.backend.config;
 
 
 import org.springframework.context.annotation.Bean;

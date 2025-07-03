@@ -105,17 +105,6 @@ public class JwtTokenUtil {
     }
 
     /**
-     * Kiểm tra xem token đã hết hạn hay chưa.
-     *
-     * @param token Chuỗi JWT.
-     * @return true nếu token đã hết hạn, ngược lại false.
-     */
-    private Boolean isTokenExpired(String token) {
-        final Date expiration = extractExpiration(token);
-        return expiration != null && expiration.before(new Date());
-    }
-
-    /**
      * Tạo ra một JWT token mới cho người dùng.
      *
      * @param userDetails Chi tiết thông tin người dùng.

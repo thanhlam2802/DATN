@@ -1,9 +1,8 @@
 package backend.backend.entity;
 
-
-
 import lombok.Data;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -11,6 +10,7 @@ import java.util.List;
 @Entity
 @Table(name = "hotels")
 public class Hotel {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -27,8 +27,9 @@ public class Hotel {
     @Column(name = "star_rating")
     private Short starRating;
 
-    @Column(name = "province_id")
-    private Integer provinceId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "province_id", nullable = true)
+    private Province province;
 
     @Column(length = 200)
     private String email;
@@ -39,7 +40,7 @@ public class Hotel {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private User owner;
-    
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

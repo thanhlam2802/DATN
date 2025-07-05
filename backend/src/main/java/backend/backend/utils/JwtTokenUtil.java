@@ -2,18 +2,16 @@ package backend.backend.utils;
 
 
 import backend.backend.entity.User;
+import backend.backend.exception.AuthException;
+import backend.backend.exception.ErrorCode;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -99,16 +97,20 @@ public class JwtTokenUtil {
                     .getBody();
         } catch (ExpiredJwtException e) {
             logger.error("JWT token đã hết hạn: {}", e.getMessage());
+            throw new AuthException("Token expired", ErrorCode.AUTH_003);
         } catch (UnsupportedJwtException e) {
             logger.error("JWT token không được hỗ trợ: {}", e.getMessage());
+            throw new AuthException("Invalid token", ErrorCode.AUTH_003);
         } catch (MalformedJwtException e) {
             logger.error("JWT token không đúng định dạng: {}", e.getMessage());
+            throw new AuthException("Invalid token", ErrorCode.AUTH_003);
         } catch (SignatureException e) {
             logger.error("Lỗi chữ ký JWT: {}", e.getMessage());
+            throw new AuthException("Invalid signature", ErrorCode.AUTH_003);
         } catch (IllegalArgumentException e) {
             logger.error("Chuỗi JWT claims rỗng: {}", e.getMessage());
+            throw new AuthException("Invalid claim", ErrorCode.AUTH_003);
         }
-        return null;
     }
 
     /**

@@ -132,7 +132,7 @@ const routes = [
     children: [
       { path: "dashboard", component: Dashboard },
       { path: "hotelform", component: HotelForm },
-      { path: "", redirect: "/dashboard" },
+      { path: "", redirect: "dashboard" },
     ],
   },
 

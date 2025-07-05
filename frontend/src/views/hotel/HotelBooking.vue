@@ -1,171 +1,307 @@
 <template>
-    <main class="w-full max-w-none px-6 pt-0 flex flex-col lg:flex-row gap-10 items-start">
-        <section class="flex-1 w-full">
-            <h1 class="text-2xl font-semibold mb-4">
-                Xác nhận &amp; thanh toán: {{ hotelTitle }} – {{ roomLabel }}
-            </h1>
-
-            <div class="mb-8">
-                <h2 class="font-semibold mb-3">Chuyến đi của bạn</h2>
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <div
-                        class="flex justify-between items-center bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-700 w-full sm:w-1/2">
+    <div class="max-w-full lg:w-[1320px] mx-auto px-6">
+        <div class="flex justify-center mt-8 mb-8">
+            <div class="flex items-center justify-center w-full">
+                <template v-for="step in 3" :key="step">
+                    <div class="flex items-center">
+                        <div :class="[
+                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow transition-all duration-300 border-2',
+                            currentStep === step
+                                ? 'bg-gradient-to-tr from-indigo-500 to-blue-400 text-white border-indigo-500 scale-110'
+                                : (currentStep > step
+                                    ? 'bg-green-500 text-white border-green-500'
+                                    : 'bg-gray-200 text-gray-400 border-gray-300')
+                        ]">
+                            <span v-if="currentStep > step"><i class='fas fa-check'></i></span>
+                            <span v-else>{{ step }}</span>
+                        </div>
+                        <span class="ml-3 mr-8 text-base font-semibold transition-all duration-300" :class="currentStep === step
+                            ? 'text-indigo-600'
+                            : (currentStep > step ? 'text-green-600' : 'text-gray-500')">
+                            {{ stepLabels[step - 1] }}
+                        </span>
+                    </div>
+                    <div v-if="step < 3" :class="[
+                        'h-1 mx-2 transition-all duration-300',
+                        currentStep > step ? 'bg-green-400 w-16' : 'bg-gray-300 w-12'
+                    ]"></div>
+                </template>
+            </div>
+        </div>
+        <main class="max-w-full flex flex-col lg:flex-row gap-10 items-start pt-10">
+            <div class="w-full">
+                <div v-if="currentStep === 1" class="w-full">
+                    <h1 class="text-2xl font-bold mb-2">Đặt phòng của bạn</h1>
+                    <div class="text-base text-gray-600 mb-8">
+                        Hãy đảm bảo tất cả thông tin chi tiết trên trang này đã chính xác trước khi tiến hành thanh
+                        toán.
+                    </div>
+                    <div class="mb-8 border border-gray-200 rounded-xl bg-white p-6 shadow-sm">
+                        <h2 class="text-xl font-bold mb-1">Thông tin liên hệ</h2>
+                        <div class="text-sm text-gray-600 mb-4">Hãy điền chính xác tất cả thông tin để đảm bảo bạn nhận
+                            được
+                            Phiếu xác nhận đặt phòng qua email của mình.</div>
+                        <form class="grid gap-4 w-full" @submit.prevent>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-800 mb-1">Tên đầy đủ (theo Hộ
+                                    chiếu/Thẻ căn
+                                    cước công dân)</label>
+                                <input type="text" v-model="fullName" @blur="validateFullName"
+                                    placeholder="Nhập họ và tên"
+                                    :class="['form-input w-full border p-3 text-base rounded-md', errors.fullName ? 'border-red-500' : 'border-gray-300']" />
+                                <div class="text-xs text-gray-500 mt-1">Vui lòng chỉ dùng chữ cái (A-Z), không có chức
+                                    danh, ký
+                                    tự đặc biệt và dấu câu.</div>
+                                <div v-if="errors.fullName" class="text-xs text-red-500 mt-1">{{ errors.fullName }}
+                                </div>
+                            </div>
+                            <div class="flex flex-col md:flex-row gap-4">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-semibold text-gray-800 mb-1">E-mail</label>
+                                    <input type="email" v-model="email" @blur="validateEmail" placeholder="Nhập email"
+                                        :class="['form-input w-full border p-3 text-base rounded-md', errors.email ? 'border-red-500' : 'border-gray-300']" />
+                                    <div class="text-xs text-gray-500 mt-1">Chúng tôi sẽ gửi e-voucher tới email này.</div>
+                                    <div v-if="errors.email" class="text-xs text-red-500 mt-1">{{ errors.email }}</div>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm font-semibold text-gray-800 mb-1">Số điện thoại</label>
+                                    <input type="tel" v-model="phone" @input="phone = phone.replace(/[^\d]/g, '')"
+                                        @blur="validatePhone" placeholder="Nhập số điện thoại"
+                                        :class="['form-input w-full border p-3 text-base rounded-md', errors.phone ? 'border-red-500' : 'border-gray-300']" />
+                                    <div class="text-xs text-gray-500 mt-1">ví dụ. 0912345678</div>
+                                    <div v-if="errors.phone" class="text-xs text-red-500 mt-1">{{ errors.phone }}</div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="mb-8 border border-gray-200 rounded-xl bg-white p-6 shadow shadow-orange-100">
+                        <h3 class="text-xl font-bold mb-2">Chi tiết giá</h3>
+                        <div class="text-green-700 text-sm font-semibold mb-4">Hãy áp thêm mã giảm giá tại trang thanh
+                            toán để
+                            có giá tốt hơn nhé</div>
+                        <div class="flex justify-between items-end mb-2">
+                            <div>
+                                <div class="font-semibold text-gray-700 text-base">Giá phòng</div>
+                                <div class="text-xs text-gray-600 mt-0.5">({{ rooms }}x) {{ variantName }} ({{ nights }}
+                                    đêm)
+                                </div>
+                            </div>
+                            <div class="font-semibold text-gray-700 text-right whitespace-nowrap min-w-[110px]">
+                                {{ formatPrice(variantOriginalPrice * nights * rooms) }}
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-semibold text-gray-700 flex items-center gap-1">Thuế và phí
+                                <i class="fas fa-info-circle text-gray-400 ml-1"
+                                    title="Đã bao gồm thuế/phí theo quy định"></i>
+                            </div>
+                            <div class="font-semibold text-gray-700">{{ formatPrice((variantDiscountedPrice -
+                                variantOriginalPrice) * nights * rooms) }}</div>
+                        </div>
+                        <hr class="my-2 border-gray-200" />
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-lg text-gray-900">Tổng giá</div>
+                            <div class="font-bold text-orange-600 text-2xl">{{ formatPrice(subtotal) }}</div>
+                        </div>
+                        <div class="flex items-center gap-2 text-blue-600 text-base font-semibold my-3">
+                            <i class="far fa-clock"></i>
+                            Bạn chưa bị trừ tiền!
+                        </div>
+                        <button @click="goToNextStep"
+                            class="w-full mt-2 mb-2 px-6 py-3 bg-orange-500 text-white rounded-lg font-bold text-lg shadow hover:bg-orange-600 transition">Tiếp
+                            tục thanh toán</button>
+                        <div class="text-xs text-gray-500 mt-2 text-center">
+                            Bằng việc chấp nhận thanh toán, bạn đã đồng ý với
+                            <a class="underline text-blue-600" href="#">Điều khoản & Điều kiện</a>,
+                            <a class="underline text-blue-600" href="#">Chính sách quyền riêng tư</a>
+                            và <a class="underline text-blue-600" href="#">Quy trình hoàn tiền</a> chỗ ở của chúng tôi.
+                        </div>
+                    </div>
+                </div>
+                <div v-if="currentStep === 2">
+                    <div class="border border-gray-200 rounded-2xl bg-white p-8 shadow-lg w-full mx-auto">
+                        <div class="mb-8">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-ticket-alt text-2xl text-amber-400"></i>
+                                <span class="text-lg font-semibold text-indigo-700">Mã khuyến mãi</span>
+                            </div>
+                            <div class="flex items-center justify-between w-full">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-percent text-blue-500 text-xl"></i>
+                                    <span class="font-bold text-lg">Thêm mã giảm</span>
+                                </div>
+                                <button @click="showVoucherPopup = true"
+                                    class="text-blue-600 font-bold text-lg hover:underline focus:outline-none">Thêm
+                                    mã</button>
+                            </div>
+                            <div class="text-gray-500 text-sm mt-1">Enter coupon code or select available coupon(s)
+                            </div>
+                        </div>
                         <div>
-                            <div class="font-semibold mb-0.5">Ngày</div>
-                            <div>{{ formattedCheckin }} – {{ formattedCheckout }}</div>
+                            <h2 class="font-semibold mb-4 text-indigo-700 flex items-center gap-2"><i
+                                    class="fas fa-credit-card"></i>Phương thức thanh toán</h2>
+                            <div class="flex flex-col gap-4">
+                                <div v-for="method in paymentMethods" :key="method.value"
+                                    @click="selectPaymentMethod(method.value)" :class="[
+                                        'flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition shadow-sm',
+                                        paymentMethod === method.value ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'
+                                    ]">
+                                    <div
+                                        class="text-2xl text-indigo-500 w-10 flex-shrink-0 flex items-center justify-center">
+                                        <i :class="method.icon"></i>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-base text-gray-900">{{ method.label }}</span>
+                                        <span class="text-xs text-gray-500">{{ method.desc }}</span>
+                                    </div>
+                                    <div class="ml-auto">
+                                        <span v-if="paymentMethod === method.value"
+                                            class="inline-block w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center"><i
+                                                class="fas fa-check text-xs"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="paymentMethod === 'bank'" class="mt-6">
+                                <div class="font-semibold mb-2">Chọn ngân hàng để chuyển khoản:</div>
+                                <div v-if="bankLoading" class="text-gray-500 text-sm">Đang tải danh sách ngân hàng...
+                                </div>
+                                <div v-else-if="bankError" class="text-red-500 text-sm">{{ bankError }}</div>
+                                <div v-else>
+                                    <div class="px-4 py-2 flex items-center cursor-pointer bg-white min-h-[48px] border border-gray-200 rounded-lg"
+                                        @click="showBankModal = true">
+                                        <span v-if="selectedBankObj" class="flex items-center">
+                                            <img :src="selectedBankObj.logo" class="w-26 h-22 mr-4 object-contain" />
+                                            <div class="flex flex-col justify-center">
+                                                <span class="font-bold text-base text-gray-900">{{ selectedBankObj.code
+                                                }}</span>
+                                                <span class="font-semibold text-base text-gray-900">{{
+                                                    selectedBankObj.name
+                                                }}</span>
+                                            </div>
+                                        </span>
+                                        <span v-else class="text-gray-400">Chọn ngân hàng</span>
+                                        <i class="fas fa-chevron-down ml-auto text-gray-400"></i>
+                                    </div>
+
+                                    <div v-if="showBankModal"
+                                        class="fixed inset-0 z-50 flex items-center justify-center bg-white/60"
+                                        style="backdrop-filter: blur(2px); background-color: rgba(0,0,0,0.20);"
+                                        @click.self="showBankModal = false">
+                                        <div class="bg-white shadow-xl w-full max-w-2xl p-0 relative rounded-lg">
+                                            <button
+                                                class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl"
+                                                @click="showBankModal = false">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            <div class="font-semibold px-6 pt-6 pb-2 text-lg">Chọn ngân hàng để chuyển
+                                                khoản
+                                            </div>
+                                            <div class="px-6 pb-4">
+                                                <input v-model="bankSearch" placeholder="Tìm ngân hàng..."
+                                                    class="w-full px-3 py-2 border border-gray-200 rounded-lg mb-4 outline-none focus:border-blue-400" />
+                                                <div class="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                                                    <div v-for="bank in filteredBanks" :key="bank.code"
+                                                        class="flex items-center gap-4 py-3 px-2 cursor-pointer hover:bg-blue-50 transition"
+                                                        @click="selectBank(bank); showBankModal = false;">
+                                                        <img :src="bank.logo" class="w-26 h-22 object-contain" />
+                                                        <div class="flex flex-col">
+                                                            <span class="font-bold text-base text-gray-900">{{ bank.code
+                                                            }}</span>
+                                                            <span class="font-semibold text-sm text-gray-700">{{
+                                                                bank.name
+                                                            }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div v-if="filteredBanks.length === 0"
+                                                        class="text-gray-400 px-4 py-2">Không
+                                                        tìm
+                                                        thấy ngân hàng</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="!selectedBank && !bankLoading" class="text-xs text-red-500 mt-2">Vui lòng
+                                    chọn ngân
+                                    hàng
+                                    để tiếp tục thanh toán.</div>
+                            </div>
+
+                            <form @submit.prevent class="space-y-4 pt-5">
+                                <div v-if="paymentMethod === 'credit'" class="space-y-4">
+                                    <input type="text" placeholder="Số thẻ"
+                                        class="form-input text-gray-700 w-full border border-gray-300 p-3 text-base rounded-md" />
+                                    <input type="text" placeholder="Tên chủ thẻ"
+                                        class="form-input text-gray-700 w-full border border-gray-300 p-3 text-base rounded-md" />
+                                    <div class="flex flex-col sm:flex-row gap-4">
+                                        <input type="text" placeholder="Ngày hết hạn"
+                                            class="form-input flex-1 text-gray-700 border border-gray-300 p-3 text-base rounded-md" />
+                                        <input type="text" placeholder="CVV"
+                                            class="form-input flex-1 text-gray-700 border border-gray-300 p-3 text-base rounded-md" />
+                                    </div>
+                                    <label class="inline-flex items-center space-x-2 text-sm text-gray-900">
+                                        <input type="checkbox" checked
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded" />
+                                        <span>Lưu thẻ cho lần đặt sau</span>
+                                    </label>
+                                </div>
+
+                                <div v-if="paymentMethod === 'paypal'" class="space-y-4 pt-5">
+                                    <p class="text-gray-700">
+                                        Bạn sẽ được chuyển hướng đến trang Paypal để hoàn tất thanh toán.
+                                    </p>
+                                </div>
+
+                                <div v-if="paymentMethod === 'googlepay'" class="space-y-4 pt-5">
+                                    <p class="text-gray-700">
+                                        Bạn sẽ được chuyển hướng đến Google Pay để hoàn tất thanh toán.
+                                    </p>
+                                </div>
+
+                                <div v-if="paymentMethod === 'at_hotel'" class="space-y-4 pt-5">
+                                    <p class="text-gray-700">
+                                        Bạn sẽ thanh toán trực tiếp tại khách sạn khi nhận phòng.
+                                    </p>
+                                </div>
+
+                                <div class="flex justify-between mt-6">
+                                    <button @click="currentStep--"
+                                        class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold border border-gray-300 shadow hover:bg-gray-200 transition">Quay
+                                        lại</button>
+                                    <button @click="goToNextStep"
+                                        class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow hover:bg-indigo-700 transition">Tiếp
+                                        tục</button>
+                                </div>
+                            </form>
                         </div>
-                        <button aria-label="Chỉnh sửa ngày" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
-                    </div>
-                    <div
-                        class="flex justify-between items-center bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-700 w-full sm:w-1/2">
-                        <div>
-                            <div class="font-semibold mb-0.5">Số khách</div>
-                            <div>{{ guests }} khách</div>
-                        </div>
-                        <button aria-label="Chỉnh sửa số khách" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
                     </div>
                 </div>
-            </div>
-
-            <div class="mb-8">
-                <h2 class="font-semibold mb-3">Thông tin khách hàng</h2>
-                <form class="grid gap-4 md:grid-cols-1 w-full">
-                    <input type="text" placeholder="Họ và tên"
-                        class="form-input w-full border border-gray-300 p-3 text-base mb-2 rounded-md" />
-                    <input type="email" placeholder="Địa chỉ email"
-                        class="form-input w-full border border-gray-300 p-3 text-base mb-2 rounded-md" />
-                    <input type="tel" placeholder="Số điện thoại"
-                        class="form-input w-full border border-gray-300 p-3 text-base mb-2 rounded-md" />
-                </form>
-            </div>
-
-            <div class="mb-8">
-                <button @click="toggleVoucher"
-                    class="w-full text-left text-indigo-600 font-semibold border border-indigo-600 rounded-md px-4 py-3 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex justify-between items-center"
-                    :aria-expanded="isVoucherVisible.toString()">
-                    <span>{{ isVoucherVisible ? 'Ẩn mã khuyến mãi' : 'Chọn voucher' }}</span>
-                    <svg class="w-5 h-5 transition-transform duration-300" :class="{ 'rotate-180': isVoucherVisible }"
-                        fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                <div class="mt-4 border border-gray-300 rounded-md p-4 bg-gray-50"
-                    :class="{ hidden: !isVoucherVisible }" :aria-hidden="(!isVoucherVisible).toString()">
-                    <input id="promoInput" type="text" placeholder="Enter promo code"
-                        class="w-full border border-gray-300 rounded-md px-4 py-2 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-4"
-                        autocomplete="off" />
-                    <div id="promoList" class="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth">
-                        <label
-                            class="voucher-label min-w-[220px] flex-shrink-0 bg-white p-3 rounded-lg shadow cursor-pointer border border-gray-300 hover:border-indigo-600 flex items-start space-x-3">
-                            <input type="radio" name="voucher" class="form-radio text-indigo-600 mt-1"
-                                value="summer-sale" />
-                            <div class="flex-grow">
-                                <div
-                                    class="voucher-badge ml-20 bg-amber-400 text-white px-2 py-0.5 rounded-full text-xs font-bold shadow-md whitespace-nowrap">
-                                    Only a few left!
-                                </div>
-                                <h3 class="font-bold text-sm text-gray-900 mb-1">Summer Sale</h3>
-                                <p class="text-xs text-gray-600">10% off all bookings</p>
-                                <p class="text-xs text-gray-600">Valid until Aug 31, 2024</p>
-                            </div>
-                        </label>
-                        <label
-                            class="voucher-label min-w-[220px] flex-shrink-0 bg-white p-3 rounded-lg shadow cursor-pointer border border-gray-300 hover:border-indigo-600 flex items-start space-x-3">
-                            <input type="radio" name="voucher" class="form-radio text-indigo-600 mt-1"
-                                value="new-user" />
-                            <div class="flex-grow">
-                                <div
-                                    class="voucher-badge ml-20 bg-amber-400 text-white px-2 py-0.5 rounded-full text-xs font-bold shadow-md whitespace-nowrap">
-                                    Limited time!
-                                </div>
-                                <h3 class="font-bold text-sm text-gray-900 mb-1">New User Discount</h3>
-                                <p class="text-xs text-gray-600">$87 off your first booking</p>
-                                <p class="text-xs text-gray-600">Valid for new customers only</p>
-                            </div>
-                        </label>
-                        <label
-                            class="voucher-label min-w-[220px] flex-shrink-0 bg-white p-3 rounded-lg shadow cursor-pointer border border-gray-300 hover:border-indigo-600 flex items-start space-x-3">
-                            <input type="radio" name="voucher" class="form-radio text-indigo-600 mt-1"
-                                value="holiday-special" />
-                            <div class="flex-grow">
-                                <div
-                                    class="voucher-badge ml-30 bg-amber-400 text-white px-2 py-0.5 rounded-full text-xs font-bold shadow-md whitespace-nowrap">
-                                    Popular
-                                </div>
-                                <h3 class="font-bold text-sm text-gray-900 mb-1">Holiday Special</h3>
-                                <p class="text-xs text-gray-600">Free service fee on bookings</p>
-                                <p class="text-xs text-gray-600">Valid Dec 1 - Dec 31, 2024</p>
-                            </div>
-                        </label>
+                <div v-if="currentStep === 3" class="w-full border border-gray-200 rounded-2xl bg-white p-8 shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">Xác nhận đặt phòng</h2>
+                    <div class="mb-4">
+                        <div class="font-semibold">Thông tin khách hàng:</div>
+                        <div>Họ tên: <span class="font-bold">{{ fullName }}</span></div>
+                        <div>Email: <span class="font-bold">{{ email }}</span></div>
+                        <div>Số điện thoại: <span class="font-bold">{{ phone }}</span></div>
                     </div>
-                </div>
-            </div>
-
-            <div>
-                <h2 class="font-semibold mb-3">Thanh toán bằng</h2>
-                <div class="flex items-center space-x-3 mb-6 text-sm font-normal text-gray-700">
-                    <button @click="selectPaymentMethod('credit')"
-                        :class="paymentMethod === 'credit' ? 'bg-pink-500 text-white' : 'bg-gray-200 hover:bg-gray-300'"
-                        class="rounded-full px-4 py-1.5">
-                        Thẻ tín dụng
-                    </button>
-                    <button @click="selectPaymentMethod('paypal')"
-                        :class="paymentMethod === 'paypal' ? 'bg-pink-500 text-white' : 'bg-gray-200 hover:bg-gray-300'"
-                        class="rounded-full px-4 py-1.5">
-                        Paypal
-                    </button>
-                    <button @click="selectPaymentMethod('googlepay')"
-                        :class="paymentMethod === 'googlepay' ? 'bg-pink-500 text-white' : 'bg-gray-200 hover:bg-gray-300'"
-                        class="rounded-full px-4 py-1.5">
-                        Google Pay
-                    </button>
-                    <button @click="selectPaymentMethod('at_hotel')"
-                        :class="paymentMethod === 'at_hotel' ? 'bg-pink-500 text-white' : 'bg-gray-200 hover:bg-gray-300'"
-                        class="rounded-full px-4 py-1.5">
-                        Thanh toán tại khách sạn
-                    </button>
-                </div>
-
-                <form @submit.prevent="onSubmitPayment" class="space-y-4">
-                    <div v-if="paymentMethod === 'credit'" class="space-y-4">
-                        <input type="text" placeholder="Số thẻ"
-                            class="form-input text-gray-700 w-full border border-gray-300 p-3 text-base rounded-md" />
-                        <input type="text" placeholder="Tên chủ thẻ"
-                            class="form-input text-gray-700 w-full border border-gray-300 p-3 text-base rounded-md" />
-                        <div class="flex flex-col sm:flex-row gap-4">
-                            <input type="text" placeholder="Ngày hết hạn"
-                                class="form-input flex-1 text-gray-700 border border-gray-300 p-3 text-base rounded-md" />
-                            <input type="text" placeholder="CVV"
-                                class="form-input flex-1 text-gray-700 border border-gray-300 p-3 text-base rounded-md" />
-                        </div>
-                        <label class="inline-flex items-center space-x-2 text-sm text-gray-900">
-                            <input type="checkbox" checked class="w-4 h-4 text-indigo-600 border-gray-300 rounded" />
-                            <span>Lưu thẻ cho lần đặt sau</span>
-                        </label>
+                    <div class="mb-4">
+                        <div class="font-semibold">Phương thức thanh toán:</div>
+                        <div>{{ paymentMethodLabel }}</div>
+                        <div v-if="paymentMethod === 'bank' && selectedBankObj">Ngân hàng: <span class="font-bold">{{
+                            selectedBankObj.name }}</span></div>
                     </div>
-
-                    <div v-if="paymentMethod === 'paypal'" class="space-y-4">
-                        <p class="text-gray-700">
-                            Bạn sẽ được chuyển hướng đến trang Paypal để hoàn tất thanh toán.
-                        </p>
+                    <div class="mb-4">
+                        <div class="font-semibold">Voucher:</div>
+                        <div>Chưa áp dụng (demo)</div>
                     </div>
-
-                    <div v-if="paymentMethod === 'googlepay'" class="space-y-4">
-                        <p class="text-gray-700">
-                            Bạn sẽ được chuyển hướng đến Google Pay để hoàn tất thanh toán.
-                        </p>
+                    <div class="flex justify-between mt-6">
+                        <button @click="currentStep--"
+                            class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold border border-gray-300 shadow hover:bg-gray-200 transition">Quay
+                            lại</button>
+                        <button @click="onSubmitPayment"
+                            class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow hover:bg-indigo-700 transition">Xác
+                            nhận & Thanh toán</button>
                     </div>
-
-                    <div v-if="paymentMethod === 'at_hotel'" class="space-y-4">
-                        <p class="text-gray-700">
-                            Bạn sẽ thanh toán trực tiếp tại khách sạn khi nhận phòng.
-                        </p>
-                    </div>
-
                     <hr class="border-gray-200 my-6" />
                     <p class="text-xs text-gray-600">
                         Bằng cách nhấn vào nút bên dưới, tôi đồng ý với
@@ -174,75 +310,177 @@
                         <a class="underline" href="#">Chính sách bảo mật</a> và
                         <a class="underline" href="#">Yêu cầu an toàn COVID-19</a>.
                     </p>
-                    <button type="submit"
-                        class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg py-3 text-base">
-                        Xác nhận và thanh toán
-                    </button>
-                </form>
-            </div>
-        </section>
-
-        <aside class="bg-white border border-gray-100 rounded-xl p-6 w-full max-w-md shadow-sm">
-            <div class="flex gap-4 mb-4">
-                <img :src="hotelImage" :alt="hotelTitle" class="rounded-lg w-30 h-22 object-cover flex-shrink-0"
-                    width="120" height="90" />
-                <div class="flex flex-col justify-between">
-                    <div class="text-xs text-gray-500 mb-0.5">{{ hotellocation }}</div>
-                    <div class="font-semibold text-gray-900 text-base leading-tight">{{ hotelTitle }}</div>
-                    <div class="text-xs text-gray-500 mt-1">{{ hotelDetails }}</div>
-                    <div class="flex items-center text-sm mt-2 text-gray-600">
-                        <i class="fas fa-star text-indigo-600 mr-1"></i>
-                        <span class="font-semibold text-gray-900">{{ hotelRating }}</span>
-                        <span class="ml-1">({{ hotelReviews }} đánh giá)</span>
-                    </div>
                 </div>
             </div>
+            <aside class="bg-white border border-gray-100 rounded-xl p-6 w-full max-w-md shadow-sm mb-10">
+                <div class="mb-4">
+                    <div class="flex flex-col items-center text-center pb-3 border-b border-gray-200 mb-3">
+                        <div class="flex items-center justify-center gap-1 mb-1 text-xs">
+                            <i class="fas fa-hotel text-blue-500 fa-xs"></i>
+                            <span class="font-semibold text-blue-700">Khách sạn</span>
+                            <span class="flex items-center gap-0.5 ml-1">
+                                <span v-for="n in starRating" :key="n" class="text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                </span>
+                            </span>
+                        </div>
+                        <div class="font-extrabold text-xl text-gray-900 leading-tight mb-1">{{ hotelTitle }}</div>
+                        <div class="text-xs text-gray-500 mb-1 flex items-center justify-center gap-1">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>{{ hotellocation }}</span>
+                        </div>
+                        <div class="flex items-center justify-center gap-2 mt-1">
+                            <span class="flex items-center text-sm text-gray-700">
+                                <i class="fas fa-star text-indigo-600 mr-1"></i>
+                                <span class="font-semibold text-gray-900">{{ hotelRating }}</span>
+                                <span class="ml-1">({{ hotelReviews }} đánh giá)</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="relative w-full rounded-lg overflow-hidden mb-2" style="height: 180px;">
+                        <transition :name="slideDirection === 'next' ? 'slide-right' : 'slide-left'">
+                            <img :key="hotelImageIndex" :src="hotelImages[hotelImageIndex]" :alt="hotelTitle"
+                                class="w-full h-full object-cover transition-all duration-300 rounded-lg" />
+                        </transition>
+                        <button v-if="hotelImages.length > 1" @click="prevHotelImage"
+                            class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/70 hover:bg-white/90 rounded-full p-2 z-10"><i
+                                class="fas fa-chevron-left text-gray-700"></i></button>
+                        <button v-if="hotelImages.length > 1" @click="nextHotelImage"
+                            class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/70 hover:bg-white/90 rounded-full p-2 z-10"><i
+                                class="fas fa-chevron-right text-gray-700"></i></button>
+                    </div>
+                </div>
 
-            <div class="mb-4">
-                <h3 class="font-bold text-lg">Phòng: {{ roomLabel }}</h3>
-                <p class="text-sm text-gray-700 mt-1">
-                    {{ roomType }} – {{ variantBreakfast }} <br />
-                    <i class="fas fa-bed mr-1"></i> {{ roomBed }}
-                </p>
-            </div>
+                <div class="mb-4">
+                    <div class="mb-4 flex items-center justify-between gap-4">
+                        <div
+                            class="flex-1 flex flex-col items-center bg-gray-50 rounded-lg p-2 border border-gray-300 min-w-[120px] max-w-[160px]">
+                            <span class="text-xs text-gray-500 mb-0.5">Nhận phòng</span>
+                            <span class="font-bold text-sm">{{ checkinDayOfWeek }}, {{ formattedCheckin }}</span>
+                            <span class="text-xs text-gray-500 mt-0.5">14:00 - 23:59</span>
+                        </div>
+                        <div class="flex flex-col items-center min-w-[60px]">
+                            <span class="text-gray-900 font-semibold text-xs">{{ nights }} đêm</span>
+                            <span class="w-15 h-0.5 bg-gray-200 my-1"></span>
+                        </div>
+                        <div
+                            class="flex-1 flex flex-col items-center bg-gray-50 rounded-lg p-2 border border-gray-300 min-w-[120px] max-w-[160px]">
+                            <span class="text-xs text-gray-500 mb-0.5">Trả phòng</span>
+                            <span class="font-bold text-sm">{{ checkoutDayOfWeek }}, {{ formattedCheckout }}</span>
+                            <span class="text-xs text-gray-500 mt-0.5">01:00 - 12:00</span>
+                        </div>
+                    </div>
+                </div>
 
-            <div>
-                <h3 class="font-bold text-lg mb-3">Chi tiết giá</h3>
-                <dl class="text-sm text-gray-900 space-y-2">
-                    <div class="flex justify-between">
-                        <dt>{{ formatPrice(variantDiscountedPrice) }} x {{ nights }} đêm</dt>
-                        <dd>{{ formatPrice(subtotal) }}</dd>
+                <div class="mb-4">
+                    <h3 class="font-bold text-base">({{ rooms }}x) {{ variantName }}</h3>
+                    <p class="text-sm font-semibold text-gray-700">
+                        <i class="fas fa-bed mr-1 mt-3"></i> {{ roomBed }} <br />
+                        <i class="fas fa-utensils mr-3 mt-4"></i>{{ variantBreakfast }}
+                    </p>
+                    <div class="flex items-center text-sm text-gray-700 font-semibold mt-3">
+                        <i class="fas fa-users mr-2"></i>
+                        <span>{{ maxAdults }} người lớn<span v-if="maxChildren > 0">, {{ maxChildren }} trẻ
+                                em</span></span>
                     </div>
-                    <div class="flex justify-between text-green-600 font-semibold">
-                        <dt>Giảm giá người dùng mới</dt>
-                        <dd>-{{ formatPrice(discount) }}</dd>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-gray-900 mb-3">Chi tiết giá</h3>
+                    <div class="flex justify-between items-end mb-2">
+                        <div class="max-w-[70%]">
+                            <div class="font-semibold text-gray-700 text-base break-words">Giá phòng</div>
+                            <div class="text-xs text-gray-600 mt-0.5 break-words">
+                                ({{ rooms }}x) {{ variantName }} ({{ nights }} đêm)
+                            </div>
+                        </div>
+                        <div class="font-semibold text-gray-700 text-right whitespace-nowrap min-w-[110px]">
+                            {{ formatPrice(variantOriginalPrice * nights * rooms) }}
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center text-gray-600">
-                        <dt>Phí dịch vụ</dt>
-                        <dd>
-                            {{ formatPrice(serviceFee) }}
-                            <button aria-label="Thông tin phí dịch vụ" class="text-gray-400 hover:text-gray-600">
-                                <i class="fas fa-info-circle"></i>
-                            </button>
-                        </dd>
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="font-semibold text-gray-700 flex items-center gap-1">Thuế và phí
+                            <i class="fas fa-info-circle text-gray-400 ml-1"
+                                title="Đã bao gồm thuế/phí theo quy định"></i>
+                        </div>
+                        <div class="font-semibold text-gray-700">{{
+                            formatPrice((variantDiscountedPrice - variantOriginalPrice) * nights * rooms) }}</div>
                     </div>
-                    <div class="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2">
-                        <dt>Tổng cộng (VND)</dt>
-                        <dd>{{ formatPrice(total) }}</dd>
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="font-semibold text-green-700">Giảm giá khuyến mãi</div>
+                        <div class="font-semibold text-green-700">-{{ formatPrice(discount) }}</div>
                     </div>
-                </dl>
-                <p class="text-xs text-gray-500 mt-3 text-center">
-                    Miễn phí huỷ đến 15:00 ngày 15 tháng 7 năm 2022.
-                    <a class="underline" href="#">Tìm hiểu thêm</a>
-                </p>
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="font-semibold text-gray-700 flex items-center gap-1">Phí dịch vụ
+                            <i class="fas fa-info-circle text-gray-400 ml-1"
+                                title="Phí xử lý, hỗ trợ khách hàng..."></i>
+                        </div>
+                        <div class="font-semibold text-gray-700 text-base">{{ formatPrice(serviceFee) }}</div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-200 pt-2 mt-3">
+                        <div class="font-bold text-gray-900">Tổng cộng (VND)</div>
+                        <div class="font-bold text-orange-600">{{ formatPrice(subtotal) }}</div>
+                    </div>
+                </div>
+                <div v-if="currentStep === 2" class="mt-6">
+                    <div class="border border-blue-200 rounded-xl bg-blue-50 p-4 shadow flex flex-col gap-2">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-user-circle text-blue-500 text-2xl mr-2"></i>
+                            <span class="font-bold text-blue-700 text-base">Thông tin người liên lạc</span>
+                        </div>
+                        <div class="text-sm text-gray-700"><span class="font-semibold">Họ tên:</span> {{ fullName }}
+                        </div>
+                        <div class="text-sm text-gray-700"><span class="font-semibold">Email:</span> {{ email }}</div>
+                        <div class="text-sm text-gray-700"><span class="font-semibold">Số điện thoại:</span> {{ phone }}
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <template v-if="showVoucherPopup">
+        <div class="fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.25);"
+            @click.self="showVoucherPopup = false">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-8 relative animate-fadeIn">
+                <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
+                    @click="showVoucherPopup = false">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-percent text-blue-500 text-2xl"></i>
+                    <span class="font-bold text-xl">Thêm mã giảm</span>
+                </div>
+                <div class="text-gray-500 text-sm mb-4">Enter coupon code or select available coupon(s)</div>
+                <input v-model="voucherInput" type="text" placeholder="Nhập mã giảm giá"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-base mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <button
+                    class="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg mb-4 hover:bg-blue-700 transition"
+                    @click="applyVoucher">Áp dụng mã</button>
+                <div class="text-xs text-gray-400 mb-2">Hoặc chọn mã có sẵn:</div>
+                <div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
+                    <label v-for="voucher in suggestedVouchers" :key="voucher.code"
+                        class="min-w-[220px] flex-shrink-0 bg-white p-4 rounded-xl shadow border-2 border-indigo-200 hover:border-indigo-500 cursor-pointer flex flex-col gap-2 transition relative">
+                        <input type="radio" name="voucher" class="form-radio text-indigo-600 absolute top-3 left-3"
+                            :value="voucher.code" v-model="voucherInput" />
+                        <div class="flex flex-col pl-7">
+                            <span
+                                class="voucher-badge bg-amber-400 text-white px-2 py-0.5 rounded-full text-xs font-bold shadow-md w-max mb-1">{{
+                                    voucher.badge }}</span>
+                            <span class="font-bold text-base text-gray-900 mb-0.5">{{ voucher.title }}</span>
+                            <span class="text-xs text-gray-600">{{ voucher.desc }}</span>
+                            <span class="text-xs text-gray-600">{{ voucher.valid }}</span>
+                        </div>
+                    </label>
+                </div>
             </div>
-        </aside>
-    </main>
+        </div>
+    </template>
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getBankList } from '@/api/bankApi'
 
 export default {
     name: 'HotelBooking',
@@ -252,17 +490,15 @@ export default {
 
         const checkin = route.query.checkin || ''
         const checkout = route.query.checkout || ''
-        const guests = route.query.guests || '1'
+        const maxAdults = parseInt(route.query.maxAdults) || 0;
+        const maxChildren = parseInt(route.query.maxChildren) || 0;
 
         const hotelTitle = route.query.hotelTitle || ''
         const hotellocation = route.query.hotellocation || ''
         const hotelRating = route.query.hotelRating || ''
         const hotelReviews = route.query.hotelReviews || ''
-        const hotelImage = route.query.hotelImage || ''
-        const hotelDetails = route.query.hotelDetails || ''
 
-        const roomLabel = route.query.roomLabel || ''
-        const roomType = route.query.roomType || ''
+        const variantName = route.query.variantName || ''
         const variantBreakfast = route.query.variantBreakfast || ''
         const roomBed = route.query.roomBed || ''
 
@@ -275,13 +511,12 @@ export default {
             : 0
 
         const nights = parseInt(route.query.nights) || 1
+        const rooms = parseInt(route.query.rooms) || 1
 
-        const subtotal = variantDiscountedPrice * nights
+        const subtotal = variantDiscountedPrice * nights * rooms
 
         const discount = parseFloat(route.query.discount) || 0
         const serviceFee = parseFloat(route.query.serviceFee) || 0
-
-        const total = subtotal - discount + serviceFee
 
         const isVoucherVisible = ref(false)
         const toggleVoucher = () => {
@@ -295,26 +530,28 @@ export default {
 
         const formattedCheckin = computed(() => {
             if (!checkin) return ''
-            return new Date(checkin).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
+            return new Date(checkin).toLocaleDateString('vi-VN', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric',
             })
         })
         const formattedCheckout = computed(() => {
             if (!checkout) return ''
-            return new Date(checkout).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
+            return new Date(checkout).toLocaleDateString('vi-VN', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric',
             })
         })
 
         const formatPrice = (val) => {
             if (typeof val === 'string') val = Number(val)
-            return val.toLocaleString('vi-VN', {
+            return val.toLocaleString({
                 style: 'currency',
                 currency: 'VND',
                 minimumFractionDigits: 0,
-            })
+            }) + ' VND'
         }
 
         const reservationCode = Math.random()
@@ -322,7 +559,48 @@ export default {
             .substring(2, 12)
             .toUpperCase()
 
+        const fullName = ref('');
+        const email = ref('');
+        const phone = ref('');
+        const errors = ref({ fullName: '', email: '', phone: '' });
+
+        const validateFullName = () => {
+            if (!fullName.value.trim()) {
+                errors.value.fullName = 'Vui lòng nhập họ và tên.';
+            } else if (!/^[A-Za-zÀ-ỹ\s]+$/.test(fullName.value.trim())) {
+                errors.value.fullName = 'Tên chỉ được chứa chữ cái và khoảng trắng.';
+            } else {
+                errors.value.fullName = '';
+            }
+        };
+        const validateEmail = () => {
+            if (!email.value.trim()) {
+                errors.value.email = 'Vui lòng nhập email.';
+            } else if (!/^\S+@\S+\.\S+$/.test(email.value.trim())) {
+                errors.value.email = 'Email không hợp lệ.';
+            } else {
+                errors.value.email = '';
+            }
+        };
+        const validatePhone = () => {
+            if (!phone.value.trim()) {
+                errors.value.phone = 'Vui lòng nhập số điện thoại.';
+            } else if (!/^\d{8,15}$/.test(phone.value.trim())) {
+                errors.value.phone = 'Số điện thoại chỉ gồm số, từ 8-15 ký tự.';
+            } else {
+                errors.value.phone = '';
+            }
+        };
+        const validateForm = () => {
+            validateFullName();
+            validateEmail();
+            validatePhone();
+            return !errors.value.fullName && !errors.value.email && !errors.value.phone;
+        };
+
         const onSubmitPayment = () => {
+            if (!validateForm()) return;
+            if (paymentMethod.value === 'bank' && !selectedBank.value) return;
             router.push({
                 name: 'BookingSuccess',
                 query: {
@@ -343,27 +621,147 @@ export default {
             })
         }
 
+        const getDayOfWeek = (dateStr) => {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('vi-VN', { weekday: 'short' });
+        };
+        const checkinDayOfWeek = computed(() => getDayOfWeek(checkin));
+        const checkoutDayOfWeek = computed(() => getDayOfWeek(checkout));
+
+        const starRating = parseInt(route.query.starRating) || 0
+
+        let hotelImages = [];
+        try {
+            hotelImages = JSON.parse(route.query.hotelImages || '[]');
+        } catch (e) {
+            hotelImages = [];
+        }
+        const hotelImageIndex = ref(0);
+        const slideDirection = ref('next');
+        const nextHotelImage = () => {
+            slideDirection.value = 'next';
+            hotelImageIndex.value = (hotelImageIndex.value + 1) % hotelImages.length;
+        };
+        const prevHotelImage = () => {
+            slideDirection.value = 'prev';
+            hotelImageIndex.value = (hotelImageIndex.value - 1 + hotelImages.length) % hotelImages.length;
+        };
+
+        const banks = ref([]);
+        const selectedBank = ref('');
+        const bankLoading = ref(false);
+        const bankError = ref('');
+        const showBankModal = ref(false);
+        const bankSearch = ref('');
+        const selectedBankObj = computed(() => banks.value.find(b => b.code === selectedBank.value));
+        const filteredBanks = computed(() => {
+            if (!bankSearch.value) return banks.value;
+            const kw = bankSearch.value.toLowerCase();
+            return banks.value.filter(
+                b => b.shortName.toLowerCase().includes(kw) || b.name.toLowerCase().includes(kw)
+            );
+        });
+        const selectBank = (bank) => {
+            selectedBank.value = bank.code;
+            showBankModal.value = false;
+            bankSearch.value = '';
+        };
+
+        const currentStep = ref(1);
+        const goToNextStep = () => {
+            if (currentStep.value === 1 && !validateForm()) return;
+            if (currentStep.value === 2 && paymentMethod.value === 'bank' && !selectedBank.value) return;
+            currentStep.value++;
+        };
+        const paymentMethodLabel = computed(() => {
+            switch (paymentMethod.value) {
+                case 'credit': return 'Thẻ tín dụng';
+                case 'paypal': return 'Paypal';
+                case 'googlepay': return 'Google Pay';
+                case 'bank': return 'Chuyển khoản ngân hàng';
+                case 'at_hotel': return 'Thanh toán tại khách sạn';
+                default: return '';
+            }
+        });
+
+        const stepLabels = ['Đặt', 'Thanh toán', 'Gửi phiếu xác nhận'];
+
+        const paymentMethods = [
+            {
+                value: 'credit',
+                label: 'Thẻ tín dụng',
+                desc: 'Thanh toán bằng thẻ Visa, MasterCard, JCB...',
+                icon: 'fas fa-credit-card',
+            },
+            {
+                value: 'paypal',
+                label: 'Paypal',
+                desc: 'Thanh toán qua tài khoản Paypal',
+                icon: 'fab fa-paypal',
+            },
+            {
+                value: 'googlepay',
+                label: 'Google Pay',
+                desc: 'Thanh toán qua Google Pay',
+                icon: 'fab fa-google-pay',
+            },
+            {
+                value: 'bank',
+                label: 'Chuyển khoản ngân hàng',
+                desc: 'Chuyển khoản trực tiếp qua ngân hàng nội địa',
+                icon: 'fas fa-university',
+            },
+            {
+                value: 'at_hotel',
+                label: 'Thanh toán tại khách sạn',
+                desc: 'Thanh toán khi nhận phòng',
+                icon: 'fas fa-hotel',
+            },
+        ];
+
+        const showVoucherPopup = ref(false);
+        const voucherInput = ref("");
+        const suggestedVouchers = [
+            { code: "summer-sale", badge: "Only a few left!", title: "Summer Sale", desc: "10% off all bookings", valid: "Valid until Aug 31, 2024" },
+            { code: "new-user", badge: "Limited time!", title: "New User Discount", desc: "$87 off your first booking", valid: "Valid for new customers only" },
+            { code: "holiday-special", badge: "Popular", title: "Holiday Special", desc: "Free service fee on bookings", valid: "Valid Dec 1 - Dec 31, 2024" },
+        ];
+        const applyVoucher = () => {
+            showVoucherPopup.value = false;
+        };
+
+        onMounted(async () => {
+            bankLoading.value = true;
+            try {
+                const res = await getBankList();
+                banks.value = res.data.data || [];
+            } catch (e) {
+                bankError.value = 'Không lấy được danh sách ngân hàng.';
+            } finally {
+                bankLoading.value = false;
+            }
+        });
+
         return {
             checkin,
             checkout,
-            guests,
+            maxAdults,
+            maxChildren,
             hotelTitle,
             hotellocation,
             hotelRating,
             hotelReviews,
-            hotelImage,
-            hotelDetails,
-            roomLabel,
-            roomType,
+            variantName,
             variantBreakfast,
             roomBed,
             variantOriginalPrice,
             variantDiscountedPrice,
             nights,
+            rooms,
             subtotal,
             discount,
             serviceFee,
-            total,
             isVoucherVisible,
             toggleVoucher,
             paymentMethod,
@@ -372,9 +770,88 @@ export default {
             formattedCheckout,
             formatPrice,
             onSubmitPayment,
+            checkinDayOfWeek,
+            checkoutDayOfWeek,
+            starRating,
+            hotelImages,
+            hotelImageIndex,
+            nextHotelImage,
+            prevHotelImage,
+            slideDirection,
+            fullName,
+            email,
+            phone,
+            errors,
+            validateFullName,
+            validateEmail,
+            validatePhone,
+            banks,
+            selectedBank,
+            bankLoading,
+            bankError,
+            showBankModal,
+            bankSearch,
+            selectedBankObj,
+            filteredBanks,
+            selectBank,
+            currentStep,
+            goToNextStep,
+            paymentMethodLabel,
+            stepLabels,
+            paymentMethods,
+            showVoucherPopup,
+            voucherInput,
+            suggestedVouchers,
+            applyVoucher,
         }
     },
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.slide-left-enter-from {
+    transform: translateX(100%);
+    opacity: 0.7;
+}
+
+.slide-left-leave-to {
+    transform: translateX(-100%);
+    opacity: 0.7;
+}
+
+.slide-right-enter-from {
+    transform: translateX(-100%);
+    opacity: 0.7;
+}
+
+.slide-right-leave-to {
+    transform: translateX(100%);
+    opacity: 0.7;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.2s ease;
+}
+</style>

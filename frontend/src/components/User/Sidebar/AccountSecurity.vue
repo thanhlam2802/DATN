@@ -6,7 +6,7 @@
            class="flex items-center justify-between p-5 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full">
-            <i :class="item.icon + ' text-xl text-purple-600'"></i>
+            <i :class="item.icon + ' text-xl text-blue-600'"></i>
           </div>
           <div>
             <p class="text-base font-semibold text-gray-900">{{ item.title }}</p>

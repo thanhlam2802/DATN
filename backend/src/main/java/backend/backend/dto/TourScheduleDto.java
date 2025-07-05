@@ -1,8 +1,6 @@
 package backend.backend.dto;
 
 import backend.backend.entity.TourSchedule;
-import jakarta.persistence.Entity;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

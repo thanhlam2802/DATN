@@ -24,9 +24,6 @@ public class HotelRoom {
     @Column(name = "bed_type", length = 100)
     private String bedType;
 
-    @Lob
-    private String description;
-
     @Column(name = "max_adults")
     private Short maxAdults;
 

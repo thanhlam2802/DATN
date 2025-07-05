@@ -25,3 +25,12 @@ export const updateHotel = (id, hotelData) => {
 export const deleteHotel = (id) => {
     return axios.delete(`${API_BASE_URL}/${id}`);
 };
+
+export default {
+    searchHotels,
+    getHotelById,
+    getHotelReviews,
+    createHotel,
+    updateHotel,
+    deleteHotel
+};

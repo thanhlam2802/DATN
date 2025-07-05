@@ -1,7 +1,15 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { getOrigins, getDestinations } from '@/data/locationData.js'
 
 // Props
+const props = defineProps({
+  activeTab: {
+    type: String,
+    default: 'sleeping-bus'
+  }
+})
+
 const emit = defineEmits(['search', 'roundtrip-change'])
 
 // Form data
@@ -12,6 +20,38 @@ const searchForm = ref({
   returnDate: '',
   roundtrip: false,
   seats: 1
+})
+
+// Selected locations for logic
+const selectedFrom = ref(null)
+const selectedTo = ref(null)
+
+// Dropdown states
+const showFromDropdown = ref(false)
+const showToDropdown = ref(false)
+
+// Available options based on bus type and selections
+const availableOrigins = computed(() => {
+  return getOrigins(props.activeTab)
+})
+
+const availableDestinations = computed(() => {
+  return getDestinations(props.activeTab, selectedFrom.value)
+})
+
+// Filtered options based on input
+const filteredOrigins = computed(() => {
+  if (!searchForm.value.from) return availableOrigins.value
+  return availableOrigins.value.filter(location => 
+    location.name.toLowerCase().includes(searchForm.value.from.toLowerCase())
+  )
+})
+
+const filteredDestinations = computed(() => {
+  if (!searchForm.value.to) return availableDestinations.value
+  return availableDestinations.value.filter(location => 
+    location.name.toLowerCase().includes(searchForm.value.to.toLowerCase())
+  )
 })
 
 // Watch roundtrip change và emit về parent
@@ -25,8 +65,55 @@ watch(
 // Methods
 const swapLocations = () => {
   const temp = searchForm.value.from
+  const tempSelected = selectedFrom.value
+  
   searchForm.value.from = searchForm.value.to
   searchForm.value.to = temp
+  
+  selectedFrom.value = selectedTo.value
+  selectedTo.value = tempSelected
+}
+
+// Handle dropdown selections
+const selectOrigin = (location) => {
+  searchForm.value.from = location.name
+  selectedFrom.value = location
+  showFromDropdown.value = false
+  
+  // Clear destination if it's no longer valid
+  if (selectedTo.value && !availableDestinations.value.find(dest => dest.id === selectedTo.value.id)) {
+    searchForm.value.to = ''
+    selectedTo.value = null
+  }
+}
+
+const selectDestination = (location) => {
+  searchForm.value.to = location.name
+  selectedTo.value = location
+  showToDropdown.value = false
+}
+
+// Handle input focus/blur
+const handleFromFocus = () => {
+  showFromDropdown.value = true
+}
+
+const handleToFocus = () => {
+  showToDropdown.value = true
+}
+
+const handleFromBlur = () => {
+  // Delay to allow click on dropdown item
+  setTimeout(() => {
+    showFromDropdown.value = false
+  }, 200)
+}
+
+const handleToBlur = () => {
+  // Delay to allow click on dropdown item
+  setTimeout(() => {
+    showToDropdown.value = false
+  }, 200)
 }
 
 const handleRoundtripChange = () => {
@@ -75,7 +162,7 @@ searchForm.value.departureDate = today
       <!-- From and To Row -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
         <!-- From -->
-        <div class="space-y-2">
+        <div class="space-y-2 relative">
           <label class="block text-sm font-medium text-gray-700">Điểm đi</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -86,7 +173,25 @@ searchForm.value.departureDate = today
               type="text"
               placeholder="Nhập thành phố, bến xe hoặc điểm đón khác"
               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              @focus="handleFromFocus"
+              @blur="handleFromBlur"
+              autocomplete="off"
             />
+            
+            <!-- From Dropdown -->
+            <div v-if="showFromDropdown && filteredOrigins.length > 0" 
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div v-for="location in filteredOrigins" 
+                   :key="location.id"
+                   @click="selectOrigin(location)"
+                   class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
+                <i class="fas fa-map-marker-alt text-gray-400 mr-3"></i>
+                <div>
+                  <div class="font-medium text-gray-900">{{ location.name }}</div>
+                  <div v-if="location.parentId" class="text-sm text-gray-500">TP. Hồ Chí Minh</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -102,7 +207,7 @@ searchForm.value.departureDate = today
         </div>
 
         <!-- To -->
-        <div class="space-y-2">
+        <div class="space-y-2 relative">
           <label class="block text-sm font-medium text-gray-700">Điểm đến</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -113,7 +218,25 @@ searchForm.value.departureDate = today
               type="text"
               placeholder="Nhập thành phố, bến xe hoặc điểm trả khách"
               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              @focus="handleToFocus"
+              @blur="handleToBlur"
+              autocomplete="off"
             />
+            
+            <!-- To Dropdown -->
+            <div v-if="showToDropdown && filteredDestinations.length > 0" 
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div v-for="location in filteredDestinations" 
+                   :key="location.id"
+                   @click="selectDestination(location)"
+                   class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
+                <i class="fas fa-map-marker-alt text-gray-400 mr-3"></i>
+                <div>
+                  <div class="font-medium text-gray-900">{{ location.name }}</div>
+                  <div v-if="location.parentId" class="text-sm text-gray-500">TP. Hồ Chí Minh</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

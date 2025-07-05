@@ -2,6 +2,7 @@
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import BusSearchForm from '@/components/Bus/BusSearchForm.vue'
+import BusSearchModal from '@/components/Bus/BusSearchModal.vue'
 
 const router = useRouter()
 
@@ -12,6 +13,10 @@ const showResults = ref(false)
 const selectedBus = ref(null)
 const showSeatSelection = ref(false)
 const isRoundtrip = ref(false) // Track roundtrip state for layout adjustment
+
+// Search modal state
+const showSearchModal = ref(false)
+const lastSearchParams = ref({})
 
 // Scroll position management để fix lỗi scroll reset
 const savedScrollPosition = ref(0)
@@ -104,9 +109,13 @@ const whyChooseUsData = [
 const handleBusSearch = (searchData) => {
   console.log('Tìm kiếm xe bus:', searchData)
   isRoundtrip.value = searchData.roundtrip
-  // Thực hiện logic tìm kiếm xe bus ở đây
+  
+  // Store search params and show modal
+  lastSearchParams.value = { ...searchData }
+  showSearchModal.value = true
+  
+  // In real app, this would trigger API call
   // searchResults.value = await searchBuses(searchData)
-  // showResults.value = true
 }
 
 // Handle roundtrip state change
@@ -119,6 +128,11 @@ const handleDestinationClick = (destinationName) => {
   console.log('Chọn điểm đến:', destinationName)
   // Có thể điều hướng đến trang tìm kiếm hoặc tự động điền form
   // router.push({ name: 'BusSearch', query: { destination: destinationName } })
+}
+
+// Handle modal close
+const handleModalClose = () => {
+  showSearchModal.value = false
 }
 
 // Handle image events
@@ -160,6 +174,7 @@ const handleImageLoad = (event) => {
 
           <div class="rounded-lg mt-[80px]">
             <BusSearchForm 
+              :activeTab="activeTab"
               @search="handleBusSearch" 
               @roundtrip-change="handleRoundtripChange"
             />
@@ -225,6 +240,13 @@ const handleImageLoad = (event) => {
         </div>
       </div>
     </div>
+
+    <!-- Search Results Modal -->
+    <BusSearchModal 
+      :show="showSearchModal"
+      :searchParams="lastSearchParams"
+      @close="handleModalClose"
+    />
   </div>
 </template>
 

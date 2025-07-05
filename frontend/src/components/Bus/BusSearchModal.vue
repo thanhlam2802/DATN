@@ -170,10 +170,14 @@ watch(() => filters.value.availableSeats, (newValue) => {
 
 // Booking flow functions
 const startBookingFlow = (trip) => {
-  selectedTrip.value = trip
+  selectedTrip.value = {
+    ...trip,
+    type: props.searchParams.busType || trip.type, // Use busType from search params
+    activeTab: props.searchParams.busType // Pass activeTab info
+  }
   currentStep.value = 2 // Move to seat selection
   showBookingFlow.value = true
-  console.log('Starting booking flow for trip:', trip)
+  console.log('Starting booking flow for trip:', selectedTrip.value)
 }
 
 const handleStepChange = (step) => {
@@ -203,7 +207,7 @@ const getStepClass = (step) => {
   if (step.id < currentStep.value) {
     return 'bg-green-500 text-white' // Completed
   } else if (step.id === currentStep.value) {
-    return 'bg-blue-500 text-white' // Current
+    return 'bg-indigo-600 text-white' // Current
   } else {
     return 'bg-gray-200 text-gray-500' // Pending
   }
@@ -229,7 +233,7 @@ const getStepConnectorClass = (stepIndex) => {
     leave-to-class="opacity-0"
   >
     <div v-if="show" 
-         class="fixed inset-0 z-50 bg-black-100 mt-10 bg-opacity-50 backdrop-blur-sm"
+         class="fixed inset-0 z-50 bg-black-100 bg-opacity-50 backdrop-blur-sm"
          @click="handleBackdropClick">
       
       <!-- Modal Content -->
@@ -241,8 +245,8 @@ const getStepConnectorClass = (stepIndex) => {
         leave-from-class="opacity-100 transform scale-100"
         leave-to-class="opacity-0 transform scale-95"
       >
-        <div v-if="show" class="flex items-center justify-center min-h-screen p-4">
-          <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[85vh] overflow-hidden"
+        <div v-if="show" class="flex items-start justify-center min-h-screen p-4 py-8 mt-[100px]">
+          <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-hidden"
                @click.stop>
             
             <!-- Modal Header -->
@@ -292,7 +296,7 @@ const getStepConnectorClass = (stepIndex) => {
             </div>
 
             <!-- Modal Body -->
-            <div class="flex" style="height: calc(85vh - 120px); min-height: 400px; max-height: 600px;">
+            <div class="flex" style="">
               
               <!-- Step 1: Search Results -->
               <template v-if="currentStep === 1">
@@ -423,20 +427,22 @@ const getStepConnectorClass = (stepIndex) => {
 
               <!-- Step 2-5: Booking Flow -->
               <template v-else>
-                <div class="w-full">
-                  <Transition
-                    name="slide-left"
-                    mode="out-in"
-                  >
-                    <BusTicketBooking
-                      :show="showBookingFlow"
-                      :selected-trip="selectedTrip"
-                      :current-step="currentStep"
-                      @step-change="handleStepChange"
-                      @booking-complete="handleBookingComplete"
-                      @close="backToSearch"
-                    />
-                  </Transition>
+                <div class="w-full overflow-y-auto">
+                  <div class="">
+                    <Transition
+                      name="slide-left"
+                      mode="out-in"
+                    >
+                      <BusTicketBooking
+                        :show="showBookingFlow"
+                        :selected-trip="selectedTrip"
+                        :current-step="currentStep"
+                        @step-change="handleStepChange"
+                        @booking-complete="handleBookingComplete"
+                        @close="backToSearch"
+                      />
+                    </Transition>
+                  </div>
                 </div>
               </template>
 

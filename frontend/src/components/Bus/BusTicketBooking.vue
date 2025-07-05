@@ -51,9 +51,18 @@ const seatLayouts = {
 
 // Mock seat availability (in real app, this comes from API)
 const seatAvailability = ref({
-  available: [1, 2, 3, 5, 7, 8, 10, 12, 13, 15, 16], // Green seats
-  occupied: [4, 6, 9, 11, 14], // Red seats  
-  pending: [17, 18] // Yellow seats (being booked by others)
+  // For shuttle bus (16 seats)
+  'shuttle-bus': {
+    available: [1, 2, 3, 5, 7, 8, 10, 12, 13, 15, 16], // Green seats
+    occupied: [4, 6, 9, 11, 14], // Red seats  
+    pending: [] // Yellow seats (being booked by others)
+  },
+  // For sleeping bus (36 seats)
+  'sleeping-bus': {
+    available: [1, 2, 3, 5, 7, 8, 10, 12, 13, 15, 16, 19, 20, 21, 23, 25, 26, 28, 30, 31, 33, 35, 36], // Green seats
+    occupied: [4, 6, 9, 11, 14, 17, 18, 22, 24, 27, 29, 32, 34], // Red seats  
+    pending: [] // Yellow seats (being booked by others)
+  }
 })
 
 // Payment methods
@@ -65,7 +74,19 @@ const paymentMethods = [
 
 // Computed properties
 const currentLayout = computed(() => {
-  const busType = props.selectedTrip.type || 'shuttle-bus'
+  // Map activeTab to seat layout type
+  let busType = 'shuttle-bus' // default
+  
+  if (props.selectedTrip.type) {
+    busType = props.selectedTrip.type
+  } else {
+    // If no type, derive from activeTab naming convention
+    // 'sleeping-bus' tab -> 'sleeping-bus' layout
+    // 'shuttle-bus' tab -> 'shuttle-bus' layout
+    busType = props.selectedTrip.activeTab || 'shuttle-bus'
+  }
+  
+  console.log('Current bus type for layout:', busType, 'from trip:', props.selectedTrip)
   return seatLayouts[busType]
 })
 
@@ -86,10 +107,13 @@ const finalAmount = computed(() => {
 
 // Seat selection functions
 const getSeatStatus = (seatNumber) => {
+  const busType = currentLayout.value.layout === 'single' ? 'shuttle-bus' : 'sleeping-bus'
+  const availability = seatAvailability.value[busType]
+  
   if (bookingData.value.selectedSeats.includes(seatNumber)) return 'selected'
-  if (seatAvailability.value.available.includes(seatNumber)) return 'available'
-  if (seatAvailability.value.occupied.includes(seatNumber)) return 'occupied'
-  if (seatAvailability.value.pending.includes(seatNumber)) return 'pending'
+  if (availability.available.includes(seatNumber)) return 'available'
+  if (availability.occupied.includes(seatNumber)) return 'occupied'
+  if (availability.pending.includes(seatNumber)) return 'pending'
   return 'available'
 }
 
@@ -99,7 +123,7 @@ const getSeatClass = (seatNumber) => {
     available: 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200',
     occupied: 'bg-red-100 border-red-300 text-red-700 cursor-not-allowed',
     pending: 'bg-yellow-100 border-yellow-300 text-yellow-700 cursor-not-allowed',
-    selected: 'bg-blue-500 border-blue-600 text-white'
+    selected: 'bg-indigo-600 border-indigo-700 text-white'
   }
   return `${classes[status]} border-2 rounded-lg w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-200`
 }
@@ -214,10 +238,10 @@ const closeModal = () => {
 </script>
 
 <template>
-  <div v-if="show" class="h-full flex flex-col">
+  <div v-if="show" class="flex flex-col min-h-full">
     
     <!-- Booking Content -->
-    <div class="booking-content flex-1 overflow-y-auto px-4 md:px-6">
+    <div class="booking-content flex-1 overflow-y-auto px-4 md:px-6 py-4" style="max-height: calc(90vh - 250px);">
     
     <!-- Step 2: Seat Selection -->
     <div v-if="currentStep === 2" class="seat-selection">
@@ -243,68 +267,112 @@ const closeModal = () => {
           <span>Đang đặt</span>
         </div>
         <div class="flex items-center">
-          <div class="w-4 h-4 bg-blue-500 border-2 border-blue-600 rounded mr-2"></div>
+          <div class="w-4 h-4 bg-indigo-600 border-2 border-indigo-700 rounded mr-2"></div>
           <span>Đã chọn</span>
         </div>
       </div>
 
-      <!-- Seat Layout -->
-      <div class="max-w-md mx-auto">
-        <!-- Driver section -->
-        <div class="text-center mb-4">
-          <div class="inline-flex items-center justify-center w-16 h-8 bg-gray-200 rounded-t-lg">
-            <i class="fas fa-steering-wheel text-gray-600"></i>
+      <!-- Seat Layout & Summary - 2 Columns -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        
+        <!-- Left Column: Seat Layout -->
+        <div class="flex flex-col items-center">
+          <!-- Driver section -->
+          <div class="text-center mb-4">
+            <div class="inline-flex items-center justify-center w-16 h-8 bg-gray-200 rounded-t-lg">
+              <i class="fas fa-steering-wheel text-gray-600"></i>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Tài xế</p>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Tài xế</p>
-        </div>
 
-        <!-- Shuttle Bus Layout (16 seats) -->
-        <div v-if="currentLayout.layout === 'single'" class="space-y-3">
-          <div v-for="row in currentLayout.rows" :key="row" class="flex justify-center space-x-2">
-            <button
-              v-for="seat in currentLayout.seatsPerRow"
-              :key="(row - 1) * currentLayout.seatsPerRow + seat"
-              @click="toggleSeat((row - 1) * currentLayout.seatsPerRow + seat)"
-              :class="getSeatClass((row - 1) * currentLayout.seatsPerRow + seat)"
-            >
-              {{ (row - 1) * currentLayout.seatsPerRow + seat }}
-            </button>
+          <!-- Shuttle Bus Layout (16 seats) -->
+          <div v-if="currentLayout.layout === 'single'" class="space-y-3">
+            <div v-for="row in currentLayout.rows" :key="row" class="flex justify-center space-x-2">
+              <button
+                v-for="seat in currentLayout.seatsPerRow"
+                :key="(row - 1) * currentLayout.seatsPerRow + seat"
+                @click="toggleSeat((row - 1) * currentLayout.seatsPerRow + seat)"
+                :class="getSeatClass((row - 1) * currentLayout.seatsPerRow + seat)"
+              >
+                {{ (row - 1) * currentLayout.seatsPerRow + seat }}
+              </button>
+            </div>
           </div>
-        </div>
 
-        <!-- Sleeping Bus Layout (36 seats - 2 levels) -->
-        <div v-else-if="currentLayout.layout === 'double'" class="space-y-6">
-          <div v-for="(level, levelIndex) in currentLayout.levels" :key="level" class="border rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-700 mb-3 text-center">{{ level }}</h4>
-            <div class="space-y-2">
-              <div v-for="row in currentLayout.rows" :key="row" class="flex justify-center space-x-2">
-                <button
-                  v-for="seat in currentLayout.seatsPerRow"
-                  :key="levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat"
-                  @click="toggleSeat(levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat)"
-                  :class="getSeatClass(levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat)"
-                >
-                  {{ levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat }}
-                </button>
+          <!-- Sleeping Bus Layout (36 seats - 2 levels side by side) -->
+          <div v-else-if="currentLayout.layout === 'double'" class="flex justify-center space-x-6">
+            <div v-for="(level, levelIndex) in currentLayout.levels" :key="level" class="border rounded-lg p-3">
+              <h4 class="text-sm font-medium text-gray-700 mb-2 text-center">{{ level }}</h4>
+              <div class="space-y-2">
+                <div v-for="row in currentLayout.rows" :key="row" class="flex justify-center space-x-2">
+                  <button
+                    v-for="seat in currentLayout.seatsPerRow"
+                    :key="levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat"
+                    @click="toggleSeat(levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat)"
+                    :class="getSeatClass(levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat)"
+                  >
+                    {{ levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Selected seats summary -->
-      <div v-if="selectedSeatsCount > 0" class="mt-4 p-3 bg-blue-50 rounded-lg">
-        <h4 class="font-medium text-blue-900 mb-2">Ghế đã chọn:</h4>
-        <div class="flex flex-wrap gap-2 mb-3">
-          <span v-for="seat in bookingData.selectedSeats" :key="seat" 
-                class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-            Ghế {{ seat }}
-          </span>
+        <!-- Right Column: Selected Seats Summary -->
+        <div class="flex flex-col justify-start">
+          <!-- Always show summary area, even when no seats selected -->
+          <div class="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+            <h4 class="font-medium text-gray-900 mb-3">Thông tin đặt chỗ</h4>
+            
+            <!-- When no seats selected -->
+            <div v-if="selectedSeatsCount === 0" class="text-center text-gray-500 py-8">
+              <i class="fas fa-chair text-3xl mb-3 text-gray-300"></i>
+              <p class="text-sm">Vui lòng chọn ghế</p>
+            </div>
+            
+            <!-- When seats are selected -->
+            <div v-else class="space-y-4">
+              <!-- Selected seats -->
+              <div>
+                <h5 class="text-sm font-medium text-gray-700 mb-2">Ghế đã chọn:</h5>
+                <div class="flex flex-wrap gap-2">
+                  <span v-for="seat in bookingData.selectedSeats" :key="seat" 
+                        class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
+                    Ghế {{ seat }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Trip info -->
+              <div class="pt-3 border-t border-gray-200">
+                <h5 class="text-sm font-medium text-gray-700 mb-2">Thông tin chuyến:</h5>
+                <div class="text-sm text-gray-600 space-y-1">
+                  <p>{{ selectedTrip.company }}</p>
+                  <p>{{ selectedTrip.busType }}</p>
+                  <p class="text-xs text-indigo-600 font-medium">
+                    {{ currentLayout.layout === 'single' ? 'Xe Trung chuyển' : 'Xe Giường nằm' }} 
+                    ({{ currentLayout.total }} ghế)
+                  </p>
+                  <p>{{ selectedTrip.route?.from }} → {{ selectedTrip.route?.to }}</p>
+                </div>
+              </div>
+              
+              <!-- Price calculation -->
+              <div class="pt-3 border-t border-gray-200">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-sm text-gray-600">{{ selectedSeatsCount }} ghế × {{ basePrice.toLocaleString() }}đ</span>
+                  <span class="text-sm text-gray-900">{{ (basePrice * selectedSeatsCount).toLocaleString() }}đ</span>
+                </div>
+                <div class="flex justify-between items-center pt-2 border-t">
+                  <span class="font-semibold text-gray-900">Tổng cộng:</span>
+                  <span class="font-bold text-lg text-indigo-600">{{ (basePrice * selectedSeatsCount).toLocaleString() }}đ</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="flex justify-between items-center">
-          <span class="text-sm text-gray-600">{{ selectedSeatsCount }} ghế × {{ basePrice.toLocaleString() }}đ</span>
-          <span class="font-semibold text-blue-900">{{ (basePrice * selectedSeatsCount).toLocaleString() }}đ</span>
-        </div>
+        
       </div>
     </div>
 
@@ -323,7 +391,7 @@ const closeModal = () => {
           <input
             v-model="bookingData.passengerInfo.fullName"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Nhập họ và tên"
           />
         </div>
@@ -335,7 +403,7 @@ const closeModal = () => {
           <input
             v-model="bookingData.passengerInfo.phoneNumber"
             type="tel"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Nhập số điện thoại"
           />
         </div>
@@ -347,7 +415,7 @@ const closeModal = () => {
           <textarea
             v-model="bookingData.passengerInfo.notes"
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Ghi chú thêm..."
           ></textarea>
         </div>
@@ -369,12 +437,12 @@ const closeModal = () => {
             <input
               v-model="bookingData.voucherCode"
               type="text"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Nhập mã voucher"
             />
             <button
               @click="applyVoucher"
-              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               Áp dụng
             </button>
@@ -396,7 +464,7 @@ const closeModal = () => {
                 v-model="bookingData.paymentMethod"
                 :value="method.id"
                 type="radio"
-                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
               />
               <i :class="method.icon" class="mx-3 text-gray-500"></i>
               <span class="text-sm font-medium">{{ method.name }}</span>
@@ -416,7 +484,7 @@ const closeModal = () => {
           </div>
           <div class="flex justify-between font-semibold text-lg border-t pt-2">
             <span>Tổng cộng</span>
-            <span class="text-blue-600">{{ finalAmount.toLocaleString() }}đ</span>
+            <span class="text-indigo-600">{{ finalAmount.toLocaleString() }}đ</span>
           </div>
         </div>
       </div>
@@ -448,7 +516,7 @@ const closeModal = () => {
           <h4 class="font-medium text-gray-900 mb-2">Ghế đã chọn</h4>
           <div class="flex flex-wrap gap-2">
             <span v-for="seat in bookingData.selectedSeats" :key="seat" 
-                  class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                  class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-sm">
               Ghế {{ seat }}
             </span>
           </div>
@@ -469,7 +537,7 @@ const closeModal = () => {
           <h4 class="font-medium text-gray-900 mb-2">Thanh toán</h4>
           <div class="text-sm space-y-1">
             <p>{{ paymentMethods.find(m => m.id === bookingData.paymentMethod)?.name }}</p>
-            <p class="font-semibold text-blue-600">{{ finalAmount.toLocaleString() }}đ</p>
+            <p class="font-semibold text-indigo-600">{{ finalAmount.toLocaleString() }}đ</p>
           </div>
         </div>
       </div>
@@ -478,7 +546,7 @@ const closeModal = () => {
     </div> <!-- Close booking-content -->
 
     <!-- Action Buttons -->
-    <div class="flex justify-between items-center p-4 md:p-6 border-t bg-white">
+    <div class="flex justify-between items-center p-4 md:p-6 border-t bg-white sticky bottom-0 z-10 shadow-lg">
       <button
         v-if="currentStep >= 2"
         @click="goToPrevStep"
@@ -494,7 +562,7 @@ const closeModal = () => {
         @click="goToNextStep"
         :disabled="!canProceedToNext()"
         :class="canProceedToNext() 
-          ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+          ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
           : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
         class="px-6 py-2 rounded-lg font-medium transition-colors"
       >
@@ -515,8 +583,7 @@ const closeModal = () => {
 
 <style scoped>
 .booking-content {
-  min-height: 300px;
-  max-height: calc(85vh - 180px);
+  min-height: 400px;
 }
 
 /* Seat hover effects */

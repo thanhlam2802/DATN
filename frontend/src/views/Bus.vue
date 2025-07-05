@@ -111,7 +111,10 @@ const handleBusSearch = (searchData) => {
   isRoundtrip.value = searchData.roundtrip
   
   // Store search params and show modal
-  lastSearchParams.value = { ...searchData }
+  lastSearchParams.value = { 
+    ...searchData,
+    busType: activeTab.value // Pass current bus type
+  }
   showSearchModal.value = true
   
   // In real app, this would trigger API call
@@ -160,7 +163,7 @@ const handleImageLoad = (event) => {
                 <ul class="flex items-center justify-center space-x-2 md:space-x-4 px-4 py-1 text-sm font-semibold overflow-x-auto scrollbar-hide">
                   <li v-for="tab in tabs" :key="tab.id">
                     <button @click="activeTab = tab.id"
-                      :class="activeTab === tab.id ? 'bg-white-100 backdrop-blur-sm text-white shadow-sm' : 'text-white/80 hover:bg-white/20 hover:text-white'"
+                      :class="activeTab === tab.id ? 'bg-white/20 backdrop-blur-sm text-white shadow-sm border border-white/30' : 'text-white/80 hover:bg-white/20 hover:text-white'"
                       class="flex items-center space-x-2 px-6 py-2 rounded-full transition-all duration-300 whitespace-nowrap">
                       <i :class="tab.icon"></i>
                       <span>{{ tab.name }}</span>

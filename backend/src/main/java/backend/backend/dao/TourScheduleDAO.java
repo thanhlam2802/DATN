@@ -7,9 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import backend.backend.dto.TourScheduleDto;
 import backend.backend.entity.*;
-import jakarta.validation.Valid;
 
 public interface TourScheduleDAO extends JpaRepository<TourSchedule, Long > {
 	@Query("SELECT ts FROM TourSchedule ts WHERE ts.tour.id = :tourId")

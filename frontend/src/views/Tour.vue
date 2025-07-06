@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, watch } from "vue";
 import SearchBar from "../components/Tours/SearchBar.vue";
 import SideBar from "../components/Tours/Sidebar.vue";
 import TourGrid from "../components/Tours/TourGrid.vue";
@@ -11,60 +11,69 @@ const BANNER_IMAGE =
 const TOUR_ICON =
   "https://ik.imagekit.io/tvlk/image/imageResource/2024/05/14/1715657640546-0e1140f44cf4a39fe69f33f236c6a564.png?tr=q-75";
 
-// State
 const isOpen = ref(false);
 const sortBy = ref("popular");
+const tourList = ref([]);
 
-// Composables
 const { getCurrentLocation } = useGeolocation();
 
-// Data
 const destinations = [
-  {
-    id: 1,
-    name: "Tỉnh Lâm Đồng",
-    image: "https://picsum.photos/id/1018/400/200",
-    description: "Thành phố ngàn hoa Đà Lạt",
-  },
-  {
-    id: 2,
-    name: "Khánh Hòa",
-    image: "https://picsum.photos/id/1025/400/200",
-    description: "Biển xanh Nha Trang",
-  },
-  {
-    id: 3,
-    name: "Tỉnh Thừa Thiên Huế",
-    image: "https://picsum.photos/id/1011/400/200",
-    description: "Cố đô Huế",
-  },
-  {
-    id: 4,
-    name: "Bà Rịa - Vũng Tàu",
-    image: "https://picsum.photos/id/1040/400/200",
-    description: "Thành phố biển",
-  },
-  {
-    id: 5,
-    name: "Tỉnh Kiên Giang",
-    image: "https://picsum.photos/id/1052/400/200",
-    description: "Đảo Phú Quốc",
-  },
+  /* ... */
 ];
 
+onMounted(() => {
+  fetchTours();
+});
+
 // Methods
-const handleLocationClick = async () => {
+const fetchTours = async () => {
   try {
-    await getCurrentLocation();
+    // 2. Xây dựng URL với tham số sortBy động
+    const params = new URLSearchParams({
+      sortBy: sortBy.value,
+    });
+
+    // URL API này cần khớp với backend của bạn
+    const response = await fetch(
+      `http://localhost:8080/api/v1/tours?${params.toString()}`
+    );
+    const responseData = await response.json();
+
+    if (responseData.statusCode === 200 && responseData.data.content) {
+      const mappedTours = responseData.data.content.map((tour) => ({
+        id: tour.id,
+        title: tour.name,
+        imageUrl: tour.imageUrl,
+        price: tour.price.toLocaleString("vi-VN"),
+        location: tour.location,
+        locationDetail: "",
+        rating:
+          tour.reviewCount > 0
+            ? {
+                score: tour.rating.toFixed(1),
+                reviews: tour.reviewCount.toString(),
+              }
+            : null,
+        originalPrice: "",
+      }));
+      tourList.value = mappedTours;
+    }
   } catch (error) {
-    console.error("Error getting location:", error);
+    console.error("Lỗi khi lấy dữ liệu tour:", error);
   }
 };
 
+// 3. Theo dõi sự thay đổi của 'sortBy' và gọi lại API
+watch(sortBy, () => {
+  fetchTours();
+});
+
+const handleLocationClick = async () => {
+  /* ... */
+};
 const closeModal = () => {
   isOpen.value = false;
 };
-
 const openModal = () => {
   isOpen.value = true;
 };
@@ -72,7 +81,6 @@ const openModal = () => {
 
 <template>
   <div class="container mt-4">
-    <!-- Banner Section -->
     <section
       class="relative w-full h-48 sm:h-36 md:h-44 lg:h-52 xl:h-80 overflow-hidden"
     >
@@ -112,7 +120,6 @@ const openModal = () => {
               </svg>
             </button>
 
-            <!-- Location Modal -->
             <transition
               name="modal"
               enter-active-class="transition duration-300 ease-out"
@@ -130,7 +137,6 @@ const openModal = () => {
                 <div
                   class="relative bg-gray-100 rounded-t-2xl md:rounded-2xl shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
                 >
-                  <!-- Modal Header -->
                   <div
                     class="grid grid-cols-2 gap-4 bg-white p-4 mb-2 items-center justify-center sticky top-0 z-10 border-b"
                   >
@@ -152,7 +158,6 @@ const openModal = () => {
                     />
                   </div>
 
-                  <!-- Destinations Grid -->
                   <div
                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-white"
                   >
@@ -189,7 +194,6 @@ const openModal = () => {
       </div>
     </section>
 
-    <!-- Tour Introduction Section -->
     <section class="pt-8 pb-6">
       <div class="grid grid-cols-12 gap-6 items-center">
         <div class="col-span-12 md:col-span-1 text-center md:text-left">
@@ -204,7 +208,6 @@ const openModal = () => {
       </div>
     </section>
 
-    <!-- Tour List Section -->
     <section class="max-w-7xl mx-auto px-4 py-6 mt-4">
       <div class="flex flex-col md:flex-row gap-6">
         <SideBar class="md:w-1/4" />
@@ -247,7 +250,7 @@ const openModal = () => {
             </div>
           </div>
 
-          <TourGrid />
+          <TourGrid :tours="tourList" />
         </main>
       </div>
     </section>

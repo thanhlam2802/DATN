@@ -16,6 +16,7 @@ import lombok.Setter;
 @Data
 @Entity
 @Table(name = "tours")
+
 public class Tour {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

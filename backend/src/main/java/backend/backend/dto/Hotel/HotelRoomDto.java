@@ -17,7 +17,6 @@ public class HotelRoomDto {
         private Integer id;
         private String roomType;
         private String bedType;
-        private String description;
         private Short maxAdults;
         private Short maxChildren;
         private Short roomQuantity;
@@ -46,7 +45,6 @@ public class HotelRoomDto {
                                 room.getId(),
                                 room.getRoomType(),
                                 room.getBedType(),
-                                room.getDescription(),
                                 room.getMaxAdults(),
                                 room.getMaxChildren(),
                                 room.getRoomQuantity(),

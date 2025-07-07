@@ -4,7 +4,9 @@ import backend.backend.dao.DepartureDAO;
 import backend.backend.dao.ReviewDAO;
 
 import backend.backend.dao.TourDAO;
+import backend.backend.dao.TourScheduleDAO;
 import backend.backend.dto.DepartureDto;
+import backend.backend.dto.ItineraryDayDto;
 import backend.backend.dto.PageDto;
 import backend.backend.dto.ReviewDto;
 import backend.backend.dto.TourDetailDto;
@@ -13,6 +15,7 @@ import backend.backend.dto.TourSearchRequestDto;
 import backend.backend.entity.Departure;
 import backend.backend.entity.Review;
 import backend.backend.entity.Tour;
+import backend.backend.entity.TourSchedule;
 import backend.backend.service.TourService;
 import backend.backend.specification.TourSpecifications;
 
@@ -28,6 +31,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -39,8 +43,24 @@ public class TourServiceImpl implements TourService {
 	  ReviewDAO reviewRepository;
 	  @Autowired
 	  DepartureDAO departureRepository;
-    
+	  @Autowired
+	    private TourScheduleDAO tourScheduleDAO;
+	  @Override
+	    @Transactional(readOnly = true)
+	    public List<ItineraryDayDto> getStructuredItinerary(Long tourId) {
+	        // 1. Lấy danh sách các "Ngày" (TourSchedule) của tour từ database.
+	        //    Lưu ý: Bạn cần tạo phương thức này trong TourScheduleDAO.
+	        List<TourSchedule> days = tourScheduleDAO.findByTourIdOrderByDayNumberAsc(tourId);
+
+	        // 2. Dùng stream để chuyển đổi danh sách Entity sang danh sách DTO.
+	        //    Vì đã thiết lập FetchType.EAGER trong TourSchedule,
+	        //    danh sách activities sẽ được tải cùng lúc, tránh lỗi LazyInitializationException.
+	        return days.stream()
+	                   .map(ItineraryDayDto::fromEntity)
+	                   .collect(Collectors.toList());
+	    }
     @Override
+    @Transactional(readOnly = true)
     public PageDto<TourDto> searchTours(TourSearchRequestDto requestDto) {
         // 1. Tạo Specification để xây dựng câu lệnh WHERE động
         Specification<Tour> spec = TourSpecifications.from(requestDto);
@@ -110,6 +130,7 @@ public class TourServiceImpl implements TourService {
         );
     }
     @Override
+    @Transactional(readOnly = true)
     public TourDetailDto getTourDetailsById(Long id) {
         Optional<Tour> tourOptional = tourRepository.findById(id);
         if (tourOptional.isEmpty()) {

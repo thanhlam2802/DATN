@@ -14,6 +14,7 @@ import lombok.Data;
 @Data
 @Entity
 @Table(name = "tours")
+
 public class Tour {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

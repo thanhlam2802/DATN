@@ -1,5 +1,11 @@
 package backend.backend.controller;
 
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +15,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import backend.backend.dao.TourScheduleDAO;
 import backend.backend.dto.DepartureDto;
+import backend.backend.dto.ItineraryDayDto;
 import backend.backend.dto.PageDto;
 import backend.backend.dto.ReviewDto;
 import backend.backend.dto.TourDetailDto;
@@ -22,6 +31,8 @@ import backend.backend.entity.ApiResponse; // Import lớp ApiResponse
 import backend.backend.entity.TourSchedule;
 import backend.backend.service.TourService;
 import backend.backend.utils.ResponseFactory; // Import ResponseFactory
+import io.jsonwebtoken.io.IOException;
+import jakarta.persistence.criteria.Path;
 import jakarta.validation.Valid;
 
 @RestController
@@ -33,6 +44,7 @@ public class TourController {
      TourService tourService;
     @Autowired
     TourScheduleDAO tourScheduleService;
+
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageDto<TourDto>>> searchTours(@Valid @ModelAttribute TourSearchRequestDto requestDto) {
@@ -63,6 +75,11 @@ public class TourController {
     public ResponseEntity<ApiResponse<List<TourSchedule>>> getTourSchedule(@PathVariable Long id) {
         List<TourSchedule> tourSchedules = tourScheduleService.getSchedulesByTourId(id);
         return ResponseFactory.success(tourSchedules, "Lấy lịch trình tour thành công");
+    }
+    @GetMapping("/{id}/itinerary")
+    public ResponseEntity<ApiResponse<List<ItineraryDayDto>>> getTourItinerary(@PathVariable Long id) {
+        List<ItineraryDayDto> itinerary = tourService.getStructuredItinerary(id);
+        return ResponseFactory.success(itinerary, "Lấy lịch trình chi tiết thành công");
     }
 //    @PostMapping("/book-tour")
 //    public ResponseEntity<ApiResponse<BookingConfirmationDto>> handleTourBooking(

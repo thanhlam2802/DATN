@@ -12,11 +12,14 @@ import backend.backend.entity.*;
 public interface TourScheduleDAO extends JpaRepository<TourSchedule, Long > {
 	@Query("SELECT ts FROM TourSchedule ts WHERE ts.tour.id = :tourId")
     List<TourSchedule> getSchedulesByTourId(@Param("tourId") Long tourId);
-
+	
 
 	List<TourSchedule> findByTourId(Long tourId); 
     List<TourSchedule> findByTourIdAndScheduleDate(Long tourId, LocalDate scheduleDate); 
     List<TourSchedule> findByScheduleDate(LocalDate scheduleDate);
+
+
+	List<TourSchedule> findByTourIdOrderByDayNumberAsc(Long tourId);
 
 
 	

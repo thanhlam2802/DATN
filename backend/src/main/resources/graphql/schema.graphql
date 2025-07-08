@@ -1,0 +1,37 @@
+type Bus {
+    id: ID!
+    name: String!
+    category: BusCategory!
+    origin: String!
+    destination: String!
+    departureTime: String!
+    arrivalTime: String!
+    owner: User
+    createdAt: String!
+    updatedAt: String!
+    busSlots: [BusSlot]
+    busImages: [BusImage]
+}
+
+type BusCategory {
+    id: ID!
+    name: String!
+}
+
+type User {
+    id: ID!
+    username: String!
+    email: String!
+}
+
+type BusSlot {
+    id: ID!
+    seatNumber: String!
+    bus: Bus!
+}
+
+type BusImage {
+    id: ID!
+    url: String!
+    bus: Bus!
+}

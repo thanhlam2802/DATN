@@ -17,11 +17,6 @@
         <i class="fas fa-sign-out-alt text-red-500"></i>
         Logout
       </li>
-      <li
-          class="flex items-center gap-2 px-4 py-3 hover:bg-blue-50 hover:text-blue-600 cursor-pointer">
-        <i class="fas fa-history text-yellow-500"></i>
-        Booking History
-      </li>
       <li @click="handleNavigate('/account/personal')"
           class="flex items-center gap-2 px-4 py-3 hover:bg-blue-50 hover:text-blue-600 cursor-pointer">
         <i class="fas fa-cog text-gray-500"></i>

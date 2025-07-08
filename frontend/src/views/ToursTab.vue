@@ -257,15 +257,26 @@ function handleSubmit(tourData) {
   if (formMode.value === "edit") {
     const index = tours.value.findIndex((t) => t.id === tourData.id);
     if (index !== -1) {
-      tours.value[index] = { ...tourData };
+      tours.value[index] = {
+        ...tours.value[index],
+        ...tourData,
+        name: tourData.ten_tour,
+        price: new Intl.NumberFormat("vi-VN").format(tourData.gia),
+        duration: tourData.thoi_gian,
+        status: tours.value[index].status,
+      };
     }
   } else if (formMode.value === "add") {
-    tours.value.push({
+    const newTour = {
       id: tours.value.length + 1,
       ...tourData,
+      name: tourData.ten_tour,
+      price: new Intl.NumberFormat("vi-VN").format(tourData.gia),
+      duration: tourData.thoi_gian,
       status: "Hoạt động",
       bookings: 0,
-    });
+    };
+    tours.value.push(newTour);
   }
   handleCancel();
 }

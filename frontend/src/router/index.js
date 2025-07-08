@@ -36,7 +36,9 @@ const routes = [
 
     {path: "/plane/pay", name: "PayFlight", component: PayFlight},
     {path: "/plane/getticket", name: "Get ticket", component: GetTicket},
-
+<<<<<<< HEAD
+    {path: "/plane/admin", name: "Get ticket", component: AdminFight},
+=======
 
     {
     path: "/hotel",
@@ -68,7 +70,7 @@ const routes = [
     ],
   },
 
-
+>>>>>>> 3abe751fdf1f1188774e80d14f8973404d96db28
     {
         path: "/tours/:id",
         name: "TourDetail",

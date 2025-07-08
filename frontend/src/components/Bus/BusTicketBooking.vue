@@ -77,17 +77,18 @@ const currentLayout = computed(() => {
   // Map activeTab to seat layout type
   let busType = 'shuttle-bus' // default
   
+  // Priority order: type > activeTab > default
   if (props.selectedTrip.type) {
     busType = props.selectedTrip.type
-  } else {
-    // If no type, derive from activeTab naming convention
-    // 'sleeping-bus' tab -> 'sleeping-bus' layout
-    // 'shuttle-bus' tab -> 'shuttle-bus' layout
-    busType = props.selectedTrip.activeTab || 'shuttle-bus'
+  } else if (props.selectedTrip.activeTab) {
+    busType = props.selectedTrip.activeTab
   }
   
   console.log('Current bus type for layout:', busType, 'from trip:', props.selectedTrip)
-  return seatLayouts[busType]
+  console.log('Available layouts:', Object.keys(seatLayouts))
+  console.log('Selected layout:', seatLayouts[busType])
+  
+  return seatLayouts[busType] || seatLayouts['shuttle-bus']
 })
 
 const totalSeats = computed(() => currentLayout.value.total)
@@ -109,6 +110,8 @@ const finalAmount = computed(() => {
 const getSeatStatus = (seatNumber) => {
   const busType = currentLayout.value.layout === 'single' ? 'shuttle-bus' : 'sleeping-bus'
   const availability = seatAvailability.value[busType]
+  
+  console.log('getSeatStatus - busType:', busType, 'seatNumber:', seatNumber, 'availability:', availability)
   
   if (bookingData.value.selectedSeats.includes(seatNumber)) return 'selected'
   if (availability.available.includes(seatNumber)) return 'available'
@@ -250,6 +253,10 @@ const closeModal = () => {
         <p class="text-sm text-gray-600">
           {{ selectedTrip.company }} - {{ selectedTrip.busType }}
         </p>
+        <!-- Debug info -->
+        <div class="text-xs text-red-500 mt-2">
+          DEBUG: activeTab={{ selectedTrip.activeTab }}, type={{ selectedTrip.type }}, layout={{ currentLayout.layout }}, total={{ currentLayout.total }}
+        </div>
       </div>
 
       <!-- Seat Legend -->

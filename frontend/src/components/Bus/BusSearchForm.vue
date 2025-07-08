@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { getOrigins, getDestinations } from '@/data/locationData.js'
 
 // Props
@@ -11,6 +11,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['search', 'roundtrip-change'])
+
+// Refs
+const returnDateSection = ref(null)
 
 // Form data
 const searchForm = ref({
@@ -57,8 +60,21 @@ const filteredDestinations = computed(() => {
 // Watch roundtrip change và emit về parent
 watch(
   () => searchForm.value.roundtrip,
-  (newValue) => {
+  async (newValue) => {
     emit('roundtrip-change', newValue)
+    
+    // Auto scroll to return date section when enabled
+    if (newValue) {
+      await nextTick()
+      setTimeout(() => {
+        if (returnDateSection.value) {
+          returnDateSection.value.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest' 
+          })
+        }
+      }, 300) // Wait for transition to start
+    }
   }
 )
 
@@ -142,15 +158,15 @@ searchForm.value.departureDate = today
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-lg p-6 md:p-8 max-w-6xl mx-auto">
+  <div class="bg-white rounded-lg shadow-lg p-3 sm:p-6 md:p-8 max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="">
-      <h2 class="text-xl font-bold text-gray-800 flex items-center justify-between">
+    <div class="mb-4 sm:mb-6">
+      <h2 class="text-base sm:text-lg md:text-xl font-bold text-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <span class="flex items-center">
-          <i class="fas fa-bus text-indigo-600 mr-2"></i>
-          Vé Xe Khách & Xe Trung Chuyển
+          <i class="fas fa-bus text-indigo-600 mr-2 text-sm sm:text-base"></i>
+          <span class="text-sm sm:text-base md:text-xl">Vé Xe Khách & Xe Trung Chuyển</span>
         </span>
-        <span v-if="searchForm.roundtrip" class="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full">
+        <span v-if="searchForm.roundtrip" class="text-xs sm:text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full w-fit">
           <i class="fas fa-check-circle mr-1"></i>
           Khứ Hồi
         </span>
@@ -158,21 +174,21 @@ searchForm.value.departureDate = today
     </div>
 
     <!-- Search Form -->
-    <form @submit.prevent="handleSearch" class="space-y-6">
+    <form @submit.prevent="handleSearch" class="space-y-3 sm:space-y-4 md:space-y-6">
       <!-- From and To Row -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+      <div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:relative">
         <!-- From -->
         <div class="space-y-2 relative">
-          <label class="block text-sm font-medium text-gray-700">Điểm đi</label>
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Điểm đi</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-bus text-gray-400"></i>
+              <i class="fas fa-bus text-gray-400 text-sm"></i>
             </div>
             <input
               v-model="searchForm.from"
               type="text"
-              placeholder="Nhập thành phố, bến xe hoặc điểm đón khác"
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="Nhập thành phố, bến xe..."
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
               @focus="handleFromFocus"
               @blur="handleFromBlur"
               autocomplete="off"
@@ -180,22 +196,33 @@ searchForm.value.departureDate = today
             
             <!-- From Dropdown -->
             <div v-if="showFromDropdown && filteredOrigins.length > 0" 
-                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
               <div v-for="location in filteredOrigins" 
                    :key="location.id"
                    @click="selectOrigin(location)"
-                   class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
-                <i class="fas fa-map-marker-alt text-gray-400 mr-3"></i>
+                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
+                <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
                 <div>
-                  <div class="font-medium text-gray-900">{{ location.name }}</div>
-                  <div v-if="location.parentId" class="text-sm text-gray-500">TP. Hồ Chí Minh</div>
+                  <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
+                  <div v-if="location.parentId" class="text-xs text-gray-500">TP. Hồ Chí Minh</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Swap Button -->
+        <!-- Mobile Swap Button -->
+        <div class="md:hidden flex justify-center py-1">
+          <button
+            type="button"
+            @click="swapLocations"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
+          >
+            <i class="fas fa-exchange-alt rotate-90 text-sm"></i>
+          </button>
+        </div>
+
+        <!-- Desktop Swap Button -->
         <div class="hidden md:flex absolute left-1/2 top-8 transform -translate-x-1/2 z-10">
           <button
             type="button"
@@ -208,16 +235,16 @@ searchForm.value.departureDate = today
 
         <!-- To -->
         <div class="space-y-2 relative">
-          <label class="block text-sm font-medium text-gray-700">Điểm đến</label>
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Điểm đến</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-bus text-gray-400"></i>
+              <i class="fas fa-bus text-gray-400 text-sm"></i>
             </div>
             <input
               v-model="searchForm.to"
               type="text"
-              placeholder="Nhập thành phố, bến xe hoặc điểm trả khách"
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="Nhập thành phố, bến xe..."
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
               @focus="handleToFocus"
               @blur="handleToBlur"
               autocomplete="off"
@@ -225,15 +252,15 @@ searchForm.value.departureDate = today
             
             <!-- To Dropdown -->
             <div v-if="showToDropdown && filteredDestinations.length > 0" 
-                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
               <div v-for="location in filteredDestinations" 
                    :key="location.id"
                    @click="selectDestination(location)"
-                   class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
-                <i class="fas fa-map-marker-alt text-gray-400 mr-3"></i>
+                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
+                <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
                 <div>
-                  <div class="font-medium text-gray-900">{{ location.name }}</div>
-                  <div v-if="location.parentId" class="text-sm text-gray-500">TP. Hồ Chí Minh</div>
+                  <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
+                  <div v-if="location.parentId" class="text-xs text-gray-500">TP. Hồ Chí Minh</div>
                 </div>
               </div>
             </div>
@@ -241,64 +268,64 @@ searchForm.value.departureDate = today
         </div>
       </div>
 
-      <!-- Date, Roundtrip, Seats and Search Row -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <!-- Date, Seats, Roundtrip and Search Row -->
+      <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-3 lg:gap-4">
         <!-- Departure Date -->
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700">Ngày đi</label>
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Ngày đi</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-calendar text-gray-400"></i>
+              <i class="fas fa-calendar text-gray-400 text-sm"></i>
             </div>
             <input
               v-model="searchForm.departureDate"
               type="date"
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
             />
-          </div>
-        </div>
-
-        <!-- Roundtrip Checkbox -->
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700">&nbsp;</label>
-          <div class="flex items-center h-12">
-            <label class="flex items-center cursor-pointer">
-              <input
-                v-model="searchForm.roundtrip"
-                @change="handleRoundtripChange"
-                type="checkbox"
-                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span class="ml-2 text-sm text-gray-700">Khứ hồi?</span>
-            </label>
           </div>
         </div>
 
         <!-- Number of Seats -->
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700">Số ghế</label>
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Số ghế</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-user text-gray-400"></i>
+              <i class="fas fa-user text-gray-400 text-sm"></i>
             </div>
             <input
               v-model="searchForm.seats"
               type="number"
               min="1"
               max="10"
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
             />
+          </div>
+        </div>
+
+        <!-- Roundtrip Checkbox -->
+        <div class="space-y-2">
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Loại vé</label>
+          <div class="flex items-center h-10 sm:h-12 bg-gray-50 rounded-lg px-3 sm:px-4 border border-gray-200">
+            <label class="flex items-center cursor-pointer">
+              <input
+                v-model="searchForm.roundtrip"
+                @change="handleRoundtripChange"
+                type="checkbox"
+                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              />
+              <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700">Khứ hồi</span>
+            </label>
           </div>
         </div>
 
         <!-- Search Button -->
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700 md:hidden ">Tìm kiếm</label>
+          <label class="block text-xs sm:text-sm font-medium text-gray-700 invisible">Tìm</label>
           <button
             type="submit"
-            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 flex items-center justify-center text-sm"
           >
-            <i class="fas fa-search mr-2"></i>
+            <i class="fas fa-search mr-2 text-sm"></i>
             Tìm kiếm
           </button>
         </div>
@@ -313,32 +340,32 @@ searchForm.value.departureDate = today
         leave-from-class="opacity-100 transform scale-100 translate-y-0"
         leave-to-class="opacity-0 transform scale-95 -translate-y-2"
       >
-        <div v-if="searchForm.roundtrip" class="mt-6 p-4 rounded-lg shadow-sm">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">
-              <i class="fas fa-calendar-alt text-blue-500 mr-1"></i>
-              Ngày về
-            </label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fas fa-calendar text-gray-400"></i>
+        <div v-if="searchForm.roundtrip" ref="returnDateSection" class="mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg bg-blue-50 border border-blue-200">
+          <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-3 lg:gap-4">
+            <div class="space-y-2 sm:col-span-2 lg:col-span-1">
+              <label class="block text-xs sm:text-sm font-medium text-blue-700">
+                <i class="fas fa-calendar-alt text-blue-500 mr-1 text-sm"></i>
+                Ngày về
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-calendar text-gray-400 text-sm"></i>
+                </div>
+                <input
+                  v-model="searchForm.returnDate"
+                  type="date"
+                  class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm"
+                  placeholder="Chọn ngày về"
+                />
               </div>
-              <input
-                v-model="searchForm.returnDate"
-                type="date"
-                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                placeholder="Chọn ngày về"
-              />
+            </div>
+            <div class="sm:col-span-2 lg:col-span-3 flex items-end">
+              <div class="text-xs sm:text-sm text-blue-600 bg-blue-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg w-full sm:w-auto text-center sm:text-left">
+                <i class="fas fa-info-circle mr-1"></i>
+                <span class="hidden sm:inline">Vé khứ hồi - </span>Chọn ngày về để tiếp tục
+              </div>
             </div>
           </div>
-          <div class="md:col-span-3 flex items-end">
-            <div class="text-sm text-blue-600 bg-blue-100 px-3 py-2 rounded-lg">
-              <i class="fas fa-info-circle mr-1"></i>
-              Vé khứ hồi - Chọn ngày về
-            </div>
-          </div>
-                  </div>
         </div>
       </Transition>
     </form>
@@ -360,5 +387,10 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
 }
 </style> 

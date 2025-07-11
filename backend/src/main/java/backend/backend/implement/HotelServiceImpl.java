@@ -4,7 +4,7 @@ import backend.backend.dao.ReviewDAO;
 import backend.backend.dao.Hotel.HotelDAO;
 import backend.backend.dao.Hotel.HotelRoomVariantDAO;
 import backend.backend.dao.Hotel.HotelImageDAO;
-import backend.backend.dao.Hotel.ImageDAO;
+import backend.backend.dao.ImageDAO;
 import backend.backend.dao.Hotel.HotelRoomDAO;
 import backend.backend.dao.Hotel.AmenityDAO;
 import backend.backend.dto.*;

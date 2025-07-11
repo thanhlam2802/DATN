@@ -205,6 +205,10 @@ import BusCard from "../components/Home/BusCard.vue";
 import FlightCard from "../components/Home/FlightCard.vue";
 import TourHomeCard from "../components/Home/TourHomeCard.vue";
 
+import { hotels, buses, tours } from "../data/appData";
+import { searchFlights } from '@/api/flightApi'
+
+
 import { searchHotels } from "../api/hotelApi";
 import { buses, flights, tours } from "../data/appData";
 
@@ -234,6 +238,7 @@ const fetchHotels = async () => {
   }
 };
 
+
 const hotelScrollContainer = ref(null);
 const busScrollContainer = ref(null);
 const flightScrollContainer = ref(null);
@@ -252,6 +257,8 @@ const containerRefs = {
   flights: flightScrollContainer,
   tours: tourScrollContainer,
 };
+
+const flights = ref([])
 
 const scroll = (type, direction) => {
   const container = containerRefs[type].value;
@@ -276,8 +283,20 @@ const handleScroll = (type) => {
   }
 };
 
+
+onMounted(async () => {
+  try {
+    const res = await searchFlights({})
+    flights.value = res.data
+    console.log("=======================================")
+    console.log(flights.value)
+  } catch (e) {
+    flights.value = []
+  }
+
 onMounted(() => {
   fetchHotels();
+
 
   Object.keys(containerRefs).forEach((type) => {
     nextTick(() => handleScroll(type));

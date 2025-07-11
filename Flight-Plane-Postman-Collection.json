@@ -1,0 +1,375 @@
+{
+  "info": {
+    "_postman_id": "flight-plane-collection-001",
+    "name": "Flight (Plane) API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "API collection for Flight (Plane) endpoints (User & Admin)"
+  },
+  "item": [
+    {
+      "name": "User Flight APIs",
+      "item": [
+        {
+          "name": "Search Flights",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/flights/search?departure=HAN&destination=SGN&departureDate=2024-07-01&returnDate=&passengerCount=1&seatClass=economy",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "flights", "search"],
+              "query": [
+                {"key": "departure", "value": "HAN"},
+                {"key": "destination", "value": "SGN"},
+                {"key": "departureDate", "value": "2024-07-01"},
+                {"key": "returnDate", "value": ""},
+                {"key": "passengerCount", "value": "1"},
+                {"key": "seatClass", "value": "economy"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Flight Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/flights/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "flights", "1"]
+            }
+          }
+        },
+        {
+          "name": "Book Flight",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": 1,\n  \"userId\": 2,\n  \"passengerInfo\": [\n    {\n      \"fullName\": \"Nguyen Van A\",\n      \"gender\": \"male\",\n      \"dob\": \"1990-01-01\",\n      \"passport\": \"A1234567\",\n      \"email\": \"vana@gmail.com\",\n      \"phone\": \"0912345678\",\n      \"seatNumber\": \"12A\"\n    },\n    {\n      \"fullName\": \"Tran Thi B\",\n      \"gender\": \"female\",\n      \"dob\": \"1992-05-10\",\n      \"passport\": \"B7654321\",\n      \"email\": \"thib@gmail.com\",\n      \"phone\": \"0934567890\",\n      \"seatNumber\": \"12B\"\n    }\n  ],\n  \"contactInfo\": {\"name\": \"Nguyen Van A\", \"phone\": \"0901234567\", \"email\": \"a@email.com\"},\n  \"seatCodes\": [\"12A\", \"12B\"],\n  \"totalPrice\": 3000000\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/bookings/flights",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "bookings", "flights"]
+            }
+          }
+        },
+        {
+          "name": "Pay for Flight",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": 1,\n  \"paymentMethod\": \"credit_card\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/payments/flights",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "payments", "flights"]
+            }
+          }
+        },
+        {
+          "name": "Get User Flight Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/users/2/flight-bookings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "users", "2", "flight-bookings"]
+            }
+          }
+        },
+        {
+          "name": "Get Flight Booking Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/bookings/flights/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "bookings", "flights", "1"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Flight Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/bookings/flights/1/cancel",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "bookings", "flights", "1", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Flight APIs",
+      "item": [
+        {
+          "name": "Get Flights (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flights?page=0&size=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flights"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Flight (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"VN123\",\n  \"airline\": \"Vietnam Airlines\",\n  \"departure\": \"HAN\",\n  \"destination\": \"SGN\",\n  \"departureTime\": \"2024-07-01T10:00:00\",\n  \"arrivalTime\": \"2024-07-01T12:00:00\",\n  \"price\": 1500000,\n  \"availableSeats\": 100,\n  \"seatClass\": \"economy\",\n  \"flightCategory\": \"Nội địa\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flights",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flights"]
+            }
+          }
+        },
+        {
+          "name": "Update Flight (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"VN123\",\n  \"airline\": \"Vietnam Airlines\",\n  \"departure\": \"HAN\",\n  \"destination\": \"SGN\",\n  \"departureTime\": \"2024-07-01T10:00:00\",\n  \"arrivalTime\": \"2024-07-01T12:00:00\",\n  \"price\": 1500000,\n  \"availableSeats\": 100,\n  \"seatClass\": \"economy\",\n  \"flightCategory\": \"Nội địa\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flights/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flights", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Flight (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flights/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flights", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Seats (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flights/1/seats",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flights", "1", "seats"]
+            }
+          }
+        },
+        {
+          "name": "Update Seats (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[{\n  \"id\": 1,\n  \"code\": \"economy\",\n  \"status\": \"AVAILABLE\",\n  \"price\": 1500000,\n  \"seatClass\": \"economy\"\n}]"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flights/1/seats",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flights", "1", "seats"]
+            }
+          }
+        },
+        {
+          "name": "Get Flight Bookings (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flight-bookings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flight-bookings"]
+            }
+          }
+        },
+        {
+          "name": "Get Flight Booking Detail (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flight-bookings/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flight-bookings", "1"]
+            }
+          }
+        },
+        {
+          "name": "Update Flight Booking Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flight-bookings/1?status=confirmed",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flight-bookings", "1"],
+              "query": [
+                {"key": "status", "value": "confirmed"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Flight Statistics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/flights/statistics?type=month&value=2024-07",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "flights", "statistics"],
+              "query": [
+                {"key": "type", "value": "month"},
+                {"key": "value", "value": "2024-07"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Airlines (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/airlines",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "airlines"]
+            }
+          }
+        },
+        {
+          "name": "Create Airline (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Noi Bai International Airport\",\n  \"code\": \"HAN\",\n  \"location\": \"Hanoi\",\n  \"description\": \"Main airport in Hanoi\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/airlines",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "airlines"]
+            }
+          }
+        },
+        {
+          "name": "Update Airline (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tan Son Nhat International Airport\",\n  \"code\": \"SGN\",\n  \"location\": \"Ho Chi Minh City\",\n  \"description\": \"Main airport in HCMC\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/airlines/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "airlines", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Airline (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/airlines/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "airlines", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+} 

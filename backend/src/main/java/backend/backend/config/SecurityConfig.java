@@ -1,6 +1,16 @@
 package backend.backend.config;
 
 
+
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+
+public class SecurityConfig  {
+
+
+   
+
 import backend.backend.config.filters.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -34,5 +44,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 }

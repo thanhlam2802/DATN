@@ -5,6 +5,7 @@ import Tour from "@/views/Tour.vue";
 import Bus from "@/views/Bus.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
 import Plane from "@/components/Flight/FlightHome.vue";
+import FlightDetail from "@/components/Flight/FlightDetail.vue";
 import TourDetail from "@/views/TourDetail.vue";
 
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
@@ -19,8 +20,9 @@ import BookingPage from "@/views/BookingPage.vue";
 import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.vue";
 
 import PayFlight from "@/components/Flight/PaymentPage.vue";
-import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
+import AdminFight from "@/components/FlightAdmin/FlightAdminLayout.vue";
 import GetTicket from "@/components/Flight/TicketReceipt.vue";
+import DetailFlightAdmin from '@/components/FlightAdmin/DetailFlightAdmin.vue'
 
 import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
@@ -46,6 +48,7 @@ const routes = [
       { path: "tour", name: "Tour", component: Tour },
       { path: "bus", name: "Bus", component: Bus },
       { path: "plane", name: "Plane", component: Plane },
+      { path: "plane/:id", name: "FlightDetail", component: FlightDetail, props: true },
       {
         path: "hotel",
         name: "Hotel",
@@ -118,6 +121,13 @@ const routes = [
     path: "/plane/admin",
     name: "AdminFight",
     component: AdminFight,
+    children: [
+      {
+        path: "flights/:id",
+        name: "DetailFlightAdmin",
+        component: DetailFlightAdmin
+      }
+    ]
   },
 
   {

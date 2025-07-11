@@ -14,7 +14,8 @@ import java.util.Map;
 public class CloudinaryImageStorageServiceImpl implements ImageStorageService {
 
     @Autowired
-    private CloudinaryService cloudinaryService; 
+    private CloudinaryService cloudinaryService;
+
 
     @Override
     public Map<String, String> uploadImage(MultipartFile file) throws IOException {
@@ -36,9 +37,25 @@ public class CloudinaryImageStorageServiceImpl implements ImageStorageService {
     }
 
     @Override
-    public void deleteImage(String publicId) throws IOException {
+    public void deleteImage2(String url) {
+        if (url == null || url.trim().isEmpty()) return;
+        // Tách publicId từ url Cloudinary
+        // Ví dụ: https://res.cloudinary.com/demo/image/upload/v1234567890/tours/abc123.jpg
+        // publicId là phần sau /upload/ và trước .jpg
+        try {
+            String[] parts = url.split("/upload/");
+            if (parts.length < 2) return;
+            String publicIdWithExt = parts[1];
+            String publicId = publicIdWithExt.replaceAll("\\.[a-zA-Z0-9]+$", "");
+            cloudinaryService.delete(publicId);
+        } catch (Exception e) {
+            // log lỗi nếu cần
+        }
+    }
+
+    @Override
+       public void deleteImage(String publicId) throws IOException {
         if (publicId == null || publicId.trim().isEmpty()) {
-           
             return;
         }
         cloudinaryService.delete(publicId);

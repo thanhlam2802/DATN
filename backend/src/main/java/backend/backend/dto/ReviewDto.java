@@ -1,15 +1,25 @@
 package backend.backend.dto;
 
 import backend.backend.entity.Review; 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 
 @Data 
+
 public class ReviewDto {
     private Integer id;
     private String author;
@@ -20,6 +30,7 @@ public class ReviewDto {
     private List<String> images;
 
     public static ReviewDto fromEntity(Review review) {
+
         ReviewDto dto = new ReviewDto();
         dto.setId(review.getId());
         dto.setAuthor(review.getUser() != null ? review.getUser().getEmail(): "Anonymous");
@@ -29,5 +40,6 @@ public class ReviewDto {
         dto.setImages(List.of()); 
 
         return dto;
+
     }
 }

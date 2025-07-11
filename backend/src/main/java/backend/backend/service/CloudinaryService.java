@@ -20,7 +20,6 @@ import java.util.Map;
 @Service
 public class CloudinaryService {
 
- 
     @Autowired
     private Cloudinary cloudinary;
 
@@ -81,4 +80,6 @@ public class CloudinaryService {
      * thị.
      * URL này đã trỏ đến phiên bản ảnh đã được tối ưu hóa.
      */
+
 }
+

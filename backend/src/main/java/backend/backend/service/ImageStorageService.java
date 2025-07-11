@@ -24,5 +24,8 @@ public interface ImageStorageService {
      * @param publicId mã định danh (ví dụ: public_id của Cloudinary) của ảnh cần xóa.
      * @throws IOException
      */
-    void deleteImage(String publicId) throws IOException;
+
+     void deleteImage(String publicId) throws IOException;
+    void deleteImage2(String url);
+
 }

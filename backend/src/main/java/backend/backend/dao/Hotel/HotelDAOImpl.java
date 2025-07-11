@@ -67,7 +67,10 @@ public class HotelDAOImpl implements HotelDAOCustom {
                 hotelRoot.get("starRating"),
                 avgRatingSubquery.getSelection(),
                 reviewCountSubquery.getSelection().as(Integer.class),
-                minPriceSubquery.getSelection()));
+                minPriceSubquery.getSelection(),
+                hotelRoot.get("createdAt"),
+                hotelRoot.get("updatedAt")
+        ));
 
         Predicate filterPredicate = spec.toPredicate(hotelRoot, query, cb);
         if (filterPredicate != null) {

@@ -649,7 +649,6 @@ const fetchHotelData = async (hotelId) => {
       reviewsList.value = [];
     }
   } catch (err) {
-    console.error("Lỗi khi tải dữ liệu chi tiết:", err);
     error.value = "Không tìm thấy khách sạn hoặc đã có lỗi xảy ra. Vui lòng thử lại.";
     hotel.value = null;
   } finally {
@@ -664,7 +663,6 @@ const fetchOtherHotels = async (provinceId, currentHotelId) => {
       otherHotels.value = response.data.data.content.filter(h => h.id != currentHotelId).slice(0, 3);
     }
   } catch (err) {
-    console.error("Lỗi khi tải khách sạn tương tự:", err);
     otherHotels.value = [];
   }
 }
@@ -882,7 +880,7 @@ const fetchHotelSuggestions = async (keyword) => {
     if (response.data?.statusCode === 200) {
       hotelSuggestions.value = response.data.data.content;
     }
-  } catch (error) { console.error("Could not fetch hotel suggestions:", error); }
+  } catch (error) { }
 };
 
 const selectLocation = (loc) => {
@@ -972,9 +970,7 @@ onMounted(async () => {
   try {
     const response = await getAllProvinces();
     provinces.value = response.data?.data || [];
-  } catch (error) {
-    console.error("Could not fetch provinces:", error);
-  }
+  } catch (error) { }
 });
 
 watch(() => searchParams.value.location, (newKeyword) => {

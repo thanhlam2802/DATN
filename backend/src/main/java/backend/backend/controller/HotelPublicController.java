@@ -18,8 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/hotels")
 @CrossOrigin(origins = "*")
-public class HotelController {
-
+public class HotelPublicController {
     @Autowired
     private HotelService hotelService;
 

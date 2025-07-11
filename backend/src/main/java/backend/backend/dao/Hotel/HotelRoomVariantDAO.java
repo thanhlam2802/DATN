@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,4 +24,6 @@ public interface HotelRoomVariantDAO extends JpaRepository<HotelRoomVariant, Int
             @Param("hotelId") Integer hotelId,
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut);
+
+    List<HotelRoomVariant> findByRoomId(Integer roomId);
 }

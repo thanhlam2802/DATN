@@ -214,13 +214,14 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { payForFlight } from '@/api/flightApi'
 
 const router = useRouter()
 
-/** ========== Dữ liệu giả định (bạn có thể replace bằng props hoặc API) ========== **/
+/** ========== Dữ liệu từ props hoặc route ========== **/
 const flight = reactive({
     id: 101,
-    airline: 'Vietnam Airlines',
+    airline: { name: 'Vietnam Airlines' },
     from: 'HAN',
     to: 'CXR',
     date: '2025-06-13',
@@ -316,6 +317,25 @@ function confirmAndPay() {
     alert('Thanh toán thành công! Cảm ơn bạn đã đặt vé.')
     // Sau khi thanh toán xong, chuyển hướng về trang hoàn tất hoặc trang Dashboard người dùng
     router.push({ name: 'BookingSuccess', params: { orderId: 'ABC12345' } })
+}
+
+const bookingId = ref('') // Lấy bookingId từ route hoặc props thực tế
+const paymentMethod = ref('credit_card')
+const paymentStatus = ref(null)
+const loading = ref(false)
+const error = ref('')
+
+async function handlePayment() {
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await payForFlight({ bookingId: bookingId.value, paymentMethod: paymentMethod.value })
+    paymentStatus.value = res.data
+  } catch (e) {
+    error.value = 'Thanh toán thất bại.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

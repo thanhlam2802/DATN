@@ -1,30 +1,45 @@
 package backend.backend.dto;
 
 import backend.backend.entity.Review; 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+
 @Data 
+
 public class ReviewDto {
     private Integer id;
     private String author;
     private Integer rating;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm")
     private String date;
     private String content;
     private List<String> images;
 
     public static ReviewDto fromEntity(Review review) {
+
         ReviewDto dto = new ReviewDto();
         dto.setId(review.getId());
         dto.setAuthor(review.getUser() != null ? review.getUser().getEmail(): "Anonymous");
         dto.setRating(review.getRating() != null ? review.getRating().intValue() : null);
-        dto.setDate(review.getCreatedAt() != null ? review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : null);
+        dto.setDate(review.getCreatedAt() != null ? review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : null);
         dto.setContent(review.getContent());
         dto.setImages(List.of()); 
 
         return dto;
+
     }
 }

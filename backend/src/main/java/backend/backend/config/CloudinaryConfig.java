@@ -13,7 +13,7 @@ import java.util.Map;
 @Configuration
 public class CloudinaryConfig {
 
-   
+
     @Value("${cloudinary.cloud_name}")
     private String cloudName;
 
@@ -25,7 +25,6 @@ public class CloudinaryConfig {
 
     /**
      * Tạo một đối tượng Cloudinary và đăng ký nó như một Bean.
-     * 
      * @return một instance của Cloudinary đã được cấu hình.
      */
     @Bean
@@ -37,7 +36,11 @@ public class CloudinaryConfig {
         config.put("api_secret", apiSecret);
         config.put("secure", "true");
 
-       
+
+
         return new Cloudinary(config);
     }
 }
+
+}
+

@@ -16,26 +16,18 @@ public class FlightBooking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "booking_date", nullable = false)
+    private LocalDateTime bookingDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flight_slot_id", nullable = false)
     private FlightSlot flightSlot;
 
-    @Column(name = "num_passengers", nullable = false)
-    private Integer numPassengers;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
 
-    @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
-    private BigDecimal totalPrice;
-
-    @Column(name = "booking_date", nullable = false, updatable = false)
-    private LocalDateTime bookingDate = LocalDateTime.now();
-
-    @OneToMany(mappedBy = "flightBooking")
-    private List<Payment> payments;
-
-    @OneToMany(mappedBy = "flightBooking")
-    private List<TicketDetail> ticketDetails;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_detail_id")
+    private TicketDetail ticketDetail;
 }

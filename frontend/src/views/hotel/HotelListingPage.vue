@@ -311,7 +311,7 @@ const fetchHotelSuggestions = async (keyword) => {
         if (response.data?.statusCode === 200) {
             hotelSuggestions.value = response.data.data.content;
         }
-    } catch (error) { console.error("Could not fetch hotel suggestions:", error); }
+    } catch (error) { }
 };
 
 function selectLocation(loc) {
@@ -394,9 +394,7 @@ onMounted(async () => {
     try {
         const response = await getAllProvinces();
         provinces.value = response.data?.data || [];
-    } catch (error) {
-        console.error("Could not fetch provinces:", error);
-    }
+    } catch (error) { }
     document.addEventListener('click', handleClickOutside)
 });
 
@@ -512,12 +510,7 @@ const fetchHotels = async (queryParams) => {
             totalPages.value = 1;
             totalHotels.value = 0;
         }
-    } catch (error) {
-        console.error("Failed to fetch hotels:", error);
-        hotels.value = [];
-        totalPages.value = 1;
-        totalHotels.value = 0;
-    }
+    } catch (error) { }
 };
 
 watch(() => route.query, q => {

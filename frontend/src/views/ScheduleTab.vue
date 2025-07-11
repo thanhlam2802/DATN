@@ -384,8 +384,7 @@ function copySchedule(schedule, tourId) {
   currentTab.value = "form";
 }
 
-// === FORM ACTIVITIES MANIPULATION ===
-// SỬA HÀM NÀY
+
 function addActivity() {
   form.value.activities.push({
     id: null,

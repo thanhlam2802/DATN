@@ -6,12 +6,15 @@ import lombok.Data;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 
 @Data 
 public class ReviewDto {
     private Integer id;
     private String author;
     private Integer rating;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm")
     private String date;
     private String content;
     private List<String> images;
@@ -21,7 +24,7 @@ public class ReviewDto {
         dto.setId(review.getId());
         dto.setAuthor(review.getUser() != null ? review.getUser().getEmail(): "Anonymous");
         dto.setRating(review.getRating() != null ? review.getRating().intValue() : null);
-        dto.setDate(review.getCreatedAt() != null ? review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : null);
+        dto.setDate(review.getCreatedAt() != null ? review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : null);
         dto.setContent(review.getContent());
         dto.setImages(List.of()); 
 

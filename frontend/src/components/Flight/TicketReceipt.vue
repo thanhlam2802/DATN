@@ -24,7 +24,7 @@
               alt="Vietnam Airlines"
               class="h-10 w-auto"
             />
-            <h2 class="text-3xl font-bold text-black">Vietnam Airlines</h2>
+            <h2 class="text-3xl font-bold text-black">{{ ticket?.flight?.airline?.name || 'Vietnam Airlines' }}</h2>
           </div>
 
           <!-- Subtitle: Lộ trình bay (gradient xanh dương) -->
@@ -75,7 +75,7 @@
             <!-- Thông tin chi tiết -->
             <div class="sm:w-2/3 w-full p-4 flex flex-col justify-between">
               <div>
-                <p class="text-sm text-gray-500 mb-1">Vietnam Airlines</p>
+                <p class="text-sm text-gray-500 mb-1">{{ ticket?.flight?.airline?.name || 'Vietnam Airlines' }}</p>
                 <h4 class="text-xl font-semibold text-gray-800 mb-1">
                   {{ departureCode }} → {{ arrivalCode }}
                 </h4>

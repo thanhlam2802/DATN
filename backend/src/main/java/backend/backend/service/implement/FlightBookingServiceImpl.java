@@ -2,127 +2,214 @@ package backend.backend.service.implement;
 
 import backend.backend.dao.FlightBookingDAO;
 import backend.backend.dao.FlightDAO;
-import backend.backend.entity.Flight;
-import backend.backend.entity.FlightBooking;
-import backend.backend.entity.FlightSlot;
-import backend.backend.entity.User;
-import backend.backend.dto.FlightBookingDetailDto;
-import backend.backend.dto.FlightBookingDto;
-import backend.backend.dto.PaymentRequestDto;
-import backend.backend.dto.PaymentStatusDto;
-import backend.backend.dto.FlightDto;
+import backend.backend.dao.FlightSlotDAO;
+import backend.backend.dto.*;
+import backend.backend.entity.*;
 import backend.backend.service.FlightBookingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Optional;
 
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Slf4j
 @Service
 public class FlightBookingServiceImpl implements FlightBookingService {
+
     @Autowired
     private FlightBookingDAO flightBookingDAO;
     @Autowired
     private FlightDAO flightDAO;
+    @Autowired
+    private FlightSlotDAO flightSlotDAO;
 
     @Override
     public FlightBookingDetailDto bookFlight(FlightBookingDto bookingDto) {
-        // Lấy flight và slot
-        Flight flight = flightDAO.findById(bookingDto.getFlightId()).orElse(null);
-        if (flight == null || flight.getFlightSlots() == null || flight.getFlightSlots().isEmpty()) return null;
-        // Chọn slot phù hợp (theo seatClass)
-        FlightSlot slot = flight.getFlightSlots().stream()
-                .filter(s -> s.getSeatClass().equalsIgnoreCase(bookingDto.getSeatCodes().get(0)))
-                .findFirst().orElse(null);
-        if (slot == null || slot.getCapacity() < bookingDto.getPassengerInfo().size()) return null;
-        // Tạo booking
-        FlightBooking booking = new FlightBooking();
-        // Mapping user (giả lập, thực tế lấy từ context hoặc bookingDto)
-        User user = new User();
-        user.setId(bookingDto.getUserId() != null ? bookingDto.getUserId().intValue() : 1); // giả lập userId
-        booking.setUser(user);
-        booking.setFlightSlot(slot);
-        booking.setNumPassengers(bookingDto.getPassengerInfo().size());
-        booking.setTotalPrice(BigDecimal.valueOf(bookingDto.getTotalPrice()));
-        booking.setBookingDate(LocalDateTime.now());
-        // Lưu booking
-        flightBookingDAO.save(booking);
-        // Trừ capacity slot
-        slot.setCapacity(slot.getCapacity() - bookingDto.getPassengerInfo().size());
-        // Mapping sang DTO
-        return toBookingDetailDto(booking, flight);
+        String requestId = UUID.randomUUID().toString();
+        log.info("BOOK_FLIGHT_REQUEST      - RequestId: {}, payload: {}", requestId, bookingDto);
+        try {
+            // Lấy slot
+            FlightSlot slot = flightSlotDAO.findById(bookingDto.getFlightSlotId()).orElse(null);
+            if (slot == null) {
+                log.warn("BOOK_FLIGHT_SLOT_NOT_FOUND - RequestId: {}, slotId: {}", requestId, bookingDto.getFlightSlotId());
+                return null;
+            }
+
+            // Tạo booking
+            FlightBooking booking = new FlightBooking();
+            booking.setFlightSlot(slot);
+            booking.setBookingDate(LocalDateTime.now());
+            if (bookingDto.getCustomerId() != null) {
+                Customer c = new Customer(); c.setId(bookingDto.getCustomerId());
+                booking.setCustomer(c);
+            }
+            if (bookingDto.getTicketDetailId() != null) {
+                TicketDetail td = new TicketDetail(); td.setId(bookingDto.getTicketDetailId());
+                booking.setTicketDetail(td);
+            }
+            flightBookingDAO.save(booking);
+            log.info("BOOK_FLIGHT_SUCCESS      - RequestId: {}, bookingId: {}", requestId, booking.getId());
+
+            return toBookingDetailDto(booking, slot.getFlight());
+        } catch (Exception e) {
+            log.error("BOOK_FLIGHT_FAILED       - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
     public PaymentStatusDto payForFlight(PaymentRequestDto paymentRequestDto) {
-        FlightBooking booking = flightBookingDAO.findById(paymentRequestDto.getBookingId()).orElse(null);
-        if (booking == null) return null;
-        // Giả lập thanh toán thành công
-        PaymentStatusDto status = new PaymentStatusDto();
-        status.setBookingId(booking.getId().longValue());
-        status.setStatus("PAID");
-        status.setMessage("Thanh toán thành công");
-        return status;
+        String requestId = UUID.randomUUID().toString();
+        log.info("PAY_FLIGHT_REQUEST       - RequestId: {}, bookingId: {}", requestId, paymentRequestDto.getBookingId());
+        try {
+            FlightBooking booking = flightBookingDAO.findById(paymentRequestDto.getBookingId()).orElse(null);
+            if (booking == null) {
+                log.warn("PAY_FLIGHT_BOOKING_NOT_FOUND - RequestId: {}, bookingId: {}", requestId, paymentRequestDto.getBookingId());
+                return null;
+            }
+            PaymentStatusDto status = new PaymentStatusDto();
+            status.setBookingId(booking.getId());
+            status.setStatus("PAID");
+            status.setMessage("Thanh toán thành công");
+            log.info("PAY_FLIGHT_SUCCESS       - RequestId: {}, bookingId: {}, status: {}", requestId, booking.getId(), status.getStatus());
+            return status;
+        } catch (Exception e) {
+            log.error("PAY_FLIGHT_FAILED        - RequestId: {}, bookingId: {}, error: {}", requestId, paymentRequestDto.getBookingId(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
-    public List<FlightBookingDetailDto> getUserFlightBookings(Long userId) {
-        List<FlightBooking> bookings = flightBookingDAO.findByUserId(userId);
-        return bookings.stream().map(b -> toBookingDetailDto(b, b.getFlightSlot().getFlight())).collect(Collectors.toList());
+    public List<FlightBookingDetailDto> getCustomerFlightBookings(Integer customerId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_BOOKINGS_REQUEST     - RequestId: {}, customerId: {}", requestId, customerId);
+        try {
+            List<FlightBooking> bookings = flightBookingDAO.findByCustomerId(customerId);
+            List<FlightBookingDetailDto> dtos = bookings.stream()
+                    .map(b -> toBookingDetailDto(b, b.getFlightSlot().getFlight()))
+                    .collect(Collectors.toList());
+            log.info("GET_BOOKINGS_SUCCESS     - RequestId: {}, customerId: {}, count: {}", requestId, customerId, dtos.size());
+            return dtos;
+        } catch (Exception e) {
+            log.error("GET_BOOKINGS_FAILED      - RequestId: {}, customerId: {}, error: {}", requestId, customerId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
-    public FlightBookingDetailDto getFlightBookingDetail(Long bookingId) {
-        FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
-        if (booking == null) return null;
-        return toBookingDetailDto(booking, booking.getFlightSlot().getFlight());
+    public FlightBookingDetailDto getFlightBookingDetail(Integer bookingId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_BOOKING_DETAIL_REQ   - RequestId: {}, bookingId: {}", requestId, bookingId);
+        try {
+            FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
+            if (booking == null) {
+                log.warn("GET_BOOKING_DETAIL_NOT_FOUND - RequestId: {}, bookingId: {}", requestId, bookingId);
+                return null;
+            }
+            FlightBookingDetailDto dto = toBookingDetailDto(booking, booking.getFlightSlot().getFlight());
+            log.info("GET_BOOKING_DETAIL_SUCCESS - RequestId: {}, bookingId: {}", requestId, bookingId);
+            return dto;
+        } catch (Exception e) {
+            log.error("GET_BOOKING_DETAIL_FAILED  - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
-    public PaymentStatusDto cancelFlightBooking(Long bookingId) {
-        FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
-        if (booking == null) return null;
-        // Giả lập hủy booking
-        PaymentStatusDto status = new PaymentStatusDto();
-        status.setBookingId(booking.getId().longValue());
-        status.setStatus("CANCELLED");
-        status.setMessage("Đã hủy vé thành công");
-        // Trả lại capacity slot
-        FlightSlot slot = booking.getFlightSlot();
-        slot.setCapacity(slot.getCapacity() + booking.getNumPassengers());
-        return status;
+    public PaymentStatusDto cancelFlightBooking(Integer bookingId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("CANCEL_BOOKING_REQUEST   - RequestId: {}, bookingId: {}", requestId, bookingId);
+        try {
+            FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
+            if (booking == null) {
+                log.warn("CANCEL_BOOKING_NOT_FOUND - RequestId: {}, bookingId: {}", requestId, bookingId);
+                return null;
+            }
+            PaymentStatusDto status = new PaymentStatusDto();
+            status.setBookingId(booking.getId());
+            status.setStatus("CANCELLED");
+            status.setMessage("Đã hủy vé thành công");
+            log.info("CANCEL_BOOKING_SUCCESS   - RequestId: {}, bookingId: {}, status: {}", requestId, bookingId, status.getStatus());
+            return status;
+        } catch (Exception e) {
+            log.error("CANCEL_BOOKING_FAILED    - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking booking, Flight flight) {
+        log.debug("MAPPING_BOOKING_TO_DTO    - bookingId: {}, flightId: {}", booking.getId(), flight.getId());
         FlightBookingDetailDto dto = new FlightBookingDetailDto();
-        dto.setBookingId(booking.getId().longValue());
+        dto.setBookingId(booking.getId());
         dto.setFlight(toFlightDto(flight));
-        dto.setPassengerInfo(null); // Có thể mapping chi tiết nếu cần
-        dto.setContactInfo(null);
-        dto.setSeatCodes(null);
-        dto.setTotalPrice(booking.getTotalPrice().doubleValue());
+        dto.setTotalPrice(booking.getFlightSlot().getPrice().doubleValue());
         dto.setStatus("BOOKED");
         dto.setCreatedAt(booking.getBookingDate());
+        log.debug("MAPPING_BOOKING_TO_DTO_DONE - bookingId: {}", booking.getId());
         return dto;
     }
 
     private FlightDto toFlightDto(Flight flight) {
+        log.debug("MAPPING_FLIGHT_TO_DTO     - flightId: {}", flight.getId());
         FlightDto dto = new FlightDto();
-        dto.setId(flight.getId().longValue());
-        dto.setCode(flight.getFlightNumber());
-        dto.setAirline(flight.getName());
-        dto.setDeparture(flight.getDepartureAirport());
-        dto.setDestination(flight.getArrivalAirport());
+        dto.setId(flight.getId());
+        dto.setFlightNumber(flight.getFlightNumber());
+        dto.setName(flight.getName());
         dto.setDepartureTime(flight.getDepartureTime());
         dto.setArrivalTime(flight.getArrivalTime());
-        dto.setFlightCategory(flight.getCategory() != null ? flight.getCategory().getName() : null);
-        if (flight.getFlightSlots() != null && !flight.getFlightSlots().isEmpty()) {
-            dto.setPrice(flight.getFlightSlots().stream().map(s -> s.getPrice().doubleValue()).min(Double::compareTo).orElse(0.0));
-            dto.setAvailableSeats(flight.getFlightSlots().stream().mapToInt(s -> s.getCapacity() != null ? s.getCapacity() : 0).sum());
-            dto.setSeatClass(flight.getFlightSlots().get(0).getSeatClass());
+        dto.setCreatedAt(flight.getCreatedAt());
+        dto.setUpdatedAt(flight.getUpdatedAt());
+        if (flight.getCategory() != null) {
+            log.debug("MAPPING_CATEGORY          - categoryId: {}", flight.getCategory().getId());
+            dto.setCategoryId(flight.getCategory().getId());
+            dto.setCategory(toFlightCategoryDto(flight.getCategory()));
         }
+        if (flight.getOwner() != null) {
+            log.debug("MAPPING_OWNER            - ownerId: {}", flight.getOwner().getId());
+            dto.setOwnerId(flight.getOwner().getId());
+        }
+        if (flight.getArrivalAirport() != null) {
+            dto.setArrivalAirport(toAirportDto(flight.getArrivalAirport()));
+        }
+        if (flight.getDepartureAirport() != null) {
+            dto.setDepartureAirport(toAirportDto(flight.getDepartureAirport()));
+        }
+        if (flight.getAirline() != null) {
+            dto.setAirline(toAirlineDto(flight.getAirline()));
+        }
+        log.debug("MAPPING_FLIGHT_TO_DTO_DONE - flightId: {}", flight.getId());
         return dto;
     }
-} 
+
+    private AirportDto toAirportDto(Airport airport) {
+        log.debug("MAPPING_AIRPORT_TO_DTO    - airportId: {}", airport.getId());
+        AirportDto dto = AirportDto.builder()
+                .id(airport.getId())
+                .name(airport.getName())
+                .build();
+        log.debug("MAPPING_AIRPORT_TO_DTO_DONE - airportId: {}", airport.getId());
+        return dto;
+    }
+
+    private AirlineDto toAirlineDto(Airline airline) {
+        log.debug("MAPPING_AIRLINE_TO_DTO    - airlineId: {}", airline.getId());
+        AirlineDto dto = AirlineDto.builder()
+                .id(airline.getId())
+                .name(airline.getName())
+                .build();
+        log.debug("MAPPING_AIRLINE_TO_DTO_DONE - airlineId: {}", airline.getId());
+        return dto;
+    }
+
+    private FlightCategoryDto toFlightCategoryDto(FlightCategory category) {
+        log.debug("MAPPING_CATEGORY_TO_DTO   - categoryId: {}", category.getId());
+        FlightCategoryDto dto = FlightCategoryDto.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .build();
+        log.debug("MAPPING_CATEGORY_TO_DTO_DONE - categoryId: {}", category.getId());
+        return dto;
+    }
+}

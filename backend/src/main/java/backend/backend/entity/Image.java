@@ -16,12 +16,12 @@ public class Image {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false, length = 500)
-    private String url;
-
     @Column(name = "alt_text", length = 255)
     private String altText;
 
-    @Column(name = "uploaded_at", nullable = false, updatable = false)
-    private LocalDateTime uploadedAt = LocalDateTime.now();
+    @Column(name = "uploaded_at", nullable = false)
+    private LocalDateTime uploadedAt;
+
+    @Column(name = "url", nullable = false, length = 500)
+    private String url;
 }

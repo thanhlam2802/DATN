@@ -1,7 +1,5 @@
 package backend.backend.entity;
 
-
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.Data;
 import jakarta.persistence.*;
@@ -17,7 +15,4 @@ public class FlightCategory {
 
     @Column(nullable = false, length = 100)
     private String name;
-
-    @OneToMany(mappedBy = "category")
-    private List<Flight> flights;
 }

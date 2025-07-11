@@ -9,7 +9,7 @@ import java.util.List;
 public interface FlightBookingService {
     FlightBookingDetailDto bookFlight(FlightBookingDto bookingDto);
     PaymentStatusDto payForFlight(PaymentRequestDto paymentRequestDto);
-    List<FlightBookingDetailDto> getUserFlightBookings(Long userId);
-    FlightBookingDetailDto getFlightBookingDetail(Long bookingId);
-    PaymentStatusDto cancelFlightBooking(Long bookingId);
+    List<FlightBookingDetailDto> getCustomerFlightBookings(Integer customerId);
+    FlightBookingDetailDto getFlightBookingDetail(Integer bookingId);
+    PaymentStatusDto cancelFlightBooking(Integer bookingId);
 } 

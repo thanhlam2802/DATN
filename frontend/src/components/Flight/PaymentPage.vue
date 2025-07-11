@@ -218,10 +218,10 @@ import { payForFlight } from '@/api/flightApi'
 
 const router = useRouter()
 
-/** ========== Dữ liệu giả định (bạn có thể replace bằng props hoặc API) ========== **/
+/** ========== Dữ liệu từ props hoặc route ========== **/
 const flight = reactive({
     id: 101,
-    airline: 'Vietnam Airlines',
+    airline: { name: 'Vietnam Airlines' },
     from: 'HAN',
     to: 'CXR',
     date: '2025-06-13',

@@ -5,6 +5,7 @@ package backend.backend.entity;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -13,30 +14,17 @@ public class TicketDetail {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_booking_id", nullable = false)
-    private TicketBooking ticketBooking;
+    @JoinColumn(name = "user_id")
+    private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_bus_id")
-    private BusBooking busBooking;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_flight_id")
-    private FlightBooking flightBooking;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_tour_id")
-    private BookingTour bookingTour;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hotel_booking_id")
-    private HotelBooking hotelBooking;
-
-    @Column(nullable = false, length = 50)
+    @Column(name = "status", nullable = false, length = 50)
     private String status;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @OneToMany(mappedBy = "ticketDetail")
+    private List<TicketBooking> ticketBookings;
 }

@@ -9,35 +9,42 @@ public interface AdminFlightService {
     // Quản lý chuyến bay
     List<FlightDto> getFlights(int page, int size, String filter);
 
-    FlightDetailDto getFlightDetail(Long flightId);
+    FlightDto getFlightDetail(Integer flightId);
 
     FlightDto createFlight(FlightDto flightDto);
+    
+    FlightDto createFlightWithDetails(CreateFlightRequestDto requestDto);
 
-    FlightDto updateFlight(Long flightId, FlightDto flightDto);
+    FlightDto updateFlight(Integer flightId, FlightDto flightDto);
 
-    void deleteFlight(Long flightId);
+    void deleteFlight(Integer flightId);
 
     // Quản lý ghế
-    List<SeatDto> getSeats(Long flightId);
+    List<FlightSlotDto> getSeats(Integer flightId);
 
-    List<SeatDto> updateSeats(Long flightId, List<SeatDto> seats);
+    List<FlightSlotDto> updateSeats(Integer flightId, List<FlightSlotDto> seats);
+
+    FlightSlotDto updateSeat(Integer slotId, FlightSlotDto slotDto);
+    void deleteSeat(Integer slotId);
 
     // Quản lý đặt vé
     List<FlightBookingDetailDto> getFlightBookings(String filter);
 
-    FlightBookingDetailDto getFlightBookingDetail(Long bookingId);
+    FlightBookingDetailDto getFlightBookingDetail(Integer bookingId);
 
-    FlightBookingDetailDto updateFlightBookingStatus(Long bookingId, String status);
+    FlightBookingDetailDto updateFlightBookingStatus(Integer bookingId, String status);
 
     // Thống kê
     List<FlightStatisticsDto> getFlightStatistics(String type, String value);
 
-    // Quản lý sân bay (airline)
-    List<AirlineDto> getAirlines();
+    // Quản lý sân bay
+    List<AirportDto> getAirports();
 
-    AirlineDto createAirline(AirlineDto airlineDto);
+    AirportDto createAirport(AirportDto airportDto);
 
-    AirlineDto updateAirline(Long airlineId, AirlineDto airlineDto);
+    AirportDto updateAirport(Integer airportId, AirportDto airportDto);
 
-    void deleteAirline(Long airlineId);
+    void deleteAirport(Integer airportId);
+
+    List<ImageDto> updateFlightImages(Integer flightId, List<org.springframework.web.multipart.MultipartFile> files, List<Integer> keepImageIds);
 }

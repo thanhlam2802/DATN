@@ -1,13 +1,18 @@
 package backend.backend.dto;
 
 import backend.backend.entity.Review; 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-
-@Data 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ReviewDto {
     private Integer id;
     private String author;
@@ -17,14 +22,13 @@ public class ReviewDto {
     private List<String> images;
 
     public static ReviewDto fromEntity(Review review) {
-        ReviewDto dto = new ReviewDto();
-        dto.setId(review.getId());
-        dto.setAuthor(review.getUser() != null ? review.getUser().getEmail(): "Anonymous");
-        dto.setRating(review.getRating() != null ? review.getRating().intValue() : null);
-        dto.setDate(review.getCreatedAt() != null ? review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : null);
-        dto.setContent(review.getContent());
-        dto.setImages(List.of()); 
-
-        return dto;
+        return ReviewDto.builder()
+                .id(review.getId())
+                .author(review.getUser() != null ? review.getUser().getEmail(): "Anonymous")
+                .rating(review.getRating() != null ? review.getRating().intValue() : null)
+                .date(review.getCreatedAt() != null ? review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : null)
+                .content(review.getContent())
+                .images(List.of())
+                .build();
     }
 }

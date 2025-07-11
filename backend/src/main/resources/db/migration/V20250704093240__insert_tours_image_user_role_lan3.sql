@@ -1,4 +1,5 @@
 -- File migration tổng hợp, đã sửa cú pháp IDENTITY_INSERT cho SQL Server
+-- ID của bảng 'images' đã được cập nhật để bắt đầu từ 165.
 
 -- 1. Chèn một người dùng mẫu để làm chủ sở hữu (owner)
 SET IDENTITY_INSERT users ON;
@@ -39,33 +40,33 @@ BEGIN
 END;
 
 
--- 4. Chèn 24 ảnh mẫu với URL theo định dạng localhost (BẮT ĐẦU TỪ ID 106)
+-- 4. Chèn 24 ảnh mẫu với URL theo định dạng localhost (BẮT ĐẦU TỪ ID 165)
 SET IDENTITY_INSERT images ON;
 INSERT INTO images (id, url, alt_text) VALUES
-(106, 'http://localhost:8080/images/tours/quynhon-1.jpg', 'Ảnh tour Quy Nhơn 1'),
-(107, 'http://localhost:8080/images/tours/quynhon-2.jpg', 'Ảnh tour Quy Nhơn 2'),
-(108, 'http://localhost:8080/images/tours/quynhon-3.jpg', 'Ảnh tour Quy Nhơn 3'),
-(109, 'http://localhost:8080/images/tours/quynhon-4.jpg', 'Ảnh tour Quy Nhơn 4'),
-(110, 'http://localhost:8080/images/tours/danang-1.jpg', 'Ảnh tour Đà Nẵng 1'),
-(111, 'http://localhost:8080/images/tours/danang-2.jpg', 'Ảnh tour Đà Nẵng 2'),
-(112, 'http://localhost:8080/images/tours/danang-3.jpg', 'Ảnh tour Đà Nẵng 3'),
-(113, 'http://localhost:8080/images/tours/danang-4.jpg', 'Ảnh tour Đà Nẵng 4'),
-(114, 'http://localhost:8080/images/tours/hagiang-1.jpg', 'Ảnh tour Hà Giang 1'),
-(115, 'http://localhost:8080/images/tours/hagiang-2.jpg', 'Ảnh tour Hà Giang 2'),
-(116, 'http://localhost:8080/images/tours/hagiang-3.jpg', 'Ảnh tour Hà Giang 3'),
-(117, 'http://localhost:8080/images/tours/hagiang-4.jpg', 'Ảnh tour Hà Giang 4'),
-(118, 'http://localhost:8080/images/tours/mientay-1.jpg', 'Ảnh tour Miền Tây 1'),
-(119, 'http://localhost:8080/images/tours/mientay-2.jpg', 'Ảnh tour Miền Tây 2'),
-(120, 'http://localhost:8080/images/tours/mientay-3.jpg', 'Ảnh tour Miền Tây 3'),
-(121, 'http://localhost:8080/images/tours/mientay-4.jpg', 'Ảnh tour Miền Tây 4'),
-(122, 'http://localhost:8080/images/tours/phuquoc-1.jpg', 'Ảnh tour Phú Quốc 1'),
-(123, 'http://localhost:8080/images/tours/phuquoc-2.jpg', 'Ảnh tour Phú Quốc 2'),
-(124, 'http://localhost:8080/images/tours/phuquoc-3.jpg', 'Ảnh tour Phú Quốc 3'),
-(125, 'http://localhost:8080/images/tours/phuquoc-4.jpg', 'Ảnh tour Phú Quốc 4'),
-(126, 'http://localhost:8080/images/tours/halong-1.jpg', 'Ảnh tour Hạ Long 1'),
-(127, 'http://localhost:8080/images/tours/halong-2.jpg', 'Ảnh tour Hạ Long 2'),
-(128, 'http://localhost:8080/images/tours/halong-3.jpg', 'Ảnh tour Hạ Long 3'),
-(129, 'http://localhost:8080/images/tours/halong-4.jpg', 'Ảnh tour Hạ Long 4');
+(165, 'http://localhost:8080/images/tours/quynhon-1.jpg', 'Ảnh tour Quy Nhơn 1'),
+(166, 'http://localhost:8080/images/tours/quynhon-2.jpg', 'Ảnh tour Quy Nhơn 2'),
+(167, 'http://localhost:8080/images/tours/quynhon-3.jpg', 'Ảnh tour Quy Nhơn 3'),
+(168, 'http://localhost:8080/images/tours/quynhon-4.jpg', 'Ảnh tour Quy Nhơn 4'),
+(169, 'http://localhost:8080/images/tours/danang-1.jpg', 'Ảnh tour Đà Nẵng 1'),
+(170, 'http://localhost:8080/images/tours/danang-2.jpg', 'Ảnh tour Đà Nẵng 2'),
+(171, 'http://localhost:8080/images/tours/danang-3.jpg', 'Ảnh tour Đà Nẵng 3'),
+(172, 'http://localhost:8080/images/tours/danang-4.jpg', 'Ảnh tour Đà Nẵng 4'),
+(173, 'http://localhost:8080/images/tours/hagiang-1.jpg', 'Ảnh tour Hà Giang 1'),
+(174, 'http://localhost:8080/images/tours/hagiang-2.jpg', 'Ảnh tour Hà Giang 2'),
+(175, 'http://localhost:8080/images/tours/hagiang-3.jpg', 'Ảnh tour Hà Giang 3'),
+(176, 'http://localhost:8080/images/tours/hagiang-4.jpg', 'Ảnh tour Hà Giang 4'),
+(177, 'http://localhost:8080/images/tours/mientay-1.jpg', 'Ảnh tour Miền Tây 1'),
+(178, 'http://localhost:8080/images/tours/mientay-2.jpg', 'Ảnh tour Miền Tây 2'),
+(179, 'http://localhost:8080/images/tours/mientay-3.jpg', 'Ảnh tour Miền Tây 3'),
+(180, 'http://localhost:8080/images/tours/mientay-4.jpg', 'Ảnh tour Miền Tây 4'),
+(181, 'http://localhost:8080/images/tours/phuquoc-1.jpg', 'Ảnh tour Phú Quốc 1'),
+(182, 'http://localhost:8080/images/tours/phuquoc-2.jpg', 'Ảnh tour Phú Quốc 2'),
+(183, 'http://localhost:8080/images/tours/phuquoc-3.jpg', 'Ảnh tour Phú Quốc 3'),
+(184, 'http://localhost:8080/images/tours/phuquoc-4.jpg', 'Ảnh tour Phú Quốc 4'),
+(185, 'http://localhost:8080/images/tours/halong-1.jpg', 'Ảnh tour Hạ Long 1'),
+(186, 'http://localhost:8080/images/tours/halong-2.jpg', 'Ảnh tour Hạ Long 2'),
+(187, 'http://localhost:8080/images/tours/halong-3.jpg', 'Ảnh tour Hạ Long 3'),
+(188, 'http://localhost:8080/images/tours/halong-4.jpg', 'Ảnh tour Hạ Long 4');
 SET IDENTITY_INSERT images OFF;
 
 -- 5. Chèn 6 tour du lịch mẫu, sử dụng owner_id=1
@@ -81,12 +82,12 @@ SET IDENTITY_INSERT tours OFF;
 
 -- 6. Liên kết ảnh với tour tương ứng (ID ảnh đã được cập nhật)
 INSERT INTO tour_images (tour_id, image_id) VALUES
-(1, 106), (1, 107), (1, 108), (1, 109),
-(2, 110), (2, 111), (2, 112), (2, 113),
-(3, 114), (3, 115), (3, 116), (3, 117),
-(4, 118), (4, 119), (4, 120), (4, 121),
-(5, 122), (5, 123), (5, 124), (5, 125),
-(6, 126), (6, 127), (6, 128), (6, 129);
+(1, 165), (1, 166), (1, 167), (1, 168),
+(2, 169), (2, 170), (2, 171), (2, 172),
+(3, 173), (3, 174), (3, 175), (3, 176),
+(4, 177), (4, 178), (4, 179), (4, 180),
+(5, 181), (5, 182), (5, 183), (5, 184),
+(6, 185), (6, 186), (6, 187), (6, 188);
 
 -- 7. Chèn lịch trình mẫu cho một vài tour
 INSERT INTO tour_schedules (tour_id, schedule_date, activity) VALUES

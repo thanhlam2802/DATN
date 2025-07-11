@@ -1,6 +1,8 @@
 // trong package backend.backend.entity
 package backend.backend.entity;
 
+import java.util.Optional;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,14 +20,16 @@ public class TourItineraryActivity {
     private TourSchedule tourSchedule;
 
     @Column(name = "activity_time", length = 10)
-    private String activityTime; // "07:00"
+    private String activityTime;
 
     @Column(name = "activity_title", nullable = false)
-    private String activityTitle; // "Đón khách"
+    private String activityTitle; 
 
     @Column(length = 1000)
-    private String description; // "Xe và HDV đón khách..."
+    private String description; 
 
     @Column(length = 50)
-    private String icon; // "fas fa-bus"
+    private String icon;
+
+	
 }

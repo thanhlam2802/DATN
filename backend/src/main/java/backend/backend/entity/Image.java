@@ -20,9 +20,7 @@ public class Image {
     private String altText;
 
 
-    @Column(name = "uploaded_at", nullable = false)
-    private LocalDateTime uploadedAt;
-
+   
     @Column(name = "url", nullable = false, length = 500)
     private String url;
 

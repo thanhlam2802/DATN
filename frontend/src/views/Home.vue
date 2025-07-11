@@ -204,13 +204,8 @@ import HotelCard from "../components/Home/HotelCard.vue";
 import BusCard from "../components/Home/BusCard.vue";
 import FlightCard from "../components/Home/FlightCard.vue";
 import TourHomeCard from "../components/Home/TourHomeCard.vue";
-
-import { hotels, buses, tours } from "../data/appData";
-import { searchFlights } from '@/api/flightApi'
-
-
+import { searchFlights } from "@/api/flightApi";
 import { searchHotels } from "../api/hotelApi";
-import { buses, flights, tours } from "../data/appData";
 
 const hotels = ref([]);
 const loading = reactive({ hotels: true });
@@ -238,7 +233,6 @@ const fetchHotels = async () => {
   }
 };
 
-
 const hotelScrollContainer = ref(null);
 const busScrollContainer = ref(null);
 const flightScrollContainer = ref(null);
@@ -258,7 +252,7 @@ const containerRefs = {
   tours: tourScrollContainer,
 };
 
-const flights = ref([])
+const flights = ref([]);
 
 const scroll = (type, direction) => {
   const container = containerRefs[type].value;
@@ -283,25 +277,26 @@ const handleScroll = (type) => {
   }
 };
 
-
 onMounted(async () => {
   try {
-    const res = await searchFlights({})
-    flights.value = res.data
-    console.log("=======================================")
-    console.log(flights.value)
+    // Gọi API tìm chuyến bay
+    const res = await searchFlights({});
+    flights.value = res.data;
+    console.log("=======================================");
+    console.log(flights.value);
   } catch (e) {
-    flights.value = []
+    flights.value = [];
   }
 
-onMounted(() => {
+  // Gọi API khách sạn
   fetchHotels();
 
-
+  // Kéo scroll ban đầu
   Object.keys(containerRefs).forEach((type) => {
     nextTick(() => handleScroll(type));
   });
 
+  // Theo dõi thay đổi kích thước để scroll lại
   const resizeObserver = new ResizeObserver(() => {
     Object.keys(containerRefs).forEach(handleScroll);
   });
@@ -310,6 +305,7 @@ onMounted(() => {
     if (ref.value) resizeObserver.observe(ref.value);
   });
 
+  // Cleanup khi unmounted
   onUnmounted(() => {
     resizeObserver.disconnect();
   });

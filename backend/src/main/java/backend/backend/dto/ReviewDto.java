@@ -8,18 +8,12 @@ import lombok.NoArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
-import com.fasterxml.jackson.annotation.JsonFormat;
-
-
-@Data 
-
 public class ReviewDto {
     private Integer id;
     private String author;

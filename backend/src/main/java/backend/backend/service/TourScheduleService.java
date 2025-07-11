@@ -16,4 +16,5 @@ public interface TourScheduleService {
     TourScheduleDto updateTourSchedule(Long  id, TourScheduleDto tourScheduleDto);
 
     void deleteTourSchedule(Long  id);
+	void deleteTour(Long id);
 }

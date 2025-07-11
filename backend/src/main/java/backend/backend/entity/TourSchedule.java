@@ -27,10 +27,10 @@ public class TourSchedule {
     @OrderBy("activityTime ASC")
     private List<TourItineraryActivity> activities;
 
-    @Column(name = "schedule_date", nullable = false)
+    @Column(name = "schedule_date")
     private LocalDate scheduleDate;
-
+   
     @Lob
-    @Column(nullable = false)
-    private String activity;
+    @Column(name = "activity") 
+    private String title;      
 }

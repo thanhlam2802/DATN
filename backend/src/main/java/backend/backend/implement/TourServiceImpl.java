@@ -48,13 +48,9 @@ public class TourServiceImpl implements TourService {
 	  @Override
 	    @Transactional(readOnly = true)
 	    public List<ItineraryDayDto> getStructuredItinerary(Long tourId) {
-	        // 1. Lấy danh sách các "Ngày" (TourSchedule) của tour từ database.
-	        //    Lưu ý: Bạn cần tạo phương thức này trong TourScheduleDAO.
+	    
 	        List<TourSchedule> days = tourScheduleDAO.findByTourIdOrderByDayNumberAsc(tourId);
 
-	        // 2. Dùng stream để chuyển đổi danh sách Entity sang danh sách DTO.
-	        //    Vì đã thiết lập FetchType.EAGER trong TourSchedule,
-	        //    danh sách activities sẽ được tải cùng lúc, tránh lỗi LazyInitializationException.
 	        return days.stream()
 	                   .map(ItineraryDayDto::fromEntity)
 	                   .collect(Collectors.toList());
@@ -96,8 +92,6 @@ public class TourServiceImpl implements TourService {
             case "price-desc":
                 sort = Sort.by("price").descending();
                 break;
-            // TODO: Sắp xếp theo rating sẽ cần join phức tạp hơn hoặc denormalization
-            // Tạm thời sắp xếp theo ngày tạo mới nhất
             case "rating":
             case "popular":
             default:

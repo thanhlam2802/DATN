@@ -160,7 +160,16 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-
+<plugin>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-maven-plugin</artifactId>
+    <version>11.7.2</version>
+    <configuration>
+        <url>jdbc:sqlserver://localhost:1433;databaseName=DATN;encrypt=true;trustServerCertificate=true;</url>
+        <user>sa</user>
+        <password>123456aA</password>
+    </configuration>
+</plugin>
             <!-- Spring Boot Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>

@@ -3,12 +3,16 @@ package backend.backend.implement;
 
 
 import backend.backend.dao.TourDAO;
+import backend.backend.dao.TourItineraryActivityDAO;
 import backend.backend.dao.TourScheduleDAO;
 import backend.backend.dto.TourScheduleDto;
 import backend.backend.entity.Tour;
+import backend.backend.entity.TourItineraryActivity;
 import backend.backend.entity.TourSchedule;
-
+import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.TourScheduleService;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,16 +20,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+
 public class TourScheduleServiceImpl implements TourScheduleService {
 	  @Autowired
  TourScheduleDAO tourScheduleRepository;
 	  @Autowired
     TourDAO tourRepository;
-
+	  @Autowired
+	  TourItineraryActivityDAO tourItineraryActivityRepository;
 	  
 	  @Override
 	  public List<TourScheduleDto> getSchedulesByTourId(Long tourId) {
@@ -45,48 +52,85 @@ public class TourScheduleServiceImpl implements TourScheduleService {
     }
 
     @Override
-    public TourScheduleDto createTourSchedule(TourScheduleDto tourScheduleDto) {
-        if (tourScheduleDto.getTourId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tour ID is required to create a schedule.");
+    @Transactional 
+    public TourScheduleDto createTourSchedule(TourScheduleDto dto) {
+        Tour tour = tourRepository.findById(dto.getTourId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Tour với ID: " + dto.getTourId()));
+
+      
+        TourSchedule schedule = new TourSchedule();
+       
+        schedule.setTour(tour);
+       
+        schedule.setDayNumber(dto.getDay());
+        schedule.setTitle(dto.getTitle());
+       
+        
+        TourSchedule savedSchedule = tourScheduleRepository.save(schedule);
+
+        // 3. Tạo và lưu các TourItineraryActivity con
+        List<TourItineraryActivity> activities = new ArrayList<>();
+        if (dto.getActivities() != null) {
+            dto.getActivities().forEach(activityDto -> {
+                TourItineraryActivity activity = new TourItineraryActivity();
+                activity.setTourSchedule(savedSchedule); 
+                activity.setActivityTime(activityDto.getTime());
+                activity.setActivityTitle(activityDto.getActivity());
+                activity.setDescription(activityDto.getDescription());
+                activity.setIcon(activityDto.getIcon());
+                activities.add(activity);
+            });
+            tourItineraryActivityRepository.saveAll(activities);
         }
-
-        // Fetch the Tour entity to establish the relationship
-        Tour tour = tourRepository.findById(tourScheduleDto.getTourId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour not found with ID: " + tourScheduleDto.getTourId()));
-
-        TourSchedule tourSchedule = tourScheduleDto.toEntity();
-        tourSchedule.setTour(tour); // Set the actual Tour entity
-
-        TourSchedule savedSchedule = tourScheduleRepository.save(tourSchedule);
+        
+        savedSchedule.setActivities(activities);
         return TourScheduleDto.fromEntity(savedSchedule);
     }
 
     @Override
-    public TourScheduleDto updateTourSchedule(Long id, TourScheduleDto tourScheduleDto) {
+    @Transactional
+    public TourScheduleDto updateTourSchedule(Long id, TourScheduleDto dto) {
+    
         TourSchedule existingSchedule = tourScheduleRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour schedule not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch trình với ID: " + id));
 
-        // Update fields (excluding ID, which is fixed)
-        existingSchedule.setScheduleDate(tourScheduleDto.getScheduleDate() != null ? LocalDate.parse(tourScheduleDto.getScheduleDate()) : existingSchedule.getScheduleDate());
-        existingSchedule.setActivity(tourScheduleDto.getActivity() != null ? tourScheduleDto.getActivity() : existingSchedule.getActivity());
+        existingSchedule.setDayNumber(dto.getDay());
+        existingSchedule.setTitle(dto.getTitle());
 
-        
-        if (tourScheduleDto.getTourId() != null && !existingSchedule.getTour().getId().equals(tourScheduleDto.getTourId())) {
-            Tour newTour = tourRepository.findById(tourScheduleDto.getTourId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "New Tour not found with ID: " + tourScheduleDto.getTourId()));
-            existingSchedule.setTour(newTour);
+     
+        existingSchedule.getActivities().clear();
+       
+        if (dto.getActivities() != null) {
+      
+            dto.getActivities().forEach(activityDto -> {
+                TourItineraryActivity activity = new TourItineraryActivity();
+                activity.setTourSchedule(existingSchedule); 
+                activity.setActivityTime(activityDto.getTime());
+                activity.setActivityTitle(activityDto.getActivity());
+                activity.setDescription(activityDto.getDescription());
+                activity.setIcon(activityDto.getIcon());
+              
+                existingSchedule.getActivities().add(activity); 
+            });
         }
 
-        TourSchedule updatedSchedule = tourScheduleRepository.save(existingSchedule);
-        return TourScheduleDto.fromEntity(updatedSchedule);
+     
+        TourSchedule savedSchedule = tourScheduleRepository.save(existingSchedule);
+        
+        return TourScheduleDto.fromEntity(savedSchedule);
     }
 
     @Override
-    public void deleteTourSchedule(Long  id) {
-        if (!tourScheduleRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour schedule not found with ID: " + id);
-        }
-        tourScheduleRepository.deleteById(id);
+    @Transactional
+    public void deleteTourSchedule(Long id) {
+        TourSchedule schedule = tourScheduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch trình với ID: " + id));
+
+        // Do có quan hệ, chúng ta cần xóa các 'con' (activities) trước
+        tourItineraryActivityRepository.deleteAll(schedule.getActivities());
+        
+        // Sau đó xóa 'cha' (schedule)
+        tourScheduleRepository.delete(schedule);
     }
 
 
@@ -94,5 +138,12 @@ public class TourScheduleServiceImpl implements TourScheduleService {
 	public List<TourSchedule> findByTourId(Long tourId) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+
+	@Override
+	public void deleteTour(Long id) {
+		// TODO Auto-generated method stub
+		
 	}
 }

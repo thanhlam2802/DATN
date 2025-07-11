@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-8">
     <div class="flex items-center justify-between">
-      <h3 class="text-2xl font-semibold text-gray-800">
+      <h3 class="text-3xl font-bold text-gray-900">
         {{
           isViewMode
             ? "Chi tiết Tour"
@@ -10,737 +10,686 @@
             : "Thêm Tour Mới"
         }}
       </h3>
-      <div class="flex gap-4" v-if="isViewMode">
-        <button
-          @click="$emit('submit', { ...tourForm, mode: 'edit' })"
-          class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-        >
-          Chỉnh sửa
-        </button>
-        <button
-          @click="handleCancel"
-          class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-        >
-          Quay lại
-        </button>
-      </div>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-6">
-      <!-- Thông tin cơ bản -->
-      <div class="bg-white rounded-lg shadow p-6 space-y-4">
-        <h4 class="text-lg font-medium text-gray-700">Thông tin cơ bản</h4>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Tên tour <span class="text-red-500">*</span>
-            </label>
+    <form @submit.prevent="handleSubmit" class="space-y-8">
+      <div
+        class="bg-white rounded-2xl shadow-lg p-6 space-y-6 border border-gray-200"
+      >
+        <h4
+          class="text-xl font-semibold text-gray-800 border-b pb-3 flex items-center gap-2"
+        >
+          <i class="fas fa-info-circle text-blue-500"></i>
+          Thông tin cơ bản
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="col-span-1 md:col-span-2 lg:col-span-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Tên tour <span class="text-red-500">*</span></label
+            >
             <input
               v-model="tourForm.ten_tour"
               type="text"
               required
               :disabled="isViewMode"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              class="form-input w-full"
             />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Giá <span class="text-red-500">*</span>
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Giá (VND) <span class="text-red-500">*</span></label
+            >
             <input
               v-model="tourForm.gia"
               type="number"
               required
               min="0"
               :disabled="isViewMode"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              class="form-input"
             />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Thời gian <span class="text-red-500">*</span>
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Thời gian (Số ngày) <span class="text-red-500">*</span></label
+            >
             <input
-              v-model="tourForm.thoi_gian"
-              type="text"
+              v-model="tourForm.durationDays"
+              type="number"
               required
-              placeholder="VD: 3 ngày 2 đêm"
+              min="1"
               :disabled="isViewMode"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              class="form-input"
             />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Điểm khởi hành <span class="text-red-500">*</span>
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Điểm khởi hành <span class="text-red-500">*</span></label
+            >
             <input
               v-model="tourForm.diem_khoi_hanh"
               type="text"
               required
               :disabled="isViewMode"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              class="form-input"
             />
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Điểm đến <span class="text-red-500">*</span>
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Điểm đến <span class="text-red-500">*</span></label
+            >
             <input
               v-model="tourForm.diem_den"
               type="text"
               required
               :disabled="isViewMode"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              class="form-input"
             />
           </div>
-
-          <div class="col-span-full">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Hình ảnh <span class="text-red-500">*</span>
-            </label>
-            <div class="space-y-4">
-              <div
-                class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors"
-                :class="{ 'border-red-500': imageError }"
-              >
-                <input
-                  type="file"
-                  @change="handleImageUpload"
-                  :required="!hasImages"
-                  accept="image/*"
-                  multiple
-                  :disabled="isViewMode"
-                  class="hidden"
-                  ref="fileInput"
-                />
-
-                <div class="space-y-2 cursor-pointer" @click="triggerFileInput">
-                  <i class="fas fa-cloud-upload-alt text-3xl text-gray-400"></i>
-                  <div class="text-sm text-gray-600">
-                    <span class="text-blue-500 hover:text-blue-700"
-                      >Tải lên hình ảnh</span
-                    >
-                    hoặc kéo thả vào đây
-                  </div>
-                  <div class="text-xs text-gray-500">
-                    PNG, JPG, GIF tối đa 5MB mỗi ảnh
-                  </div>
-                </div>
-              </div>
-
-              <div
-                v-if="imageError"
-                class="text-red-500 text-sm p-2 bg-red-50 rounded-lg"
-              >
-                <i class="fas fa-exclamation-circle mr-1"></i>
-                {{ imageError }}
-              </div>
-
-              <div
-                v-if="hasImages"
-                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
-              >
-                <div
-                  v-for="(image, index) in existingImages"
-                  :key="'existing-' + index"
-                  class="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden"
-                >
-                  <img
-                    :src="image.url"
-                    class="w-full h-full object-cover"
-                    :class="{ 'opacity-75': isViewMode }"
-                    @error="handleImageError($event, index, 'existing')"
-                  />
-                  <div
-                    v-if="!isViewMode"
-                    class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300"
-                  >
-                    <button
-                      @click.prevent="removeExistingImage(index)"
-                      type="button"
-                      class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                    >
-                      <i class="fas fa-trash-alt"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  v-for="(preview, index) in imagePreviewUrls"
-                  :key="'new-' + index"
-                  class="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden"
-                >
-                  <img
-                    :src="preview.url"
-                    class="w-full h-full object-cover"
-                    @error="handleImageError($event, index, 'new')"
-                  />
-                  <div
-                    v-if="!isViewMode"
-                    class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300"
-                  >
-                    <button
-                      @click.prevent="removeNewImage(index)"
-                      type="button"
-                      class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                    >
-                      <i class="fas fa-trash-alt"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Trạng thái</label
+            >
+            <select
+              v-model="tourForm.status"
+              :disabled="isViewMode"
+              class="form-input"
+            >
+              <option value="ACTIVE">Hoạt động</option>
+              <option value="INACTIVE">Tạm dừng</option>
+            </select>
           </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Mô tả <span class="text-red-500">*</span>
-          </label>
-          <Ckeditor v-model="tourForm.mo_ta" :disabled="isViewMode" />
         </div>
       </div>
 
-      <!-- Lịch trình -->
-      <div class="bg-white rounded-lg shadow p-6 space-y-4">
-        <div class="flex items-center justify-between">
-          <h4 class="text-lg font-medium text-gray-700">Lịch trình</h4>
+      <div
+        class="bg-white rounded-2xl shadow-lg p-6 space-y-4 border border-gray-200"
+      >
+        <h4
+          class="text-xl font-semibold text-gray-800 border-b pb-3 flex items-center gap-2"
+        >
+          <i class="fas fa-images text-teal-500"></i>
+          Hình ảnh
+        </h4>
+        <input
+          type="file"
+          @change="handleImageUpload"
+          multiple
+          :disabled="isViewMode"
+          accept="image/*"
+          class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        />
+        <div
+          v-if="tourForm.hinh_anh && tourForm.hinh_anh.length > 0"
+          class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 mt-4"
+        >
+          <div
+            v-for="(image, index) in tourForm.hinh_anh"
+            :key="image.url || index"
+            class="relative group"
+          >
+            <img
+              :src="image.url"
+              :alt="'Hình ảnh tour ' + (index + 1)"
+              class="w-full h-32 object-cover rounded-lg shadow-md"
+            />
+            <button
+              v-if="!isViewMode"
+              @click.prevent="removeImage(index)"
+              class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="bg-white rounded-2xl shadow-lg p-6 space-y-4 border border-gray-200"
+      >
+        <h4
+          class="text-xl font-semibold text-gray-800 border-b pb-3 flex items-center gap-2"
+        >
+          <i class="fas fa-file-alt text-indigo-500"></i>
+          Mô tả chi tiết
+        </h4>
+        <Ckeditor v-model="tourForm.mo_ta" :disabled="isViewMode" />
+      </div>
+
+      <div
+        class="bg-white rounded-2xl shadow-lg p-6 space-y-6 border border-gray-200"
+      >
+        <div class="flex items-center justify-between border-b pb-3">
+          <h4
+            class="text-xl font-semibold text-gray-800 flex items-center gap-2"
+          >
+            <i class="fas fa-calendar-alt text-orange-500"></i>
+            Lịch trình chi tiết
+          </h4>
           <button
             v-if="!isViewMode"
             type="button"
             @click="addScheduleDay"
-            class="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            class="btn-primary-sm"
           >
-            <i class="fas fa-plus"></i>
-            Thêm ngày
+            + Thêm ngày
           </button>
         </div>
-
         <div
-          v-for="(day, index) in tourForm.lich_trinh"
-          :key="index"
-          class="space-y-4 border-b pb-4"
+          v-for="(day, dayIndex) in tourForm.lich_trinh"
+          :key="dayIndex"
+          class="space-y-4 p-4 border rounded-lg bg-gray-50"
         >
           <div class="flex items-center justify-between">
-            <h5 class="font-medium">Ngày {{ index + 1 }}</h5>
+            <h5 class="font-semibold text-lg text-gray-700">
+              Ngày {{ day.dayNumber }}
+            </h5>
             <button
               v-if="!isViewMode"
               type="button"
-              @click="removeScheduleDay(index)"
-              class="text-red-600 hover:text-red-800"
+              @click="removeScheduleDay(dayIndex)"
+              class="text-red-500 hover:text-red-700 font-bold"
             >
-              <i class="fas fa-trash"></i>
+              &times; Xóa ngày
             </button>
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Hoạt động
-            </label>
-            <textarea
-              v-model="day.hoat_dong"
-              rows="3"
-              required
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Chủ đề ngày</label
+            >
+            <input
+              v-model="day.title"
+              type="text"
               :disabled="isViewMode"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            ></textarea>
+              class="form-input w-full"
+              placeholder="VD: Khám phá Vịnh Hạ Long"
+            />
+          </div>
+          <div class="space-y-3 pl-4 border-l-2 border-blue-200">
+            <h6 class="font-medium text-gray-600">Các hoạt động:</h6>
+            <div
+              v-for="(activity, activityIndex) in day.activities"
+              :key="activityIndex"
+              class="p-3 border rounded-md bg-white space-y-2 relative"
+            >
+              <div class="absolute top-2 right-2">
+                <button
+                  v-if="!isViewMode"
+                  type="button"
+                  @click="removeActivity(dayIndex, activityIndex)"
+                  class="text-xs text-red-500 font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-1"
+                    >Icon</label
+                  >
+                  <select
+                    v-model="activity.icon"
+                    :disabled="isViewMode"
+                    class="form-input-sm"
+                  >
+                    <option value="">Chọn icon</option>
+                    <option
+                      v-for="icon in availableIcons"
+                      :key="icon.value"
+                      :value="icon.value"
+                    >
+                      {{ icon.name }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-1"
+                    >Thời gian</label
+                  >
+                  <input
+                    v-model="activity.time"
+                    type="text"
+                    :disabled="isViewMode"
+                    class="form-input-sm"
+                    placeholder="VD: 08:00"
+                  />
+                </div>
+                <div class="">
+                  <label class="block text-xs font-medium text-gray-600 mb-1"
+                    >Tên hoạt động</label
+                  >
+                  <input
+                    v-model="activity.activity"
+                    type="text"
+                    :disabled="isViewMode"
+                    class="form-input-sm"
+                    placeholder="VD: Ăn sáng tại khách sạn"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1 mt-5"
+                  >Mô tả hoạt động</label
+                >
+                <textarea
+                  v-model="activity.description"
+                  :disabled="isViewMode"
+                  rows="2"
+                  class="form-input w-full h-[100px]"
+                  placeholder="Mô tả chi tiết..."
+                ></textarea>
+              </div>
+            </div>
+            <button
+              v-if="!isViewMode"
+              type="button"
+              @click="addActivity(dayIndex)"
+              class="btn-secondary-sm"
+            >
+              + Thêm hoạt động
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Ngày khởi hành -->
-      <div class="bg-white rounded-lg shadow p-6 space-y-4">
-        <div class="flex items-center justify-between">
-          <h4 class="text-lg font-medium text-gray-700">Ngày khởi hành</h4>
+      <div
+        class="bg-white rounded-2xl shadow-lg p-6 space-y-6 border border-gray-200"
+      >
+        <div class="flex items-center justify-between border-b pb-3">
+          <h4
+            class="text-xl font-semibold text-gray-800 flex items-center gap-2"
+          >
+            <i class="fas fa-plane-departure text-green-500"></i>
+            Ngày khởi hành
+          </h4>
           <button
             v-if="!isViewMode"
             type="button"
             @click="addDepartureDate"
-            class="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            class="btn-primary-sm"
           >
-            <i class="fas fa-plus"></i>
-            Thêm ngày
+            + Thêm ngày
           </button>
         </div>
-
         <div
           v-for="(date, index) in tourForm.ngay_khoi_hanh"
           :key="index"
-          class="space-y-4 border-b pb-4"
+          class="p-4 border rounded-lg bg-gray-50 space-y-4"
         >
-          <div class="flex items-center justify-between">
-            <h5 class="font-medium">Lịch {{ index + 1 }}</h5>
+          <div class="flex justify-end">
             <button
               v-if="!isViewMode"
               type="button"
               @click="removeDepartureDate(index)"
-              class="text-red-600 hover:text-red-800"
+              class="text-red-500 hover:text-red-700 font-bold"
             >
-              <i class="fas fa-trash"></i>
+              &times; Xóa
             </button>
           </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Ngày khởi hành
-              </label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Ngày đi</label
+              >
               <input
                 v-model="date.ngay"
                 type="date"
                 required
                 :disabled="isViewMode"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                class="form-input"
               />
             </div>
-
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Giá người lớn
-              </label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Giá người lớn</label
+              >
               <input
                 v-model="date.gia_nguoi_lon"
                 type="number"
                 required
                 min="0"
                 :disabled="isViewMode"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                class="form-input"
               />
             </div>
-
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Giá trẻ em
-              </label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Giá trẻ em</label
+              >
               <input
                 v-model="date.gia_tre_em"
                 type="number"
                 required
                 min="0"
                 :disabled="isViewMode"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                class="form-input"
               />
             </div>
-
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Giảm giá
-              </label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Giảm giá (%)</label
+              >
               <input
                 v-model="date.giam_gia"
                 type="number"
                 min="0"
+                max="100"
                 :disabled="isViewMode"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                class="form-input"
               />
             </div>
-
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Số chỗ
-              </label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Số chỗ</label
+              >
               <input
                 v-model="date.so_cho"
                 type="number"
                 required
                 min="1"
                 :disabled="isViewMode"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                class="form-input"
               />
             </div>
-
-            <div v-if="isViewMode">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Số chỗ đã đặt
-              </label>
+            <div v-if="isViewMode || isEditMode">
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Chỗ đã đặt</label
+              >
               <input
-                v-model="date.so_cho_da_dat"
+                :value="date.so_cho_da_dat"
                 type="number"
                 disabled
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500"
+                class="form-input bg-gray-100"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Buttons -->
-      <div class="flex justify-end gap-4" v-if="!isViewMode">
-        <button
-          type="button"
-          @click="handleCancel"
-          class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+      <div
+        class="bg-white rounded-2xl shadow-lg p-6 space-y-4 border border-gray-200"
+      >
+        <h4
+          class="text-xl font-semibold text-gray-800 border-b pb-3 flex items-center gap-2"
         >
+          <i class="fas fa-tags text-purple-500"></i>
+          Thẻ (Tags)
+        </h4>
+        <div
+          class="flex flex-wrap gap-2 items-center p-2 border border-gray-300 rounded-lg min-h-[42px]"
+        >
+          <span
+            v-for="(tag, index) in tourForm.tags"
+            :key="tag.id || tag.name"
+            class="flex items-center gap-2 bg-blue-100 text-blue-800 text-sm font-medium pl-3 pr-2 py-1 rounded-full"
+          >
+            {{ tag.name }}
+            <button
+              v-if="!isViewMode"
+              @click.prevent="removeTag(index)"
+              class="text-blue-600 hover:text-blue-900 font-bold"
+            >
+              &times;
+            </button>
+          </span>
+          <div v-if="!isViewMode" class="relative flex-grow">
+            <input
+              type="text"
+              v-model="tagSearch"
+              @focus="showTagSuggestions = true"
+              @blur="() => setTimeout(() => (showTagSuggestions = false), 200)"
+              @keydown.enter.prevent="addNewTag"
+              placeholder="Chọn hoặc thêm tag mới..."
+              class="outline-none bg-transparent"
+            />
+            <div
+              v-if="showTagSuggestions && tagSuggestions.length > 0"
+              class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto"
+            >
+              <ul>
+                <li
+                  v-for="suggestion in tagSuggestions"
+                  :key="suggestion.id"
+                  @click="selectTag(suggestion)"
+                  class="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  {{ suggestion.name }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-4 pt-4 border-t" v-if="!isViewMode">
+        <button type="button" @click="handleCancel" class="btn-secondary">
           Hủy
         </button>
-        <button
-          type="submit"
-          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          {{ isEditMode ? "Cập nhật" : "Thêm tour" }}
+        <button type="submit" class="btn-primary">
+          {{ isEditMode ? "Cập nhật Tour" : "Thêm Tour Mới" }}
         </button>
       </div>
     </form>
   </div>
 </template>
-
 <script setup>
-import { ref, watch, computed, onUnmounted, onMounted } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
+import tagApi from "../api/tagApi.js";
 import Ckeditor from "../components/Ckeditor.vue";
-const props = defineProps({
-  tourData: {
-    type: Object,
-    default: () => null,
-  },
-  mode: {
-    type: String,
-    default: "add",
-  },
-});
 
+// --- PROPS & EMITS ---
+const props = defineProps({
+  tourData: { type: Object, default: () => null },
+  mode: { type: String, default: "add" },
+});
 const emit = defineEmits(["cancel", "submit"]);
 
+// --- STATE ---
 const isViewMode = computed(() => props.mode === "view");
 const isEditMode = computed(() => props.mode === "edit");
 
-const tourForm = ref({
+const availableIcons = ref([
+  // Nhóm chung & Ăn uống
+  { name: "Ăn uống", value: "fas fa-utensils" },
+  { name: "Cà phê/Ăn sáng", value: "fas fa-coffee" },
+  { name: "Tiệc BBQ", value: "fas fa-fire" },
+  { name: "Thông tin/Họp mặt", value: "fas fa-info-circle" },
+  { name: "Mua sắm", value: "fas fa-shopping-bag" },
+
+  // Nhóm di chuyển
+  { name: "Khách sạn", value: "fas fa-hotel" },
+  { name: "Hành lý", value: "fas fa-suitcase-rolling" },
+  { name: "Máy bay", value: "fas fa-plane" },
+  { name: "Xe buýt", value: "fas fa-bus" },
+  { name: "Tàu hỏa", value: "fas fa-train" },
+  { name: "Tàu thủy/Cano", value: "fas fa-ship" },
+
+  // Nhóm hoạt động & tham quan
+  { name: "Tham quan", value: "fas fa-camera-retro" },
+  { name: "Di tích/Bảo tàng", value: "fas fa-landmark" },
+  { name: "Đền/Chùa", value: "fas fa-gopuram" },
+  { name: "Đi bộ/Leo núi", value: "fas fa-hiking" },
+  { name: "Bãi biển", value: "fas fa-umbrella-beach" },
+  { name: "Bơi lội", value: "fas fa-swimmer" },
+  { name: "Lặn biển", value: "fas fa-water" },
+  { name: "Bản đồ/Phương hướng", value: "fas fa-map-marked-alt" },
+]);
+
+const allAvailableTags = ref([]);
+
+const tagSearch = ref("");
+const showTagSuggestions = ref(false);
+
+onMounted(async () => {
+  try {
+    const tagsFromApi = await tagApi.getAllTags();
+    allAvailableTags.value = tagsFromApi;
+    console.log(
+      "--- [AddTourTab] Đã tải danh sách tags từ API thành công: ---",
+      tagsFromApi
+    );
+  } catch (error) {
+    console.error("--- [AddTourTab] Lỗi khi tải danh sách tags: ---", error);
+  }
+});
+
+const getInitialFormState = () => ({
+  id: null,
   ten_tour: "",
   mo_ta: "",
-  gia: "",
-  thoi_gian: "",
+  gia: 0,
+  durationDays: 1,
   diem_khoi_hanh: "",
   diem_den: "",
+  status: "ACTIVE",
   hinh_anh: [],
-  lich_trinh: [
-    {
-      hoat_dong: "",
-    },
-  ],
-  ngay_khoi_hanh: [
-    {
-      ngay: "",
-      gia_nguoi_lon: "",
-      gia_tre_em: "",
-      giam_gia: "",
-      so_cho: "",
-      so_cho_da_dat: 0,
-    },
-  ],
+  lich_trinh: [],
+  ngay_khoi_hanh: [],
+  tags: [],
 });
 
-const fileInput = ref(null);
-const imagePreviewUrls = ref([]);
-const imageError = ref("");
-const existingImages = ref([]);
-const dragCounter = ref(0);
+const tourForm = ref(getInitialFormState());
 
-// Computed property to check if there are any images
-const hasImages = computed(() => {
-  return imagePreviewUrls.value.length > 0 || existingImages.value.length > 0;
-});
-
-// Watch for changes in tourData prop
+// --- WATCHER ---
 watch(
   () => props.tourData,
   (newVal) => {
+    // LOG: Kiểm tra dữ liệu được truyền vào từ component cha
     if (newVal) {
-      tourForm.value = { ...newVal };
-      // Handle existing images
-      if (Array.isArray(newVal.hinh_anh)) {
-        existingImages.value = newVal.hinh_anh
-          .map((img) => {
-            if (typeof img === "string") {
-              return { url: img, file: null };
-            } else if (img instanceof File) {
-              return { url: URL.createObjectURL(img), file: img };
-            }
-            return null;
-          })
-          .filter(Boolean);
-      }
+      console.log(
+        `--- [AddTourTab] Nhận được dữ liệu cho chế độ '${props.mode}'. Đang điền vào form: ---`,
+        newVal
+      );
+      tourForm.value = { ...getInitialFormState(), ...newVal };
+    } else {
+      console.log(
+        "--- [AddTourTab] Không có dữ liệu đầu vào. Đang reset form về trạng thái thêm mới. ---"
+      );
+      tourForm.value = getInitialFormState();
     }
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 );
 
-// Function to trigger file input click
-const triggerFileInput = () => {
-  if (!isViewMode.value) {
-    fileInput.value.click();
-  }
-};
+// --- COMPUTED ---
+const tagSuggestions = computed(() => {
+  if (!tagSearch.value) return [];
+  const selectedTagNames = new Set(tourForm.value.tags.map((t) => t.name));
+  return allAvailableTags.value.filter(
+    (tag) =>
+      !selectedTagNames.has(tag.name) &&
+      tag.name.toLowerCase().includes(tagSearch.value.toLowerCase())
+  );
+});
 
-// Validate single file
-const validateFile = (file) => {
-  // Check file type
-  if (!file.type.startsWith("image/")) {
-    return "Chỉ chấp nhận file hình ảnh (PNG, JPG, GIF)";
-  }
+// --- METHODS ---
+// Lịch trình
+const addScheduleDay = () =>
+  tourForm.value.lich_trinh.push({
+    dayNumber: tourForm.value.lich_trinh.length + 1,
+    title: "",
+    activities: [],
+  });
+const removeScheduleDay = (dayIndex) =>
+  tourForm.value.lich_trinh.splice(dayIndex, 1);
+const addActivity = (dayIndex) =>
+  tourForm.value.lich_trinh[dayIndex].activities.push({
+    time: "",
+    activity: "",
+    description: "",
+    icon: "",
+  });
+const removeActivity = (dayIndex, activityIndex) =>
+  tourForm.value.lich_trinh[dayIndex].activities.splice(activityIndex, 1);
 
-  // Check file size (5MB)
-  const maxSize = 5 * 1024 * 1024;
-  if (file.size > maxSize) {
-    return `File "${file.name}" vượt quá kích thước cho phép (5MB)`;
-  }
+// Ngày khởi hành
+const addDepartureDate = () =>
+  tourForm.value.ngay_khoi_hanh.push({
+    ngay: "",
+    gia_nguoi_lon: 0,
+    gia_tre_em: 0,
+    giam_gia: 0,
+    so_cho: 1,
+  });
+const removeDepartureDate = (index) =>
+  tourForm.value.ngay_khoi_hanh.splice(index, 1);
 
-  return null;
-};
+// Hình ảnh
+const handleImageUpload = (event) => {
+  const files = Array.from(event.target.files);
 
-// Handle file upload
-const handleImageUpload = async (event) => {
-  const files = Array.from(event.target.files || event.dataTransfer.files);
-  imageError.value = "";
+  console.log("--- [AddTourTab] Người dùng đã chọn các tệp ảnh: ---", files);
 
-  // Validate each file
-  for (const file of files) {
-    const error = validateFile(file);
-    if (error) {
-      imageError.value = error;
-      if (event.target) event.target.value = "";
-      return;
-    }
-  }
-
-  // Create preview URLs and add to preview array
-  const newPreviews = files.map((file) => ({
+  const newImages = files.map((file) => ({
     url: URL.createObjectURL(file),
     file: file,
   }));
-
-  imagePreviewUrls.value = [...imagePreviewUrls.value, ...newPreviews];
-
-  // Update form data with new files
-  tourForm.value.hinh_anh = [
-    ...tourForm.value.hinh_anh.filter((img) => !(img instanceof File)),
-    ...files,
-  ];
-
-  // Clear input value to allow selecting the same file again
-  if (event.target) event.target.value = "";
+  tourForm.value.hinh_anh.push(...newImages);
 };
+const removeImage = (index) => tourForm.value.hinh_anh.splice(index, 1);
 
-// Handle image load error
-const handleImageError = (event, index, type) => {
-  console.error(`Failed to load image: ${type} - ${index}`);
-  event.target.src = "https://placehold.co/400x400?text=Error+Loading+Image";
+// Tags
+const selectTag = (tag) => {
+  tourForm.value.tags.push(tag);
+  tagSearch.value = "";
+  showTagSuggestions.value = false;
 };
+const addNewTag = () => {
+  if (tagSearch.value.trim() !== "") {
+    const newTagName = tagSearch.value.trim();
+    const existingTag = tourForm.value.tags.find(
+      (t) => t.name.toLowerCase() === newTagName.toLowerCase()
+    );
+    const availableTag = allAvailableTags.value.find(
+      (t) => t.name.toLowerCase() === newTagName.toLowerCase()
+    );
 
-// Remove new image
-const removeNewImage = (index) => {
-  const preview = imagePreviewUrls.value[index];
-  if (preview && preview.url) {
-    URL.revokeObjectURL(preview.url);
-  }
-  imagePreviewUrls.value.splice(index, 1);
-
-  // Remove from form data
-  const fileImages = tourForm.value.hinh_anh.filter(
-    (img) => img instanceof File
-  );
-  fileImages.splice(index, 1);
-  tourForm.value.hinh_anh = [
-    ...tourForm.value.hinh_anh.filter((img) => !(img instanceof File)),
-    ...fileImages,
-  ];
-};
-
-// Remove existing image
-const removeExistingImage = (index) => {
-  // Remove from existing images
-  const removedImage = existingImages.value[index];
-  if (removedImage.url.startsWith("blob:")) {
-    URL.revokeObjectURL(removedImage.url);
-  }
-  existingImages.value.splice(index, 1);
-
-  // Remove from form data
-  tourForm.value.hinh_anh = tourForm.value.hinh_anh.filter(
-    (_, i) => i !== index
-  );
-};
-
-// Drag and drop handlers
-const handleDragEnter = (e) => {
-  e.preventDefault();
-  dragCounter.value++;
-  if (e.currentTarget) {
-    e.currentTarget.classList.add("border-blue-500");
-  }
-};
-
-const handleDragLeave = (e) => {
-  e.preventDefault();
-  dragCounter.value--;
-  if (dragCounter.value === 0 && e.currentTarget) {
-    e.currentTarget.classList.remove("border-blue-500");
-  }
-};
-
-const handleDragOver = (e) => {
-  e.preventDefault();
-};
-
-const handleDrop = (e) => {
-  e.preventDefault();
-  dragCounter.value = 0;
-  if (e.currentTarget) {
-    e.currentTarget.classList.remove("border-blue-500");
-  }
-  handleImageUpload(e);
-};
-
-// Set up drag and drop listeners
-onMounted(() => {
-  const dropZone = document.querySelector(".border-dashed");
-  if (dropZone) {
-    dropZone.addEventListener("dragenter", handleDragEnter);
-    dropZone.addEventListener("dragleave", handleDragLeave);
-    dropZone.addEventListener("dragover", handleDragOver);
-    dropZone.addEventListener("drop", handleDrop);
-  }
-});
-
-// Clean up
-onUnmounted(() => {
-  const dropZone = document.querySelector(".border-dashed");
-  if (dropZone) {
-    dropZone.removeEventListener("dragenter", handleDragEnter);
-    dropZone.removeEventListener("dragleave", handleDragLeave);
-    dropZone.removeEventListener("dragover", handleDragOver);
-    dropZone.removeEventListener("drop", handleDrop);
-  }
-
-  // Clean up preview URLs
-  imagePreviewUrls.value.forEach((preview) => {
-    if (preview.url) {
-      URL.revokeObjectURL(preview.url);
-    }
-  });
-
-  // Clean up existing image URLs
-  existingImages.value.forEach((img) => {
-    if (img.url && img.url.startsWith("blob:")) {
-      URL.revokeObjectURL(img.url);
-    }
-  });
-});
-
-const addScheduleDay = () => {
-  tourForm.value.lich_trinh.push({
-    hoat_dong: "",
-  });
-};
-
-const removeScheduleDay = (index) => {
-  tourForm.value.lich_trinh.splice(index, 1);
-};
-
-const addDepartureDate = () => {
-  tourForm.value.ngay_khoi_hanh.push({
-    ngay: "",
-    gia_nguoi_lon: "",
-    gia_tre_em: "",
-    giam_gia: "",
-    so_cho: "",
-    so_cho_da_dat: 0,
-  });
-};
-
-const removeDepartureDate = (index) => {
-  tourForm.value.ngay_khoi_hanh.splice(index, 1);
-};
-
-const handleSubmit = () => {
-  // Validate required fields
-  if (
-    !tourForm.value.ten_tour ||
-    !tourForm.value.mo_ta ||
-    !tourForm.value.gia ||
-    !tourForm.value.thoi_gian ||
-    !tourForm.value.diem_khoi_hanh ||
-    !tourForm.value.diem_den
-  ) {
-    alert("Vui lòng điền đầy đủ thông tin bắt buộc");
-    return;
-  }
-
-  // Validate at least one schedule day
-  if (tourForm.value.lich_trinh.length === 0) {
-    alert("Vui lòng thêm ít nhất một ngày trong lịch trình");
-    return;
-  }
-
-  // Validate at least one departure date
-  if (tourForm.value.ngay_khoi_hanh.length === 0) {
-    alert("Vui lòng thêm ít nhất một ngày khởi hành");
-    return;
-  }
-
-  // Format the data
-  const formattedData = {
-    ...tourForm.value,
-    gia: Number(tourForm.value.gia),
-    hinh_anh: tourForm.value.hinh_anh.map((img) => {
-      if (img instanceof File) {
-        return URL.createObjectURL(img);
+    if (!existingTag) {
+      if (availableTag) {
+        selectTag(availableTag);
+      } else {
+        tourForm.value.tags.push({ name: newTagName });
+        tagSearch.value = "";
       }
-      return img;
-    }),
-    ngay_khoi_hanh: tourForm.value.ngay_khoi_hanh.map((date) => ({
-      ...date,
-      gia_nguoi_lon: Number(date.gia_nguoi_lon),
-      gia_tre_em: Number(date.gia_tre_em),
-      giam_gia: Number(date.giam_gia || 0),
-      so_cho: Number(date.so_cho),
-      so_cho_da_dat: Number(date.so_cho_da_dat || 0),
-    })),
-  };
+    } else {
+      tagSearch.value = "";
+    }
+  }
+};
+const removeTag = (index) => tourForm.value.tags.splice(index, 1);
 
-  emit("submit", formattedData);
+// Form Actions
+const handleSubmit = () => {
+  // LOG: Kiểm tra trạng thái cuối cùng của dữ liệu form trước khi gửi đi
+  console.log(
+    "--- [AddTourTab] Form được BẤM SUBMIT. Dữ liệu chuẩn bị gửi đi: ---",
+    JSON.parse(JSON.stringify(tourForm.value))
+  );
+  emit("submit", tourForm.value);
 };
 
 const handleCancel = () => {
+  console.log("--- [AddTourTab] Người dùng bấm nút Hủy. ---");
   emit("cancel");
 };
 </script>
 
 <style scoped>
-.aspect-square {
-  aspect-ratio: 1 / 1;
+.form-input {
+  @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 transition-colors duration-200;
 }
-
-/* Drag and drop animation */
-.border-dashed {
-  transition: all 0.3s ease;
+.form-input-sm {
+  @apply w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 transition-colors duration-200;
 }
-
-.border-dashed:hover {
-  border-color: #3b82f6;
+.btn-primary {
+  @apply px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200;
 }
-
-/* Image preview container */
-.image-preview {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background-color: #f3f4f6;
-  overflow: hidden;
+.btn-primary-sm {
+  @apply px-3 py-1 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 text-sm;
 }
-
-/* Image preview */
-.image-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+.btn-secondary {
+  @apply px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-200;
 }
-
-.image-preview:hover img {
-  transform: scale(1.05);
+.btn-secondary-sm {
+  @apply px-3 py-1 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300 text-sm;
 }
 </style>

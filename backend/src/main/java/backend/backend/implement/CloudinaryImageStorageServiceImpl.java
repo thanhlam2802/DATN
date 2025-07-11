@@ -16,6 +16,7 @@ public class CloudinaryImageStorageServiceImpl implements ImageStorageService {
     @Autowired
     private CloudinaryService cloudinaryService;
 
+
     @Override
     public Map<String, String> uploadImage(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -55,7 +56,6 @@ public class CloudinaryImageStorageServiceImpl implements ImageStorageService {
     @Override
        public void deleteImage(String publicId) throws IOException {
         if (publicId == null || publicId.trim().isEmpty()) {
-
             return;
         }
         cloudinaryService.delete(publicId);

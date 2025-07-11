@@ -1,11 +1,7 @@
-<script setup>
-// chưa có logic gì nên để trống
-</script>
-
 <template>
   <footer class="bg-gray-50 text-gray-900">
     <div
-      class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-4 gap-10"
+      class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10"
     >
       <div class="flex flex-col space-y-3">
         <h3 class="font-extrabold text-lg">Hỗ trợ</h3>
@@ -62,7 +58,7 @@
     <hr class="border-gray-300 mx-6" />
 
     <div
-      class="max-w-7xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center text-sm font-normal"
+      class="max-w-7xl mx-auto px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center text-sm font-normal"
     >
       <p>© 2022 Công ty, Inc. • Chính sách bảo mật • Điều khoản</p>
 

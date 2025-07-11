@@ -385,7 +385,7 @@ const toggleDay = (dayIndex) => {
               >
                 <div class="flex justify-between mb-2">
                   <div>
-                    <h4 class="font-medium">{{ review.authorName }}</h4>
+                    <h4 class="font-medium">{{ review.author }}</h4>
                     <div class="flex items-center">
                       <StarIcon
                         v-for="i in 5"
@@ -400,7 +400,7 @@ const toggleDay = (dayIndex) => {
                     </div>
                   </div>
                   <div class="text-sm text-gray-500">
-                    {{ new Date(review.createdAt).toLocaleDateString("vi-VN") }}
+                    {{ review.date }}
                   </div>
                 </div>
                 <p class="text-gray-600">{{ review.content }}</p>

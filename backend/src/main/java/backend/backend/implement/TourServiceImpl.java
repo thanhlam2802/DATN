@@ -139,9 +139,10 @@ public class TourServiceImpl implements TourService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ReviewDto> getReviewsForTour(Integer tourId) {
     
-        List<Review> reviews = reviewRepository.findByEntityTypeAndEntityId("Tour", tourId);
+        List<Review> reviews = reviewRepository.findReviewsForTourWithUser(tourId);
         return reviews.stream()
                       .map(ReviewDto::fromEntity)
                       .collect(Collectors.toList());

@@ -11,6 +11,10 @@ import backend.backend.entity.Review;
 
 @Repository
 public interface ReviewDAO extends JpaRepository<Review, Integer> {
+	
+	
+	@Query("SELECT r FROM Review r JOIN FETCH r.user WHERE r.entityType = 'TOUR' AND r.entityId = :tourId")
+    List<Review> findReviewsForTourWithUser(@Param("tourId") Integer tourId);
 
     @Query("SELECT COALESCE(AVG(r.rating), 0.0) FROM Review r WHERE r.entityId = :tourId AND r.entityType = 'TOUR'")
     Double getAverageRatingByTourId(@Param("tourId") Long tourId);

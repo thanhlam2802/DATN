@@ -21,9 +21,10 @@ public class HotelDto {
     private int reviewCount;
     private BigDecimal startingPrice;
     private List<AmenityDto> amenities;
+    private java.time.LocalDateTime createdAt;
+    private java.time.LocalDateTime updatedAt;
 
-    public HotelDto(Integer id, String name, String imageUrl, String address, String provinceName, Short starRating,
-            double rating, int reviewCount, BigDecimal startingPrice) {
+    public HotelDto(Integer id, String name, String imageUrl, String address, String provinceName, Short starRating, Double rating, Integer reviewCount, java.math.BigDecimal startingPrice, java.time.LocalDateTime createdAt, java.time.LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.imageUrl = imageUrl;
@@ -33,6 +34,8 @@ public class HotelDto {
         this.rating = rating;
         this.reviewCount = reviewCount;
         this.startingPrice = startingPrice;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public HotelDto(Integer id, String name, String imageUrl, List<String> imageUrls, String address,

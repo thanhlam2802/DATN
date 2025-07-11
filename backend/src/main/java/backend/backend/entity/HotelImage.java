@@ -1,17 +1,7 @@
 package backend.backend.entity;
 
-
-
 import lombok.Data;
 import jakarta.persistence.*;
-import java.io.Serializable;
-
-@Data
-@Embeddable
-class HotelImageId implements Serializable {
-    private Integer hotelId;
-    private Integer imageId;
-}
 
 @Data
 @Entity

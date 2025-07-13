@@ -40,7 +40,8 @@ public class AuthServiceImpl implements AuthService {
         }
         User newUser = userMapper.fromRegisterRequestToEntity(registerRequestDto);
         newUser.setPasswordHash(passwordEncoder.encode(registerRequestDto.getPassword()));
-
+        newUser.setCreatedAt(java.time.LocalDateTime.now());
+        newUser.setUpdatedAt(java.time.LocalDateTime.now());
         newUser = userRepository.save(newUser);
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));

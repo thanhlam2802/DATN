@@ -10,3 +10,7 @@ export const getAccessToken = (token) => {
 export const clearToken = () => {
     localStorage.removeItem(TOKEN_KEY);
 }
+
+export const getBearerToken = () => {
+    return "Bearer " + getAccessToken();
+}

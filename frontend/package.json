@@ -14,6 +14,8 @@
     "@vueuse/core": "^13.5.0",
     "axios": "^1.10.0",
     "element-plus": "^2.10.1",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
     "lucide-vue-next": "^0.511.0",
     "pinia": "^3.0.3",
     "swiper": "^8.4.7",

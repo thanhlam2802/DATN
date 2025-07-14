@@ -1,0 +1,50 @@
+# src/main/resources/graphql/bus.graphqls
+
+# --- Kiểu dữ liệu Bus ---
+type Bus {
+    id: ID!
+    name: String!
+    origin: String!
+    destination: String!
+    departureTime: String! # Hoặc DateTime nếu bạn có scalar tùy chỉnh
+    arrivalTime: String!   # Hoặc DateTime
+    category: BusCategory! # Liên kết với BusCategory
+    owner: User!           # Liên kết với User (chủ sở hữu xe)
+    createdAt: DateTime      # Nếu có @CreatedDate
+    updatedAt: DateTime      # Nếu có @LastModifiedDate
+}
+
+# --- Kiểu đầu vào cho Create Bus ---
+input CreateBusInput {
+    name: String!
+    origin: String!
+    destination: String!
+    departureTime: String!
+    arrivalTime: String!
+    categoryId: ID!
+}
+
+# --- Kiểu đầu vào cho Update Bus ---
+input UpdateBusInput {
+    name: String
+    origin: String
+    destination: String
+    departureTime: String
+    arrivalTime: String
+    categoryId: ID
+    ownerId: ID!
+}
+
+# --- Định nghĩa các Query (đọc dữ liệu) ---
+extend type Query {
+    findAllBuses: [Bus!]!    # Lấy tất cả xe bus
+    findBusById(id: ID!): Bus # Lấy xe bus theo ID
+    findBusByOwner_Id(ownerId : ID!) : [Bus!] # Lấy xe bus theo ID của chủ xe
+}
+
+# --- Định nghĩa các Mutation (ghi dữ liệu) ---
+extend type Mutation {
+    createBus(input: CreateBusInput!): Bus!
+    updateBus(id: ID!, input: UpdateBusInput!): Bus!
+    deleteBus(id: ID!): Boolean! # Trả về true nếu xóa thành công
+}

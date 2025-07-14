@@ -12,5 +12,5 @@ import java.util.Optional;
 @Repository
 public interface BusDAO extends JpaRepository<Bus, Integer> {
     List<Bus> findBusByBusRoutes(List<BusRoute> busRoutes);
-    
+    List<Bus> findBusByOwner_Id(Integer ownerId);
 }

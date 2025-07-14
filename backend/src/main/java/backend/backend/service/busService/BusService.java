@@ -9,10 +9,10 @@ import java.util.Optional;
 
 public interface BusService {
 
-    List<Bus> findAlBuses();
+    List<Bus> findAllBuses();
     Optional<Bus> findBusById(Integer id);
     Bus createBus(CreateBusDTO busDTO);
     Bus updateBus(Integer busId,UpdateBusDTO busDTO);
     void deleteBus(Integer id);
-
+    List<Bus> findBusesByOwner_Id(Integer ownerId);
 }

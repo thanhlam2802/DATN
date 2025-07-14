@@ -1,9 +1,6 @@
 package backend.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -12,6 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -20,6 +18,7 @@ import java.time.Instant;
 public class Route {
     @Id
     @Column(name = "id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Size(max = 100)
@@ -41,13 +40,25 @@ public class Route {
     private Integer estimatedDurationMinutes;
 
     @NotNull
-    @ColumnDefault("getdate()")
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @NotNull
-    @ColumnDefault("getdate()")
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @OneToMany(mappedBy = "route")
+    private List<BusRoute> busRoutes;
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = Instant.now();
+    }
 
 }

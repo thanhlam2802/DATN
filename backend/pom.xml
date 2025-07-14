@@ -104,18 +104,18 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
-        <!-- Flyway SQL Server -->
+<!--        Graphql-->
+
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-sqlserver</artifactId>
-            <version>11.9.1</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-graphql</artifactId>
         </dependency>
 
-       <!--Graphql-->
+<!--        Graphql Extendtion-->
         <dependency>
-            <groupId>com.graphql-java-kickstart</groupId>
-            <artifactId>graphql-spring-boot-starter</artifactId>
-            <version>11.1.0</version>
+            <groupId>com.graphql-java</groupId>
+            <artifactId>graphql-java-extended-scalars</artifactId>
+            <version>24.0</version>
         </dependency>
 
     </dependencies>
@@ -147,6 +147,24 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>11.7.2</version>
+                <configuration>
+                    <url>jdbc:sqlserver://34.124.165.193:1433;databaseName=datn;encrypt=true;trustServerCertificate=true</url>
+                    <user>sqlserver</user>
+                    <password>1234567890</password>
+                    <driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</driver>
+                    <locations>
+                        <location>classpath:db/migration</location>
+                    </locations>
+                    <baselineOnMigrate>true</baselineOnMigrate>
+                    <outOfOrder>false</outOfOrder>
+                    <validateOnMigrate>true</validateOnMigrate>
                 </configuration>
             </plugin>
         </plugins>

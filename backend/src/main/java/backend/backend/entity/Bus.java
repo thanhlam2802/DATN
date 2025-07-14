@@ -49,4 +49,7 @@ public class Bus {
 
     @OneToMany(mappedBy = "bus")
     private List<BusImage> busImages;
+
+    @OneToMany(mappedBy = "bus")
+    private List<BusRoute> busRoutes;
 }

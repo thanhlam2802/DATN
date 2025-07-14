@@ -1,17 +1,20 @@
+scalar DateTime
+
 type Bus {
     id: ID!
     name: String!
     category: BusCategory!
     origin: String!
     destination: String!
-    departureTime: String!
-    arrivalTime: String!
+    departureTime: DateTime!
+    arrivalTime: DateTime!
     owner: User
-    createdAt: String!
-    updatedAt: String!
+    createdAt: DateTime!
+    updatedAt: DateTime!
     busSlots: [BusSlot]
     busImages: [BusImage]
 }
+
 
 type BusCategory {
     id: ID!
@@ -35,3 +38,5 @@ type BusImage {
     url: String!
     bus: Bus!
 }
+
+

@@ -11,6 +11,7 @@ import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+
 @Getter
 @Setter
 @Entity
@@ -30,26 +31,5 @@ public class BusRoute {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "route_id", nullable = false)
     private Route route;
-
-    @Column(name = "travel_date")
-    private Instant travelDate;
-
-    @Column(name = "price", precision = 10, scale = 2)
-    private BigDecimal price;
-
-    @Size(max = 50)
-    @Nationalized
-    @Column(name = "status", length = 50)
-    private String status;
-
-    @NotNull
-    @ColumnDefault("getdate()")
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
-
-    @NotNull
-    @ColumnDefault("getdate()")
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
 
 }

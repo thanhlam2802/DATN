@@ -1,0 +1,39 @@
+scalar Instant
+
+input CreateRouteInput {
+    origin : String!
+    destination : String!
+    distanceKm : Float
+    estimatedDurationMinutes: Int
+}
+
+input UpdateRouteInput {
+    id: ID!
+    origin: String
+    destination: String
+    distanceKm: Float
+    estimatedDurationMinutes: Int
+}
+
+type Route {
+    id: ID!
+    origin: String!
+    destination: String!
+    distanceKm: Float
+    estimatedDurationMinutes: Int
+    createdAt: Instant
+    updatedAt: Instant
+}
+
+
+type Mutation {
+    createRoute(input: CreateRouteInput!): Route!
+    updateRoute(input: UpdateRouteInput!): Route!
+    deleteRoute(id: ID!): Boolean
+}
+
+ type Query {
+    findAllRoutes: [Route!]!
+    findRouteById(id: ID!): Route
+     findByOriginAndDestination (origin: String!, destination: String!) : Route
+}

@@ -23,9 +23,9 @@
     <!-- Danh sách đánh giá -->
     <div v-if="filteredReviews.length > 0" class="space-y-4">
       <div
-        v-for="review in filteredReviews"
-        :key="review.id"
-        class="bg-white p-6 rounded-lg shadow-sm space-y-4"
+          v-for="review in filteredReviews"
+          :key="review.id"
+          class="bg-white p-6 rounded-lg shadow-sm space-y-4"
       >
         <!-- Thông tin người đánh giá -->
         <div class="flex justify-between items-start">
@@ -37,18 +37,18 @@
             <p class="text-sm text-gray-600 mt-1">{{ review.tour }}</p>
             <div class="flex mt-1">
               <StarIcon
-                v-for="i in 5"
-                :key="i"
-                class="w-4 h-4"
-                :class="
+                  v-for="i in 5"
+                  :key="i"
+                  class="w-4 h-4"
+                  :class="
                   i <= review.rating ? 'text-yellow-400' : 'text-gray-300'
                 "
               />
             </div>
           </div>
           <span
-            class="px-3 py-1 text-sm rounded-full"
-            :class="
+              class="px-3 py-1 text-sm rounded-full"
+              :class="
               review.reply
                 ? 'bg-green-100 text-green-700'
                 : 'bg-gray-100 text-gray-600'
@@ -76,14 +76,14 @@
         <div v-else class="mt-4">
           <div class="flex items-start gap-4">
             <textarea
-              v-model="review.draftReply"
-              rows="2"
-              class="flex-1 border rounded-lg p-2 text-sm"
-              placeholder="Nhập phản hồi của bạn..."
+                v-model="review.draftReply"
+                rows="2"
+                class="flex-1 border rounded-lg p-2 text-sm"
+                placeholder="Nhập phản hồi của bạn..."
             ></textarea>
             <button
-              @click="submitReply(review)"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                @click="submitReply(review)"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
             >
               Gửi phản hồi
             </button>
@@ -99,8 +99,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { StarIcon } from "lucide-vue-next";
+import {ref, computed} from "vue";
+import {StarIcon} from "lucide-vue-next";
 
 // Dữ liệu mẫu
 const reviews = ref([
@@ -111,10 +111,10 @@ const reviews = ref([
     rating: 5,
     date: "2024-01-10",
     comment:
-      "Tour rất tuyệt vời! Hướng dẫn viên nhiệt tình, cảnh đẹp, đồ ăn ngon!",
+        "Tour rất tuyệt vời! Hướng dẫn viên nhiệt tình, cảnh đẹp, đồ ăn ngon!",
     reply: {
       content:
-        "Cảm ơn bạn đã đánh giá tích cực. Chúng tôi rất vui khi bạn hài lòng với chuyến đi!",
+          "Cảm ơn bạn đã đánh giá tích cực. Chúng tôi rất vui khi bạn hài lòng với chuyến đi!",
       date: "2024-01-11",
     },
     draftReply: "",
@@ -136,7 +136,7 @@ const reviews = ref([
     rating: 3,
     date: "2024-01-05",
     comment:
-      "Tour có nhiều điểm hay nhưng khách sạn hơi chật, cần cải thiện thêm.",
+        "Tour có nhiều điểm hay nhưng khách sạn hơi chật, cần cải thiện thêm.",
     reply: null,
     draftReply: "",
   },
@@ -146,21 +146,21 @@ const filterRating = ref("all");
 const filterStatus = ref("all");
 
 const filteredReviews = computed(() =>
-  reviews.value.filter((review) => {
-    const ratingMatch =
-      filterRating.value === "all" ||
-      review.rating.toString() === filterRating.value;
-    const statusMatch =
-      filterStatus.value === "all" ||
-      (filterStatus.value === "replied" && review.reply) ||
-      (filterStatus.value === "pending" && !review.reply);
-    return ratingMatch && statusMatch;
-  })
+    reviews.value.filter((review) => {
+      const ratingMatch =
+          filterRating.value === "all" ||
+          review.rating.toString() === filterRating.value;
+      const statusMatch =
+          filterStatus.value === "all" ||
+          (filterStatus.value === "replied" && review.reply) ||
+          (filterStatus.value === "pending" && !review.reply);
+      return ratingMatch && statusMatch;
+    })
 );
 
 const averageRating = computed(
-  () =>
-    reviews.value.reduce((sum, r) => sum + r.rating, 0) / reviews.value.length
+    () =>
+        reviews.value.reduce((sum, r) => sum + r.rating, 0) / reviews.value.length
 );
 
 function countStatus(status) {

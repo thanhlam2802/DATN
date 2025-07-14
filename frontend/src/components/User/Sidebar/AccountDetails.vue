@@ -26,11 +26,11 @@ export default {
     return {
       infoItems: [
         {label: "Full name", value: "Jimmy Scott", action: "Edit", icon: "fas fa-user"},
-        {label: "Email", value: "jimmysco283@gmail.com", action: "Edit", icon: "fas fa-envelope"},
+        // {label: "Email", value: "jimmysco283@gmail.com", action: "Edit", icon: "fas fa-envelope"},
         {label: "Gender", value: "Male", action: "Edit", icon: "fas fa-venus-mars"},
         {label: "Date of birth", value: "August 02, 1987", action: "Edit", icon: "fas fa-birthday-cake"},
-        {label: "Phone number", value: "(+1) 012 345 6789", action: "Edit", icon: "fas fa-phone"},
-        {label: "Emergency contact", value: "Not provided", action: "Add", icon: "fas fa-exclamation-triangle"}
+        // {label: "Phone number", value: "(+1) 012 345 6789", action: "Edit", icon: "fas fa-phone"},
+        // {label: "Emergency contact", value: "Not provided", action: "Add", icon: "fas fa-exclamation-triangle"}
       ]
     };
   }

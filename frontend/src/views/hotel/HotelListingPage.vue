@@ -5,7 +5,7 @@
         </aside>
 
         <div>
-            <div class="sticky top-16 w-full flex justify-center mb-6 lg:-translate-x-[156px] z-30 mt-4">
+            <div class="sticky top-18 w-full flex justify-center mb-6 lg:-translate-x-[156px] z-30 mt-4">
                 <div ref="searchWidgetContainer"
                     class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
                     <div

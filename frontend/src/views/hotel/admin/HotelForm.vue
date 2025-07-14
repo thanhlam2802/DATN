@@ -1,28 +1,5 @@
 <template>
     <div class="w-full p-6">
-        <div class="flex items-center space-x-2 mb-6">
-            <span v-if="mode === 'edit'" class="text-slate-500 font-medium cursor-pointer" @click="backToList">Khách
-                Sạn</span>
-            <span v-else class="text-slate-500 font-medium">Khách Sạn</span>
-            <template v-if="mode === 'edit'">
-                <span class="text-slate-400">&#8250;</span>
-
-                <span v-if="!isEditMode" class="text-orange-600 font-semibold">Thêm Khách Sạn</span>
-
-                <span v-else-if="isViewMode" class="text-orange-600 font-semibold cursor-pointer"
-                    @click="enableEditMode">Chi Tiết Khách Sạn</span>
-
-                <template v-else-if="isEditMode && !isViewMode && newHotel.id && fromDetailView">
-                    <span class="text-orange-600 font-semibold cursor-pointer" @click="cancelEdit">Chi Tiết Khách
-                        Sạn</span>
-                    <span class="text-slate-400">&#8250;</span>
-                    <span class="text-orange-600 font-semibold">Chỉnh Sửa Khách Sạn</span>
-                </template>
-
-                <span v-else-if="isEditMode && !isViewMode" class="text-orange-600 font-semibold">Chỉnh Sửa Khách
-                    Sạn</span>
-            </template>
-        </div>
         <div v-if="mode === 'list'">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">Danh sách khách sạn</h1>
@@ -121,143 +98,95 @@
             </div>
 
             <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-                <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-                    <h3 class="text-lg font-semibold text-slate-800">Danh sách khách sạn</h3>
-                    <p class="text-sm text-slate-600 mt-1">Quản lý thông tin khách sạn trong hệ thống</p>
-                </div>
-                <div class="overflow-x-auto w-full">
-                    <table class="min-w-full w-full divide-y divide-slate-200">
-                        <thead class="bg-gradient-to-r from-slate-100 to-slate-200">
-                            <tr>
-                                <th
-                                    class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-1">
-                                        <i class="fas fa-hotel text-blue-500"></i>
-                                        <span>Tên khách sạn</span>
+                <table class="min-w-full w-full divide-y divide-slate-200">
+                    <thead class="bg-gradient-to-r from-slate-100 to-slate-200">
+                        <tr>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hạng sao</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Giá từ (VND)</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày tạo</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày sửa</th>
+                            <th class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-100">
+                        <tr v-if="paginatedHotels.length === 0" class="hover:bg-slate-50">
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center space-y-3">
+                                    <i class="fas fa-search text-4xl text-slate-300"></i>
+                                    <p class="text-lg font-medium text-slate-500">Không tìm thấy khách sạn nào</p>
+                                    <p class="text-sm text-slate-400">Thử thay đổi bộ lọc hoặc tìm kiếm khác</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-for="(h, index) in paginatedHotels" :key="h.id"
+                            class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
+                            @click="() => viewHotelDetail(h)">
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <div class="flex items-center space-x-3">
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900">{{ h.name }}</div>
                                     </div>
-                                </th>
-                                <th
-                                    class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-1">
-                                        <i class="fas fa-star text-yellow-500"></i>
-                                        <span>Hạng sao</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <div class="flex items-center space-x-1">
+                                    <span class="text-sm font-medium text-slate-900">{{ h.starRating }}</span>
+                                    <div class="flex space-x-0.5">
+                                        <i v-for="star in h.starRating" :key="star"
+                                            class="fas fa-star text-yellow-400 text-xs"></i>
                                     </div>
-                                </th>
-                                <th
-                                    class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-1">
-                                        <i class="fas fa-map-marker-alt text-red-500"></i>
-                                        <span>Thành phố</span>
-                                    </div>
-                                </th>
-                                <th
-                                    class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-1">
-                                        <i class="fas fa-money-bill-wave text-green-500"></i>
-                                        <span>Giá từ (VND)</span>
-                                    </div>
-                                </th>
-                                <th
-                                    class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-1">
-                                        <i class="fas fa-calendar-plus text-green-500"></i>
-                                        <span>Ngày tạo</span>
-                                    </div>
-                                </th>
-                                <th
-                                    class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-1">
-                                        <i class="fas fa-calendar-edit text-blue-500"></i>
-                                        <span>Ngày sửa</span>
-                                    </div>
-                                </th>
-                                <th
-                                    class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    <div class="flex items-center justify-end space-x-1">
-                                        <i class="fas fa-cogs text-slate-500"></i>
-                                        <span>Hành động</span>
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-slate-100">
-                            <tr v-if="paginatedHotels.length === 0" class="hover:bg-slate-50">
-                                <td colspan="6" class="px-6 py-12 text-center">
-                                    <div class="flex flex-col items-center space-y-3">
-                                        <i class="fas fa-search text-4xl text-slate-300"></i>
-                                        <p class="text-lg font-medium text-slate-500">Không tìm thấy khách sạn nào</p>
-                                        <p class="text-sm text-slate-400">Thử thay đổi bộ lọc hoặc tìm kiếm khác</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-for="(h, index) in paginatedHotels" :key="h.id"
-                                class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
-                                @click="() => viewHotelDetail(h)">
-                                <td class="px-3 py-5 whitespace-nowrap">
-                                    <div class="flex items-center space-x-3">
-                                        <div>
-                                            <div class="text-sm font-semibold text-slate-900">{{ h.name }}</div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-map-marker-alt text-red-400 text-xs"></i>
+                                    <span class="text-sm font-medium text-slate-700">{{ h.provinceName }}</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <div class="text-sm font-bold text-green-600">
+                                    {{ formatCurrency(h.startingPrice) }}
+                                </div>
+                                <div class="text-xs text-slate-500">VND/đêm</div>
+                            </td>
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <span class="text-xs text-slate-700">{{ formatDateTime(h.createdAt) }}</span>
+                            </td>
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <span class="text-xs text-slate-700">{{ formatDateTime(h.updatedAt) }}</span>
+                            </td>
+                            <td
+                                class="px-3 py-5 whitespace-nowrap text-right sticky right-0 bg-white z-10 align-middle">
+                                <div class="relative inline-block text-left flex items-center justify-end h-full">
+                                    <button :ref="el => setDropdownBtnRef(el, h.id)"
+                                        @click.stop="toggleDropdown(h.id)" type="button"
+                                        class="inline-flex justify-center items-center w-10 h-10 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none transition-all duration-200 shadow-sm">
+                                        <i class="fas fa-ellipsis-v flex items-center justify-center text-sm"></i>
+                                    </button>
+                                    <teleport to="body">
+                                        <div v-if="activeDropdown === h.id"
+                                            :style="{ position: 'absolute', top: dropdownMenuPosition.top + 'px', left: dropdownMenuPosition.left + 'px', right: 'auto', zIndex: 9999 }"
+                                            class="min-w-40 bg-white border border-slate-200 rounded-lg shadow-lg">
+                                            <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
+                                                @click.stop="viewHotelDetail(h)"><i class="fas fa-eye mr-2"></i>Xem
+                                                chi
+                                                tiết</button>
+                                            <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
+                                                @click.stop="editHotel(h)"><i class="fas fa-edit mr-2"></i>Chỉnh
+                                                sửa</button>
+                                            <button
+                                                class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
+                                                @click.stop="deleteHotel(h.id)"><i
+                                                    class="fas fa-trash-alt mr-2"></i>Xóa</button>
                                         </div>
-                                    </div>
-                                </td>
-                                <td class="px-3 py-5 whitespace-nowrap">
-                                    <div class="flex items-center space-x-1">
-                                        <span class="text-sm font-medium text-slate-900">{{ h.starRating }}</span>
-                                        <div class="flex space-x-0.5">
-                                            <i v-for="star in h.starRating" :key="star"
-                                                class="fas fa-star text-yellow-400 text-xs"></i>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-3 py-5 whitespace-nowrap">
-                                    <div class="flex items-center space-x-2">
-                                        <i class="fas fa-map-marker-alt text-red-400 text-xs"></i>
-                                        <span class="text-sm font-medium text-slate-700">{{ h.provinceName }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-3 py-5 whitespace-nowrap">
-                                    <div class="text-sm font-bold text-green-600">
-                                        {{ formatCurrency(h.startingPrice) }}
-                                    </div>
-                                    <div class="text-xs text-slate-500">VND/đêm</div>
-                                </td>
-                                <td class="px-3 py-5 whitespace-nowrap">
-                                    <span class="text-xs text-slate-700">{{ formatDateTime(h.createdAt) }}</span>
-                                </td>
-                                <td class="px-3 py-5 whitespace-nowrap">
-                                    <span class="text-xs text-slate-700">{{ formatDateTime(h.updatedAt) }}</span>
-                                </td>
-                                <td
-                                    class="px-3 py-5 whitespace-nowrap text-right sticky right-0 bg-white z-10 align-middle">
-                                    <div class="relative inline-block text-left flex items-center justify-end h-full">
-                                        <button :ref="el => setDropdownBtnRef(el, h.id)"
-                                            @click.stop="toggleDropdown(h.id)" type="button"
-                                            class="inline-flex justify-center items-center w-10 h-10 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none transition-all duration-200 shadow-sm">
-                                            <i class="fas fa-ellipsis-v flex items-center justify-center text-sm"></i>
-                                        </button>
-                                        <teleport to="body">
-                                            <div v-if="activeDropdown === h.id"
-                                                :style="{ position: 'absolute', top: dropdownMenuPosition.top + 'px', left: dropdownMenuPosition.left + 'px', right: 'auto', zIndex: 9999 }"
-                                                class="min-w-40 bg-white border border-slate-200 rounded-lg shadow-lg">
-                                                <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
-                                                    @click.stop="viewHotelDetail(h)"><i class="fas fa-eye mr-2"></i>Xem
-                                                    chi
-                                                    tiết</button>
-                                                <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
-                                                    @click.stop="editHotel(h)"><i class="fas fa-edit mr-2"></i>Chỉnh
-                                                    sửa</button>
-                                                <button
-                                                    class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
-                                                    @click.stop="deleteHotel(h.id)"><i
-                                                        class="fas fa-trash-alt mr-2"></i>Xóa</button>
-                                            </div>
-                                        </teleport>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                                    </teleport>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="flex flex-col sm:flex-row justify-between items-center mt-8 p-6 bg-white rounded-xl shadow-sm">
@@ -711,6 +640,7 @@ import AmenityApi from '@/api/AmenityApi';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import Ckeditor from '@/components/Ckeditor.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
+import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
 export default {
     name: 'HotelManager',
     components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent },
@@ -844,6 +774,21 @@ export default {
     watch: {
         searchQuery() { this.currentPage = 1; this.fetchHotels(); },
         itemsPerPage() { this.currentPage = 1; this.fetchHotels(); },
+        mode() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        isEditMode() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        isViewMode() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        fromDetailView() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        'newHotel.id'() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        }
     },
     methods: {
         formatCurrency(value) { return value == null ? 'N/A' : new Intl.NumberFormat('vi-VN').format(value); },
@@ -1677,12 +1622,50 @@ export default {
                 this.amenityModalSelected.splice(idx, 1);
             }
         },
+        updateBreadcrumb() {
+            const breadcrumbStore = useAdminBreadcrumbStore();
+            const items = [];
+            if (this.mode === 'edit') {
+                items.push({ label: 'Khách Sạn', onClick: this.backToList });
+                if (!this.isEditMode) {
+                    items.push({ label: 'Thêm Khách Sạn', active: true });
+                } else if (this.isViewMode) {
+                    items.push({ label: 'Chi Tiết Khách Sạn', active: true });
+                } else if (this.isEditMode && !this.isViewMode && this.newHotel.id && this.fromDetailView) {
+                    items.push({ label: 'Chi Tiết Khách Sạn', onClick: this.cancelEdit });
+                    items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+                } else if (this.isEditMode && !this.isViewMode) {
+                    items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+                }
+            } else {
+                items.push({ label: 'Khách Sạn', active: true });
+            }
+            breadcrumbStore.setBreadcrumb(items);
+        },
     },
     mounted() {
         this.fetchHotels();
         this.loadProvincesAndAmenities();
         document.addEventListener('click', this.handleOutsideClick, true);
         document.addEventListener('click', this.closeAmenityDropdown, true);
+        const breadcrumbStore = useAdminBreadcrumbStore();
+        const items = [];
+        if (this.mode === 'edit') {
+            items.push({ label: 'Khách Sạn', onClick: this.backToList });
+            if (!this.isEditMode) {
+                items.push({ label: 'Thêm Khách Sạn', active: true });
+            } else if (this.isViewMode) {
+                items.push({ label: 'Chi Tiết Khách Sạn', active: true });
+            } else if (this.isEditMode && !this.isViewMode && this.newHotel.id && this.fromDetailView) {
+                items.push({ label: 'Chi Tiết Khách Sạn', onClick: this.cancelEdit });
+                items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+            } else if (this.isEditMode && !this.isViewMode) {
+                items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+            }
+        } else {
+            items.push({ label: 'Khách Sạn', active: true });
+        }
+        breadcrumbStore.setBreadcrumb(items);
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick, true);

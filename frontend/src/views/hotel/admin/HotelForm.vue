@@ -1,99 +1,98 @@
 <template>
     <div class="w-full p-6">
         <div v-if="mode === 'list'">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold text-slate-800">Danh sách khách sạn</h1>
-                <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm">
-                    Thêm khách sạn
-                </button>
-            </div>
-
-            <div
-                class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
-                <div class="relative w-full sm:w-2/3">
-                    <input type="text" v-model="searchQuery" placeholder="Tìm kiếm khách sạn theo tên hoặc thành phố..."
-                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
-                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                </div>
-
-                <div ref="filterDropdownContainer" class="relative w-full sm:w-1/3 text-right">
-                    <button @click="toggleFilterDropdown"
-                        class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center justify-center sm:justify-between w-full">
-                        <i class="fas fa-filter mr-2 sm:mr-3"></i>
-                        <span>Bộ lọc</span>
-                        <i class="fas ml-2"
-                            :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
-                    </button>
-
-                    <div v-if="showFilterDropdown"
-                        class="origin-top-right absolute right-0 mt-2 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
-                        style="max-height: calc(100vh - 12rem);">
-
-                        <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
-                            <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-slate-800 mb-4">Danh sách khách sạn</h1>
+                <div class="flex flex-col sm:flex-row items-center gap-2">
+                    <div class="flex flex-1 flex-col sm:flex-row items-center gap-2 w-full">
+                        <div class="relative w-full sm:w-[300px]">
+                            <input type="text" v-model="searchQuery" placeholder="Tìm kiếm khách sạn theo tên hoặc thành phố..."
+                                class="w-full sm:w-[300px] pl-10 pr-4 py-2 h-12 text-base border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                         </div>
+                        <div ref="filterDropdownContainer" class="relative sm:w-[140px]">
+                            <button @click="toggleFilterDropdown"
+                                class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center flex-nowrap justify-center sm:w-[140px] h-12 text-base">
+                                <i class="fas fa-filter mr-2"></i>
+                                <span>Bộ lọc</span>
+                                <i class="fas ml-2"
+                                    :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
+                            </button>
 
-                        <div class="p-5 overflow-y-auto">
-                            <div class="mb-5">
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
-                                <div class="flex flex-wrap gap-2">
-                                    <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
-                                        :class="{ 'bg-blue-600 text-white': tempFilterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== n }"
-                                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                        {{ n }} <i class="fas fa-star text-yellow-400"></i>
-                                    </button>
-                                    <button @click="setFilterStar('')"
-                                        :class="{ 'bg-blue-600 text-white': tempFilterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== '' }"
-                                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                        Tất cả
-                                    </button>
-                                </div>
-                            </div>
+                            <div v-if="showFilterDropdown"
+                                class="origin-top-right absolute right-0 mt-2 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
+                                style="max-height: calc(100vh - 12rem);">
 
-                            <div class="mb-5">
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối
-                                    đa):</label>
-                                <input type="range" v-model="tempFilterPriceMax" min="0" max="20000000" step="100000"
-                                    class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                                <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
-                                    <span>Giá tối đa:</span>
-                                    <span class="text-blue-600">{{ formatCurrency(tempFilterPriceMax) }} VND</span>
+                                <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
+                                    <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
                                 </div>
-                            </div>
 
-                            <div class="mb-5">
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Thời gian tạo:</label>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <button v-for="preset in createdAtPresets" :key="preset.value"
-                                        @click="setCreatedAtPreset(preset.value)"
-                                        :class="tempFilterCreatedAtPreset === preset.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
-                                        class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200">
-                                        {{ preset.label }}
-                                    </button>
-                                </div>
-                                <div v-if="tempFilterCreatedAtPreset === 'custom'" class="flex gap-2 items-center">
-                                    <input type="date" v-model="tempFilterCreatedAtFrom"
-                                        class="border border-slate-300 rounded px-2 py-1 text-sm" />
-                                    <span>-</span>
-                                    <input type="date" v-model="tempFilterCreatedAtTo"
-                                        class="border border-slate-300 rounded px-2 py-1 text-sm" />
-                                </div>
-                            </div>
-                        </div>
+                                <div class="p-5 overflow-y-auto">
+                                    <div class="mb-5">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
+                                                :class="{ 'bg-blue-600 text-white': tempFilterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== n }"
+                                                class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                                {{ n }} <i class="fas fa-star text-yellow-400"></i>
+                                            </button>
+                                            <button @click="setFilterStar('')"
+                                                :class="{ 'bg-blue-600 text-white': tempFilterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== '' }"
+                                                class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                                Tất cả
+                                            </button>
+                                        </div>
+                                    </div>
 
-                        <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
-                            <div class="flex justify-end">
-                                <button @click="resetFilters"
-                                    class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
-                                    <i class="fas fa-redo-alt mr-2"></i> Đặt lại
-                                </button>
-                                <button @click="applyFilters"
-                                    class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm ml-2">
-                                    <i class="fas fa-check mr-2"></i> Áp dụng
-                                </button>
+                                    <div class="mb-5">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối
+                                            đa):</label>
+                                        <input type="range" v-model="tempFilterPriceMax" min="0" max="20000000" step="100000"
+                                            class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                        <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
+                                            <span>Giá tối đa:</span>
+                                            <span class="text-blue-600">{{ formatCurrency(tempFilterPriceMax) }} VND</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-5">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Thời gian tạo:</label>
+                                        <div class="flex flex-wrap gap-2 mb-2">
+                                            <button v-for="preset in createdAtPresets" :key="preset.value"
+                                                @click="setCreatedAtPreset(preset.value)"
+                                                :class="tempFilterCreatedAtPreset === preset.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                                                class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200">
+                                                {{ preset.label }}
+                                            </button>
+                                        </div>
+                                        <div v-if="tempFilterCreatedAtPreset === 'custom'" class="flex gap-2 items-center">
+                                            <input type="date" v-model="tempFilterCreatedAtFrom"
+                                                class="border border-slate-300 rounded px-2 py-1 text-sm" />
+                                            <span>-</span>
+                                            <input type="date" v-model="tempFilterCreatedAtTo"
+                                                class="border border-slate-300 rounded px-2 py-1 text-sm" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
+                                    <div class="flex justify-end">
+                                        <button @click="resetFilters"
+                                            class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
+                                            <i class="fas fa-redo-alt mr-2"></i> Đặt lại
+                                        </button>
+                                        <button @click="applyFilters"
+                                            class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm ml-2">
+                                            <i class="fas fa-check mr-2"></i> Áp dụng
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm w-full sm:w-auto whitespace-nowrap">
+                        Thêm khách sạn
+                    </button>
                 </div>
             </div>
 
@@ -293,27 +292,27 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Hạng sao</label>
-                            <select v-model="newHotel.starRating" :disabled="isViewMode" :class="[
-                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                            ]">
-                                <option disabled value="">Chọn hạng sao</option>
-                                <option>1</option>
-                                <option>2</option>
-                                <option>3</option>
-                                <option>4</option>
-                                <option>5</option>
-                            </select>
+                            <CustomSelect
+                                v-model="newHotel.starRating"
+                                :options="[
+                                    { label: '1 Sao', value: '1' },
+                                    { label: '2 Sao', value: '2' },
+                                    { label: '3 Sao', value: '3' },
+                                    { label: '4 Sao', value: '4' },
+                                    { label: '5 Sao', value: '5' }
+                                ]"
+                                placeholder="Chọn hạng sao"
+                                :disabled="isViewMode"
+                            />
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Thành phố</label>
-                            <select v-model="newHotel.provinceId" :disabled="isViewMode" :class="[
-                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                            ]" :selected="!newHotel.provinceId">
-                                <option disabled value="" :selected="!newHotel.provinceId">Chọn thành phố</option>
-                                <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
-                            </select>
+                            <CustomSelect
+                                v-model="newHotel.provinceId"
+                                :options="provinces.map(p => ({ label: p.name, value: p.id }))"
+                                placeholder="Chọn thành phố"
+                                :disabled="isViewMode"
+                            />
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Địa chỉ</label>
@@ -640,10 +639,11 @@ import AmenityApi from '@/api/AmenityApi';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import Ckeditor from '@/components/Ckeditor.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
+import CustomSelect from '@/components/CustomSelect.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
 export default {
     name: 'HotelManager',
-    components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent },
+    components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent, CustomSelect },
     data() {
         return {
             mode: 'list',

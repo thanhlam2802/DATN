@@ -22,8 +22,9 @@ public class TicketBooking {
     @Column(name = "booking_date", nullable = false, updatable = false)
     private LocalDateTime bookingDate = LocalDateTime.now();
 
-    @OneToMany(mappedBy = "ticketBooking")
-    private List<TicketDetail> ticketDetails;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_detail_id")
+    private TicketDetail ticketDetail;
 
     @OneToMany(mappedBy = "ticketBooking")
     private List<Order> orders;

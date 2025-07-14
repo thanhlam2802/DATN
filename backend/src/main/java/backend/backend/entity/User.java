@@ -1,7 +1,5 @@
 package backend.backend.entity;
 
-
-
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -15,28 +13,27 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false, length = 200)
-    private String name;
+    @Column(name = "address")
+    private String address;
 
-    @Column(nullable = false, unique = true, length = 200)
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "email", nullable = false, unique = true, length = 200)
     private String email;
 
-    @Column(unique = true, length = 20)
-    private String phone;
+    @Column(name = "name", nullable = false, length = 200)
+    private String name;
 
     @Column(name = "password_hash", nullable = false, length = 200)
     private String passwordHash;
 
-    @Lob
-    private String address;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "phone", length = 20)
+    private String phone;
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
-  
     @OneToMany(mappedBy = "user")
     private List<UserRole> userRoles;
 
@@ -72,13 +69,13 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<Payment> payments;
-
-    @OneToMany(mappedBy = "user")
-    private List<HotelBooking> hotelBookings;
-
-    @OneToMany(mappedBy = "user")
-    private List<BusBooking> busBookings;
-
-    @OneToMany(mappedBy = "user")
-    private List<FlightBooking> flightBookings;
+//
+//    @OneToMany(mappedBy = "user")
+//    private List<HotelBooking> hotelBookings;
+//
+//    @OneToMany(mappedBy = "user")
+//    private List<BusBooking> busBookings;
+//
+//    @OneToMany(mappedBy = "user")
+//    private List<FlightBooking> flightBookings;
 }

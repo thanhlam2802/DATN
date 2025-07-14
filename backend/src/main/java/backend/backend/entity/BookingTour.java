@@ -40,6 +40,7 @@ public class BookingTour {
     @OneToMany(mappedBy = "bookingTour")
     private List<Payment> payments;
 
-    @OneToMany(mappedBy = "bookingTour")
-    private List<TicketDetail> ticketDetails;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_detail_id")
+    private TicketDetail ticketDetail;
 }

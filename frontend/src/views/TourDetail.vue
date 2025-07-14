@@ -6,10 +6,9 @@ import { StarIcon } from "@heroicons/vue/24/solid";
 const route = useRoute();
 const tourId = Number(route.params.id);
 
-// --- STATE ĐỂ LƯU DỮ LIỆU TỪ API ---
 const tour = ref(null);
 const reviews = ref([]);
-const itinerary = ref([]); // Dùng itinerary thay cho schedule
+const itinerary = ref([]);
 const availableDates = ref([]);
 const isLoading = ref(true);
 const selectedTab = ref("schedule");
@@ -183,12 +182,16 @@ const toggleDay = (dayIndex) => {
 </script>
 
 <template>
-  <!-- TRẠNG THÁI LOADING -->
   <div v-if="isLoading" class="flex justify-center items-center h-screen">
-    <div class="text-xl text-gray-600">Đang tải dữ liệu tour...</div>
+    <div class="text-center">
+      <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+      <h2 class="text-xl font-semibold text-gray-700">
+        Đang tải dữ liệu tour...
+      </h2>
+      <p class="text-gray-500 mt-1">Vui lòng chờ trong giây lát.</p>
+    </div>
   </div>
 
-  <!-- HIỂN THỊ NỘI DUNG KHI CÓ DỮ LIỆU -->
   <div
     v-else-if="tour"
     class="grid grid-cols-12 gap-4 container mx-auto px-4 py-6"
@@ -224,9 +227,7 @@ const toggleDay = (dayIndex) => {
     </div>
 
     <div class="grid grid-cols-12 col-span-12 gap-6">
-      <!-- CỘT TRÁI -->
       <div class="col-span-12 lg:col-span-8">
-        <!-- Ảnh slider -->
         <section class="mb-8" v-if="tour.imageUrls && tour.imageUrls.length">
           <div class="relative h-[500px] rounded-xl overflow-hidden group">
             <img
@@ -271,7 +272,6 @@ const toggleDay = (dayIndex) => {
           </div>
         </section>
 
-        <!-- Tabs thông tin -->
         <section class="mb-8">
           <div class="border-b border-gray-200">
             <nav class="flex space-x-8" aria-label="Tabs">
@@ -311,7 +311,6 @@ const toggleDay = (dayIndex) => {
             </nav>
           </div>
           <div class="py-6">
-            <!-- Tab Lịch trình -->
             <div v-if="selectedTab === 'schedule'" class="space-y-8">
               <div class="bg-blue-50 p-4 rounded-lg flex items-center gap-2">
                 <i class="fas fa-clock text-blue-500"></i
@@ -372,14 +371,12 @@ const toggleDay = (dayIndex) => {
                 </div>
               </div>
             </div>
-            <!-- Tab Chi tiết -->
             <div
               v-if="selectedTab === 'details'"
               class="space-y-4 prose max-w-none"
             >
-              <p>{{ tour.description }}</p>
+              <div v-html="tour.description"></div>
             </div>
-            <!-- Tab Đánh giá -->
             <div v-if="selectedTab === 'reviews'" class="space-y-6">
               <div
                 v-for="review in reviews"
@@ -388,7 +385,7 @@ const toggleDay = (dayIndex) => {
               >
                 <div class="flex justify-between mb-2">
                   <div>
-                    <h4 class="font-medium">{{ review.authorName }}</h4>
+                    <h4 class="font-medium">{{ review.author }}</h4>
                     <div class="flex items-center">
                       <StarIcon
                         v-for="i in 5"
@@ -403,7 +400,7 @@ const toggleDay = (dayIndex) => {
                     </div>
                   </div>
                   <div class="text-sm text-gray-500">
-                    {{ new Date(review.createdAt).toLocaleDateString("vi-VN") }}
+                    {{ review.date }}
                   </div>
                 </div>
                 <p class="text-gray-600">{{ review.content }}</p>
@@ -413,7 +410,6 @@ const toggleDay = (dayIndex) => {
         </section>
       </div>
 
-      <!-- CỘT PHẢI -->
       <div class="col-span-12 lg:col-span-4">
         <div class="sticky top-4">
           <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -550,7 +546,6 @@ const toggleDay = (dayIndex) => {
     </div>
   </div>
 
-  <!-- TRẠNG THÁI LỖI -->
   <div v-else class="text-center py-20">
     <p class="text-2xl font-semibold text-red-500">
       Lỗi: Không thể tải dữ liệu tour.

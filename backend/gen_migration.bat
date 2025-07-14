@@ -11,4 +11,6 @@ set desc_clean=%desc_clean:"=%
 set filename=V%datetime%__%desc_clean%.sql
 
 echo -- Migration file created at %datetime% > src\main\resources\db\migration\%filename%
+
 echo Created: %filename%
+

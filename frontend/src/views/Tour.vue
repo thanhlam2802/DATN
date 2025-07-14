@@ -15,6 +15,10 @@ const isOpen = ref(false);
 const sortBy = ref("popular");
 const tourList = ref([]);
 
+import { FilterIcon, XIcon } from "lucide-vue-next";
+
+const isFilterOpen = ref(false);
+
 const { getCurrentLocation } = useGeolocation();
 
 const destinations = [
@@ -89,12 +93,13 @@ const openModal = () => {
         alt="Tour Banner"
         class="absolute rounded-br-4xl inset-0 w-full h-full object-cover brightness-75 transition-transform duration-700 hover:scale-105"
       />
-
       <div
-        class="relative z-10 grid grid-cols-12 gap-4 h-full items-center px-6"
+        class="relative z-10 grid grid-cols-12 gap-4 h-full items-center px-4 sm:px-6"
       >
         <div class="col-span-12 md:col-span-6 flex flex-col gap-2">
-          <h5 class="text-white text-3xl font-semibold animate-fade-in">
+          <h5
+            class="text-white text-2xl sm:text-3xl font-semibold animate-fade-in"
+          >
             Du lịch
           </h5>
           <div>
@@ -119,7 +124,6 @@ const openModal = () => {
                 />
               </svg>
             </button>
-
             <transition
               name="modal"
               enter-active-class="transition duration-300 ease-out"
@@ -138,7 +142,7 @@ const openModal = () => {
                   class="relative bg-gray-100 rounded-t-2xl md:rounded-2xl shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
                 >
                   <div
-                    class="grid grid-cols-2 gap-4 bg-white p-4 mb-2 items-center justify-center sticky top-0 z-10 border-b"
+                    class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 mb-2 items-center justify-center sticky top-0 z-10 border-b"
                   >
                     <div class="col-span-1">
                       <p class="text-xs text-gray-500">
@@ -151,13 +155,11 @@ const openModal = () => {
                         Thành phố Quy Nhơn, Vietnam
                       </h2>
                     </div>
-
                     <SearchBar
                       class="col-span-1"
                       placeholder="Tìm thành phố hoặc khu vực"
                     />
                   </div>
-
                   <div
                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-white"
                   >
@@ -194,30 +196,36 @@ const openModal = () => {
       </div>
     </section>
 
-    <section class="pt-8 pb-6">
-      <div class="grid grid-cols-12 gap-6 items-center">
-        <div class="col-span-12 md:col-span-1 text-center md:text-left">
-          <h2 class="font-extrabold text-3xl text-black leading-tight mb-2">
-            Tour
-          </h2>
-        </div>
-        <p class="text-gray-600 text-xl leading-relaxed col-span-11">
-          Khám phá những địa điểm mới và đặc biệt bằng cách tham gia các chuyến
-          tham quan trong ngày với hướng dẫn viên giàu kinh nghiệm.
-        </p>
-      </div>
+    <section class="pt-8 pb-6 text-center md:text-left">
+      <h2
+        class="font-extrabold text-2xl sm:text-3xl text-black leading-tight mb-2"
+      >
+        Tour
+      </h2>
+      <p
+        class="text-gray-600 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto md:mx-0"
+      >
+        Khám phá những địa điểm mới và đặc biệt bằng cách tham gia các chuyến
+        tham quan trong ngày với hướng dẫn viên giàu kinh nghiệm.
+      </p>
     </section>
 
     <section class="max-w-7xl mx-auto px-4 py-6 mt-4">
       <div class="flex flex-col md:flex-row gap-6">
-        <SideBar class="md:w-1/4" />
-
+        <SideBar class="hidden md:block md:w-1/4" />
         <main class="flex-1">
           <div
             class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4"
           >
-            <h2 class="text-xl text-gray-600">Về 44 kết quả</h2>
-            <div class="flex items-center gap-2">
+            <h2 class="text-lg sm:text-xl text-gray-600">Về 44 kết quả</h2>
+            <button
+              @click="isFilterOpen = true"
+              class="md:hidden flex items-center justify-center gap-2 w-full bg-white border border-gray-300 rounded-lg py-2 px-4 shadow-sm font-medium"
+            >
+              <FilterIcon class="w-4 h-4" />
+              <span>Lọc kết quả</span>
+            </button>
+            <div class="hidden sm:flex items-center gap-2">
               <span class="text-gray-600">Xếp theo:</span>
               <div class="relative">
                 <select
@@ -249,11 +257,32 @@ const openModal = () => {
               </div>
             </div>
           </div>
-
           <TourGrid :tours="tourList" />
         </main>
       </div>
     </section>
+
+    <Transition name="slide-fade">
+      <div v-if="isFilterOpen" class="fixed inset-0 z-50 flex md:hidden">
+        <div
+          @click="isFilterOpen = false"
+          class="fixed inset-0 bg-black bg-opacity-40"
+        ></div>
+        <div
+          class="relative bg-gray-100 w-4/5 max-w-sm h-full shadow-xl overflow-y-auto"
+        >
+          <div
+            class="p-4 flex justify-between items-center border-b bg-white sticky top-0"
+          >
+            <h3 class="font-bold text-lg">Bộ lọc</h3>
+            <button @click="isFilterOpen = false" class="p-2 -mr-2">
+              <XIcon class="w-6 h-6 text-gray-600" />
+            </button>
+          </div>
+          <SideBar />
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -305,5 +334,24 @@ const openModal = () => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.7);
+}
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-enter-active .relative,
+.slide-fade-leave-active .relative {
+  transition: transform 0.3s ease-out;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+}
+
+.slide-fade-enter-from .relative,
+.slide-fade-leave-to .relative {
+  transform: translateX(-100%);
 }
 </style>

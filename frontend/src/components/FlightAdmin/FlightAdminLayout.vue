@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 ">
     <!-- Sidebar -->
     <div class="fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out lg:translate-x-0" 
          :class="{ '-translate-x-full': !sidebarOpen, 'translate-x-0': sidebarOpen }">
@@ -16,7 +16,7 @@
       </div>
       
       <nav class="flex-1 px-4 py-6 space-y-2">
-        <div v-for="item in navigationItems" :key="item.name">
+        <div v-for="item in navigationItems.filter(i => !i.hidden)" :key="item.name">
           <button
             @click="selectMenuItem(item)"
             :class="[
@@ -80,7 +80,7 @@
       <!-- Page content -->
       <main class="p-4 sm:p-6 lg:p-8">
         <div class="mx-auto max-w-7xl">
-          <component :is="currentComponent" />
+          <component :is="currentComponent" :flight-id="detailFlightId" />
         </div>
       </main>
     </div>
@@ -88,7 +88,9 @@
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent } from 'vue'
+import { ref, computed, defineAsyncComponent, provide } from 'vue'
+import { useRoute } from 'vue-router'
+import DetailFlightAdmin from './DetailFlightAdmin.vue'
 
 // Lazy load components
 const FlightForm = defineAsyncComponent(() => import('./formAdminFlight.vue'))
@@ -100,6 +102,7 @@ const FlightSettings = defineAsyncComponent(() => import('./FlightSettings.vue')
 // State
 const sidebarOpen = ref(false)
 const currentView = ref('FlightForm')
+const detailFlightId = ref(null)
 
 // Component mapping
 const components = {
@@ -107,7 +110,8 @@ const components = {
   FlightList,
   FlightStatistics,
   FlightBookings,
-  FlightSettings
+  FlightSettings,
+  DetailFlightAdmin
 }
 
 // Navigation items
@@ -141,6 +145,13 @@ const navigationItems = ref([
     component: 'FlightSettings',
     title: 'Cài đặt hệ thống',
     icon: 'fas fa-cog'
+  },
+  {
+    name: 'Chi tiết chuyến bay',
+    component: 'DetailFlightAdmin',
+    title: 'Chi tiết chuyến bay',
+    icon: 'fas fa-info-circle',
+    hidden: true
   }
 ])
 
@@ -159,10 +170,17 @@ const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
 
-const selectMenuItem = (item) => {
+const selectMenuItem = (item, id = null) => {
   currentView.value = item.component
+  if (item.component === 'DetailFlightAdmin') {
+    detailFlightId.value = id
+  }
   sidebarOpen.value = false // Close sidebar on mobile after selection
 }
+provide('selectMenuItem', selectMenuItem)
+
+const route = useRoute()
+
 </script>
 
 <style scoped>

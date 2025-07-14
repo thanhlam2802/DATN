@@ -85,6 +85,14 @@ public class HotelSpecifications {
                     predicates.add(criteriaBuilder.exists(amenitySubquery));
                 }
             }
+
+            // Filter theo ngày tạo
+            if (requestDto.getCreatedAtFrom() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), requestDto.getCreatedAtFrom().atStartOfDay()));
+            }
+            if (requestDto.getCreatedAtTo() != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), requestDto.getCreatedAtTo().atTime(23, 59, 59)));
+            }
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }

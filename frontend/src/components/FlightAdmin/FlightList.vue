@@ -82,13 +82,13 @@
               {{ flight.flightNumber }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ flight.route }}
+              {{ flight.departureAirport?.name }} → {{ flight.arrivalAirport?.name }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ formatDateTime(flight.departureTime) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ flight.airline }}
+              {{ flight.name }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span
@@ -103,7 +103,7 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               <div class="flex items-center space-x-3">
                 <button
-                  @click="editFlight(flight)"
+                  @click="goToDetail(flight.id)"
                   class="text-blue-600 hover:text-blue-900"
                 >
                   <i class="fas fa-edit"></i>
@@ -148,7 +148,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
+import { getAdminFlights } from '@/api/flightApi'
+import Flight from '@/entity/Flight'
+import { useRouter } from 'vue-router'
 
 // State
 const searchQuery = ref('')
@@ -156,77 +159,56 @@ const statusFilter = ref('')
 const dateFilter = ref('')
 const currentPage = ref(1)
 const pageSize = 10
+const flights = ref([])
+const loading = ref(false)
+const error = ref('')
 
-// Mock data - Replace with actual API calls
-const flights = ref([
-  {
-    id: 1,
-    flightNumber: 'VN123',
-    route: 'Hà Nội - TP.HCM',
-    departureTime: '2024-03-20T10:00:00',
-    airline: 'Vietnam Airlines',
-    status: 'scheduled'
-  },
-  {
-    id: 2,
-    flightNumber: 'VN456',
-    route: 'TP.HCM - Đà Nẵng',
-    departureTime: '2024-03-20T14:30:00',
-    airline: 'Vietnam Airlines',
-    status: 'in-progress'
-  },
-  // Add more mock data as needed
-])
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await getAdminFlights()
+    flights.value = res.data
+  } catch (e) {
+    error.value = 'Không thể tải danh sách chuyến bay.'
+  } finally {
+    loading.value = false
+  }
+})
 
 // Computed
 const filteredFlights = computed(() => {
   let result = flights.value
-
-  // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(flight => 
-      flight.flightNumber.toLowerCase().includes(query) ||
-      flight.route.toLowerCase().includes(query) ||
-      flight.airline.toLowerCase().includes(query)
+      (flight.flightNumber && flight.flightNumber.toLowerCase().includes(query)) ||
+      (flight.name && flight.name.toLowerCase().includes(query))
     )
   }
-
-  // Apply status filter
-  if (statusFilter.value) {
-    result = result.filter(flight => flight.status === statusFilter.value)
-  }
-
-  // Apply date filter
   if (dateFilter.value) {
     result = result.filter(flight => 
-      flight.departureTime.startsWith(dateFilter.value)
+      flight.departureTime && flight.departureTime.startsWith(dateFilter.value)
     )
   }
-
   return result
 })
 
-const totalPages = computed(() => 
-  Math.ceil(filteredFlights.value.length / pageSize)
-)
-
 const paginationInfo = computed(() => {
+  const total = filteredFlights.value.length
   const start = (currentPage.value - 1) * pageSize + 1
-  const end = Math.min(start + pageSize - 1, filteredFlights.value.length)
-  return {
-    start,
-    end,
-    total: filteredFlights.value.length
-  }
+  const end = Math.min(currentPage.value * pageSize, total)
+  return { start, end, total }
 })
 
+const totalPages = computed(() => Math.ceil(filteredFlights.value.length / pageSize))
+
 // Methods
-const formatDateTime = (dateTime) => {
-  return new Date(dateTime).toLocaleString('vi-VN')
+function formatDateTime(dt) {
+  if (!dt) return ''
+  return new Date(dt).toLocaleString('vi-VN')
 }
 
-const getStatusClass = (status) => {
+function getStatusClass(status) {
   const classes = {
     'scheduled': 'bg-blue-100 text-blue-800',
     'in-progress': 'bg-green-100 text-green-800',
@@ -236,7 +218,7 @@ const getStatusClass = (status) => {
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
-const getStatusText = (status) => {
+function getStatusText(status) {
   const texts = {
     'scheduled': 'Đã lên lịch',
     'in-progress': 'Đang bay',
@@ -246,30 +228,37 @@ const getStatusText = (status) => {
   return texts[status] || status
 }
 
-const clearFilters = () => {
+function clearFilters() {
   statusFilter.value = ''
   dateFilter.value = ''
 }
 
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--
 }
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
-  }
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++
 }
 
-const editFlight = (flight) => {
+function editFlight(flight) {
   // Implement edit functionality
   console.log('Edit flight:', flight)
 }
 
-const deleteFlight = (flight) => {
+function deleteFlight(flight) {
   // Implement delete functionality
   console.log('Delete flight:', flight)
+}
+
+const router = useRouter()
+const selectMenuItem = inject('selectMenuItem')
+function goToDetail(id) {
+  if (selectMenuItem) {
+    selectMenuItem({ component: 'DetailFlightAdmin' }, id)
+  } else {
+    // fallback: vẫn dùng router nếu không có inject
+    router.push({ name: 'DetailFlightAdmin', params: { id } })
+  }
 }
 </script> 

@@ -2,15 +2,21 @@ package backend.backend.dto;
 
 
 
-import backend.backend.entity.Departure; 
-import backend.backend.entity.Tour;      
-import lombok.Data;                    
+import backend.backend.entity.Departure;
+import backend.backend.entity.Tour;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Data // This annotation automatically generates getters, setters, equals, hashCode, and toString methods
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class TourDetailDto {
     private Long id;
     private String name;
@@ -19,12 +25,12 @@ public class TourDetailDto {
     private Integer durationDays;
     private String departurePoint;
     private String destination;
-    private List<DepartureDto> availableDepartures; 
-    private List<String> imageUrls; 
+    private List<DepartureDto> availableDepartures;
+    private List<String> imageUrls;
 
     // Static helper method to convert a Tour entity to a TourDetailDto
     public static TourDetailDto fromEntity(Tour tour, List<Departure> departures) {
- 
+
         TourDetailDto dto = new TourDetailDto();
         dto.setId(tour.getId());
         dto.setName(tour.getName());
@@ -34,18 +40,18 @@ public class TourDetailDto {
         dto.setDeparturePoint(tour.getDeparturePoint());
         dto.setDestination(tour.getDestination());
 
-      
+
         dto.setAvailableDepartures(
             departures.stream()
                       .map(DepartureDto::fromEntity)
                       .collect(Collectors.toList())
         );
 
-        
+
         dto.setImageUrls(
                 tour.getTourImages() != null ?
                     tour.getTourImages().stream()
-                        
+
                         .map(tourImage -> tourImage.getImage() != null ? tourImage.getImage().getUrl() : null) // <--- Corrected!
                         .filter(java.util.Objects::nonNull) // Filter out any null URLs if an image association is missing
                         .collect(Collectors.toList()) :

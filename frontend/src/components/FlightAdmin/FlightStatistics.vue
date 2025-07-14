@@ -183,24 +183,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue';
+import { getAdminFlightStatistics } from '@/api/flightApi';
+
+const statistics = ref([]);
+const loading = ref(false);
+const error = ref('');
+
+onMounted(async () => {
+  loading.value = true;
+  try {
+    const res = await getAdminFlightStatistics();
+    statistics.value = res.data;
+  } catch (e) {
+    error.value = 'Không thể tải dữ liệu thống kê.';
+  } finally {
+    loading.value = false;
+  }
+});
 
 // State
 const startDate = ref('')
 const endDate = ref('')
 
 // Mock data - Replace with actual API calls
-const statistics = ref({
-  totalFlights: 150,
-  flightGrowth: 12,
-  totalBookings: 1200,
-  bookingGrowth: 8,
-  revenue: 1500000000,
-  revenueGrowth: 15,
-  occupancyRate: 85,
-  occupancyGrowth: 5
-})
-
 const topRoutes = ref([
   {
     route: 'Hà Nội - TP.HCM',

@@ -3,7 +3,6 @@
     class="container w-full min-h-screen py-10 overflow-hidden relative after:absolute after:w-96 after:h-96 after:bg-sky-300 after:-z-10 after:rounded-full after:-top-70 after:left-4 after:blur-xl after:[box-shadow:-100px_50px_30px_100px_#7dd3fc]"
   >
     <div class="max-w-7xl mx-auto px-4">
-      <!-- ========== HEADER ========== -->
       <div class="mb-8 text-center relative">
         <h1 class="text-4xl font-bold text-gray-900">Booking</h1>
         <p class="mt-2 text-gray-500">
@@ -13,8 +12,6 @@
           class="fa-solid fa-plane-departure absolute top-8 right-64 text-5xl text-[#4f39f6]"
         ></i>
       </div>
-
-      <!-- ========== TABS ========== -->
       <div class="mb-10 flex justify-center">
         <div class="inline-flex space-x-2 bg-white rounded-full shadow-md p-1">
           <button
@@ -46,14 +43,11 @@
           </button>
         </div>
       </div>
-
-      <!-- ========== FILTER PANEL ========== -->
       <form
         @submit.prevent="onSearch"
         class="rounded-xl shadow-lg p-8 mb-10 border-t border-l border-gray-200 overflow-hidden relative before:absolute before:w-96 before:h-96 before:bg-sky-300 before:-z-10 before:rounded-full before:-top-70 before:-right-72 before:blur-xl before:[box-shadow:-100px_50px_30px_100px_#7dd3fc] after:absolute after:w-96 after:h-96 after:bg-sky-300 after:-z-10 after:rounded-full after:top-70 after:-left-72 after:blur-xl after:[box-shadow:-100px_50px_30px_100px_#7dd3fc]"
       >
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-          <!-- From → có icon Location -->
           <div>
             <label
               for="from"
@@ -77,14 +71,12 @@
             </label>
             <input
               id="from"
-              v-model="filters.from"
-              type="text"
-              placeholder="JFK"
+              v-model.number="filters.departureAirportId"
+              type="number"
+              placeholder="1"
               class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-
-          <!-- To → có icon Location -->
           <div>
             <label
               for="to"
@@ -114,14 +106,12 @@
             </label>
             <input
               id="to"
-              v-model="filters.to"
-              type="text"
-              placeholder="ORD"
+              v-model.number="filters.arrivalAirportId"
+              type="number"
+              placeholder="2"
               class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-
-          <!-- Depart Date → icon Calendar -->
           <div>
             <label
               for="departDate"
@@ -146,7 +136,7 @@
             <div class="relative">
               <input
                 id="departDate"
-                v-model="filters.departDate"
+                v-model="filters.departureDate"
                 type="date"
                 class="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -166,8 +156,6 @@
               </svg>
             </div>
           </div>
-
-          <!-- Return Date (chỉ khi Khứ hồi) -->
           <div v-if="currentTab === 'round-trip'">
             <label
               for="returnDate"
@@ -213,7 +201,6 @@
             </div>
           </div>
 
-          <!-- Multi-city (chỉ khi Nhiều thành phố) -->
           <div
             v-if="currentTab === 'multi-city'"
             class="lg:col-span-2 xl:col-span-3"
@@ -250,7 +237,6 @@
             </p>
           </div>
 
-          <!-- Passengers -->
           <div>
             <label
               for="passengers"
@@ -281,7 +267,6 @@
             </select>
           </div>
 
-          <!-- Cabin Class -->
           <div>
             <label
               for="cabinClass"
@@ -314,8 +299,6 @@
               <option value="first">First Class</option>
             </select>
           </div>
-
-          <!-- Airlines (chọn đa lựa) -->
           <div>
             <label
               class="block text-sm font-medium text-gray-700 mb-2 flex items-center"
@@ -348,14 +331,12 @@
                   "
                   class="px-3 py-1 rounded-full text-sm flex items-center space-x-1 transition-colors"
                 >
-                  <!-- Bạn có thể đổi thành logo SVG của mỗi hãng nếu muốn -->
                   <span>{{ label }}</span>
                 </button>
               </template>
             </div>
           </div>
 
-          <!-- Stops (chọn đa lựa) -->
           <div>
             <label
               class="block text-sm font-medium text-gray-700 mb-2 flex items-center"
@@ -394,7 +375,6 @@
             </div>
           </div>
 
-          <!-- Departure Time Window -->
           <div>
             <label
               for="timeWindow"
@@ -429,7 +409,6 @@
             </select>
           </div>
 
-          <!-- Price Range -->
           <div>
             <label
               class="block text-sm font-medium text-gray-700 mb-2 flex items-center"
@@ -480,7 +459,6 @@
           </div>
         </div>
 
-        <!-- Search Button -->
         <div class="mt-8 flex justify-end">
           <button
             type="submit"
@@ -491,7 +469,6 @@
         </div>
       </form>
 
-      <!-- ========== FLIGHT OPTIONS ========== -->
       <h2 class="text-2xl font-semibold text-gray-800 mb-4">Flight options</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         <div
@@ -499,24 +476,25 @@
           :key="flight.id"
           class="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-shadow"
         >
-          <!-- Ảnh & overlay gradient -->
           <img
-            :src="flight.image"
-            alt="Flight image"
+            :src="flight.images && flight.images.length > 0 ? flight.images[0].imageUrl : 'https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946'"
+            :alt="flight.name"
             class="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div
             class="absolute inset-0 bg-gradient-to-t from-black via-transparent opacity-60"
           ></div>
 
-          <!-- Thông tin ở đáy ảnh -->
           <div class="absolute bottom-4 left-4 text-white">
-            <h3 class="text-xl font-semibold">{{ flight.title }}</h3>
-            <p class="text-sm mt-1">{{ flight.subtitle }}</p>
-            <p class="text-lg font-bold mt-2">{{ flight.price }}</p>
+            <h3 class="text-xl font-semibold">{{ flight.name }}</h3>
+            <p class="text-sm mt-1">
+              {{ formatTime(flight.departureTime) }} - {{ formatTime(flight.arrivalTime) }}
+            </p>
+            <p class="text-lg font-bold mt-2">
+              {{ priceDisplay(flight) }}
+            </p>
           </div>
 
-          <!-- Button Book -->
           <button
             @click="openBooking(flight)"
             class="absolute top-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-md text-sm transition-colors shadow-md"
@@ -526,7 +504,6 @@
         </div>
       </div>
 
-      <!-- ========== PAGINATION ========== -->
       <div class="mt-10 flex justify-center items-center space-x-2">
         <button
           @click="prevPage"
@@ -586,31 +563,23 @@
       @click="closeBooking"
     ></div>
 
-    <!-- 2. Phần drawer chính (slide‐in) -->
     <div
       class="relative bg-white overflow-scroll h-full w-7/12 shadow-xl transform transition-transform duration-300 ease-in-out pr-4"
       :class="showBookingModal ? 'translate-x-3/4' : 'translate-x-full'"
     >
-      <!-- Tiêu đề drawer -->
       <div class="border-b border-gray-200 px-6 mt-14 py-4">
         <h2 class="text-xl font-semibold text-gray-800">Chuyến đi của bạn</h2>
       </div>
 
-      <!-- Phần nội dung trong drawer -->
       <div class="p-6 overflow-y-auto h-full">
-        <!-- 3.1. Nếu đã chọn flight, hiển thị thông tin cơ bản -->
         <div v-if="selectedFlight" class="mb-6">
-          <!-- Container chính với hiệu ứng 3D perspective -->
           <div class="group relative w-full h-56 [perspective:1000px]">
-            <!-- Phần này bao gồm cả front và back, sẽ xoay khi hover -->
             <div
               class="absolute inset-0 w-full h-full duration-1000 [transform-style:preserve-3d] group-hover:[transform:rotateX(180deg)]"
             >
-              <!-- === MẶT TRƯỚC (Front) === -->
               <div
                 class="absolute inset-0 bg-white rounded-xl shadow-lg flex flex-col [backface-visibility:hidden] bg-gradient-to-br from-violet-400 to-indigo-600"
               >
-                <!-- Nội dung 2: ảnh, tiêu đề, phụ đề, giá -->
                 <div class="flex items-center space-x-14 overflow-hidden">
                   <img
                     :src="selectedFlight.image"
@@ -619,65 +588,71 @@
                   />
                   <div class="text-white">
                     <h3 class="text-3xl font-semibold">
-                      {{ selectedFlight.title }}
+                      {{ selectedFlight.name }}
                     </h3>
                     <p class="text-sm">
-                      {{ selectedFlight.subtitle }}
+                      {{ formatTime(selectedFlight.departureTime) }} - {{ formatTime(selectedFlight.arrivalTime) }}
                     </p>
                   </div>
                   <div>
                     <p class="text-2xl text-white font-bold">
-                      {{ selectedFlight.price }}
+                      {{ priceDisplay(selectedFlight) }}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <!-- === MẶT SAU (Back) === -->
               <div
                 class="absolute inset-0 bg-white rounded-xl shadow-lg p-4 [transform:rotateX(180deg)] [backface-visibility:hidden]"
               >
-                <!-- Tiêu đề nhấn mạnh mặt sau -->
                 <div class="mb-3">
                   <h4 class="text-lg font-bold text-gray-800">
                     Thông tin chuyến bay
                   </h4>
                 </div>
-                <!-- Nội dung 1: chi tiết chuyến bay -->
                 <div class="text-sm text-gray-600 space-y-1">
                   <p>
                     <strong>Chặng:</strong>
-                    Hà Nội (HAN) → Nha Trang (CXR)
+                    {{ selectedFlight.name }}
                   </p>
                   <p>
-                    <strong>Ngày:</strong>
-                    Fri, 13 Jun 2025
+                    <strong>Khởi hành:</strong>
+                    Sân bay: {{ selectedFlight.departureAirport.name }}
+                    Thời gian: {{ formatTime(selectedFlight.departureTime) }}
+                  </p>
+                  <p>
+                    <strong>Đến:</strong>
+                    Sân bay: {{ selectedFlight.arrivalAirport.name }}
+                    Thời gian: {{ formatTime(selectedFlight.arrivalTime) }}
                   </p>
                   <p>
                     <strong>Hãng:</strong>
-                    Vietnam Airlines
+                    {{ selectedFlight.airline ? (typeof selectedFlight.airline === 'object' ? selectedFlight.airline.name : selectedFlight.airline) : 'N/A' }}
                   </p>
-                  <p class="text-gray-500 italic">VN123 • 14:15 – 16:15</p>
+                  <p class="text-gray-500 italic">
+                    {{ selectedFlight.flightNumber }} • {{ formatTime(selectedFlight.departureTime) }} – {{ formatTime(selectedFlight.arrivalTime) }}
+                  </p>
+                  <p>
+                    <strong>Số ghế còn:</strong>
+                    {{ availableSeats !== null ? availableSeats.total : '...' }}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 3.2. Phần chọn loại vé -->
         <div class="mb-4">
           <h4 class="text-lg font-semibold text-gray-800 mb-4">
             Chọn loại vé của bạn
           </h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- ==== Card 1: Nguyên bản ==== -->
             <div
               class="group cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
             >
               <div
                 class="relative w-full rounded-3xl border border-indigo-500/20 bg-gradient-to-tr from-[#0F0F0F] to-[#1B1B1B] shadow-2xl overflow-hidden backdrop-blur-xl hover:border-indigo-500/40 hover:shadow-indigo-500/10 hover:shadow-3xl"
-              >
-                <!-- Hiệu ứng ánh sáng -->
+              > 
                 <div class="absolute inset-0 z-0 overflow-hidden">
                   <div
                     class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-indigo-400/20 opacity-40 group-hover:opacity-60 transition-opacity duration-500"
@@ -696,60 +671,56 @@
                   ></div>
                 </div>
 
-                <!-- Nội dung -->
                 <div class="p-6 relative z-10 flex flex-col space-y-3">
-                  <!-- Icon + Tiêu đề -->
                   <div class="flex items-center space-x-3">
-                    <div
-                      class="p-3 rounded-full border border-indigo-500/30 bg-black/40 backdrop-blur-md"
-                    >
-                      ✈️
+                    <div class="relative flex h-[50px] w-[50px] items-center justify-center p-3 rounded-full border border-indigo-500/30">
+                      <input type="radio" id="radio" name="gender" value="male" class="peer z-10 h-full w-full cursor-pointer opacity-0" />
+                      <div
+                        class="absolute h-full w-full rounded-full  bg-black/40 backdrop-blur-md p-4 shadow-sm shadow-[#00000050] ring-blue-400 duration-300 peer-checked:scale-110 peer-checked:ring-2">
+                      </div>
+                      <div class="absolute -z-10 h-full w-full scale-0 rounded-full bg-indigo-200/30 duration-500 filter
+                      peer-checked:scale-[300%] peer-checked:blur-lg"></div>
+                      <div class="absolute stroke-indigo-400">
+                        ✈️
+                      </div>
                     </div>
                     <h5 class="text-xl font-bold text-white tracking-wide">
-                      Nguyên bản
+                      Phổ thông
                     </h5>
                   </div>
 
-                  <!-- Giá -->
                   <p class="text-gray-300">
-                    Giá:
-                    <span class="font-bold text-indigo-400">{{
-                      selectedFlight?.price
-                    }}</span
-                    ><span class="text-sm text-gray-400"> / khách</span>
+                    Giá:<span class="text-sm text-gray-400"> / 1 khách</span>
                   </p>
 
-                  <!-- Danh sách tiện ích -->
                   <ul
                     class="text-sm text-gray-300 list-disc list-inside space-y-1"
                   >
-                    <li>Hành lý xách tay 7 kg</li>
-                    <li>Hành lý ký gửi (tùy điều kiện)</li>
-                    <li>Phí đổi lịch bay của hãng 45</li>
-                    <li>Phí hoàn vé bắt đầu ở mức 450.000 VND</li>
+                    <li>Giá từ: <span class="font-bold text-indigo-400">{{ economySummary?.price ? formatCurrency(economySummary.price) : 'N/A' }}</span></li>
+                    <li>Hành lý xách tay: <span class="font-bold text-indigo-400">{{ economySummary?.carryOnLuggage ? economySummary.carryOnLuggage + ' kg' : 'N/A' }}</span></li>
+                    <li>Số lượng vé: <span class="font-bold text-indigo-400">{{ economySummary?.total ?? 0 }}</span></li>
                   </ul>
 
-                  <!-- Link + nút -->
-                  <a href="#" class="text-sm text-indigo-300 hover:underline"
-                    >Tìm hiểu thêm</a
-                  >
-                  <button
-                    class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-md w-full transition-colors"
-                  >
-                    CHỌN
-                  </button>
+                  <div class="mt-2 flex flex-col gap-1 text-sm text-indigo-300 hover:underline">
+                    <label class="inline-flex items-center">
+                      <input type="radio" v-model="economySeatType" value="window" class="form-radio text-indigo-600" />
+                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span> <span class="ml-1 text-xs text-gray-500">(Còn {{ economySummary.countWindow ?? 0 }})</span></span>
+                    </label>
+                    <label class="inline-flex items-center">
+                      <input type="radio" v-model="economySeatType" value="aisle" class="form-radio text-indigo-600" />
+                      <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{ economySummary.countAisle ?? 0 }})</span></span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- ==== Card 2: Thương gia ==== -->
             <div
               class="group cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
             >
               <div
                 class="relative w-full rounded-3xl border border-yellow-400/20 bg-gradient-to-tr from-[#1A1400] to-[#2B1F00] shadow-2xl overflow-hidden backdrop-blur-xl hover:border-yellow-400/40 hover:shadow-yellow-400/10 hover:shadow-3xl"
               >
-                <!-- Hiệu ứng ánh sáng -->
                 <div class="absolute inset-0 z-0 overflow-hidden">
                   <div
                     class="absolute inset-0 bg-gradient-to-tr from-yellow-400/10 to-yellow-300/20 opacity-40 group-hover:opacity-60 transition-opacity duration-500"
@@ -768,21 +739,24 @@
                   ></div>
                 </div>
 
-                <!-- Nội dung -->
-                <div class="p-6 relative z-10 flex flex-col space-y-3">
-                  <!-- Icon + Tiêu đề -->
-                  <div class="flex items-center space-x-3">
-                    <div
-                      class="p-3 rounded-full border border-yellow-400/30 bg-black/40 backdrop-blur-md"
-                    >
-                      👑
+                <div class="p-6 relative z-10 flex flex-col space-y-3 overflow-hidden">
+                  <div class="flex items-center space-x-3 ">
+                    <div class="relative flex h-[50px] w-[50px] items-center justify-center p-3 rounded-full border  border-yellow-400/30">
+                      <input type="radio" id="radio" name="gender" value="male" class="peer z-10 h-full w-full cursor-pointer opacity-0" />
+                      <div
+                        class="absolute h-full w-full rounded-full  bg-black/40 backdrop-blur-md p-4 shadow-sm shadow-[#00000050] ring-yellow-400 duration-300 peer-checked:scale-110 peer-checked:ring-2">
+                      </div>
+                      <div class="absolute -z-10 h-full w-full scale-0 rounded-full bg-yellow-400/30 duration-500 filter
+                                  peer-checked:scale-[300%] peer-checked:blur-lg"></div>
+                      <div class="absolute stroke-indigo-400">
+                        👑
+                      </div>
                     </div>
                     <h5 class="text-xl font-bold text-yellow-200 tracking-wide">
                       Thương gia
                     </h5>
                   </div>
 
-                  <!-- Giá -->
                   <p class="text-gray-300">
                     Giá:
                     <span class="font-bold text-yellow-300">{{
@@ -791,33 +765,30 @@
                     ><span class="text-sm text-gray-400"> / khách</span>
                   </p>
 
-                  <!-- Danh sách tiện ích -->
                   <ul
                     class="text-sm text-gray-300 list-disc list-inside space-y-1"
                   >
-                    <li>Hành lý xách tay 2 × 14 kg</li>
-                    <li>Hành lý ký gửi (tùy điều kiện)</li>
-                    <li>Phí đổi lịch bay của hãng miễn phí</li>
-                    <li>Phí hoàn vé bắt đầu ở mức 300.000 VND</li>
+                    <li>Giá từ: <span class="font-bold text-indigo-400">{{ businessSummary?.price ? formatCurrency(businessSummary.price) : 'N/A' }}</span></li>
+                    <li>Hành lý xách tay: <span class="font-bold text-indigo-400">{{ businessSummary?.carryOnLuggage ? businessSummary.carryOnLuggage + ' kg' : 'N/A' }}</span></li>
+                    <li>Số lượng vé: <span class="font-bold text-indigo-400">{{ businessSummary?.total ?? 0 }}</span></li>
                   </ul>
 
-                  <!-- Link + nút -->
-                  <a href="#" class="text-sm text-yellow-300 hover:underline"
-                    >Tìm hiểu thêm</a
-                  >
-                  <button
-                    class="mt-4 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 rounded-md w-full transition-colors"
-                  >
-                    CHỌN
-                  </button>
+                  <div class="mt-2 flex flex-col gap-1 text-sm text-yellow-300 hover:underline">
+                    <label class="inline-flex items-center">
+                      <input type="radio" v-model="businessSeatType" value="window" class="form-radio text-yellow-500" />
+                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span> <span class="ml-1 text-xs text-gray-500">(Còn {{ businessSummary.countWindow ?? 0 }})</span></span>
+                    </label>
+                    <label class="inline-flex items-center">
+                      <input type="radio" v-model="businessSeatType" value="aisle" class="form-radio text-yellow-500" />
+                      <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{ businessSummary.countAisle ?? 0 }})</span></span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 3.3. Bạn có thể thêm footer, điều khoản, v.v. -->
-        <!-- Ví dụ: một nút “Tiếp tục thanh toán” -->
         <div class="mt-8 flex">
           <router-link
             to="/plane/pay"
@@ -832,7 +803,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { searchFlights, getAvailableSeats } from '@/api/flightApi'
+import Flight from '@/entity/Flight'
 
 /** ========== Tab State ========== **/
 const currentTab = ref("one-way");
@@ -840,22 +813,57 @@ const tabActiveClass = "bg-indigo-600 text-white";
 const tabInactiveClass = "bg-white text-gray-600 hover:bg-gray-100";
 const showBookingModal = ref(false);
 const selectedFlight = ref(null);
+const availableSeats = ref(null);
+
 function openBooking(flight) {
   selectedFlight.value = flight;
+  availableSeats.value = null;
+  getAvailableSeats(flight.id).then(res => {
+    availableSeats.value = res.data;
+    economySummary.value.total = availableSeats.value.economy;
+    businessSummary.value.total = availableSeats.value.business;
+    economySummary.value.countWindow = availableSeats.value.economyWindow;
+    economySummary.value.countAisle = availableSeats.value.economyAisle;
+    businessSummary.value.countWindow = availableSeats.value.businessWindow;
+    businessSummary.value.countAisle = availableSeats.value.businessAisle;
+    getTicketSummary(selectedFlight.value.flightSlots, false);
+    getTicketSummary(selectedFlight.value.flightSlots, true);
+  });
   showBookingModal.value = true;
-}
+  // Debug chi tiết
+  setTimeout(() => {
+    console.log('Available seats:', availableSeats.value);
+    console.log('Economy summary:', economySummary.value);
+    console.log('Business summary:', businessSummary.value);
+  }, 2000);
 
-// Đóng modal và xoá `selectedFlight`
+  
+}
+const economySummary = ref({
+  price: 0,
+  carryOnLuggage: 0,
+  total: 0,
+  countWindow: 0,
+  countAisle: 0
+});
+const businessSummary = ref({
+  price: 0,
+  carryOnLuggage: 0,
+  total: 0,
+  countWindow: 0,
+  countAisle: 0
+});
 function closeBooking() {
   showBookingModal.value = false;
   selectedFlight.value = null;
 }
+
 /** ========== Filter State ========== **/
 const filters = ref({
-  from: "",
-  to: "",
-  departDate: "",
-  returnDate: "",
+  departureAirportId: null,
+  arrivalAirportId: null,
+  departureDate: '',
+  returnDate: '',
   passengers: 1,
   cabinClass: "economy",
   airlines: [], // array of selected airline keys
@@ -866,14 +874,9 @@ const filters = ref({
   multiCities: "",
 });
 
-// Tùy chọn mã key → label cho airlines
-const airlineOptions = {
-  delta: "Delta",
-  american: "American",
-  united: "United",
-  qatar: "Qatar",
-  emirates: "Emirates",
-};
+
+
+
 
 // Tùy chọn stop types
 const stopsOptions = {
@@ -896,123 +899,42 @@ function toggleStop(key) {
   else filters.value.stops.splice(idx, 1);
 }
 
-// Xử lý nút Search (hiện chỉ console.log; bạn hook API vào đây)
+const flights = ref([])
+const loading = ref(false)
+const error = ref('')
+
 function onSearch() {
-  console.log("Search với filters:", filters.value, "Tab:", currentTab.value);
-  // TODO: Gọi API backend, rồi gán kết quả cho allFlights.value
-  currentPage.value = 1; // reset pagination về trang 1
+  loading.value = true
+  searchFlights({
+    departureAirportId: filters.value.departureAirportId,
+    arrivalAirportId: filters.value.arrivalAirportId,
+    departureDate: filters.value.departureDate,
+    airlineId: filters.value.airlines.length === 1 ? filters.value.airlines[0] : undefined
+  })
+    .then(res => {
+      flights.value = res.data
+    })
+    .catch(() => {
+      error.value = 'Không thể tìm chuyến bay.'
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
-/** ========== Dữ liệu mẫu về các chuyến bay ========== **/
-const allFlights = ref([
-  {
-    id: 1,
-    title: "NYC Flight",
-    subtitle: "Nonstop to New York",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 2,
-    title: "LA Flight",
-    subtitle: "1 stop in Dallas",
-    price: "1000.000 VND",
-    image:
-      "https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946",
-  },
-  {
-    id: 3,
-    title: "Hawaii Trip",
-    subtitle: "2 stops in Miami & DC",
-    price: "1000.000 VND",
-    image:
-      "https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946",
-  },
-  {
-    id: 4,
-    title: "London Flight",
-    subtitle: "Nonstop to London",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 5,
-    title: "Chicago Trip",
-    subtitle: "1 stop in Chicago",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 6,
-    title: "Tokyo Flight",
-    subtitle: "Nonstop to Tokyo",
-    price: "1000.000 VND",
-    image:
-      "https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946",
-  },
-  {
-    id: 7,
-    title: "Paris Flight",
-    subtitle: "1 stop in Reykjavik",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 8,
-    title: "Sydney Trip",
-    subtitle: "2 stops in LA & Auckland",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1526779259212-1c1b7ded44b9?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 9,
-    title: "Dubai Flight",
-    subtitle: "Nonstop to Dubai",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1496588152823-1aefdb1f9c7b?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 10,
-    title: "Berlin Trip",
-    subtitle: "1 stop in Frankfurt",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 11,
-    title: "Rome Flight",
-    subtitle: "Nonstop to Rome",
-    price: "1000.000 VND",
-    image:
-      "https://images.unsplash.com/photo-1526481280693-3bfa7568f9d3?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: 12,
-    title: "Bangkok Trip",
-    subtitle: "1 stop in Doha",
-    price: "1000.000 VND    ",
-    image:
-      "https://images.unsplash.com/photo-1554374405-ae162c4cca41?auto=format&fit=crop&w=800&q=60",
-  },
-]);
+onMounted(() => {
+  onSearch()
+})
 
 /** ========== Pagination ========== **/
 const itemsPerPage = 6;
 const currentPage = ref(1);
 const totalPages = computed(() =>
-  Math.ceil(allFlights.value.length / itemsPerPage)
+  Math.ceil(flights.value.length / itemsPerPage)
 );
-
 const paginatedFlights = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
-  return allFlights.value.slice(start, start + itemsPerPage);
+  return flights.value.slice(start, start + itemsPerPage);
 });
 
 function goToPage(page) {
@@ -1036,8 +958,44 @@ function nextPage() {
 // CSS classes cho pagination
 const pageActiveClass = "bg-indigo-600 text-white shadow-md";
 const pageInactiveClass = "bg-white text-gray-600 hover:bg-gray-100";
+
+function priceDisplay(flight) {
+  if (flight.minPrice && flight.maxPrice && flight.minPrice !== flight.maxPrice) {
+    return formatCurrency(flight.minPrice) + ' - ' + formatCurrency(flight.maxPrice);
+  } else if (flight.minPrice) {
+    return formatCurrency(flight.minPrice);
+  } else {
+    return 'Liên hệ';
+  }
+}
+function formatCurrency(val) {
+  if (!val) return '';
+  return Number(val).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+}
+function formatTime(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+}
+function getTicketSummary(slots, isBusiness) {
+  console.log('Slots:', slots);
+  for (const slot of slots) {
+    if (slot.isBusiness === isBusiness) {
+      businessSummary.value.price = slot.price;
+      businessSummary.value.carryOnLuggage = slot.carryOnLuggage;
+    }else{
+      economySummary.value.price = slot.price;
+      economySummary.value.carryOnLuggage = slot.carryOnLuggage;
+    }
+  }
+}
+
+const economySeatType = ref('window');
+const businessSeatType = ref('window');
+
+
 </script>
 
 <style scoped>
-/* Nếu cần thêm CSS custom, bạn có thể bổ sung ở đây. */
+
 </style>

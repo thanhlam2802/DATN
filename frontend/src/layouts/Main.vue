@@ -4,11 +4,16 @@ import Footer from "../components/Footer.vue";
 </script>
 
 <template>
-  <Header/>
+  <div class="flex flex-col min-h-screen">
+    <!-- Header cố định -->
+    <Header />
 
-  <main class="min-h-[calc(100vh-120px)] flex justify-center px-6">
-    <router-view/>
-  </main>
+    <!-- Main content -->
+    <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
+      <router-view />
+    </main>
 
-  <Footer/>
+    <!-- Footer -->
+    <Footer />
+  </div>
 </template>

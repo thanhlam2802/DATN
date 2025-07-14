@@ -75,19 +75,19 @@
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-for="booking in filteredBookings" :key="booking.id" class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-              {{ booking.bookingNumber }}
+              {{ booking.id }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ booking.flight }}
+              {{ booking.flightSlot.flight.name }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ booking.passenger }}
+              {{ booking.customer.name }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ formatDate(booking.bookingDate) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ formatCurrency(booking.totalAmount) }}
+              {{ formatCurrency(booking.ticketDetail.price) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span
@@ -170,7 +170,7 @@
                   <div class="grid grid-cols-2 gap-4">
                     <div>
                       <p class="text-sm font-medium text-gray-500">Mã đặt chỗ</p>
-                      <p class="mt-1 text-sm text-gray-900">{{ selectedBooking.bookingNumber }}</p>
+                      <p class="mt-1 text-sm text-gray-900">{{ selectedBooking.id }}</p>
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-500">Trạng thái</p>
@@ -178,11 +178,11 @@
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-500">Chuyến bay</p>
-                      <p class="mt-1 text-sm text-gray-900">{{ selectedBooking.flight }}</p>
+                      <p class="mt-1 text-sm text-gray-900">{{ selectedBooking.flightSlot.flight.name }}</p>
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-500">Hành khách</p>
-                      <p class="mt-1 text-sm text-gray-900">{{ selectedBooking.passenger }}</p>
+                      <p class="mt-1 text-sm text-gray-900">{{ selectedBooking.customer.name }}</p>
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-500">Ngày đặt</p>
@@ -190,7 +190,7 @@
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-500">Tổng tiền</p>
-                      <p class="mt-1 text-sm text-gray-900">{{ formatCurrency(selectedBooking.totalAmount) }}</p>
+                      <p class="mt-1 text-sm text-gray-900">{{ formatCurrency(selectedBooking.ticketDetail.price) }}</p>
                     </div>
                   </div>
                 </div>
@@ -213,94 +213,77 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getAdminFlightBookings } from '@/api/flightApi'
+import FlightBooking from '@/entity/FlightBooking'
 
-// State
 const searchQuery = ref('')
 const statusFilter = ref('')
 const dateFilter = ref('')
 const currentPage = ref(1)
 const pageSize = 10
 const selectedBooking = ref(null)
+const bookings = ref([])
+const loading = ref(false)
+const error = ref('')
 
-// Mock data - Replace with actual API calls
-const bookings = ref([
-  {
-    id: 1,
-    bookingNumber: 'BK001',
-    flight: 'VN123 - Hà Nội → TP.HCM',
-    passenger: 'Nguyễn Văn A',
-    bookingDate: '2024-03-19T10:00:00',
-    totalAmount: 2500000,
-    status: 'confirmed'
-  },
-  {
-    id: 2,
-    bookingNumber: 'BK002',
-    flight: 'VN456 - TP.HCM → Đà Nẵng',
-    passenger: 'Trần Thị B',
-    bookingDate: '2024-03-19T14:30:00',
-    totalAmount: 1800000,
-    status: 'pending'
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await getAdminFlightBookings()
+    bookings.value = res.data
+  } catch (e) {
+    error.value = 'Không thể tải danh sách đặt chỗ.'
+  } finally {
+    loading.value = false
   }
-])
+})
 
-// Computed
 const filteredBookings = computed(() => {
   let result = bookings.value
-
-  // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(booking => 
-      booking.bookingNumber.toLowerCase().includes(query) ||
-      booking.flight.toLowerCase().includes(query) ||
-      booking.passenger.toLowerCase().includes(query)
+      (booking.id && booking.id.toString().includes(query))
     )
   }
-
-  // Apply status filter
-  if (statusFilter.value) {
-    result = result.filter(booking => booking.status === statusFilter.value)
-  }
-
-  // Apply date filter
   if (dateFilter.value) {
     result = result.filter(booking => 
-      booking.bookingDate.startsWith(dateFilter.value)
+      booking.bookingDate && booking.bookingDate.startsWith(dateFilter.value)
     )
   }
-
   return result
 })
 
-const totalPages = computed(() => 
-  Math.ceil(filteredBookings.value.length / pageSize)
-)
-
 const paginationInfo = computed(() => {
+  const total = filteredBookings.value.length
   const start = (currentPage.value - 1) * pageSize + 1
-  const end = Math.min(start + pageSize - 1, filteredBookings.value.length)
-  return {
-    start,
-    end,
-    total: filteredBookings.value.length
-  }
+  const end = Math.min(currentPage.value * pageSize, total)
+  return { start, end, total }
 })
 
-// Methods
-const formatDate = (date) => {
-  return new Date(date).toLocaleString('vi-VN')
+const totalPages = computed(() => Math.ceil(filteredBookings.value.length / pageSize))
+
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--
+}
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++
 }
 
-const formatCurrency = (value) => {
+function formatDate(dt) {
+  if (!dt) return ''
+  return new Date(dt).toLocaleDateString('vi-VN')
+}
+
+function formatCurrency(value) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
   }).format(value)
 }
 
-const getStatusClass = (status) => {
+function getStatusClass(status) {
   const classes = {
     'confirmed': 'bg-green-100 text-green-800',
     'pending': 'bg-yellow-100 text-yellow-800',
@@ -310,7 +293,7 @@ const getStatusClass = (status) => {
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
-const getStatusText = (status) => {
+function getStatusText(status) {
   const texts = {
     'confirmed': 'Đã xác nhận',
     'pending': 'Đang chờ',
@@ -320,33 +303,21 @@ const getStatusText = (status) => {
   return texts[status] || status
 }
 
-const clearFilters = () => {
+function clearFilters() {
   statusFilter.value = ''
   dateFilter.value = ''
 }
 
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
-}
-
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
-  }
-}
-
-const viewDetails = (booking) => {
+function viewDetails(booking) {
   selectedBooking.value = booking
 }
 
-const confirmBooking = (booking) => {
+function confirmBooking(booking) {
   // Implement confirm functionality
   console.log('Confirm booking:', booking)
 }
 
-const cancelBooking = (booking) => {
+function cancelBooking(booking) {
   // Implement cancel functionality
   console.log('Cancel booking:', booking)
 }

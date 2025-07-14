@@ -24,7 +24,7 @@
               alt="Vietnam Airlines"
               class="h-10 w-auto"
             />
-            <h2 class="text-3xl font-bold text-black">Vietnam Airlines</h2>
+            <h2 class="text-3xl font-bold text-black">{{ ticket?.flight?.airline?.name || 'Vietnam Airlines' }}</h2>
           </div>
 
           <!-- Subtitle: Lộ trình bay (gradient xanh dương) -->
@@ -75,7 +75,7 @@
             <!-- Thông tin chi tiết -->
             <div class="sm:w-2/3 w-full p-4 flex flex-col justify-between">
               <div>
-                <p class="text-sm text-gray-500 mb-1">Vietnam Airlines</p>
+                <p class="text-sm text-gray-500 mb-1">{{ ticket?.flight?.airline?.name || 'Vietnam Airlines' }}</p>
                 <h4 class="text-xl font-semibold text-gray-800 mb-1">
                   {{ departureCode }} → {{ arrivalCode }}
                 </h4>
@@ -184,7 +184,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getFlightBookingDetail } from '@/api/flightApi'
+
+const bookingId = ref('') // Lấy bookingId từ route hoặc props thực tế
+const ticket = ref(null)
+const loading = ref(false)
+const error = ref('')
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await getFlightBookingDetail(bookingId.value)
+    ticket.value = res.data
+  } catch (e) {
+    error.value = 'Không thể tải thông tin vé.'
+  } finally {
+    loading.value = false
+  }
+})
 
 // --- Dữ liệu mẫu (bạn có thể thay bằng props hoặc API) ---
 const flightDate   = ref(new Date(2025, 5, 13)) // Tháng bắt đầu từ 0 → 5 = tháng 6

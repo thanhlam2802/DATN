@@ -36,6 +36,7 @@ public class BusBooking {
     @OneToMany(mappedBy = "busBooking")
     private List<Payment> payments;
 
-    @OneToMany(mappedBy = "busBooking")
-    private List<TicketDetail> ticketDetails;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_detail_id")
+    private TicketDetail ticketDetail;
 }

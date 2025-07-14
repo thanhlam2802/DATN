@@ -28,4 +28,6 @@ public class HotelSearchRequestDto {
     private String sortBy = "popular";
     private int page = 0;
     private int size = 12;
+    private LocalDate createdAtFrom;
+    private LocalDate createdAtTo;
 }

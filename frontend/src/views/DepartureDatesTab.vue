@@ -1,157 +1,193 @@
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h2 class="text-3xl font-bold text-gray-800">Ngày khởi hành</h2>
-      <button
-        @click="openAddForm"
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-      >
-        <PlusIcon class="w-4 h-4 mr-2" />
-        Thêm ngày khởi hành
-      </button>
-    </div>
-
-    <!-- Search -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <div class="relative">
+  <div class="space-y-8">
+    <div
+      class="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+    >
+      <h1 class="text-3xl font-bold text-gray-900">Quản lý Ngày Khởi Hành</h1>
+      <div class="relative w-full md:w-72">
         <SearchIcon
-          class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          class="w-5 h-5 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400"
         />
         <input
           type="text"
           placeholder="Tìm kiếm theo tên tour..."
           v-model="searchTerm"
-          class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
         />
       </div>
     </div>
 
-    <!-- Departures Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div v-if="isLoading" class="text-center py-10 text-gray-600">
+      <p>Đang tải dữ liệu từ server...</p>
+    </div>
+
+    <div v-else-if="error" class="bg-red-50 text-red-700 p-4 rounded-lg">
+      <p>Đã xảy ra lỗi khi tải dữ liệu: {{ error }}</p>
+    </div>
+
+    <div
+      v-else-if="!filteredTours.length"
+      class="text-center py-10 text-gray-500"
+    >
+      <p>Không tìm thấy tour nào phù hợp.</p>
+    </div>
+
+    <div v-else class="space-y-3">
       <div
-        v-for="departure in filteredDepartures"
-        :key="departure.id"
-        class="bg-white rounded-lg shadow-md p-6"
+        v-for="tour in filteredTours"
+        :key="tour.id"
+        class="bg-white rounded-xl shadow-sm border border-gray-200 transition-all duration-300"
+        :class="{ 'shadow-lg': activeTourId === tour.id }"
       >
-        <div class="flex items-start justify-between mb-4">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800">
-              {{ departure.tour_name }}
-            </h3>
-            <div class="flex items-center text-sm text-gray-600 mt-1">
-              <CalendarIcon class="w-4 h-4 mr-2" />
-              {{ formatDate(departure.ngay) }}
-            </div>
-          </div>
-          <div class="flex space-x-2">
+        <div
+          class="p-5 flex items-center justify-between cursor-pointer hover:bg-gray-50/50 rounded-xl"
+          @click="toggleTour(tour.id)"
+        >
+          <h2 class="text-xl font-bold text-gray-800">{{ tour.name }}</h2>
+          <div class="flex items-center gap-4">
             <button
-              @click="editDeparture(departure)"
-              class="text-blue-600 hover:text-blue-800"
+              @click.stop="openAddModal(tour.id)"
+              class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm font-semibold transition-colors"
             >
-              <EditIcon class="w-4 h-4" />
+              <PlusIcon class="w-4 h-4 mr-2" />
+              Thêm ngày
             </button>
-            <button
-              @click="deleteDeparture(departure.id)"
-              class="text-red-600 hover:text-red-800"
-            >
-              <TrashIcon class="w-4 h-4" />
-            </button>
+            <ChevronDownIcon
+              class="w-6 h-6 text-gray-500 transition-transform duration-300"
+              :class="{ 'rotate-180': activeTourId === tour.id }"
+            />
           </div>
         </div>
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">Giá người lớn:</span>
-            <span class="font-semibold text-gray-800">{{
-              formatCurrency(departure.gia_nguoi_lon)
-            }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-600">Giá trẻ em:</span>
-            <span class="font-semibold text-gray-800">{{
-              formatCurrency(departure.gia_tre_em)
-            }}</span>
-          </div>
+
+        <div
+          v-if="activeTourId === tour.id"
+          class="px-5 pb-5 border-t border-gray-200"
+        >
           <div
-            v-if="departure.giam_gia > 0"
-            class="flex justify-between items-center text-green-600"
+            v-if="!tour.departures || !tour.departures.length"
+            class="text-center py-8 text-gray-500"
           >
-            <span class="text-sm">Giảm giá:</span>
-            <span class="font-semibold">{{
-              formatCurrency(departure.giam_gia)
-            }}</span>
+            <p>Tour này chưa có ngày khởi hành nào.</p>
           </div>
-          <div class="pt-3 border-t">
-            <div class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">Số chỗ:</span>
-              <span class="font-semibold">
-                {{ departure.so_cho_da_dat }}/{{ departure.so_cho }}
-              </span>
-            </div>
-            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
-              <div
-                class="bg-blue-600 h-2 rounded-full"
-                :style="{
-                  width: `${
-                    (departure.so_cho_da_dat / departure.so_cho) * 100
-                  }%`,
-                }"
-              />
-            </div>
+          <div v-else class="space-y-6 pt-4">
+            <section v-if="categorizedDepartures.upcoming.length">
+              <h3
+                class="text-md font-semibold text-gray-700 mb-3 flex items-center"
+              >
+                <CalendarClockIcon class="w-5 h-5 mr-2 text-blue-500" />Sắp tới
+              </h3>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <DepartureCard
+                  v-for="dep in categorizedDepartures.upcoming"
+                  :key="dep.id"
+                  :departure="dep"
+                  :tour-id="tour.id"
+                  @edit="openEditModal"
+                  @delete="handleDelete"
+                />
+              </div>
+            </section>
+            <section v-if="categorizedDepartures.today.length">
+              <h3
+                class="text-md font-semibold text-gray-700 mb-3 flex items-center"
+              >
+                <CalendarCheckIcon class="w-5 h-5 mr-2 text-green-500" />Hôm nay
+              </h3>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <DepartureCard
+                  v-for="dep in categorizedDepartures.today"
+                  :key="dep.id"
+                  :departure="dep"
+                  :tour-id="tour.id"
+                  @edit="openEditModal"
+                  @delete="handleDelete"
+                />
+              </div>
+            </section>
+            <section v-if="categorizedDepartures.past.length">
+              <h3
+                class="text-md font-semibold text-gray-700 mb-3 flex items-center"
+              >
+                <CalendarXIcon class="w-5 h-5 mr-2 text-red-500" />Đã qua
+              </h3>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <DepartureCard
+                  v-for="dep in categorizedDepartures.past"
+                  :key="dep.id"
+                  :departure="dep"
+                  :tour-id="tour.id"
+                  :is-past="true"
+                  @edit="openEditModal"
+                  @delete="handleDelete"
+                />
+              </div>
+            </section>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal -->
     <div
-      v-if="showAddForm"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      v-if="showModal"
+      class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">
+      <div
+        class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg"
+        @click.stop
+      >
+        <h3 class="text-xl font-bold mb-5 text-gray-800">
           {{
-            editingDeparture
-              ? "Chỉnh sửa ngày khởi hành"
-              : "Thêm ngày khởi hành mới"
+            isEditing ? "Chỉnh sửa ngày khởi hành" : "Thêm ngày khởi hành mới"
           }}
         </h3>
-        <form @submit.prevent="saveDeparture" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Tour</label
+        <form @submit.prevent="handleSave" class="space-y-4">
+          <div v-for="field in formFields" :key="field.key">
+            <label
+              :for="field.key"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >{{ field.label }}</label
             >
-            <select
-              v-model="form.tour_name"
-              class="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="Hạ Long Bay 3N2Đ">Hạ Long Bay 3N2Đ</option>
-              <option value="Sapa Trekking 2N1Đ">Sapa Trekking 2N1Đ</option>
-            </select>
-          </div>
-          <div v-for="field in fields" :key="field.key">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              {{ field.label }}
-            </label>
             <input
+              :id="field.key"
               :type="field.type"
               v-model="form[field.key]"
-              class="w-full border rounded-lg px-3 py-2"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
+              required
+              :min="
+                field.key === 'departureDate' && !isEditing ? todayString : null
+              "
+              :step="field.step || null"
             />
           </div>
-          <div class="flex space-x-3 pt-4">
+
+          <div v-if="isEditing">
+            <label
+              for="bookedSeats"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Số chỗ đã đặt</label
+            >
+            <input
+              id="bookedSeats"
+              type="number"
+              :value="form.bookedSeats"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed"
+              disabled
+            />
+          </div>
+
+          <div class="flex justify-end space-x-3 pt-5">
             <button
               type="button"
-              @click="closeForm"
-              class="flex-1 bg-gray-300 py-2 rounded-lg"
+              @click="closeModal"
+              class="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold"
             >
               Hủy
             </button>
             <button
               type="submit"
-              class="flex-1 bg-blue-600 text-white py-2 rounded-lg"
+              class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
             >
-              {{ editingDeparture ? "Cập nhật" : "Thêm" }}
+              {{ isEditing ? "Cập nhật" : "Lưu" }}
             </button>
           </div>
         </form>
@@ -161,118 +197,193 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import {
   PlusIcon,
-  EditIcon,
-  TrashIcon,
-  CalendarIcon,
+  ChevronDownIcon,
+  CalendarClockIcon,
+  CalendarCheckIcon,
+  CalendarXIcon,
   SearchIcon,
 } from "lucide-vue-next";
+import DepartureCard from "../components/Tours/DepartureCard.vue";
+import tourAdminApi from "../api/tourAdminApi";
+import { departureApi } from "../api/DepartureApi.js";
 
-const departures = ref([
-  {
-    id: 1,
-    tour_id: 1,
-    tour_name: "Hạ Long Bay 3N2Đ",
-    ngay: "2024-02-15",
-    gia_nguoi_lon: 2500000,
-    gia_tre_em: 1250000,
-    giam_gia: 0,
-    so_cho: 30,
-    so_cho_da_dat: 12,
-  },
-  {
-    id: 2,
-    tour_id: 1,
-    tour_name: "Hạ Long Bay 3N2Đ",
-    ngay: "2024-02-20",
-    gia_nguoi_lon: 2500000,
-    gia_tre_em: 1250000,
-    giam_gia: 200000,
-    so_cho: 30,
-    so_cho_da_dat: 5,
-  },
-]);
-
-const showAddForm = ref(false);
-const editingDeparture = ref(null);
+// --- PARENT COMPONENT STATE & LOGIC ---
+const tours = ref([]);
+const isLoading = ref(true);
+const error = ref(null);
 const searchTerm = ref("");
-const form = ref({
-  tour_name: "",
-  ngay: "",
-  gia_nguoi_lon: 0,
-  gia_tre_em: 0,
-  giam_gia: 0,
-  so_cho: 30,
-  so_cho_da_dat: 0,
-});
+const activeTourId = ref(null);
+const showModal = ref(false);
+const isEditing = ref(false);
+const form = ref({});
+const currentTourIdForModal = ref(null);
 
-const fields = [
-  { key: "ngay", label: "Ngày khởi hành", type: "date" },
-  { key: "gia_nguoi_lon", label: "Giá người lớn (VNĐ)", type: "number" },
-  { key: "gia_tre_em", label: "Giá trẻ em (VNĐ)", type: "number" },
-  { key: "giam_gia", label: "Giảm giá (VNĐ)", type: "number" },
-  { key: "so_cho", label: "Số chỗ", type: "number" },
+// --- SỬA LỖI TẠI ĐÂY: Định nghĩa `step` cho từng trường ---
+const formFields = [
+  { key: "departureDate", label: "Ngày khởi hành", type: "date" },
+  {
+    key: "adultPrice",
+    label: "Giá người lớn (VNĐ)",
+    type: "number",
+    step: 1000,
+  },
+  { key: "childPrice", label: "Giá trẻ em (VNĐ)", type: "number", step: 1000 },
+  { key: "discount", label: "Giảm giá (VNĐ)", type: "number", step: 1 },
+  { key: "seatCount", label: "Tổng số chỗ", type: "number", step: 1 },
 ];
 
-const filteredDepartures = computed(() =>
-  departures.value.filter((d) =>
-    d.tour_name.toLowerCase().includes(searchTerm.value.toLowerCase())
-  )
-);
+const formatDateForInput = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = `0${d.getMonth() + 1}`.slice(-2);
+  const day = `0${d.getDate()}`.slice(-2);
+  return `${year}-${month}-${day}`;
+};
 
-function formatCurrency(amount) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
-}
+const todayString = formatDateForInput(new Date());
 
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("vi-VN");
-}
+const createEmptyForm = () => ({
+  departureDate: todayString,
+  adultPrice: 0,
+  childPrice: 0,
+  discount: 0,
+  seatCount: 30,
+});
 
-function openAddForm() {
-  editingDeparture.value = null;
-  Object.assign(form.value, {
-    tour_name: "",
-    ngay: "",
-    gia_nguoi_lon: 0,
-    gia_tre_em: 0,
-    giam_gia: 0,
-    so_cho: 30,
-    so_cho_da_dat: 0,
+// --- COMPUTED PROPERTIES ---
+const filteredTours = computed(() => {
+  if (!searchTerm.value) return tours.value;
+  return tours.value.filter((tour) =>
+    tour.name.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
+});
+
+const getDeparturesForActiveTour = () => {
+  if (!activeTourId.value) return [];
+  const activeTour = tours.value.find((t) => t.id === activeTourId.value);
+  return activeTour && activeTour.departures ? activeTour.departures : [];
+};
+
+const categorizedDepartures = computed(() => {
+  const categories = { upcoming: [], today: [], past: [] };
+  const departures = getDeparturesForActiveTour();
+  if (!departures.length) return categories;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  departures.forEach((dep) => {
+    const departureDate = new Date(dep.departureDate);
+    departureDate.setHours(0, 0, 0, 0);
+    if (departureDate.getTime() > today.getTime())
+      categories.upcoming.push(dep);
+    else if (departureDate.getTime() === today.getTime())
+      categories.today.push(dep);
+    else categories.past.push(dep);
   });
-  showAddForm.value = true;
-}
 
-function editDeparture(dep) {
-  editingDeparture.value = dep;
-  Object.assign(form.value, { ...dep });
-  showAddForm.value = true;
-}
+  categories.upcoming.sort(
+    (a, b) => new Date(a.departureDate) - new Date(b.departureDate)
+  );
+  categories.past.sort(
+    (a, b) => new Date(b.departureDate) - new Date(a.departureDate)
+  );
+  return categories;
+});
 
-function closeForm() {
-  showAddForm.value = false;
-  editingDeparture.value = null;
-}
+// --- METHODS ---
+const toggleTour = (tourId) => {
+  activeTourId.value = activeTourId.value === tourId ? null : tourId;
+};
 
-function saveDeparture() {
-  if (editingDeparture.value) {
-    Object.assign(editingDeparture.value, form.value);
-  } else {
-    const newId = Math.max(...departures.value.map((d) => d.id)) + 1;
-    departures.value.push({ id: newId, ...form.value });
+onMounted(async () => {
+  try {
+    const tourData = await tourAdminApi.getAllTours();
+    if (!tourData) {
+      throw new Error("API không trả về dữ liệu.");
+    }
+    tours.value = Array.isArray(tourData) ? tourData : [tourData];
+  } catch (e) {
+    console.error("Lỗi chi tiết khi tải tour:", e);
+    error.value =
+      (e.response && e.response.data.message) ||
+      e.message ||
+      "Không thể tải dữ liệu.";
+  } finally {
+    isLoading.value = false;
   }
-  closeForm();
-}
+});
 
-function deleteDeparture(id) {
-  departures.value = departures.value.filter((d) => d.id !== id);
-}
+const openAddModal = (tourId) => {
+  isEditing.value = false;
+  currentTourIdForModal.value = tourId;
+  form.value = createEmptyForm();
+  showModal.value = true;
+};
+
+const openEditModal = (departure, tourId) => {
+  isEditing.value = true;
+  currentTourIdForModal.value = tourId;
+  form.value = {
+    ...departure,
+    departureDate: formatDateForInput(departure.departureDate),
+  };
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+};
+
+const handleSave = async () => {
+  try {
+    const tour = tours.value.find((t) => t.id === currentTourIdForModal.value);
+    if (isEditing.value) {
+      // Gọi API, `updatedData` chính là dữ liệu trả về đã được xử lý
+      const updatedData = await departureApi.updateDeparture(
+        form.value.id,
+        form.value
+      );
+
+      // Cập nhật trực tiếp vào state
+      const index = tour.departures.findIndex((d) => d.id === updatedData.id);
+      if (index !== -1) {
+        tour.departures[index] = updatedData;
+      }
+    } else {
+      // Tương tự, `newData` là dữ liệu trả về trực tiếp
+      const newData = await departureApi.createDeparture(
+        currentTourIdForModal.value,
+        form.value
+      );
+
+      // Cập nhật vào state
+      if (!tour.departures) {
+        tour.departures = [];
+      }
+      tour.departures.push(newData);
+    }
+    closeModal();
+  } catch (e) {
+    alert(`Lỗi: ${e.message}`);
+  }
+};
+
+const handleDelete = async (departureId, tourId) => {
+  if (confirm("Bạn có chắc chắn muốn xóa ngày khởi hành này?")) {
+    try {
+      await departureApi.deleteDeparture(departureId);
+      const tour = tours.value.find((t) => t.id === tourId);
+      if (tour && tour.departures) {
+        tour.departures = tour.departures.filter((d) => d.id !== departureId);
+      }
+    } catch (e) {
+      alert(`Lỗi: ${(e.response && e.response.data.message) || e.message}`);
+    }
+  }
+};
 </script>
-
-<style scoped>
-/* Thêm style tùy chỉnh nếu cần */
-</style>

@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8080/api/v1/hotels";
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/hotels`;
+const API_ADMIN_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/admin/hotels`;
 
 export const searchHotels = (params) => {
     return axios.get(API_BASE_URL, { params });
@@ -14,14 +15,23 @@ export const getHotelReviews = (hotelId) => {
     return axios.get(`${API_BASE_URL}/${hotelId}/reviews`);
 };
 
-export const createHotel = (hotelData) => {
-    return axios.post(API_BASE_URL, hotelData);
+export const createHotel = (formData) => {
+    return axios.post(API_ADMIN_BASE_URL, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 };
 
-export const updateHotel = (id, hotelData) => {
-    return axios.put(`${API_BASE_URL}/${id}`, hotelData);
+export const updateHotel = (id, formData) => {
+    return axios.put(`${API_ADMIN_BASE_URL}/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 };
 
 export const deleteHotel = (id) => {
-    return axios.delete(`${API_BASE_URL}/${id}`);
+    return axios.delete(`${API_ADMIN_BASE_URL}/${id}`);
+};
+
+export default {
+    searchHotels,
+    getHotelById,
+    getHotelReviews,
+    createHotel,
+    updateHotel,
+    deleteHotel
 };

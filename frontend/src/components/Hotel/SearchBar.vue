@@ -281,7 +281,7 @@ function updateGuests(type, amount) {
         const newRooms = params.rooms + amount;
         if (amount > 0) {
             if (newRooms > params.adults) {
-                guestsError.value = 'Số phòng không thể nhiều hơn số người lớn.';
+                window.$toast('Số phòng không thể nhiều hơn số người lớn.', 'error');
                 errorTimeout.value = setTimeout(() => { guestsError.value = '' }, 3000);
             } else {
                 params.rooms = newRooms;
@@ -294,7 +294,7 @@ function updateGuests(type, amount) {
 
 function onSearch() {
     if (!searchParams.value.keyword || !searchParams.value.keyword.trim()) {
-        locationError.value = 'Vui lòng nhập địa điểm hoặc tên khách sạn.';
+        window.$toast('Vui lòng nhập địa điểm hoặc tên khách sạn.', 'error');
         return;
     }
 

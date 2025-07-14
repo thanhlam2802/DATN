@@ -1,12 +1,18 @@
 package backend.backend.dto;
 
 import backend.backend.entity.Departure;
-import lombok.Data;                    
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 
-@Data 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DepartureDto {
     private Integer id;
     private String departureDate; 
@@ -17,18 +23,16 @@ public class DepartureDto {
     private Integer bookedSeats;
 
     public static DepartureDto fromEntity(Departure departure) {
- 
-        DepartureDto dto = new DepartureDto();
-        dto.setId(departure.getId());
-        dto.setDepartureDate(departure.getDepartureDate() != null ?
+        return DepartureDto.builder()
+                .id(departure.getId())
+                .departureDate(departure.getDepartureDate() != null ?
                              departure.getDepartureDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) :
-                             null);
-        dto.setAdultPrice(departure.getAdultPrice());
-        dto.setChildPrice(departure.getChildPrice());
-        dto.setDiscount(departure.getDiscount());
-        dto.setSeatCount(departure.getSeatCount());
-        dto.setBookedSeats(departure.getBookedSeats());
-
-        return dto;
+                             null)
+                .adultPrice(departure.getAdultPrice())
+                .childPrice(departure.getChildPrice())
+                .discount(departure.getDiscount())
+                .seatCount(departure.getSeatCount())
+                .bookedSeats(departure.getBookedSeats())
+                .build();
     }
 }

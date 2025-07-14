@@ -24,4 +24,6 @@ public interface HotelService {
             Map<String, List<String>> deleteRoomImageUrlsMap);
 
     void deleteHotel(Integer id);
+
+    void createHotelReview(Integer hotelId, String email, Integer rating, String content);
 }

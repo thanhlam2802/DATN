@@ -1,4 +1,16 @@
 import { ref, reactive, computed } from 'vue'
+import { createBus } from '@/api/busApi'
+import { createRoute, findRouteByOriginDestination } from '@/api/routeApi'  
+import { createBusRoute } from '@/api/busRouteApi'
+import { 
+  parseTimeToMinutes, 
+  getBusCategoryId,
+  generateBusName,
+  combineDateTime,
+  calculateDistance,
+  validateTimeOrder,
+  getCityFullName
+} from '@/utils/busHelper'
 
 export function useBusRouteModal() {
   // State
@@ -6,77 +18,39 @@ export function useBusRouteModal() {
   const currentStep = ref(1)
   const isEditing = ref(false)
   const editingRouteId = ref(null)
+  const isLoading = ref(false)
   
-  // Steps Configuration
+  // Steps Configuration - Giảm xuống 2 bước
   const steps = ref([
-    { id: 1, title: 'Thông tin cơ bản', key: 'basic' },
-    { id: 2, title: 'Lịch trình', key: 'schedule' },
-    { id: 3, title: 'Giá vé & Dịch vụ', key: 'pricing' }
+    { id: 1, title: 'Thông tin xe & tuyến', key: 'basic' },
+    { id: 2, title: 'Thời gian & giá vé', key: 'schedule' }
   ])
 
-  // Form Data
+  // Form Data - CHỈ GIỮ 7 TRƯỜNG CẦN THIẾT
   const formData = reactive({
-    // Bước 1: Thông tin cơ bản
-    companyName: '',
-    busType: '',
-    licensePlate: '',
-    description: '',
-    images: {
-      exterior: [],
-      interior: []
-    },
+    // Bus entity fields
+    busType: '',              // → BusCategory.id
+    licensePlate: '',         // → Bus.name (kết hợp)
     
-    // Bước 2: Lịch trình
+    // Route + Bus entity fields
     departure: {
-      city: '',
-      address: '',
-      time: ''
+      city: '',               // → Route.origin + Bus.origin
+      time: ''               // → Bus.departureTime
     },
     arrival: {
-      city: '',
-      address: '',
-      time: ''
+      city: '',               // → Route.destination + Bus.destination
+      time: ''               // → Bus.arrivalTime
     },
-    operatingDays: [],
-    travelTime: '',
-    stopPoints: [],
     
-    // Bước 3: Giá vé & Dịch vụ
-    ticketPrice: '',
-    discountPercent: 0,
-    services: [],
-    policies: {
-      ticketPolicy: '',
-      cancelPolicy: '',
-      baggagePolicy: ''
-    }
+    // Route entity fields
+    travelTime: '',           // → Route.estimatedDurationMinutes
+    
+    // BusRoute entity fields
+    ticketPrice: ''           // → BusRoute.price
   })
 
   // Validation Errors
   const validationErrors = ref({})
-
-  // Available Services
-  const availableServices = ref([
-    { id: 'wifi', name: 'WiFi miễn phí', icon: '📶' },
-    { id: 'tv', name: 'TV/Giải trí', icon: '📺' },
-    { id: 'usb', name: 'Cổng sạc USB', icon: '🔌' },
-    { id: 'water', name: 'Nước uống', icon: '💧' },
-    { id: 'blanket', name: 'Chăn/Gối', icon: '🛏️' },
-    { id: 'toilet', name: 'Toilet trên xe', icon: '🚽' },
-    { id: 'ac', name: 'Điều hòa', icon: '❄️' },
-    { id: 'snacks', name: 'Đồ ăn nhẹ', icon: '🍪' }
-  ])
-
-  // Week Days
-  const weekDays = ref([
-    { id: 'monday', name: 'Thứ 2', value: 1 },
-    { id: 'tuesday', name: 'Thứ 3', value: 2 },
-    { id: 'wednesday', name: 'Thứ 4', value: 3 },
-    { id: 'thursday', name: 'Thứ 5', value: 4 },
-    { id: 'friday', name: 'Thứ 6', value: 5 },
-    { id: 'saturday', name: 'Thứ 7', value: 6 },
-    { id: 'sunday', name: 'Chủ nhật', value: 0 }
-  ])
 
   // Computed
   const totalSteps = computed(() => steps.value.length)
@@ -118,6 +92,7 @@ export function useBusRouteModal() {
       isEditing.value = false
       editingRouteId.value = null
       clearValidationErrors()
+      isLoading.value = false
     }, 300)
   }
 
@@ -142,49 +117,31 @@ export function useBusRouteModal() {
   }
 
   const populateFormData = (routeData) => {
-    // Populate form with existing route data
+    // Populate form với data từ BusRoute kết hợp
     Object.assign(formData, {
-      companyName: routeData.companyName || '',
       busType: routeData.busType || '',
       licensePlate: routeData.licensePlate || '',
-      description: routeData.description || '',
-      images: routeData.images || { exterior: [], interior: [] },
-      departure: routeData.departure || { city: '', address: '', time: '' },
-      arrival: routeData.arrival || { city: '', address: '', time: '' },
-      operatingDays: routeData.operatingDays || [],
-      travelTime: routeData.travelTime || '',
-      stopPoints: routeData.stopPoints || [],
-      ticketPrice: routeData.ticketPrice || '',
-      discountPercent: routeData.discountPercent || 0,
-      services: routeData.services || [],
-      policies: routeData.policies || {
-        ticketPolicy: '',
-        cancelPolicy: '',
-        baggagePolicy: ''
-      }
+      departure: {
+        city: routeData.startLocation || '',
+        time: routeData.departureTime || ''
+      },
+      arrival: {
+        city: routeData.endLocation || '',
+        time: routeData.arrivalTime || ''
+      },
+      travelTime: routeData.duration ? `${routeData.duration} giờ` : '',
+      ticketPrice: routeData.basePrice || ''
     })
   }
 
   const resetFormData = () => {
     Object.assign(formData, {
-      companyName: '',
       busType: '',
       licensePlate: '',
-      description: '',
-      images: { exterior: [], interior: [] },
-      departure: { city: '', address: '', time: '' },
-      arrival: { city: '', address: '', time: '' },
-      operatingDays: [],
+      departure: { city: '', time: '' },
+      arrival: { city: '', time: '' },
       travelTime: '',
-      stopPoints: [],
-      ticketPrice: '',
-      discountPercent: 0,
-      services: [],
-      policies: {
-        ticketPolicy: '',
-        cancelPolicy: '',
-        baggagePolicy: ''
-      }
+      ticketPrice: ''
     })
   }
 
@@ -195,9 +152,7 @@ export function useBusRouteModal() {
       case 1:
         return validateBasicInfo()
       case 2:
-        return validateSchedule()
-      case 3:
-        return validatePricing()
+        return validateScheduleAndPricing()
       default:
         return true
     }
@@ -205,10 +160,6 @@ export function useBusRouteModal() {
 
   const validateBasicInfo = () => {
     const errors = {}
-    
-    if (!formData.companyName.trim()) {
-      errors.companyName = 'Tên nhà xe là bắt buộc'
-    }
     
     if (!formData.busType.trim()) {
       errors.busType = 'Loại xe là bắt buộc'
@@ -218,15 +169,6 @@ export function useBusRouteModal() {
       errors.licensePlate = 'Biển số xe là bắt buộc'
     }
     
-    // Simplified image validation - images are optional for now
-    
-    validationErrors.value = errors
-    return Object.keys(errors).length === 0
-  }
-
-  const validateSchedule = () => {
-    const errors = {}
-    
     if (!formData.departure.city.trim()) {
       errors.departureCity = 'Điểm đi là bắt buộc'
     }
@@ -234,6 +176,19 @@ export function useBusRouteModal() {
     if (!formData.arrival.city.trim()) {
       errors.arrivalCity = 'Điểm đến là bắt buộc'
     }
+    
+    // Validate không được trùng điểm đi và đến
+    if (formData.departure.city && formData.arrival.city && 
+        formData.departure.city === formData.arrival.city) {
+      errors.arrivalCity = 'Điểm đến phải khác điểm đi'
+    }
+    
+    validationErrors.value = errors
+    return Object.keys(errors).length === 0
+  }
+
+  const validateScheduleAndPricing = () => {
+    const errors = {}
     
     if (!formData.departure.time.trim()) {
       errors.departureTime = 'Giờ khởi hành là bắt buộc'
@@ -243,27 +198,18 @@ export function useBusRouteModal() {
       errors.arrivalTime = 'Giờ đến là bắt buộc'
     }
     
-    if (formData.operatingDays.length === 0) {
-      errors.operatingDays = 'Chọn ít nhất 1 ngày hoạt động'
+    // Validate thứ tự thời gian
+    if (formData.departure.time && formData.arrival.time && 
+        !validateTimeOrder(formData.departure.time, formData.arrival.time)) {
+      errors.arrivalTime = 'Giờ đến phải sau giờ khởi hành'
     }
     
     if (!formData.travelTime.trim()) {
       errors.travelTime = 'Thời gian di chuyển là bắt buộc'
     }
     
-    validationErrors.value = errors
-    return Object.keys(errors).length === 0
-  }
-
-  const validatePricing = () => {
-    const errors = {}
-    
     if (!formData.ticketPrice || formData.ticketPrice <= 0) {
       errors.ticketPrice = 'Giá vé phải lớn hơn 0'
-    }
-    
-    if (formData.discountPercent < 0 || formData.discountPercent > 100) {
-      errors.discountPercent = 'Phần trăm giảm giá phải từ 0-100'
     }
     
     validationErrors.value = errors
@@ -274,25 +220,9 @@ export function useBusRouteModal() {
     validationErrors.value = {}
   }
 
-  // Stop Points Management
-  const addStopPoint = () => {
-    formData.stopPoints.push({
-      id: Date.now(),
-      name: '',
-      address: '',
-      arrivalTime: '',
-      departureTime: ''
-    })
-  }
-
-  const removeStopPoint = (index) => {
-    formData.stopPoints.splice(index, 1)
-  }
-
   const saveDraft = () => {
     // Implement save draft logic
     console.log('Saving draft:', formData)
-    // You can emit this to parent or call API
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({ success: true, message: 'Đã lưu nháp thành công' })
@@ -300,21 +230,111 @@ export function useBusRouteModal() {
     })
   }
 
-  const saveForm = () => {
-    if (validateCurrentStep()) {
-      // Implement save form logic
-      console.log('Saving form:', formData)
-      // You can emit this to parent or call API
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ 
-            success: true, 
-            message: isEditing.value ? 'Cập nhật tuyến đường thành công' : 'Thêm tuyến đường thành công' 
-          })
-        }, 1000)
+  const saveForm = async () => {
+    if (!validateCurrentStep()) {
+      return Promise.reject({ success: false, message: 'Vui lòng kiểm tra lại thông tin' })
+    }
+
+    isLoading.value = true
+    
+    try {
+      console.log('🚀 Bắt đầu tạo Bus Route với dữ liệu:', formData)
+      
+      // **BƯỚC 1: TÌM HOẶC TẠO ROUTE**
+      let route = null
+      
+      try {
+        // Tìm route đã tồn tại
+        const existingRouteResponse = await findRouteByOriginDestination(
+          formData.departure.city, 
+          formData.arrival.city
+        )
+        
+        if (existingRouteResponse.data && existingRouteResponse.data.length > 0) {
+          route = existingRouteResponse.data[0]
+          console.log('✅ Sử dụng Route đã tồn tại:', route)
+        }
+      } catch (error) {
+        console.log('ℹ️ Không tìm thấy Route đã tồn tại, sẽ tạo mới')
+      }
+      
+      // Tạo Route mới nếu chưa tồn tại
+      if (!route) {
+        const routeData = {
+          origin: getCityFullName(formData.departure.city),
+          destination: getCityFullName(formData.arrival.city),
+          distanceKm: calculateDistance(formData.departure.city, formData.arrival.city),
+          estimatedDurationMinutes: parseTimeToMinutes(formData.travelTime)
+        }
+        
+        console.log('🛣️ Tạo Route mới:', routeData)
+        const routeResponse = await createRoute(routeData)
+        route = routeResponse.data
+        console.log('✅ Route được tạo thành công:', route)
+      }
+
+      // **BƯỚC 2: TẠO BUS**
+      const busData = {
+        name: generateBusName(formData),
+        categoryId: getBusCategoryId(formData.busType),
+        origin: getCityFullName(formData.departure.city),
+        destination: getCityFullName(formData.arrival.city),
+        departureTime: combineDateTime(formData.departure.time),
+        arrivalTime: combineDateTime(formData.arrival.time),
+        ownerId: 1 // Mock current user ID - sẽ lấy từ auth context
+      }
+      
+      console.log('🚌 Tạo Bus:', busData)
+      const busResponse = await createBus(busData)
+      const bus = busResponse.data
+      console.log('✅ Bus được tạo thành công:', bus)
+
+      // **BƯỚC 3: TẠO BUSROUTE**
+      const busRouteData = {
+        busId: bus.id,
+        routeId: route.id,
+        travelDate: new Date().toISOString(), // Ngày hiện tại
+        price: parseFloat(formData.ticketPrice),
+        status: 'active'
+      }
+      
+      console.log('🔗 Tạo BusRoute:', busRouteData)
+      const busRouteResponse = await createBusRoute(busRouteData)
+      const busRoute = busRouteResponse.data
+      console.log('✅ BusRoute được tạo thành công:', busRoute)
+
+      // **THÀNH CÔNG**
+      isLoading.value = false
+      
+      const successMessage = isEditing.value 
+        ? 'Cập nhật tuyến xe thành công!' 
+        : 'Thêm tuyến xe mới thành công!'
+      
+      console.log('🎉 Hoàn thành tạo Bus Route:', {
+        bus,
+        route,
+        busRoute
+      })
+      
+      return Promise.resolve({ 
+        success: true, 
+        message: successMessage,
+        data: {
+          bus,
+          route,
+          busRoute
+        }
+      })
+      
+    } catch (error) {
+      isLoading.value = false
+      console.error('❌ Lỗi khi tạo Bus Route:', error)
+      
+      return Promise.reject({ 
+        success: false, 
+        message: 'Có lỗi xảy ra khi tạo tuyến xe. Vui lòng thử lại.'
       })
     }
-    return Promise.reject({ success: false, message: 'Vui lòng kiểm tra lại thông tin' })
   }
 
   return {
@@ -326,8 +346,7 @@ export function useBusRouteModal() {
     steps,
     formData,
     validationErrors,
-    availableServices,
-    weekDays,
+    isLoading,
     
     // Computed
     totalSteps,
@@ -343,8 +362,6 @@ export function useBusRouteModal() {
     updateFormData,
     validateCurrentStep,
     clearValidationErrors,
-    addStopPoint,
-    removeStopPoint,
     saveDraft,
     saveForm
   }

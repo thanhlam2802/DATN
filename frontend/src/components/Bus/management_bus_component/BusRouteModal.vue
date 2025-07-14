@@ -51,40 +51,73 @@
         <!-- Modal Content - Responsive Height -->
         <div class="flex-1 overflow-y-auto min-h-0">
           <div class="px-6 py-6">
-            <slot :currentStep="currentStep" :formData="formData" :updateFormData="updateFormData">
-              <!-- Default content if no slot provided -->
-              <div class="text-center text-gray-500">
-                <p>Modal content goes here</p>
-              </div>
-            </slot>
+            <BusRouteSteps 
+              :currentStep="currentStep"
+              :formData="formData"
+              :validationErrors="validationErrors"
+            />
           </div>
         </div>
 
         <!-- Modal Footer -->
         <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
-          <div class="flex space-x-3">
-            <button @click="saveDraft" type="button" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              Lưu nháp
-            </button>
-            <button @click="closeModal" type="button" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <div class="flex items-center space-x-3">
+            <!-- Nút quay lại -->
+            <button
+              v-if="canGoPrevious"
+              @click="previousStep"
+              :disabled="isLoading"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Quay lại
             </button>
+            
+            <!-- Loading indicator khi đang xử lý -->
+            <div v-if="isLoading" class="flex items-center space-x-2 text-indigo-600">
+              <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span class="text-sm font-medium">
+                {{ currentStep === totalSteps ? 'Đang tạo tuyến xe...' : 'Đang xử lý...' }}
+              </span>
+            </div>
           </div>
-          
-          <div class="flex space-x-3">
-            <button v-if="currentStep > 1" @click="previousStep" type="button" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              Trước
+
+          <div class="flex items-center space-x-3">
+            <!-- Nút hủy -->
+            <button
+              @click="closeModal"
+              :disabled="isLoading"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Hủy
             </button>
-            <button v-if="currentStep < totalSteps" @click="nextStep" type="button" 
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              Tiếp
+
+            <!-- Nút tiếp theo hoặc lưu -->
+            <button
+              v-if="currentStep < totalSteps"
+              @click="nextStep"
+              :disabled="!canGoNext || isLoading"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Tiếp theo
             </button>
-            <button v-if="currentStep === totalSteps" @click="saveForm" type="button" 
-                    class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-              {{ isEditing ? 'Cập nhật' : 'Hoàn tất' }}
+            
+            <button
+              v-else
+              @click="handleSave"
+              :disabled="!validateCurrentStep() || isLoading"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="!isLoading">{{ isEditing ? 'Cập nhật' : 'Tạo tuyến xe' }}</span>
+              <span v-else class="flex items-center space-x-2">
+                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Đang tạo...</span>
+              </span>
             </button>
           </div>
         </div>
@@ -95,84 +128,74 @@
 
 <script setup>
 import { computed } from 'vue'
+import BusRouteSteps from './BusRouteSteps.vue'
+import { useBusRouteModal } from '@/composables/useBusRouteModal'
 
-// Props
-const props = defineProps({
-  isVisible: {
-    type: Boolean,
-    default: false
-  },
-  currentStep: {
-    type: Number,
-    default: 1
-  },
-  totalSteps: {
-    type: Number,
-    default: 3
-  },
-  steps: {
-    type: Array,
-    required: true
-  },
-  formData: {
-    type: Object,
-    default: () => ({})
-  },
-  isEditing: {
-    type: Boolean,
-    default: false
-  },
-  allowBackdropClose: {
-    type: Boolean,
-    default: true
-  }
-})
+// Sử dụng composable
+const {
+  isVisible,
+  currentStep,
+  isEditing,
+  steps,
+  formData,
+  validationErrors,
+  isLoading,
+  totalSteps,
+  canGoNext,
+  canGoPrevious,
+  closeModal,
+  nextStep,
+  previousStep,
+  validateCurrentStep,
+  saveForm
+} = useBusRouteModal()
 
 // Emits
-const emit = defineEmits([
-  'close',
-  'save-draft', 
-  'save-form',
-  'next-step',
-  'previous-step',
-  'update-form-data'
-])
-
-// Computed
-const modalTitle = computed(() => {
-  return props.isEditing ? 'Sửa tuyến đường' : 'Thêm tuyến đường mới'
-})
+const emit = defineEmits(['route-created', 'route-updated'])
 
 // Methods
 const handleBackdropClick = () => {
-  if (props.allowBackdropClose) {
-    closeModal()
+  // Always allow backdrop close for now
+  closeModal()
+}
+
+const handleSave = async () => {
+  try {
+    const result = await saveForm()
+    
+    if (result.success) {
+      // Emit event để parent component biết có route mới
+      if (isEditing.value) {
+        emit('route-updated', result.data)
+      } else {
+        emit('route-created', result.data)
+      }
+      
+      // Hiển thị thông báo thành công
+      console.log('✅ Success:', result.message)
+      // TODO: Thêm toast notification
+      
+      // Đóng modal sau 1s
+      setTimeout(() => {
+        closeModal()
+      }, 1000)
+    }
+  } catch (error) {
+    console.error('❌ Error saving route:', error)
+    // TODO: Hiển thị error notification
+    alert(error.message || 'Có lỗi xảy ra khi lưu tuyến xe')
   }
 }
 
-const closeModal = () => {
-  emit('close')
-}
+// Computed
+const modalTitle = computed(() => {
+  return isEditing.value ? 'Chỉnh sửa tuyến xe' : 'Thêm tuyến xe mới'
+})
 
-const saveDraft = () => {
-  emit('save-draft', props.formData)
-}
-
-const saveForm = () => {
-  emit('save-form', props.formData)
-}
-
-const nextStep = () => {
-  emit('next-step')
-}
-
-const previousStep = () => {
-  emit('previous-step')
-}
-
-const updateFormData = (data) => {
-  emit('update-form-data', data)
-}
+const currentStepTitle = computed(() => {
+  const step = steps.value.find(s => s.id === currentStep.value)
+  return step ? step.title : ''
+})
 </script>
 
 <style scoped>

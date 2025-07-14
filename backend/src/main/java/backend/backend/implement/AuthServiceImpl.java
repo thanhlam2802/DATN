@@ -19,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service("authService")
@@ -40,8 +41,11 @@ public class AuthServiceImpl implements AuthService {
         }
         User newUser = userMapper.fromRegisterRequestToEntity(registerRequestDto);
         newUser.setPasswordHash(passwordEncoder.encode(registerRequestDto.getPassword()));
-        newUser.setCreatedAt(java.time.LocalDateTime.now());
-        newUser.setUpdatedAt(java.time.LocalDateTime.now());
+
+        newUser.setCreatedAt(LocalDateTime.now());
+        newUser.setUpdatedAt(LocalDateTime.now());
+
+
         newUser = userRepository.save(newUser);
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));

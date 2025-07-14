@@ -8,9 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/account")
@@ -22,6 +20,13 @@ public class AccountController {
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<AccountDto>> getProfile() {
         AccountDto accountDto = accountService.getAccountDetails(SecurityContextHolder.getContext().getAuthentication().getName());
-        return ResponseFactory.success(accountDto,"Get user profile success");
+        return ResponseFactory.success(accountDto, "Get user profile success");
+    }
+
+    @PreAuthorize("@authService.isAuthenticated()")
+    @PutMapping("/update")
+    public ResponseEntity<ApiResponse<AccountDto>> updateAccount(@RequestBody AccountDto accountDto) {
+        AccountDto result = accountService.updateAccount(accountDto);
+        return ResponseFactory.success(result, "Update user profile success");
     }
 }

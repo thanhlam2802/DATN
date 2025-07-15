@@ -457,7 +457,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         } catch (Exception e) {
             log.error("DELETE_AIRPORT_FAILED     - RequestId: {}, airportId: {}, error: {}", requestId, airportId, e.getMessage(), e);
             throw e;
-        }
+        }   
     }
 
     @Override
@@ -474,7 +474,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         // Xóa liên kết và ảnh
         for (FlightImage fi : toDelete) {
             try {
-                imageStorageService.deleteImage2(fi.getImage().getUrl());
+                imageStorageService.deleteImage();
                 flightImageDAO.delete(fi);
                 imageDAO.delete(fi.getImage());
             } catch (Exception ex) {

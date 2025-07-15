@@ -1,150 +1,113 @@
 <template>
     <div class="w-full p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">Danh sách khách sạn</h1>
-            <button @click="openModal('add')"
-                class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm">
-                Thêm khách sạn
-            </button>
-        </div>
-
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
-            <div class="relative w-full sm:w-2/3">
-                <input type="text" v-model="searchQuery" placeholder="Tìm kiếm khách sạn theo tên hoặc thành phố..."
-                    class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+        <div v-if="mode === 'list'">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Danh sách khách sạn</h1>
+                <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm">
+                    Thêm khách sạn
+                </button>
             </div>
 
-            <div ref="filterDropdownContainer" class="relative w-full sm:w-1/3 text-right">
-                <button @click="toggleFilterDropdown"
-                    class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center justify-center sm:justify-between w-full">
-                    <i class="fas fa-filter mr-2 sm:mr-3"></i>
-                    <span>Bộ lọc</span>
-                    <i class="fas ml-2"
-                        :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
-                </button>
+            <div
+                class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
+                <div class="relative w-full sm:w-2/3">
+                    <input type="text" v-model="searchQuery" placeholder="Tìm kiếm khách sạn theo tên hoặc thành phố..."
+                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                </div>
 
-                <div v-if="showFilterDropdown"
-                    class="origin-top-right absolute right-0 mt-2 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
-                    style="max-height: calc(100vh - 12rem);">
+                <div ref="filterDropdownContainer" class="relative w-full sm:w-1/3 text-right">
+                    <button @click="toggleFilterDropdown"
+                        class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center justify-center sm:justify-between w-full">
+                        <i class="fas fa-filter mr-2 sm:mr-3"></i>
+                        <span>Bộ lọc</span>
+                        <i class="fas ml-2"
+                            :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
+                    </button>
 
-                    <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
-                        <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
-                    </div>
+                    <div v-if="showFilterDropdown"
+                        class="origin-top-right absolute right-0 mt-2 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
+                        style="max-height: calc(100vh - 12rem);">
 
-                    <div class="p-5 overflow-y-auto">
-                        <div class="mb-5">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
-                            <div class="flex flex-wrap gap-2">
-                                <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
-                                    :class="{ 'bg-blue-600 text-white': filterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': filterStar !== n }"
-                                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                    {{ n }} <i class="fas fa-star text-yellow-400"></i>
-                                </button>
-                                <button @click="setFilterStar('')"
-                                    :class="{ 'bg-blue-600 text-white': filterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': filterStar !== '' }"
-                                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                    Tất cả
-                                </button>
-                            </div>
+                        <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
+                            <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
                         </div>
 
-                        <div class="mb-5">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối đa):</label>
-                            <input type="range" v-model="filterPriceMax" min="0" max="10000000" step="100000"
-                                class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                            <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
-                                <span>Giá tối đa:</span>
-                                <span class="text-blue-600">{{ formatCurrency(filterPriceMax) }} VND</span>
-                            </div>
-                        </div>
-
-                        <div class="mb-0">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Tiện nghi:</label>
-                            <div class="relative">
-                                <div @click="showAmenityDropdown = !showAmenityDropdown"
-                                    class="min-h-[40px] border border-slate-300 rounded-md px-3 py-2 bg-white flex flex-wrap items-center gap-2 cursor-pointer hover:border-blue-400 focus-within:border-blue-500 transition">
-                                    <template v-if="Object.values(filterAmenities).some(v => v)">
-                                        <span v-for="(lbl, k) in amenityLabels" v-if="filterAmenities[k]" :key="k"
-                                            class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                                            <i class="fas fa-check-circle text-blue-400"></i> {{ lbl }}
-                                        </span>
-                                    </template>
-                                    <span v-if="!Object.values(filterAmenities).some(v => v)"
-                                        class="text-slate-400 text-sm">Chọn tiện ích...</span>
-                                    <i class="fas fa-chevron-down ml-auto text-slate-400"></i>
-                                </div>
-                                <div v-if="showAmenityDropdown"
-                                    class="absolute left-0 mt-2 w-full z-30 bg-white border border-slate-200 rounded-lg shadow-xl p-2 grid grid-cols-2 sm:grid-cols-3 gap-2"
-                                    @click.stop>
-                                    <label v-for="(lbl, k) in amenityLabels" :key="k"
-                                        class="flex items-center space-x-2 p-2 rounded hover:bg-blue-50 cursor-pointer text-slate-700">
-                                        <input type="checkbox" v-model="filterAmenities[k]"
-                                            class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer" />
-                                        <span class="text-xs">{{ lbl }}</span>
-                                    </label>
+                        <div class="p-5 overflow-y-auto">
+                            <div class="mb-5">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
+                                        :class="{ 'bg-blue-600 text-white': tempFilterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== n }"
+                                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                        {{ n }} <i class="fas fa-star text-yellow-400"></i>
+                                    </button>
+                                    <button @click="setFilterStar('')"
+                                        :class="{ 'bg-blue-600 text-white': tempFilterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== '' }"
+                                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                        Tất cả
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
-                        <div class="flex justify-end">
-                            <button @click="resetFilters"
-                                class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
-                                <i class="fas fa-redo-alt mr-2"></i> Đặt lại
-                            </button>
+                            <div class="mb-5">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối
+                                    đa):</label>
+                                <input type="range" v-model="tempFilterPriceMax" min="0" max="20000000" step="100000"
+                                    class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
+                                    <span>Giá tối đa:</span>
+                                    <span class="text-blue-600">{{ formatCurrency(tempFilterPriceMax) }} VND</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-5">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Thời gian tạo:</label>
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <button v-for="preset in createdAtPresets" :key="preset.value"
+                                        @click="setCreatedAtPreset(preset.value)"
+                                        :class="tempFilterCreatedAtPreset === preset.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                                        class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200">
+                                        {{ preset.label }}
+                                    </button>
+                                </div>
+                                <div v-if="tempFilterCreatedAtPreset === 'custom'" class="flex gap-2 items-center">
+                                    <input type="date" v-model="tempFilterCreatedAtFrom"
+                                        class="border border-slate-300 rounded px-2 py-1 text-sm" />
+                                    <span>-</span>
+                                    <input type="date" v-model="tempFilterCreatedAtTo"
+                                        class="border border-slate-300 rounded px-2 py-1 text-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
+                            <div class="flex justify-end">
+                                <button @click="resetFilters"
+                                    class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
+                                    <i class="fas fa-redo-alt mr-2"></i> Đặt lại
+                                </button>
+                                <button @click="applyFilters"
+                                    class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm ml-2">
+                                    <i class="fas fa-check mr-2"></i> Áp dụng
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-                <h3 class="text-lg font-semibold text-slate-800">Danh sách khách sạn</h3>
-                <p class="text-sm text-slate-600 mt-1">Quản lý thông tin khách sạn trong hệ thống</p>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
+            <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                <table class="min-w-full w-full divide-y divide-slate-200">
                     <thead class="bg-gradient-to-r from-slate-100 to-slate-200">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-hotel text-blue-500"></i>
-                                    <span>Tên khách sạn</span>
-                                </div>
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-star text-yellow-500"></i>
-                                    <span>Hạng sao</span>
-                                </div>
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-map-marker-alt text-red-500"></i>
-                                    <span>Thành phố</span>
-                                </div>
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-money-bill-wave text-green-500"></i>
-                                    <span>Giá từ (VND)</span>
-                                </div>
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-star-half-alt text-purple-500"></i>
-                                    <span>Đánh giá</span>
-                                </div>
-                            </th>
-                            <th class="px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                <div class="flex items-center justify-end space-x-1">
-                                    <i class="fas fa-cogs text-slate-500"></i>
-                                    <span>Hành động</span>
-                                </div>
-                            </th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hạng sao</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Giá từ (VND)</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày tạo</th>
+                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày sửa</th>
+                            <th class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Hành động</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-100">
@@ -158,21 +121,16 @@
                             </td>
                         </tr>
                         <tr v-for="(h, index) in paginatedHotels" :key="h.id"
-                            class="hover:bg-slate-50 transition-colors duration-150">
-                            <td class="px-6 py-5 whitespace-nowrap">
+                            class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
+                            @click="() => viewHotelDetail(h)">
+                            <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="flex items-center space-x-3">
-                                    <div class="flex-shrink-0">
-                                        <div
-                                            class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                            <i class="fas fa-hotel text-white text-sm"></i>
-                                        </div>
-                                    </div>
                                     <div>
                                         <div class="text-sm font-semibold text-slate-900">{{ h.name }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-5 whitespace-nowrap">
+                            <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="flex items-center space-x-1">
                                     <span class="text-sm font-medium text-slate-900">{{ h.starRating }}</span>
                                     <div class="flex space-x-0.5">
@@ -181,447 +139,496 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-5 whitespace-nowrap">
+                            <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="flex items-center space-x-2">
                                     <i class="fas fa-map-marker-alt text-red-400 text-xs"></i>
                                     <span class="text-sm font-medium text-slate-700">{{ h.provinceName }}</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-5 whitespace-nowrap">
+                            <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="text-sm font-bold text-green-600">
                                     {{ formatCurrency(h.startingPrice) }}
                                 </div>
                                 <div class="text-xs text-slate-500">VND/đêm</div>
                             </td>
-                            <td class="px-6 py-5 whitespace-nowrap">
-                                <div class="flex items-center space-x-2">
-                                    <div class="flex items-center space-x-1">
-                                        <span class="text-sm font-semibold text-slate-900">{{ h.rating }}</span>
-                                        <div class="flex space-x-0.5">
-                                            <i v-for="star in Math.floor(h.rating)" :key="star"
-                                                class="fas fa-star text-yellow-400 text-xs"></i>
-                                            <i v-if="h.rating % 1 > 0"
-                                                class="fas fa-star-half-alt text-yellow-400 text-xs"></i>
-                                        </div>
-                                    </div>
-                                    <span class="text-xs text-slate-500">({{ h.reviewCount }})</span>
-                                </div>
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <span class="text-xs text-slate-700">{{ formatDateTime(h.createdAt) }}</span>
                             </td>
-                            <td class="px-6 py-5 whitespace-nowrap text-right">
-                                <div class="relative inline-block text-left">
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <span class="text-xs text-slate-700">{{ formatDateTime(h.updatedAt) }}</span>
+                            </td>
+                            <td
+                                class="px-3 py-5 whitespace-nowrap text-right sticky right-0 bg-white z-10 align-middle">
+                                <div class="relative inline-block text-left flex items-center justify-end h-full">
                                     <button :ref="el => setDropdownBtnRef(el, h.id)"
-                                        @click.stop="openDropdown(h.id, $event)" type="button"
-                                        class="inline-flex justify-center w-10 h-10 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none transition-all duration-200 shadow-sm">
+                                        @click.stop="toggleDropdown(h.id)" type="button"
+                                        class="inline-flex justify-center items-center w-10 h-10 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none transition-all duration-200 shadow-sm">
                                         <i class="fas fa-ellipsis-v flex items-center justify-center text-sm"></i>
                                     </button>
+                                    <teleport to="body">
+                                        <div v-if="activeDropdown === h.id"
+                                            :style="{ position: 'absolute', top: dropdownMenuPosition.top + 'px', left: dropdownMenuPosition.left + 'px', right: 'auto', zIndex: 9999 }"
+                                            class="min-w-40 bg-white border border-slate-200 rounded-lg shadow-lg">
+                                            <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
+                                                @click.stop="viewHotelDetail(h)"><i class="fas fa-eye mr-2"></i>Xem
+                                                chi
+                                                tiết</button>
+                                            <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
+                                                @click.stop="editHotel(h)"><i class="fas fa-edit mr-2"></i>Chỉnh
+                                                sửa</button>
+                                            <button
+                                                class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
+                                                @click.stop="deleteHotel(h.id)"><i
+                                                    class="fas fa-trash-alt mr-2"></i>Xóa</button>
+                                        </div>
+                                    </teleport>
                                 </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
 
-        <div class="flex flex-col sm:flex-row justify-between items-center mt-8 p-6 bg-white rounded-xl shadow-sm">
-            <div class="flex items-center space-x-3 mb-4 sm:mb-0">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-list-ul text-slate-500"></i>
-                    <label for="itemsPerPage" class="text-sm font-medium text-slate-700">Hiển thị:</label>
-                </div>
-                <select v-model="itemsPerPage" id="itemsPerPage"
-                    class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
-                    <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
-                        {{ option === 'Tất cả' ? 'Tất cả' : option }}
-                    </option>
-                </select>
-                <div class="flex items-center space-x-1 text-sm text-slate-600">
-                    <span>kết quả trên tổng số</span>
-                    <span class="font-bold text-blue-600">{{ filteredHotels.length }}</span>
-                    <span>khách sạn</span>
-                </div>
-            </div>
-
-            <div class="w-full sm:w-auto">
-                <nav v-if="totalPages > 1 && itemsPerPage !== 'Tất cả'" aria-label="Pagination">
+            <div class="flex flex-col sm:flex-row justify-between items-center mt-8 p-6 bg-white rounded-xl shadow-sm">
+                <div class="flex items-center space-x-3 mb-4 sm:mb-0">
                     <div class="flex items-center space-x-2">
-                        <div class="flex items-center space-x-1 text-sm text-slate-600">
-                            <span>Trang</span>
-                            <span class="font-semibold text-slate-900">{{ currentPage }}</span>
-                            <span>trên</span>
-                            <span class="font-semibold text-slate-900">{{ totalPages }}</span>
-                        </div>
-                        <ul class="flex items-center space-x-1">
-                            <li>
-                                <button @click="prevPage" :disabled="currentPage === 1"
-                                    class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
-                                    <i class="fas fa-chevron-left text-sm"></i>
-                                </button>
-                            </li>
-                            <li v-for="(page, index) in displayedPages" :key="index">
-                                <span v-if="page === '...'"
-                                    class="flex items-center justify-center w-10 h-10 text-slate-400 font-medium">...</span>
-                                <button v-else @click="changePage(page)" :class="[
-                                    'flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 font-medium shadow-sm',
-                                    currentPage === page
-                                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
-                                        : 'text-slate-700 bg-white hover:bg-slate-50 hover:shadow-md'
-                                ]">{{ page }}</button>
-                            </li>
-                            <li>
-                                <button @click="nextPage" :disabled="currentPage === totalPages"
-                                    class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
-                                    <i class="fas fa-chevron-right text-sm"></i>
-                                </button>
-                            </li>
-                        </ul>
+                        <i class="fas fa-list-ul text-slate-500"></i>
+                        <label for="itemsPerPage" class="text-sm font-medium text-slate-700">Hiển thị:</label>
                     </div>
-                </nav>
+                    <select v-model="itemsPerPage" id="itemsPerPage"
+                        class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+                        <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
+                            {{ option === 'Tất cả' ? 'Tất cả' : option }}
+                        </option>
+                    </select>
+                    <div class="flex items-center space-x-1 text-sm text-slate-600">
+                        <span>kết quả trên tổng số</span>
+                        <span class="font-bold text-blue-600">{{ filteredHotels.length }}</span>
+                        <span>khách sạn</span>
+                    </div>
+                </div>
+
+                <div class="w-full sm:w-auto">
+                    <nav v-if="totalPages > 1 && itemsPerPage !== 'Tất cả'" aria-label="Pagination">
+                        <div class="flex items-center space-x-2">
+                            <div class="flex items-center space-x-1 text-sm text-slate-600">
+                                <span>Trang</span>
+                                <span class="font-semibold text-slate-900">{{ currentPage }}</span>
+                                <span>trên</span>
+                                <span class="font-semibold text-slate-900">{{ totalPages }}</span>
+                            </div>
+                            <ul class="flex items-center space-x-1">
+                                <li>
+                                    <button @click="prevPage" :disabled="currentPage === 1"
+                                        class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
+                                        <i class="fas fa-chevron-left text-sm"></i>
+                                    </button>
+                                </li>
+                                <li v-for="(page, index) in displayedPages" :key="index">
+                                    <span v-if="page === '...'"
+                                        class="flex items-center justify-center w-10 h-10 text-slate-400 font-medium">...</span>
+                                    <button v-else @click="changePage(page)" :class="[
+                                        'flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 font-medium shadow-sm',
+                                        currentPage === page
+                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                                            : 'text-slate-700 bg-white hover:bg-slate-50 hover:shadow-md'
+                                    ]">{{ page }}</button>
+                                </li>
+                                <li>
+                                    <button @click="nextPage" :disabled="currentPage === totalPages"
+                                        class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
+                                        <i class="fas fa-chevron-right text-sm"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
             </div>
         </div>
-        <transition name="fade">
-            <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-0 pt-2">
-                <div class="absolute inset-0 backdrop-blur-sm" style="background-color: rgba(30,41,59,0.5);"
-                    @click="closeModal"></div>
-                <div
-                    class="relative bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-300">
-                    <div class="flex justify-between items-center border-b border-slate-200 px-6 py-4">
-                        <h2 class="text-lg font-semibold text-slate-800">{{ modalMode === 'add' ? 'Thêm khách sạn' :
-                            'Chỉnh sửa khách sạn' }}</h2>
-                        <button @click="closeModal"
-                            class="text-slate-500 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition-colors">✕</button>
-                    </div>
-
-                    <div class="flex border-b border-slate-200 text-sm select-none">
-                        <button v-for="(tabName, index) in tabs" :key="index" @click="activeTab = index" :class="{
-                            'flex-1 py-3 px-4 text-center font-semibold border-b-2 transition-colors duration-200': true,
-                            'border-blue-600 text-blue-600 bg-blue-50': activeTab === index,
-                            'border-transparent text-slate-600 hover:bg-slate-50': activeTab !== index
-                        }">
-                            {{ tabName }}
+        <div v-else-if="mode === 'edit'">
+            <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-5xl mx-auto">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-4 mb-4">
+                    <h2 class="text-xl font-bold">
+                        <span v-if="isEditMode && !isViewMode">Chỉnh sửa khách sạn</span>
+                        <span v-else-if="isViewMode">Chi tiết khách sạn</span>
+                        <span v-else>Thêm khách sạn mới</span>
+                    </h2>
+                    <div class="flex items-center space-x-3">
+                        <template v-if="isViewMode">
+                            <button @click="enableEditMode"
+                                class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200"
+                                title="Chỉnh sửa">
+                                <i class="fas fa-pencil-alt text-xl"></i>
+                            </button>
+                            <button @click="deleteHotel(newHotel.id)"
+                                class="flex items-center justify-center w-10 h-10 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200"
+                                title="Xóa khách sạn">
+                                <i class="fas fa-trash-alt text-xl"></i>
+                            </button>
+                        </template>
+                        <template v-else-if="isEditMode && !isViewMode">
+                            <button @click="saveChanges"
+                                class="flex items-center justify-center w-10 h-10 rounded-lg text-green-600 hover:bg-green-50 transition-colors duration-200"
+                                title="Lưu thay đổi">
+                                <i class="fas fa-save text-xl"></i>
+                            </button>
+                        </template>
+                        <button @click="handleBack"
+                            class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200"
+                            title="Quay lại">
+                            <i class="fas fa-arrow-left text-xl"></i>
                         </button>
                     </div>
-
-                    <div class="p-6 space-y-6 overflow-y-auto flex-1">
-                        <form v-if="activeTab === 0" class="space-y-6" autocomplete="off" novalidate @submit.prevent>
-                            <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1">Tên khách sạn</label>
-                                <input v-model="newHotel.name" type="text" placeholder="Nhập tên khách sạn"
-                                    class="w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                </div>
+                <form class="space-y-8" autocomplete="off" novalidate @submit.prevent="submitHotel">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Tên khách sạn</label>
+                            <input v-model="newHotel.name" type="text" placeholder="Nhập tên khách sạn"
+                                :disabled="isViewMode" :class="[
+                                    'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                    isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                ]" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Hạng sao</label>
+                            <select v-model="newHotel.starRating" :disabled="isViewMode" :class="[
+                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                            ]">
+                                <option disabled value="">Chọn hạng sao</option>
+                                <option>1</option>
+                                <option>2</option>
+                                <option>3</option>
+                                <option>4</option>
+                                <option>5</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Thành phố</label>
+                            <select v-model="newHotel.provinceId" :disabled="isViewMode" :class="[
+                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                            ]" :selected="!newHotel.provinceId">
+                                <option disabled value="" :selected="!newHotel.provinceId">Chọn thành phố</option>
+                                <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Địa chỉ</label>
+                            <input v-model="newHotel.address" type="text" placeholder="Nhập địa chỉ khách sạn"
+                                :disabled="isViewMode" :class="[
+                                    'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                    isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                ]" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Số điện thoại</label>
+                            <input v-model="newHotel.phone" type="text" placeholder="Nhập số điện thoại"
+                                :disabled="isViewMode" :class="[
+                                    'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                    isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                ]" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                            <input v-model="newHotel.email" type="email" placeholder="Nhập email" :disabled="isViewMode"
+                                :class="[
+                                    'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                    isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                ]" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Mô tả</label>
+                        <div v-if="isViewMode" class="border border-slate-300 rounded-md p-4 bg-gray-50">
+                            <HtmlContent :content="newHotel.description" />
+                        </div>
+                        <Ckeditor v-else v-model="newHotel.description" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Hình ảnh khách sạn</label>
+                        <div v-if="isViewMode" class="flex flex-wrap gap-3">
+                            <div v-for="(img, idx) in newHotel.imageUrls" :key="'view-' + idx" class="relative">
+                                <img :src="img"
+                                    class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        </div>
+                        <div v-else>
+                            <input type="file" multiple accept="image/*" ref="hotelImageInput" style="display:none"
+                                @change="handleHotelImageChange" />
+                            <button type="button" @click="$refs.hotelImageInput.click()"
+                                class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                <i class="far fa-image text-2xl mb-1"></i>
+                                <span class="text-sm font-semibold">Thêm ảnh</span>
+                            </button>
+                            <div class="flex flex-wrap gap-3 mt-2">
+                                <div v-for="(img, idx) in newHotel.imageUrls" :key="'old-' + idx"
+                                    class="relative group">
+                                    <img :src="img"
+                                        class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                                    <button @click="removeHotelImage(idx, true)"
+                                        class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
+                                </div>
+                                <div v-for="(img, idx) in hotelImagePreviews" :key="'new-' + idx"
+                                    class="relative group">
+                                    <img :src="img"
+                                        class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                                    <button @click="removeHotelImage(idx)"
+                                        class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold text-slate-800 text-base">Thông tin các loại phòng</h3>
+                            <button v-if="!isViewMode" type="button" @click="addRoom"
+                                class="text-blue-600 font-semibold border border-blue-600 rounded-md px-4 py-2 hover:bg-blue-50 transition shadow-sm">
+                                + Thêm loại phòng
+                            </button>
+                        </div>
+                        <div v-for="(r, idx) in newHotel.availableRooms" :key="idx"
+                            class="mb-6 border border-slate-200 rounded-xl shadow-sm p-6">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="font-semibold text-slate-800 text-base">{{ r.roomType || 'Loại phòng mới' }}
+                                </div>
+                                <button v-if="!isViewMode" type="button" @click="removeRoom(idx)"
+                                    class="text-red-500 hover:underline text-xs ml-2">Xóa</button>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                 <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Hạng sao</label>
-                                    <select v-model="newHotel.star"
-                                        class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                        <option disabled value="">Chọn hạng sao</option>
-                                        <option>1</option>
-                                        <option>2</option>
-                                        <option>3</option>
-                                        <option>4</option>
-                                        <option>5</option>
-                                    </select>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Loại phòng</label>
+                                    <input v-model="r.roomType" type="text"
+                                        placeholder="Ví dụ: Phòng Deluxe, Phòng Superior" :disabled="isViewMode" :class="[
+                                            'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]" />
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Thành phố</label>
-                                    <select v-model="newHotel.provinceId"
-                                        class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                        <option disabled value="">Chọn thành phố</option>
-                                        <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                    </select>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Giường</label>
+                                    <input v-model="r.bedType" type="text" placeholder="Nhập loại giường"
+                                        :disabled="isViewMode" :class="[
+                                            'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Diện tích
+                                        (m²)</label>
+                                    <input v-model.number="r.roomArea" type="number" min="0"
+                                        placeholder="Nhập diện tích phòng" :disabled="isViewMode" :class="[
+                                            'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Số lượng
+                                        phòng</label>
+                                    <input v-model.number="r.roomQuantity" type="number" min="0"
+                                        placeholder="Nhập số lượng phòng" :disabled="isViewMode" :class="[
+                                            'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]" />
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Người lớn</label>
+                                        <input v-model.number="r.maxAdults" type="number" min="0"
+                                            placeholder="Số người lớn" :disabled="isViewMode" :class="[
+                                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                            ]" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Trẻ em</label>
+                                        <input v-model.number="r.maxChildren" type="number" min="0"
+                                            placeholder="Số trẻ em" :disabled="isViewMode" :class="[
+                                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                            ]" />
+                                    </div>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1">Địa chỉ</label>
-                                <div class="flex">
-                                    <input v-model="newHotel.address" type="text" placeholder="Nhập địa chỉ khách sạn"
-                                        class="flex-grow border border-slate-300 rounded-l-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                    <button type="button"
-                                        class="border border-l-0 border-slate-300 rounded-r-md bg-slate-50 px-3 flex items-center justify-center text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <i class="fas fa-map-marker-alt"></i>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1">Tiện ích phòng</label>
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <template v-for="a in amenities">
+                                        <span v-if="r.amenities[a.id]" :key="'chip-' + a.id"
+                                            class="flex items-center bg-blue-100 text-blue-700 px-1.5 py-0 rounded-full text-xs font-medium mr-2 mb-2 items-center justify-center"
+                                            style="font-size: 0.8rem; min-height: 2rem;">
+                                            <i v-if="a.icon" :class="a.icon + ' mr-2 text-xs'"
+                                                style="min-width: 1.2em;"></i>
+                                            {{ a.name }}
+                                            <button v-if="!isViewMode" @click.prevent="removeRoomAmenity(idx, a.id)"
+                                                class="ml-2 text-blue-500 hover:text-red-500 focus:outline-none text-base">×</button>
+                                        </span>
+                                    </template>
+                                    <button v-if="!isViewMode" type="button" @click="openAmenityModal(idx)"
+                                        class="flex items-center px-1.5 py-0 bg-slate-100 hover:bg-blue-100 text-slate-700 rounded-full text-xs font-medium border border-slate-200 mr-2 mb-2 items-center justify-center"
+                                        style="font-size: 0.8rem; min-height: 2rem;">
+                                        <i class="fas fa-plus mr-2 text-xs"></i> Thêm tiện ích
                                     </button>
                                 </div>
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Số điện thoại</label>
-                                    <input v-model="newHotel.phone" type="text" placeholder="Nhập số điện thoại"
-                                        class="w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Email</label>
-                                    <input v-model="newHotel.email" type="email" placeholder="Nhập email"
-                                        class="w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1">Mô tả</label>
-                                <textarea v-model="newHotel.description" rows="4" placeholder="Mô tả về khách sạn"
-                                    class="w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Hình ảnh khách
-                                    sạn</label>
-                                <button type="button"
-                                    class="w-36 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
-                                    <i class="far fa-image text-2xl mb-1"></i>
-                                    Thêm ảnh
-                                </button>
-                            </div>
-                            <div v-if="newHotel.imageUrls && newHotel.imageUrls.length"
-                                class="flex flex-wrap gap-3 mt-2">
-                                <img v-for="(img, idx) in newHotel.imageUrls" :key="idx" :src="img" alt="Hotel Image"
-                                    class="w-20 h-20 object-cover rounded-lg border border-slate-200 shadow-sm hover:scale-105 transition-transform duration-200" />
-                            </div>
-                            <div class="flex justify-end">
-                                <button type="button" @click="activeTab = 1"
-                                    class="bg-black text-white text-sm font-semibold rounded-md px-5 py-2 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-black shadow-sm">
-                                    Tiếp tục
-                                </button>
-                            </div>
-                        </form>
-
-                        <form v-else-if="activeTab === 1" class="space-y-6" autocomplete="off" novalidate
-                            @submit.prevent>
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="font-semibold text-slate-800 text-base">Thông tin các loại phòng</h2>
-                                <button type="button" @click="addRoom"
-                                    class="text-blue-600 font-semibold border border-blue-600 rounded-md px-4 py-2 hover:bg-blue-50 transition shadow-sm">
-                                    + Thêm loại phòng
-                                </button>
-                            </div>
-                            <div v-for="(r, idx) in newHotel.rooms" :key="idx" class="mb-6">
-                                <div class="border border-slate-200 rounded-xl shadow-sm">
-                                    <div @click="r._open = !r._open"
-                                        class="flex justify-between items-center px-6 py-4 cursor-pointer select-none bg-slate-50 rounded-t-xl">
-                                        <div class="font-semibold text-slate-800 text-base">{{ r.type || 'Loại phòng mới' }}
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs text-slate-500">{{ r.bedType ? r.bedType + ',' : '' }}
-                                                {{ r.area ? r.area + 'm²' : '' }}</span>
-                                            <button type="button" @click.stop="removeRoom(idx)"
-                                                class="text-red-500 hover:underline text-xs ml-2">Xóa</button>
-                                            <i :class="r._open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"
-                                                class="ml-2 text-slate-400"></i>
-                                        </div>
-                                    </div>
-                                    <transition name="fade">
-                                        <div v-show="r._open !== false" class="p-6 space-y-4 bg-white rounded-b-xl">
-                                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Loại
-                                                        phòng</label>
-                                                    <input v-model="r.type" type="text"
-                                                        placeholder="Ví dụ: Phòng Deluxe, Phòng Superior"
-                                                        class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                                </div>
-                                                <div>
-                                                    <label
-                                                        class="block text-sm font-semibold text-slate-700 mb-1">Giường</label>
-                                                    <input v-model="r.bedType" type="text"
-                                                        placeholder="Nhập loại giường"
-                                                        class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                                </div>
-                                                <div>
-                                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Diện
-                                                        tích (m²)</label>
-                                                    <input v-model.number="r.area" type="number" min="0"
-                                                        placeholder="Nhập diện tích phòng"
-                                                        class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                                </div>
-                                            </div>
-                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Số
-                                                        lượng phòng</label>
-                                                    <input v-model.number="r.quantity" type="number" min="0"
-                                                        placeholder="Nhập số lượng phòng"
-                                                        class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                                </div>
-                                                <div class="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label
-                                                            class="block text-sm font-semibold text-slate-700 mb-1">Người
-                                                            lớn</label>
-                                                        <input v-model.number="r.maxAdults" type="number" min="0"
-                                                            placeholder="Số người lớn"
-                                                            class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                                    </div>
-                                                    <div>
-                                                        <label
-                                                            class="block text-sm font-semibold text-slate-700 mb-1">Trẻ
-                                                            em</label>
-                                                        <input v-model.number="r.maxChildren" type="number" min="0"
-                                                            placeholder="Số trẻ em"
-                                                            class="w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label class="block text-sm font-semibold text-slate-700 mb-1">Tiện ích
-                                                    phòng</label>
-                                                <div class="flex flex-wrap gap-3">
-                                                    <label v-for="a in amenities" :key="a.id"
-                                                        class="flex items-center space-x-2">
-                                                        <input type="checkbox" v-model="r.amenities[a.id]"
-                                                            class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500" />
-                                                        <span>{{ a.name }}</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label class="block text-sm font-semibold text-slate-700 mb-1">Hình ảnh
-                                                    phòng</label>
-                                                <button type="button"
-                                                    class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                                                    <i class="far fa-image text-2xl mb-1"></i>
-                                                    <span class="text-sm font-semibold">Thêm ảnh</span>
+                                <div v-if="showAmenityModal && amenityModalRoomIdx === idx">
+                                    <div class="fixed inset-0 z-40" style="background: rgba(0,0,0,0.5);"></div>
+                                    <div class="fixed inset-0 flex items-center justify-center z-50"
+                                        @click.self="closeAmenityModal">
+                                        <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl relative">
+                                            <h3 class="text-xl font-bold mb-6">Chọn tiện ích phòng</h3>
+                                            <div class="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto mb-6 pr-3">
+                                                <button v-for="a in amenities" :key="'modal-' + a.id" type="button"
+                                                    @click="toggleAmenityModalSelected(a.id)" :class="[
+                                                        'flex items-center w-full min-w-0 px-3 py-2 rounded-lg border transition text-sm font-medium',
+                                                        amenityModalSelected.includes(a.id)
+                                                            ? 'bg-blue-100 border-blue-400 text-blue-700 shadow'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50'
+                                                    ]" style="box-sizing: border-box;">
+                                                    <i v-if="a.icon" :class="a.icon + ' mr-2 text-base'"
+                                                        style="min-width: 1.5em;"></i>
+                                                    <span class="truncate">{{ a.name }}</span>
+                                                    <span v-if="amenityModalSelected.includes(a.id)"
+                                                        class="ml-auto text-blue-500"><i
+                                                            class="fas fa-check-circle"></i></span>
                                                 </button>
                                             </div>
-                                            <div v-if="r.imageUrls && r.imageUrls.length"
-                                                class="flex flex-wrap gap-3 mt-2">
-                                                <img v-for="(img, idx) in r.imageUrls" :key="idx" :src="img"
-                                                    alt="Room Image"
-                                                    class="w-20 h-20 object-cover rounded-lg border border-slate-200 shadow-sm hover:scale-105 transition-transform duration-200" />
-                                            </div>
-                                            <div class="mt-6">
-                                                <div class="flex justify-between items-center mb-2">
-                                                    <h3 class="text-base font-semibold text-slate-800">Gói phòng</h3>
-                                                    <button type="button" @click="addVariant(idx)"
-                                                        class="text-blue-600 text-xs font-semibold hover:underline">+
-                                                        Thêm gói phòng</button>
-                                                </div>
-                                                <div class="overflow-x-auto rounded-lg">
-                                                    <table
-                                                        class="w-full text-xs border border-slate-100 rounded-lg overflow-hidden">
-                                                        <thead>
-                                                            <tr class="bg-slate-100 text-slate-700">
-                                                                <th class="py-2 px-3 font-semibold text-left">Tên gói
-                                                                </th>
-                                                                <th class="py-2 px-3 font-semibold text-center">Giá</th>
-                                                                <th class="py-2 px-3 font-semibold text-center">Bữa sáng
-                                                                </th>
-                                                                <th class="py-2 px-3 font-semibold text-center">Hủy miễn
-                                                                    phí</th>
-                                                                <th class="py-2 px-3 font-semibold text-center">Thanh
-                                                                    toán tại KS</th>
-                                                                <th class="py-2 px-3 font-semibold text-center">Thuế/Phí
-                                                                </th>
-                                                                <th class="py-2 px-3 font-semibold text-center">Xóa</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <tr v-for="(v, vIdx) in r.variants" :key="vIdx"
-                                                                class="border-t border-slate-100">
-                                                                <td class="py-2 px-3">
-                                                                    <input v-model="v.variantName" type="text"
-                                                                        placeholder="Tên gói"
-                                                                        class="w-full border border-slate-200 rounded px-2 py-1 text-xs" />
-                                                                </td>
-                                                                <td class="py-2 px-3">
-                                                                    <input v-model.number="v.price" type="number"
-                                                                        min="0" placeholder="Giá"
-                                                                        class="w-full border border-slate-200 rounded px-2 py-1 text-xs" />
-                                                                </td>
-                                                                <td class="py-2 px-3 text-center">
-                                                                    <input type="checkbox" v-model="v.hasBreakfast" />
-                                                                </td>
-                                                                <td class="py-2 px-3 text-center">
-                                                                    <input type="checkbox" v-model="v.cancellable" />
-                                                                </td>
-                                                                <td class="py-2 px-3 text-center">
-                                                                    <input type="checkbox" v-model="v.payAtHotel" />
-                                                                </td>
-                                                                <td class="py-2 px-3">
-                                                                    <input v-model.number="v.taxAndFeeAmount"
-                                                                        type="number" min="0" placeholder="Thuế/Phí"
-                                                                        class="w-full border border-slate-200 rounded px-2 py-1 text-xs" />
-                                                                </td>
-                                                                <td class="py-2 px-3 text-center">
-                                                                    <button type="button"
-                                                                        @click="removeVariant(idx, vIdx)"
-                                                                        class="text-red-500 hover:underline text-xs">Xóa</button>
-                                                                </td>
-                                                            </tr>
-                                                            <tr v-if="!r.variants || r.variants.length === 0">
-                                                                <td colspan="7" class="text-center text-slate-400 py-4">
-                                                                    Chưa có gói phòng nào</td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                            <div class="flex justify-end gap-3 mt-6">
+                                                <button @click="closeAmenityModal"
+                                                    class="px-5 py-2 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-base">Hủy</button>
+                                                <button @click="confirmAmenityModal"
+                                                    class="px-5 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 text-base font-semibold">Xác
+                                                    nhận</button>
                                             </div>
                                         </div>
-                                    </transition>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flex justify-between mt-8">
-                                <button type="button" @click="activeTab = 0"
-                                    class="px-4 py-2 border border-slate-300 rounded-md font-semibold text-slate-900 hover:bg-slate-100 shadow-sm">Quay
-                                    lại</button>
-                                <button type="button"
-                                    class="font-semibold text-white bg-black rounded-md px-6 py-2 hover:bg-gray-800 transition shadow-sm"
-                                    @click="activeTab = 2">
-                                    Tiếp tục
-                                </button>
+                            <div class="mt-4">
+                                <label class="block text-sm font-semibold text-slate-700 mb-1">Hình ảnh phòng</label>
+                                <div v-if="isViewMode" class="flex flex-wrap gap-3">
+                                    <div v-for="(img, imgIdx) in r.imageUrls" :key="'viewroom-' + imgIdx"
+                                        class="relative">
+                                        <img :src="img"
+                                            class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                                    </div>
+                                </div>
+                                <div v-else>
+                                    <input type="file" multiple accept="image/*" :ref="`roomImageInput${idx}`"
+                                        style="display:none" @change="e => handleRoomImageChange(e, idx)" />
+                                    <button type="button" @click="triggerRoomImageInput(idx)"
+                                        class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                        <i class="far fa-image text-2xl mb-1"></i>
+                                        <span class="text-sm font-semibold">Thêm ảnh</span>
+                                    </button>
+                                    <div class="flex flex-wrap gap-3 mt-2">
+                                        <div v-for="(img, imgIdx) in r.imagePreviews" :key="'roomimg-' + imgIdx"
+                                            class="relative group">
+                                            <img :src="img"
+                                                class="w-20 h-20 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                                            <button @click="removeRoomImage(idx, imgIdx)"
+                                                class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
+                                        </div>
+                                        <div v-for="(img, imgIdx) in r.imageUrls" :key="'oldroomimg-' + imgIdx"
+                                            class="relative group">
+                                            <img :src="img"
+                                                class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                                            <button @click="removeRoomImage(idx, imgIdx, true)"
+                                                class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </form>
+                            <div class="mt-6">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-base font-semibold text-slate-800">Gói phòng</h3>
+                                    <button v-if="!isViewMode" type="button" @click="addVariant(idx)"
+                                        class="text-blue-600 text-xs font-semibold hover:underline">+ Thêm gói
+                                        phòng</button>
+                                </div>
+                                <div class="overflow-x-auto rounded-lg">
+                                    <table class="w-full text-xs border border-slate-100 rounded-lg overflow-hidden">
+                                        <thead>
+                                            <tr class="bg-slate-100 text-slate-700">
+                                                <th class="py-2 px-3 font-semibold text-left">Tên gói</th>
+                                                <th class="py-2 px-3 font-semibold text-center">Giá</th>
+                                                <th class="py-2 px-3 font-semibold text-center">Bữa sáng</th>
+                                                <th class="py-2 px-3 font-semibold text-center">Hủy miễn phí</th>
+                                                <th class="py-2 px-3 font-semibold text-center">Thanh toán tại KS</th>
+                                                <th class="py-2 px-3 font-semibold text-center">Thuế/Phí</th>
+                                                <th v-if="!isViewMode" class="py-2 px-3 font-semibold text-center">Xóa
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(v, vIdx) in r.availableVariants" :key="vIdx"
+                                                class="border-t border-slate-100">
+                                                <td class="py-2 px-3">
+                                                    <input v-model="v.variantName" type="text" placeholder="Tên gói"
+                                                        :disabled="isViewMode" :class="[
+                                                            'w-full border border-slate-200 rounded px-2 py-1 text-xs',
+                                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                                        ]" />
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <input v-model.number="v.price" type="number" min="0"
+                                                        placeholder="Giá" :disabled="isViewMode" :class="[
+                                                            'w-full border border-slate-200 rounded px-2 py-1 text-xs',
+                                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                                        ]" />
+                                                </td>
+                                                <td class="py-2 px-3 text-center">
+                                                    <input type="checkbox" v-model="v.hasBreakfast"
+                                                        :disabled="isViewMode"
+                                                        :class="isViewMode ? 'cursor-not-allowed' : ''" />
+                                                </td>
+                                                <td class="py-2 px-3 text-center">
+                                                    <input type="checkbox" v-model="v.cancellable"
+                                                        :disabled="isViewMode"
+                                                        :class="isViewMode ? 'cursor-not-allowed' : ''" />
+                                                </td>
+                                                <td class="py-2 px-3 text-center">
+                                                    <input type="checkbox" v-model="v.payAtHotel" :disabled="isViewMode"
+                                                        :class="isViewMode ? 'cursor-not-allowed' : ''" />
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <input v-model.number="v.taxAndFeeAmount" type="number" min="0"
+                                                        placeholder="Thuế/Phí" :disabled="isViewMode" :class="[
+                                                            'w-full border border-slate-200 rounded px-2 py-1 text-xs',
+                                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                                        ]" />
+                                                </td>
+                                                <td v-if="!isViewMode" class="py-2 px-3 text-center">
+                                                    <button type="button" @click="removeVariant(idx, vIdx)"
+                                                        class="text-red-500 hover:underline text-xs">Xóa</button>
+                                                </td>
+                                            </tr>
+                                            <tr v-if="!r.availableVariants || r.availableVariants.length === 0">
+                                                <td :colspan="isViewMode ? 6 : 7"
+                                                    class="text-center text-slate-400 py-4">Chưa
+                                                    có gói
+                                                    phòng nào
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                    <div v-if="!isViewMode" class="flex justify-end mt-8">
+                        <button type="submit"
+                            class="font-semibold text-white bg-black rounded-md px-6 py-2 hover:bg-gray-800 transition shadow-sm">
+                            {{ isEditMode ? 'Cập nhật' : 'Thêm khách sạn' }}
+                        </button>
+                    </div>
+                </form>
             </div>
-        </transition>
-        <HotelDetailModal v-if="showDetailModal" :show="showDetailModal" :hotel="detailHotel"
-            :amenityLabels="amenityLabels" @close="showDetailModal = false" />
-        <teleport to="body">
-            <div v-if="activeDropdown !== null" ref="dropdownMenuRef" :style="dropdownStyle"
-                class="fixed z-[9999] w-64 rounded-xl shadow-2xl bg-white overflow-hidden" role="menu"
-                aria-orientation="vertical">
-                <div class="py-3" role="none">
-                    <div class="px-4 py-2 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
-                        <h4 class="text-sm font-semibold text-slate-800">Hành động</h4>
-                        <p class="text-xs text-slate-600 mt-1">{{ dropdownHotelName }}</p>
-                    </div>
-                    <div class="p-2">
-                        <button @click.stop="viewDetails(dropdownHotel)"
-                            class="text-slate-700 flex items-center px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-700 w-full text-left transition-all duration-200 rounded-lg group"
-                            role="menuitem">
-                            <div
-                                class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-200 transition-colors">
-                                <i class="fas fa-info-circle text-blue-600 text-sm"></i>
-                            </div>
-                            <div>
-                                <span class="font-medium">Xem chi tiết</span>
-                                <p class="text-xs text-slate-500 mt-0.5">Thông tin đầy đủ khách sạn</p>
-                            </div>
-                        </button>
-                        <button @click.stop="openModal('edit', dropdownHotel)"
-                            class="text-slate-700 flex items-center px-4 py-3 text-sm hover:bg-green-50 hover:text-green-700 w-full text-left transition-all duration-200 rounded-lg group mt-1"
-                            role="menuitem">
-                            <div
-                                class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-green-200 transition-colors">
-                                <i class="fas fa-edit text-green-600 text-sm"></i>
-                            </div>
-                            <div>
-                                <span class="font-medium">Chỉnh sửa</span>
-                                <p class="text-xs text-slate-500 mt-0.5">Cập nhật thông tin khách sạn</p>
-                            </div>
-                        </button>
-                        <div class="border-t border-slate-200 my-2"></div>
-                        <button @click.stop="deleteHotel(dropdownHotel.id)"
-                            class="text-red-600 flex items-center px-4 py-3 text-sm hover:bg-red-50 hover:text-red-700 w-full text-left transition-all duration-200 rounded-lg group"
-                            role="menuitem">
-                            <div
-                                class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-red-200 transition-colors">
-                                <i class="fas fa-trash-alt text-red-600 text-sm"></i>
-                            </div>
-                            <div>
-                                <span class="font-medium">Xóa</span>
-                                <p class="text-xs text-slate-500 mt-0.5">Xóa khách sạn khỏi hệ thống</p>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </teleport>
+        </div>
+        <ConfirmDialog v-if="showConfirmDialog" :message="confirmMessage" @confirm="onConfirmDelete"
+            @cancel="showConfirmDialog = false" />
     </div>
 </template>
 
@@ -630,47 +637,68 @@ import hotelApi from '@/api/hotelApi';
 import HotelDetailModal from './HotelDetailModal.vue';
 import provinceApi from '@/api/provinceApi';
 import AmenityApi from '@/api/AmenityApi';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import Ckeditor from '@/components/Ckeditor.vue';
+import HtmlContent from '@/components/HtmlContent.vue';
+import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
 export default {
     name: 'HotelManager',
-    components: { HotelDetailModal },
+    components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent },
     data() {
         return {
+            mode: 'list',
+            isEditMode: false,
+            isViewMode: false,
+            fromDetailView: false,
             showModal: false, activeTab: 0, tabs: ['Thông tin cơ bản', 'Phòng & Giá'],
             hotels: [],
             newHotel: {
                 id: null,
                 name: '',
-                star: '',
+                starRating: '',
                 address: '',
-                city: '',
                 phone: '',
                 email: '',
                 description: '',
                 imageUrls: [],
-                rooms: [
+                provinceId: '',
+                availableRooms: [
                     {
-                        type: '',
+                        id: null,
+                        roomType: '',
                         bedType: '',
-                        area: 0,
-                        quantity: 0,
+                        roomArea: 0,
+                        roomQuantity: 0,
                         maxAdults: 0,
                         maxChildren: 0,
                         imageUrls: [],
+                        imageFiles: [],
+                        imagePreviews: [],
                         amenities: {},
-                        variants: [],
-                        _open: true,
+                        availableVariants: [
+                            {
+                                id: null,
+                                variantName: '',
+                                price: 0,
+                                hasBreakfast: false,
+                                cancellable: false,
+                                payAtHotel: false,
+                                taxAndFeeAmount: 0
+                            }
+                        ],
                     }
                 ],
-                amenities: {},
+                amenities: [],
                 policy: {}
             },
             modalMode: 'add', activeDropdown: null,
-            searchQuery: '', showFilterDropdown: false, filterStar: '', filterPriceMax: 10000000,
-            filterAmenities: { wifi: false, parking: false, pool: false, restaurant: false, spa: false, gym: false, ac: false, breakfast: false, elevator: false },
-            showAmenityDropdown: false,
+            searchQuery: '', showFilterDropdown: false, filterStar: '', filterPriceMax: 20000000,
+            filterAmenities: {},
             form: { amenities: { wifi: false, parking: false, pool: false, restaurant: false, spa: false, gym: false, ac: false, breakfast: false, elevator: false }, policy: { checkin: '', checkout: '', other: '' } },
             amenityLabels: { wifi: 'WiFi miễn phí', parking: 'Bãi đỗ xe', pool: 'Hồ bơi', restaurant: 'Nhà hàng', spa: 'Spa', gym: 'Phòng tập gym', ac: 'Điều hòa', breakfast: 'Bữa sáng', elevator: 'Thang máy' },
-            currentPage: 1, itemsPerPage: 20, itemsPerPageOptions: [5, 10, 15, 20, 50, 'Tất cả'],
+            currentPage: 1,
+            itemsPerPage: 5,
+            itemsPerPageOptions: [5, 10, 15, 20, 50, 'Tất cả'],
             dropdownBtnRefMap: {},
             dropdownStyle: {},
             dropdownHotel: null,
@@ -680,29 +708,51 @@ export default {
             detailHotel: null,
             provinces: [],
             amenities: [],
+            hotelImages: [],
+            hotelImagePreviews: [],
+            imagesToDelete: [],
+            filterCreatedAtPreset: '',
+            filterCreatedAtFrom: '',
+            filterCreatedAtTo: '',
+            createdAtPresets: [
+                { label: 'Hôm nay', value: 'today' },
+                { label: 'Hôm qua', value: 'yesterday' },
+                { label: '3 ngày trước', value: 'last3days' },
+                { label: 'Tuần này', value: 'thisweek' },
+                { label: 'Tuần trước', value: 'lastweek' },
+                { label: 'Tháng này', value: 'thismonth' },
+                { label: 'Tháng trước', value: 'lastmonth' },
+                { label: 'Tùy chọn', value: 'custom' }
+            ],
+            tempFilterStar: '',
+            tempFilterPriceMax: 20000000,
+            tempFilterCreatedAtPreset: '',
+            tempFilterCreatedAtFrom: '',
+            tempFilterCreatedAtTo: '',
+            dropdownMenuPosition: { top: 0, left: 0 },
+            showConfirmDialog: false,
+            confirmMessage: '',
+            hotelIdToDelete: null,
+            showAmenityModal: false,
+            amenityModalRoomIdx: null,
+            amenityModalSelected: [],
         };
     },
     computed: {
         filteredHotels() {
-            return this.hotels.filter(hotel => {
-                const matchesSearchQuery = hotel.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-                    (hotel.provinceName && hotel.provinceName.toLowerCase().includes(this.searchQuery.toLowerCase()));
-                const matchesStar = this.filterStar === '' || hotel.starRating === parseInt(this.filterStar);
-                const matchesPrice = hotel.startingPrice <= this.filterPriceMax;
-                const matchesAmenities = Object.keys(this.filterAmenities).every(amenityKey =>
-                    !this.filterAmenities[amenityKey] || (hotel.amenities && hotel.amenities[amenityKey]));
-                return matchesSearchQuery && matchesStar && matchesPrice && matchesAmenities;
-            });
+            return [...this.hotels].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         },
         totalPages() {
-            return Math.ceil(this.filteredHotels.length / this.itemsPerPage);
+            const perPage = this.itemsPerPage === 'Tất cả' ? (this.filteredHotels.length || 1) : Number(this.itemsPerPage);
+            return Math.ceil(this.filteredHotels.length / perPage);
         },
         paginatedHotels() {
             if (this.itemsPerPage === 'Tất cả') {
                 return this.filteredHotels;
             }
-            const start = (this.currentPage - 1) * this.itemsPerPage;
-            const end = start + this.itemsPerPage;
+            const perPage = Number(this.itemsPerPage);
+            const start = (this.currentPage - 1) * perPage;
+            const end = start + perPage;
             return this.filteredHotels.slice(start, end);
         },
         displayedPages() {
@@ -722,16 +772,31 @@ export default {
         }
     },
     watch: {
-        searchQuery() { this.currentPage = 1; },
-        filterStar() { this.currentPage = 1; },
-        filterPriceMax() { this.currentPage = 1; },
-        filterAmenities: { handler() { this.currentPage = 1; }, deep: true },
-        itemsPerPage() { this.currentPage = 1; },
+        searchQuery() { this.currentPage = 1; this.fetchHotels(); },
+        itemsPerPage() { this.currentPage = 1; this.fetchHotels(); },
+        mode() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        isEditMode() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        isViewMode() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        fromDetailView() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        },
+        'newHotel.id'() {
+            this.$nextTick(() => this.updateBreadcrumb());
+        }
     },
     methods: {
         formatCurrency(value) { return value == null ? 'N/A' : new Intl.NumberFormat('vi-VN').format(value); },
         async openModal(mode, hotel = null) {
             this.activeDropdown = null;
+            this.hotelImages = [];
+            this.hotelImagePreviews = [];
+            this.imagesToDelete = [];
             if (!this.provinces.length) {
                 try {
                     const res = await provinceApi.getAllProvinces();
@@ -754,23 +819,26 @@ export default {
                     this.newHotel = {
                         id: detail.id,
                         name: detail.name || '',
-                        star: detail.starRating || '',
+                        starRating: detail.starRating || '',
                         address: detail.address || '',
-                        provinceId: detail.provinceId || '',
                         phone: detail.phone || '',
                         email: detail.email || '',
                         description: detail.description || '',
                         imageUrls: detail.imageUrls || [],
-                        rooms: (detail.availableRooms || []).map(room => ({
-                            type: room.roomType || '',
+                        availableRooms: (detail.availableRooms || []).map(room => ({
+                            id: room.id || null,
+                            roomType: room.roomType || '',
                             bedType: room.bedType || '',
-                            area: room.roomArea || 0,
-                            quantity: room.roomQuantity || 0,
+                            roomArea: room.roomArea || 0,
+                            roomQuantity: room.roomQuantity || 0,
                             maxAdults: room.maxAdults || 0,
                             maxChildren: room.maxChildren || 0,
                             imageUrls: room.imageUrls || [],
+                            imageFiles: room.imageFiles || [],
+                            imagePreviews: room.imagePreviews || [],
                             amenities: (room.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
-                            variants: (room.availableVariants || []).map(variant => ({
+                            availableVariants: (room.availableVariants || []).map(variant => ({
+                                id: variant.id || null,
                                 variantName: variant.variantName || '',
                                 price: (variant.price && typeof variant.price === 'object' && variant.price !== null) ? Number(variant.price) : (variant.price || 0),
                                 hasBreakfast: variant.hasBreakfast || false,
@@ -778,52 +846,168 @@ export default {
                                 payAtHotel: variant.payAtHotel || false,
                                 taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
                             })),
-                            _open: true,
                         })),
                         amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
                         policy: detail.policy || {},
                     };
                 } catch (e) {
-                    alert('Không lấy được chi tiết khách sạn!');
+                    window.$toast('Không lấy được chi tiết khách sạn!', 'error');
                     return;
                 }
             }
             this.showModal = true;
         },
         closeModal() { this.showModal = false; this.activeDropdown = null; this.removeDropdownListeners(); },
-        toggleDropdown(hotelId) { this.activeDropdown = this.activeDropdown === hotelId ? null : hotelId; },
-        toggleFilterDropdown() { this.showFilterDropdown = !this.showFilterDropdown; },
-        setFilterStar(star) { this.filterStar = star; },
-        resetFilters() { this.searchQuery = ''; this.filterStar = ''; this.filterPriceMax = 10000000; for (const key in this.filterAmenities) { this.filterAmenities[key] = false; } },
+        toggleDropdown(hotelId) {
+            if (this.activeDropdown === hotelId) {
+                this.activeDropdown = null;
+                return;
+            }
+            this.activeDropdown = hotelId;
+            this.$nextTick(() => {
+                const btn = this.dropdownBtnRefMap && this.dropdownBtnRefMap[hotelId];
+                if (btn) {
+                    const rect = btn.getBoundingClientRect();
+                    this.dropdownMenuPosition = {
+                        top: rect.bottom + window.scrollY - 20,
+                        left: rect.left + window.scrollX - 165,
+                    };
+                }
+            });
+        },
+        toggleFilterDropdown() {
+            this.showFilterDropdown = !this.showFilterDropdown;
+            if (this.showFilterDropdown) {
+                this.tempFilterStar = this.filterStar;
+                this.tempFilterPriceMax = this.filterPriceMax;
+                this.tempFilterCreatedAtPreset = this.filterCreatedAtPreset;
+                this.tempFilterCreatedAtFrom = this.filterCreatedAtFrom;
+                this.tempFilterCreatedAtTo = this.filterCreatedAtTo;
+            }
+        },
+        setFilterStar(star) {
+            this.tempFilterStar = star;
+        },
+        resetFilters() {
+            this.tempFilterStar = '';
+            this.tempFilterPriceMax = 20000000;
+            this.tempFilterCreatedAtPreset = '';
+            this.tempFilterCreatedAtFrom = '';
+            this.tempFilterCreatedAtTo = '';
+            this.filterStar = '';
+            this.filterPriceMax = 20000000;
+            this.filterCreatedAtPreset = '';
+            this.filterCreatedAtFrom = '';
+            this.filterCreatedAtTo = '';
+            this.showFilterDropdown = false;
+            this.currentPage = 1;
+            this.fetchHotels();
+        },
         async viewDetails(hotel) {
+            this.isEditMode = true;
+            this.isViewMode = true;
+            this.modalMode = 'edit';
+            this.loadProvincesAndAmenities();
+            this.hotelImages = [];
+            this.hotelImagePreviews = [];
+            this.imagesToDelete = [];
             try {
                 const res = await hotelApi.getHotelById(hotel.id);
-                this.detailHotel = res.data.data;
-                this.showDetailModal = true;
+                const detail = res.data.data || {};
+                this.newHotel = {
+                    id: detail.id,
+                    name: detail.name || '',
+                    starRating: detail.starRating || '',
+                    address: detail.address || '',
+                    provinceId: detail.provinceId || '',
+                    phone: detail.phone || '',
+                    email: detail.email || '',
+                    description: detail.description || '',
+                    imageUrls: detail.imageUrls || [],
+                    availableRooms: (detail.availableRooms || []).map(room => ({
+                        id: room.id,
+                        roomType: room.roomType || '',
+                        bedType: room.bedType || '',
+                        roomArea: room.roomArea || 0,
+                        roomQuantity: room.roomQuantity || 0,
+                        maxAdults: room.maxAdults || 0,
+                        maxChildren: room.maxChildren || 0,
+                        imageUrls: room.imageUrls || [],
+                        imageFiles: [],
+                        imagePreviews: [],
+                        amenities: (room.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
+                        availableVariants: (room.availableVariants || []).map(variant => ({
+                            id: variant.id || null,
+                            variantName: variant.variantName || '',
+                            price: (variant.price && typeof variant.price === 'object' && variant.price !== null) ? Number(variant.price) : (variant.price || 0),
+                            hasBreakfast: variant.hasBreakfast || false,
+                            cancellable: variant.cancellable || false,
+                            payAtHotel: variant.payAtHotel || false,
+                            taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                        })),
+                    })),
+                    amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
+                };
             } catch (e) {
-                alert('Không lấy được chi tiết khách sạn!');
+                window.$toast('Không lấy được chi tiết khách sạn!', 'error');
+                return;
             }
-            this.activeDropdown = null;
+            this.mode = 'edit';
         },
         addRoom() {
-            this.newHotel.rooms.push({
-                type: '',
+            this.newHotel.availableRooms.push({
+                id: null,
+                roomType: '',
                 bedType: '',
-                area: 0,
-                quantity: 0,
+                roomArea: 0,
+                roomQuantity: 0,
                 maxAdults: 0,
                 maxChildren: 0,
                 imageUrls: [],
+                imageFiles: [],
+                imagePreviews: [],
                 amenities: {},
-                variants: [],
-                _open: true,
+                availableVariants: [
+                    {
+                        id: null,
+                        variantName: '',
+                        price: 0,
+                        hasBreakfast: false,
+                        cancellable: false,
+                        payAtHotel: false,
+                        taxAndFeeAmount: 0
+                    }
+                ],
             });
         },
-        removeRoom(index) { if (this.newHotel.rooms.length > 1) { this.newHotel.rooms.splice(index, 1); } else { alert('Phải có ít nhất một loại phòng.'); } },
-        deleteHotel(hotelId) { if (confirm('Bạn có chắc chắn muốn xóa khách sạn này không?')) { this.hotels = this.hotels.filter(h => h.id !== hotelId); } this.activeDropdown = null; },
+        removeRoom(index) {
+            if (this.newHotel.availableRooms.length > 1) {
+                this.newHotel.availableRooms.splice(index, 1);
+            } else {
+                window.$toast('Phải có ít nhất một loại phòng.', 'error');
+            }
+        },
+        deleteHotel(hotelId) {
+            this.hotelIdToDelete = hotelId;
+            this.confirmMessage = 'Bạn có chắc chắn muốn xóa khách sạn này không?';
+            this.showConfirmDialog = true;
+            this.activeDropdown = null;
+        },
+        async onConfirmDelete() {
+            this.showConfirmDialog = false;
+            try {
+                await hotelApi.deleteHotel(this.hotelIdToDelete);
+                window.$toast('Xóa khách sạn thành công!', 'success');
+                this.backToList();
+                this.fetchHotels();
+            } catch (e) {
+                window.$toast('Xóa khách sạn thất bại!', 'error');
+            }
+            this.hotelIdToDelete = null;
+        },
         handleSubmit() {
             let minPrice = Infinity;
-            this.newHotel.rooms.forEach(r => { const finalPrice = r.price * (1 - (r.discount || 0) / 100); if (finalPrice < minPrice) minPrice = finalPrice; });
+            this.newHotel.availableRooms.forEach(r => { const finalPrice = r.price * (1 - (r.discount || 0) / 100); if (finalPrice < minPrice) minPrice = finalPrice; });
             this.newHotel.minPrice = minPrice === Infinity ? 0 : minPrice;
             this.newHotel.amenities = { ...this.form.amenities }; this.newHotel.policy = { ...this.form.policy };
             if (this.modalMode === 'add') {
@@ -840,28 +1024,40 @@ export default {
             this.newHotel = {
                 id: null,
                 name: '',
-                star: '',
+                starRating: '',
                 address: '',
-                city: '',
                 phone: '',
                 email: '',
                 description: '',
                 imageUrls: [],
-                rooms: [
+                provinceId: '',
+                availableRooms: [
                     {
-                        type: '',
+                        id: null,
+                        roomType: '',
                         bedType: '',
-                        area: 0,
-                        quantity: 0,
+                        roomArea: 0,
+                        roomQuantity: 0,
                         maxAdults: 0,
                         maxChildren: 0,
                         imageUrls: [],
+                        imageFiles: [],
+                        imagePreviews: [],
                         amenities: {},
-                        variants: [],
-                        _open: true,
+                        availableVariants: [
+                            {
+                                id: null,
+                                variantName: '',
+                                price: 0,
+                                hasBreakfast: false,
+                                cancellable: false,
+                                payAtHotel: false,
+                                taxAndFeeAmount: 0
+                            }
+                        ],
                     }
                 ],
-                amenities: {},
+                amenities: [],
                 policy: {}
             };
             for (const key in this.form.amenities) { this.form.amenities[key] = false; }
@@ -873,24 +1069,23 @@ export default {
         prevPage() { if (this.currentPage > 1) this.currentPage--; },
         async fetchHotels() {
             try {
-                console.log('Đang gọi API lấy danh sách khách sạn...');
                 const params = {
-                    page: this.currentPage - 1,
-                    size: this.itemsPerPage,
+                    keyword: this.searchQuery,
+                    minStarRating: this.filterStar || undefined,
+                    minPrice: 0,
+                    maxPrice: this.filterPriceMax < 20000000 ? this.filterPriceMax : undefined,
+                    createdAtFrom: this.filterCreatedAtFrom || undefined,
+                    createdAtTo: this.filterCreatedAtTo || undefined,
+                    page: 0,
+                    size: 1000,
                 };
-                console.log('Params:', params);
                 const response = await hotelApi.searchHotels(params);
-                console.log('Response từ API:', response);
-
                 if (response.data && response.data.data) {
                     this.hotels = response.data.data.content || response.data.data.items || [];
-                    console.log('Danh sách khách sạn đã load:', this.hotels);
                 } else {
-                    console.error('Cấu trúc response không đúng:', response);
                     this.hotels = [];
                 }
             } catch (error) {
-                console.error('Lỗi khi lấy danh sách khách sạn:', error);
                 this.hotels = [];
             }
         },
@@ -924,7 +1119,6 @@ export default {
             }
             this.activeDropdown = hotelId;
             this.$nextTick(() => {
-                console.log('openDropdown: refs map', this.dropdownBtnRefMap);
                 this.updateDropdownPosition();
                 this.addDropdownListeners();
             });
@@ -941,7 +1135,6 @@ export default {
                     left: '50vw',
                     transform: 'translate(-50%, 0)',
                 };
-                console.warn('Không lấy được ref button, fallback ra giữa màn hình');
                 return;
             }
             const rect = btn.getBoundingClientRect();
@@ -965,7 +1158,6 @@ export default {
                 top: top + 'px',
                 left: left + 'px',
             };
-            console.log('updateDropdownPosition: style', this.dropdownStyle);
         },
         addDropdownListeners() {
             window.addEventListener('scroll', this.updateDropdownPosition, true);
@@ -984,29 +1176,496 @@ export default {
             }
         },
         addVariant(roomIdx) {
-            if (!this.newHotel.rooms[roomIdx].variants) this.newHotel.rooms[roomIdx].variants = [];
-            this.newHotel.rooms[roomIdx].variants.push({
+            if (!this.newHotel.availableRooms[roomIdx].availableVariants) this.newHotel.availableRooms[roomIdx].availableVariants = [];
+            this.newHotel.availableRooms[roomIdx].availableVariants.push({
+                id: null,
                 variantName: '',
                 price: 0,
                 hasBreakfast: false,
                 cancellable: false,
                 payAtHotel: false,
-                taxAndFeeAmount: 0,
+                taxAndFeeAmount: 0
             });
         },
         removeVariant(roomIdx, vIdx) {
-            this.newHotel.rooms[roomIdx].variants.splice(vIdx, 1);
+            const variants = this.newHotel.availableRooms[roomIdx].availableVariants;
+            if (variants.length <= 1) {
+                window.$toast('Phòng phải có ít nhất một gói phòng.', 'error');
+                return;
+            }
+            variants.splice(vIdx, 1);
         },
         closeAmenityDropdown(e) {
-            if (!this.$el.querySelector('.relative').contains(e.target)) {
+            const rel = this.$el.querySelector('.relative');
+            if (!rel || !rel.contains(e.target)) {
                 this.showAmenityDropdown = false;
             }
+        },
+        handleHotelImageChange(e) {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                this.hotelImages.push(file);
+                const reader = new FileReader();
+                reader.onload = (ev) => this.hotelImagePreviews.push(ev.target.result);
+                reader.readAsDataURL(file);
+            }
+        },
+        removeHotelImage(idx, isOld = false) {
+            if (isOld) {
+                const url = this.newHotel.imageUrls[idx];
+                this.imagesToDelete.push(url);
+                this.newHotel.imageUrls.splice(idx, 1);
+            } else {
+                this.hotelImages.splice(idx, 1);
+                this.hotelImagePreviews.splice(idx, 1);
+            }
+        },
+        handleRoomImageChange(e, roomIdx) {
+            const files = Array.from(e.target.files);
+            const room = this.newHotel.availableRooms[roomIdx];
+            if (!room.imageFiles) room.imageFiles = [];
+            if (!room.imagePreviews) room.imagePreviews = [];
+            room.imageFiles.push(...files);
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.onload = (ev) => room.imagePreviews.push(ev.target.result);
+                reader.readAsDataURL(file);
+            }
+        },
+        triggerRoomImageInput(roomIdx) {
+            this.$refs[`roomImageInput${roomIdx}`][0].click();
+        },
+        removeRoomImage(roomIdx, imgIdx, isOld = false) {
+            const room = this.newHotel.availableRooms[roomIdx];
+            if (isOld) {
+                if (!room.deleteRoomImageUrls) room.deleteRoomImageUrls = [];
+                const url = room.imageUrls[imgIdx];
+                room.deleteRoomImageUrls.push(url);
+                room.imageUrls.splice(imgIdx, 1);
+            } else {
+                room.imageFiles.splice(imgIdx, 1);
+                room.imagePreviews.splice(imgIdx, 1);
+            }
+        },
+        async submitHotel() {
+            const validateResult = this.validateHotelForm();
+            if (!validateResult.valid) {
+                window.$toast(validateResult.message, 'error');
+                return;
+            }
+            const hotelData = { ...this.newHotel };
+            hotelData.availableRooms = hotelData.availableRooms.map((r, idx) => {
+                const room = { ...r };
+                if (!room.id) delete room.id;
+                if (!room.imageUrls) room.imageUrls = [];
+                room.amenities = Object.keys(room.amenities || {}).filter(k => room.amenities[k]).map(id => ({ id: Number(id) }));
+                room.availableVariants = (room.availableVariants || []).map(v => ({
+                    ...v,
+                    hasBreakfast: !!v.hasBreakfast,
+                    cancellable: !!v.cancellable,
+                    payAtHotel: !!v.payAtHotel,
+                    price: Number(v.price || 0),
+                    taxAndFeeAmount: Number(v.taxAndFeeAmount || 0)
+                }));
+                delete room.imageFiles;
+                delete room.imagePreviews;
+                return room;
+            });
+            if (hotelData.amenities && !Array.isArray(hotelData.amenities)) {
+                hotelData.amenities = Object.keys(hotelData.amenities).filter(k => hotelData.amenities[k]).map(id => ({ id: Number(id) }));
+            }
+            delete hotelData.policy;
+            const invalidRoomIdx = hotelData.availableRooms.findIndex(r => {
+                if (!r.availableVariants || r.availableVariants.length === 0) return true;
+                const hasValidVariant = r.availableVariants.some(v => v.variantName && v.variantName.trim() && v.price > 0);
+                return !hasValidVariant;
+            });
+            if (invalidRoomIdx !== -1) {
+                window.$toast(`Vui lòng tạo ít nhất một gói phòng hợp lệ (có tên và giá > 0) cho phòng số ${invalidRoomIdx + 1} (${hotelData.availableRooms[invalidRoomIdx].roomType || 'Chưa đặt tên'})`, 'error');
+                return;
+            }
+            if (hotelData.availableRooms && hotelData.availableRooms.length) {
+                hotelData.availableRooms.forEach(room => {
+                    if (room.deleteRoomImageUrls) {
+                        delete room.deleteRoomImageUrls;
+                    }
+                });
+            }
+            const formData = new FormData();
+            if (!hotelData) {
+                window.$toast('Dữ liệu khách sạn bị rỗng!', 'error');
+                return;
+            }
+            const hotelJson = JSON.stringify(hotelData);
+            formData.append('hotel', hotelJson);
+            if (this.hotelImages && this.hotelImages.length) {
+                for (let i = 0; i < this.hotelImages.length; i++) {
+                    formData.append('images', this.hotelImages[i]);
+                }
+            }
+            if (this.newHotel.availableRooms && this.newHotel.availableRooms.length) {
+                this.newHotel.availableRooms.forEach((room, idx) => {
+                    let key = '';
+                    if (room.id) {
+                        key = `roomImages_${room.id}`;
+                    } else if (room.roomType) {
+                        key = `roomImages_${room.roomType.normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '_')}`;
+                    } else {
+                        key = `roomImages_${idx}`;
+                    }
+                    key = key.toLowerCase();
+                    if (room.imageFiles && room.imageFiles.length) {
+                        for (let j = 0; j < room.imageFiles.length; j++) {
+                            formData.append(key, room.imageFiles[j]);
+                        }
+                    }
+                });
+            }
+            if (this.imagesToDelete && this.imagesToDelete.length) {
+                this.imagesToDelete.forEach(url => formData.append('deleteImageUrls', url));
+            }
+            if (this.newHotel.availableRooms && this.newHotel.availableRooms.length) {
+                this.newHotel.availableRooms.forEach((room, idx) => {
+                    if (room.deleteRoomImageUrls && Array.isArray(room.deleteRoomImageUrls) && room.deleteRoomImageUrls.length > 0) {
+                        if (room.id) {
+                            const key = `deleteRoomImageUrls_${room.id}`;
+                            formData.append(key, JSON.stringify(room.deleteRoomImageUrls));
+                        }
+                    }
+                });
+            }
+            try {
+                let res;
+                if (this.modalMode === 'add') {
+                    res = await hotelApi.createHotel(formData);
+                    window.$toast('Thêm khách sạn thành công!', 'success');
+                } else {
+                    res = await hotelApi.updateHotel(hotelData.id, formData);
+                    window.$toast('Cập nhật khách sạn thành công!', 'success');
+                }
+                this.backToList();
+                await this.fetchHotels();
+            } catch (err) {
+                window.$toast('Có lỗi khi lưu khách sạn: ' + (err?.response?.data?.message || err.message), 'error');
+                console.error('API error:', err);
+            }
+        },
+        validateHotelForm() {
+            if (!this.newHotel.name || !this.newHotel.name.trim()) {
+                return { valid: false, message: 'Vui lòng nhập tên khách sạn.' };
+            }
+            if (!this.newHotel.starRating) {
+                return { valid: false, message: 'Vui lòng chọn hạng sao.' };
+            }
+            if (!this.newHotel.provinceId) {
+                return { valid: false, message: 'Vui lòng chọn thành phố.' };
+            }
+            if (!this.newHotel.address || !this.newHotel.address.trim()) {
+                return { valid: false, message: 'Vui lòng nhập địa chỉ khách sạn.' };
+            }
+            if (!this.newHotel.phone || !this.newHotel.phone.trim()) {
+                return { valid: false, message: 'Vui lòng nhập số điện thoại.' };
+            }
+            if (!this.newHotel.email || !this.newHotel.email.trim()) {
+                return { valid: false, message: 'Vui lòng nhập email.' };
+            }
+            return { valid: true };
+        },
+        switchMainTab(tabIdx) {
+            this.mainTab = tabIdx;
+            if (tabIdx === 1 && !this.isEditMode) {
+                this.resetAll();
+                this.loadProvincesAndAmenities();
+            }
+            if (tabIdx === 0) {
+                this.resetAll();
+                this.isEditMode = false;
+            }
+        },
+        addHotel() {
+            this.isEditMode = false;
+            this.isViewMode = false;
+            this.resetAll();
+            this.loadProvincesAndAmenities();
+            this.mode = 'edit';
+        },
+        async editHotel(hotel) {
+            this.isEditMode = true;
+            this.isViewMode = false;
+            this.fromDetailView = false;
+            this.modalMode = 'edit';
+            this.loadProvincesAndAmenities();
+            this.hotelImages = [];
+            this.hotelImagePreviews = [];
+            this.imagesToDelete = [];
+            try {
+                const res = await hotelApi.getHotelById(hotel.id);
+                const detail = res.data.data || {};
+                this.newHotel = {
+                    id: detail.id,
+                    name: detail.name || '',
+                    starRating: detail.starRating || '',
+                    address: detail.address || '',
+                    provinceId: detail.provinceId || '',
+                    phone: detail.phone || '',
+                    email: detail.email || '',
+                    description: detail.description || '',
+                    imageUrls: detail.imageUrls || [],
+                    availableRooms: (detail.availableRooms || []).map(room => ({
+                        id: room.id,
+                        roomType: room.roomType || '',
+                        bedType: room.bedType || '',
+                        roomArea: room.roomArea || 0,
+                        roomQuantity: room.roomQuantity || 0,
+                        maxAdults: room.maxAdults || 0,
+                        maxChildren: room.maxChildren || 0,
+                        imageUrls: room.imageUrls || [],
+                        imageFiles: [],
+                        imagePreviews: [],
+                        amenities: (room.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
+                        availableVariants: (room.availableVariants || []).map(variant => ({
+                            id: variant.id || null,
+                            variantName: variant.variantName || '',
+                            price: (variant.price && typeof variant.price === 'object' && variant.price !== null) ? Number(variant.price) : (variant.price || 0),
+                            hasBreakfast: variant.hasBreakfast || false,
+                            cancellable: variant.cancellable || false,
+                            payAtHotel: variant.payAtHotel || false,
+                            taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                        })),
+                    })),
+                    amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
+                };
+            } catch (e) {
+                window.$toast('Không lấy được chi tiết khách sạn!', 'error');
+                return;
+            }
+            this.mode = 'edit';
+        },
+        loadProvincesAndAmenities() {
+            if (!this.provinces.length) {
+                provinceApi.getAllProvinces().then(res => {
+                    this.provinces = res.data.data || res.data;
+                });
+            }
+            if (!this.amenities.length) {
+                AmenityApi.getAllAmenities().then(res => {
+                    this.amenities = res.data.data || res.data;
+                    this.filterAmenities = {};
+                    this.amenities.forEach(a => { this.filterAmenities[a.id] = false; });
+                });
+            }
+        },
+        toggleAmenity(amenities, amenityKey) {
+            amenities[amenityKey] = !amenities[amenityKey];
+        },
+        setCreatedAtPreset(preset) {
+            this.tempFilterCreatedAtPreset = preset;
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            if (preset === 'today') {
+                this.tempFilterCreatedAtFrom = this.formatDate(today);
+                this.tempFilterCreatedAtTo = this.formatDate(today);
+            } else if (preset === 'yesterday') {
+                const y = new Date(today); y.setDate(y.getDate() - 1);
+                this.tempFilterCreatedAtFrom = this.formatDate(y);
+                this.tempFilterCreatedAtTo = this.formatDate(y);
+            } else if (preset === 'last3days') {
+                const d = new Date(today); d.setDate(d.getDate() - 2);
+                this.tempFilterCreatedAtFrom = this.formatDate(d);
+                this.tempFilterCreatedAtTo = this.formatDate(today);
+            } else if (preset === 'thisweek') {
+                this.tempFilterCreatedAtFrom = this.formatDate(startOfWeek);
+                this.tempFilterCreatedAtTo = this.formatDate(endOfWeek);
+            } else if (preset === 'lastweek') {
+                const lastWeekStart = new Date(startOfWeek); lastWeekStart.setDate(startOfWeek.getDate() - 7);
+                const lastWeekEnd = new Date(endOfWeek); lastWeekEnd.setDate(endOfWeek.getDate() - 7);
+                this.tempFilterCreatedAtFrom = this.formatDate(lastWeekStart);
+                this.tempFilterCreatedAtTo = this.formatDate(lastWeekEnd);
+            } else if (preset === 'thismonth') {
+                this.tempFilterCreatedAtFrom = this.formatDate(startOfMonth);
+                this.tempFilterCreatedAtTo = this.formatDate(endOfMonth);
+            } else if (preset === 'lastmonth') {
+                const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                this.tempFilterCreatedAtFrom = this.formatDate(lastMonthStart);
+                this.tempFilterCreatedAtTo = this.formatDate(lastMonthEnd);
+            } else if (preset === 'custom') {
+            }
+        },
+        applyFilters() {
+            this.filterStar = this.tempFilterStar;
+            this.filterPriceMax = this.tempFilterPriceMax;
+            this.filterCreatedAtPreset = this.tempFilterCreatedAtPreset;
+            this.filterCreatedAtFrom = this.tempFilterCreatedAtFrom;
+            this.filterCreatedAtTo = this.tempFilterCreatedAtTo;
+            this.showFilterDropdown = false;
+            this.currentPage = 1;
+            this.fetchHotels();
+        },
+        formatDate(date) {
+            return date.toISOString().slice(0, 10);
+        },
+        formatDateTime(dt) {
+            if (!dt) return '';
+            const d = new Date(dt);
+            return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        },
+        backToList() {
+            this.mode = 'list';
+            this.isEditMode = false;
+            this.isViewMode = false;
+            this.resetAll();
+        },
+        async viewHotelDetail(hotel) {
+            await this.viewDetails(hotel);
+        },
+        enableEditMode() {
+            this.isViewMode = false;
+            this.fromDetailView = true;
+        },
+        saveChanges() {
+            this.submitHotel();
+        },
+        async cancelEdit() {
+            this.isViewMode = true;
+            if (this.newHotel.id) {
+                try {
+                    const res = await hotelApi.getHotelById(this.newHotel.id);
+                    const detail = res.data.data || {};
+                    this.newHotel = {
+                        id: detail.id,
+                        name: detail.name || '',
+                        starRating: detail.starRating || '',
+                        address: detail.address || '',
+                        provinceId: detail.provinceId || '',
+                        phone: detail.phone || '',
+                        email: detail.email || '',
+                        description: detail.description || '',
+                        imageUrls: detail.imageUrls || [],
+                        availableRooms: (detail.availableRooms || []).map(room => ({
+                            id: room.id,
+                            roomType: room.roomType || '',
+                            bedType: room.bedType || '',
+                            roomArea: room.roomArea || 0,
+                            roomQuantity: room.roomQuantity || 0,
+                            maxAdults: room.maxAdults || 0,
+                            maxChildren: room.maxChildren || 0,
+                            imageUrls: room.imageUrls || [],
+                            imageFiles: [],
+                            imagePreviews: [],
+                            amenities: (room.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
+                            availableVariants: (room.availableVariants || []).map(variant => ({
+                                id: variant.id || null,
+                                variantName: variant.variantName || '',
+                                price: (variant.price && typeof variant.price === 'object' && variant.price !== null) ? Number(variant.price) : (variant.price || 0),
+                                hasBreakfast: variant.hasBreakfast || false,
+                                cancellable: variant.cancellable || false,
+                                payAtHotel: variant.payAtHotel || false,
+                                taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                            })),
+                        })),
+                        amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
+                    };
+                } catch (e) {
+                    window.$toast('Không lấy được chi tiết khách sạn!', 'error');
+                }
+            }
+        },
+        handleBack() {
+            if (this.isEditMode && !this.isViewMode) {
+                this.isViewMode = true;
+            } else {
+                this.backToList();
+            }
+        },
+        autoResize(event) {
+            event.target.style.height = 'auto';
+            event.target.style.height = event.target.scrollHeight + 'px';
+        },
+        openAmenityModal(roomIdx) {
+            this.amenityModalRoomIdx = roomIdx;
+            const room = this.newHotel.availableRooms[roomIdx];
+            this.amenityModalSelected = Object.keys(room.amenities || {}).filter(k => room.amenities[k]).map(id => Number(id));
+            this.showAmenityModal = true;
+        },
+        closeAmenityModal() {
+            this.showAmenityModal = false;
+            this.amenityModalRoomIdx = null;
+            this.amenityModalSelected = [];
+        },
+        confirmAmenityModal() {
+            if (this.amenityModalRoomIdx !== null) {
+                const room = this.newHotel.availableRooms[this.amenityModalRoomIdx];
+                room.amenities = {};
+                this.amenityModalSelected.forEach(id => {
+                    room.amenities[id] = true;
+                });
+            }
+            this.closeAmenityModal();
+        },
+        removeRoomAmenity(roomIdx, amenityId) {
+            const room = this.newHotel.availableRooms[roomIdx];
+            if (room.amenities && room.amenities[amenityId]) {
+                delete room.amenities[amenityId];
+            }
+        },
+        toggleAmenityModalSelected(id) {
+            const idx = this.amenityModalSelected.indexOf(id);
+            if (idx === -1) {
+                this.amenityModalSelected.push(id);
+            } else {
+                this.amenityModalSelected.splice(idx, 1);
+            }
+        },
+        updateBreadcrumb() {
+            const breadcrumbStore = useAdminBreadcrumbStore();
+            const items = [];
+            if (this.mode === 'edit') {
+                items.push({ label: 'Khách Sạn', onClick: this.backToList });
+                if (!this.isEditMode) {
+                    items.push({ label: 'Thêm Khách Sạn', active: true });
+                } else if (this.isViewMode) {
+                    items.push({ label: 'Chi Tiết Khách Sạn', active: true });
+                } else if (this.isEditMode && !this.isViewMode && this.newHotel.id && this.fromDetailView) {
+                    items.push({ label: 'Chi Tiết Khách Sạn', onClick: this.cancelEdit });
+                    items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+                } else if (this.isEditMode && !this.isViewMode) {
+                    items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+                }
+            } else {
+                items.push({ label: 'Khách Sạn', active: true });
+            }
+            breadcrumbStore.setBreadcrumb(items);
         },
     },
     mounted() {
         this.fetchHotels();
+        this.loadProvincesAndAmenities();
         document.addEventListener('click', this.handleOutsideClick, true);
         document.addEventListener('click', this.closeAmenityDropdown, true);
+        const breadcrumbStore = useAdminBreadcrumbStore();
+        const items = [];
+        if (this.mode === 'edit') {
+            items.push({ label: 'Khách Sạn', onClick: this.backToList });
+            if (!this.isEditMode) {
+                items.push({ label: 'Thêm Khách Sạn', active: true });
+            } else if (this.isViewMode) {
+                items.push({ label: 'Chi Tiết Khách Sạn', active: true });
+            } else if (this.isEditMode && !this.isViewMode && this.newHotel.id && this.fromDetailView) {
+                items.push({ label: 'Chi Tiết Khách Sạn', onClick: this.cancelEdit });
+                items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+            } else if (this.isEditMode && !this.isViewMode) {
+                items.push({ label: 'Chỉnh Sửa Khách Sạn', active: true });
+            }
+        } else {
+            items.push({ label: 'Khách Sạn', active: true });
+        }
+        breadcrumbStore.setBreadcrumb(items);
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick, true);
@@ -1060,5 +1719,16 @@ input[type="range"]::-moz-range-track {
     height: 4px;
     background: #E2E8F0;
     border-radius: 2px;
+}
+
+select option[disabled][value=""] {
+    color: #a0aec0;
+}
+
+.table-actions-sticky {
+    position: sticky;
+    right: 0;
+    background: white;
+    z-index: 10;
 }
 </style>

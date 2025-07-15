@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8080/api/tours";
+const API_BASE_URL = "https://spring-backend-383387500697.asia-southeast1.run.app/api/tours";
 
 export const getAllTours = () => {
   return axios.get(API_BASE_URL);

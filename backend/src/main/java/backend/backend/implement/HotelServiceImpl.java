@@ -47,9 +47,13 @@ import backend.backend.dao.Hotel.HotelRoomImageDAO;
 import backend.backend.entity.HotelRoomImage;
 import backend.backend.entity.HotelRoomImageId;
 import backend.backend.dao.UserDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class HotelServiceImpl implements HotelService {
+
+    private static final Logger logger = LoggerFactory.getLogger(HotelServiceImpl.class);
 
     @Autowired
     private HotelDAO hotelDAO;
@@ -507,6 +511,12 @@ public class HotelServiceImpl implements HotelService {
         var userOpt = userDAO.findByEmail(email);
         if (userOpt.isEmpty()) {
             throw new ResourceNotFoundException("Không tìm thấy user với email: " + email);
+        }
+        if (rating == null) {
+            throw new IllegalArgumentException("Rating không được để trống");
+        }
+        if (content == null) {
+            content = "";
         }
         backend.backend.entity.User user = userOpt.get();
         Review review = new Review();

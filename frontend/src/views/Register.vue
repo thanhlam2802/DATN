@@ -146,7 +146,7 @@ export default {
     },
     validateName() {
       if (!this.name || this.name.trim() === "") {
-        this.nameError = "Hãy nhập tên người dùng";
+        this.nameError = "Please enter your username.";
         return false;
       }
       this.nameError = "";
@@ -155,7 +155,7 @@ export default {
     validateEmail() {
       const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!regex.test(this.email)) {
-        this.emailError = "Email không hợp lệ!";
+        this.emailError = "Invalid email, try again!";
         return false;
       }
       this.emailError = "";
@@ -163,7 +163,7 @@ export default {
     },
     validatePassword() {
       if (this.password.trim().length < 4) {
-        this.passwordError = "Mật khẩu phải có ít nhất 4 ký tự!";
+        this.passwordError = "Password must contain at least 4 characters!";
         return false;
       }
       this.passwordError = "";
@@ -181,7 +181,7 @@ export default {
       }
 
       if (this.password !== this.confirmPassword) {
-        this.passwordNotMatch = "Mật khẩu không khớp";
+        this.passwordNotMatch = "Please make sure your passwords match.";
         return;
       } else {
         this.passwordNotMatch = "";

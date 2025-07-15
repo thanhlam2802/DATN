@@ -8,6 +8,7 @@ import backend.backend.dto.ReviewDto;
 import backend.backend.dto.TourDetailDto;
 import backend.backend.dto.TourDto;
 import backend.backend.dto.TourSearchRequestDto;
+import backend.backend.dto.ItineraryDayDto;
 
 /**
  * Interface cho các dịch vụ liên quan đến Tour.
@@ -27,6 +28,7 @@ public interface TourService {
     TourDetailDto getTourDetailsById(Long id);
     List<ReviewDto> getReviewsForTour(Integer tourId);
     List<DepartureDto> getDeparturesForTour(Long tourId);
+    List<ItineraryDayDto> getStructuredItinerary(Long tourId);
 
 //     String processBooking(BookingRequest bookingRequest);
 

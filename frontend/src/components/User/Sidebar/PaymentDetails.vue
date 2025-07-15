@@ -2,10 +2,10 @@
   <div>
     <h2 class="text-2xl font-semibold text-gray-800 mb-4">Phương thức thanh toán chính</h2>
     <div v-if="primaryCard"
-         class="flex items-center justify-between p-5 rounded-xl bg-purple-100 border border-purple-300 shadow-sm">
+         class="flex items-center justify-between p-5 rounded-xl bg-blue-100 border border-blue-300 shadow-sm">
       <div class="flex items-center gap-4">
         <div class="w-12 h-8 flex items-center justify-center bg-white rounded shadow-inner">
-          <i class="fab fa-cc-visa text-2xl text-purple-600" v-if="primaryCard.brand === 'Visa'"></i>
+          <i class="fab fa-cc-visa text-2xl text-blue-600" v-if="primaryCard.brand === 'Visa'"></i>
           <i class="fab fa-cc-mastercard text-2xl text-red-600"
              v-else-if="primaryCard.brand === 'MasterCard'"></i>
           <i class="fas fa-credit-card text-2xl text-gray-600" v-else></i>
@@ -18,7 +18,7 @@
         </div>
       </div>
       <span
-          class="text-sm font-semibold text-purple-700 bg-white px-3 py-1 rounded-lg border border-purple-300">Mặc
+          class="text-sm font-semibold text-blue-700 bg-white px-3 py-1 rounded-lg border border-blue-300">Mặc
                     định</span>
     </div>
     <p v-else class="text-sm text-gray-500 mt-2">Chưa có phương thức thanh toán chính.</p>
@@ -31,7 +31,7 @@
            class="flex items-center justify-between p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition">
         <div class="flex items-center gap-4">
           <div class="w-10 h-8 flex items-center justify-center bg-gray-100 rounded">
-            <i class="fab fa-cc-visa text-xl text-purple-600" v-if="card.brand === 'Visa'"></i>
+            <i class="fab fa-cc-visa text-xl text-blue-600" v-if="card.brand === 'Visa'"></i>
             <i class="fab fa-cc-mastercard text-xl text-red-600"
                v-else-if="card.brand === 'MasterCard'"></i>
             <i class="fas fa-credit-card text-xl text-gray-600" v-else></i>
@@ -61,7 +61,7 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Loại thẻ</label>
         <select v-model="newCard.brand"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
           <option value="Visa">Visa</option>
           <option value="MasterCard">MasterCard</option>
         </select>
@@ -69,12 +69,12 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">4 số cuối</label>
         <input type="text" v-model="newCard.last4" maxlength="4"
-               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"/>
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"/>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Ngày hết hạn</label>
         <input type="text" v-model="newCard.expiry" placeholder="MM/YY"
-               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"/>
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"/>
       </div>
     </div>
     <div class="flex justify-end gap-3 pt-2">
@@ -91,7 +91,7 @@
 
   <div v-else class="pt-4">
     <button @click="showAddForm = true"
-            class="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow transition duration-200">
+            class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow transition duration-200">
       + Thêm phương thức thanh toán
     </button>
   </div>

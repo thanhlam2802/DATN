@@ -28,43 +28,64 @@
     </div>
 
     <div class="mb-6">
-      <h3 class="text-lg font-medium mb-3">Loại hoạt động hoặc hạng mục</h3>
+      <h3 class="text-lg font-medium mb-3">Tags</h3>
       <div class="space-y-3">
+        <p v-if="tagsLoading">Đang tải danh sách tags...</p>
+
         <label
-          v-for="(item, index) in categories"
-          :key="index"
+          v-for="tag in tags"
+          :key="tag.id"
           class="flex items-center gap-2"
         >
           <input
             type="checkbox"
             class="w-5 h-5 rounded border-gray-300"
-            v-model="item.checked"
+            v-model="tag.checked"
           />
-          <span>{{ item.name }}</span>
+          <span>{{ tag.name }}</span>
         </label>
       </div>
     </div>
   </aside>
 </template>
-
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { XCircleIcon, ChevronDownIcon } from "lucide-vue-next";
 
 const highlightNew = ref(false);
+const tags = ref([]);
+const tagsLoading = ref(false);
 
-const categories = ref([
-  { name: "Thiên nhiên", checked: true },
-  { name: "Ngắm cảnh", checked: false },
-  { name: "Nghệ thuật & Văn hoá", checked: false },
-  { name: "Tour dưới nước", checked: false },
-  { name: "Tour trên đất liền", checked: false },
-  { name: "Tour ẩm thực", checked: false },
-  { name: "Tour theo chủ đề", checked: false },
-  { name: "Tour trong ngày", checked: false },
-  { name: "Tour nửa ngày", checked: false },
-  { name: "Khám phá đảo", checked: false },
-]);
+// Hàm fetchTags được cập nhật để gọi API thật
+const fetchTags = async () => {
+  tagsLoading.value = true;
+  console.log("Bắt đầu gọi API Spring Boot để lấy tags...");
+
+  try {
+    // Thay đổi URL này cho đúng với địa chỉ backend của bạn
+    const response = await fetch("http://localhost:8080/api/tags");
+
+    // Kiểm tra nếu request không thành công (ví dụ: lỗi 404, 500)
+    if (!response.ok) {
+      throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+    }
+
+    // Lấy dữ liệu JSON từ response
+    const dataFromApi = await response.json();
+
+    // Thêm thuộc tính 'checked: false' vào mỗi tag để v-model hoạt động
+    tags.value = dataFromApi.map((tag) => ({ ...tag, checked: false }));
+    console.log("Lấy tags từ Spring Boot thành công!");
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu tags từ Spring Boot:", error);
+    // Xử lý lỗi, ví dụ hiển thị thông báo cho người dùng
+  } finally {
+    tagsLoading.value = false;
+  }
+};
+
+// onMounted vẫn giữ nguyên để gọi hàm khi component được tải
+onMounted(() => {
+  fetchTags();
+});
 </script>
-
-<style scoped></style>

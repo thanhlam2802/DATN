@@ -17,7 +17,6 @@
             <div class="relative">
               <input id="min-price" type="text" v-model="minPriceFormatted"
                 class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">VND</span>
             </div>
           </div>
           <div class="w-1/2">
@@ -25,14 +24,35 @@
             <div class="relative">
               <input id="max-price" type="text" v-model="maxPriceFormatted"
                 class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">VND</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-for="group in filters" :key="group.id" class="border border-gray-200 rounded-lg">
+    <div class="border border-gray-200 rounded-lg">
+      <button aria-controls="star-rating-filter" aria-expanded="true"
+        class="w-full flex justify-between items-center px-4 py-3 bg-indigo-50 hover:bg-indigo-100 transition-colors text-indigo-800 font-medium text-base rounded-t-lg">
+        <span>Hạng sao</span>
+      </button>
+
+      <div id="star-rating-filter" class="px-4 pt-3 pb-2 space-y-2">
+        <label
+          class="flex items-center space-x-2 text-gray-700 text-sm font-medium cursor-pointer hover:text-indigo-600 transition">
+          <input type="radio" name="star-rating" :value="0" v-model="starRatingModel"
+            class="form-radio text-indigo-600 border-gray-300 focus:ring-indigo-500" />
+          <span>Tất cả</span>
+        </label>
+        <label v-for="star in [5, 4, 3, 2, 1]" :key="star"
+          class="flex items-center space-x-2 text-gray-700 text-sm font-medium cursor-pointer hover:text-indigo-600 transition">
+          <input type="radio" name="star-rating" :value="star" v-model="starRatingModel"
+            class="form-radio text-indigo-600 border-gray-300 focus:ring-indigo-500" />
+          <span class="flex items-center text-yellow-400"><i v-for="n in star" :key="n" class="fas fa-star text-sm"></i></span>
+        </label>
+      </div>
+    </div>
+
+    <div v-for="group in filterGroups" :key="group.id" class="border border-gray-200 rounded-lg">
       <button :aria-controls="group.id" :aria-expanded="group.expanded.toString()" @click="toggleGroup(group)"
         class="w-full flex justify-between items-center px-4 py-3 bg-indigo-50 hover:bg-indigo-100 transition-colors text-indigo-800 font-medium text-base rounded-t-lg">
         <span>{{ group.title }}</span>
@@ -43,12 +63,16 @@
       </button>
 
       <div v-show="group.expanded" :id="group.id" class="px-4 pt-3 pb-2 space-y-2">
+        <div v-if="anyAmenitySelected" class="flex justify-end">
+          <button @click="clearAmenities"
+            class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold cursor-pointer">Xóa tất cả</button>
+        </div>
         <label
           v-for="option in (group.showAll ? group.options : group.options.slice(0, group.visibleLimit || group.options.length))"
           :key="option.value"
           class="flex items-center space-x-2 text-gray-700 text-sm font-medium cursor-pointer hover:text-indigo-600 transition">
-          <input type="checkbox" class="form-checkbox text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-            v-model="option.checked" />
+          <input type="checkbox"
+            class="form-checkbox text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" :checked="amenitiesModel[option.value] || false" @change="updateChecked(option, $event.target.checked)" />
           <span>{{ option.label }}</span>
         </label>
 
@@ -63,23 +87,53 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import Slider from '@vueform/slider';
 import '@vueform/slider/themes/default.css';
+import { getAllAmenities } from '@/api/AmenityApi.js';
 
+const props = defineProps({
+  filters: {
+    type: Object,
+    required: true,
+  },
+});
 
-// --- Dữ liệu cho thanh trượt giá ---
+const emit = defineEmits(['update:filters']);
+
 const MIN_PRICE = 0;
 const MAX_PRICE = 24000000;
 const PRICE_STEP = 100000;
-const priceRange = ref([500000, 10000000]);
+
+const priceRange = computed({
+  get: () => props.filters.priceRange,
+  set: (newValue) => {
+    emit('update:filters', { ...props.filters, priceRange: newValue });
+  },
+});
+
+const starRatingModel = computed({
+  get: () => props.filters.starRating,
+  set: (newValue) => {
+    emit('update:filters', { ...props.filters, starRating: newValue });
+  },
+});
+
+const amenitiesModel = computed({
+  get: () => props.filters.amenities,
+  set: (newAmenities) => {
+    emit('update:filters', { ...props.filters, amenities: newAmenities });
+  }
+});
 
 const minPriceFormatted = computed({
   get: () => priceRange.value[0].toLocaleString('vi-VN'),
   set: (value) => {
     const num = parseInt(value.replace(/[^0-9]/g, ''), 10);
-    if (!isNaN(num) && num >= MIN_PRICE && num <= priceRange.value[1]) {
-      priceRange.value[0] = num;
+    const currentRange = [...priceRange.value];
+    if (!isNaN(num) && num >= MIN_PRICE && num <= currentRange[1]) {
+      currentRange[0] = num;
+      priceRange.value = currentRange;
     }
   }
 });
@@ -88,75 +142,66 @@ const maxPriceFormatted = computed({
   get: () => priceRange.value[1].toLocaleString('vi-VN'),
   set: (value) => {
     const num = parseInt(value.replace(/[^0-9]/g, ''), 10);
-    if (!isNaN(num) && num <= MAX_PRICE && num >= priceRange.value[0]) {
-      priceRange.value[1] = num;
+    const currentRange = [...priceRange.value];
+    if (!isNaN(num) && num <= MAX_PRICE && num >= currentRange[0]) {
+      currentRange[1] = num;
+      priceRange.value = currentRange;
     }
   }
 });
 
-
-// --- Dữ liệu cho các bộ lọc còn lại ---
-const filters = reactive([
-  {
-    id: 'property-type',
-    title: 'Loại hình',
-    expanded: true,
-    options: [
-      { label: 'Khách sạn', value: 'hotel', checked: true },
-      { label: 'Căn hộ', value: 'apartment', checked: false },
-      { label: 'Nhà', value: 'house', checked: false },
-      { label: 'Villa', value: 'villa', checked: true },
-    ],
-  },
-  {
-    id: 'reviews',
-    title: 'Đánh giá',
-    expanded: true,
-    visibleLimit: 3,
-    showAll: false,
-    options: [
-      { label: '4 sao trở lên', value: '4star-up', checked: false },
-      { label: '3 sao trở lên', value: '3star-up', checked: false },
-      { label: '2 sao trở lên', value: '2star-up', checked: false },
-      { label: '1 sao trở lên', value: '1star-up', checked: false },
-      { label: 'Không cần đánh giá', value: 'no-reviews', checked: false },
-    ],
-  },
+const filterGroups = reactive([
   {
     id: 'amenities',
     title: 'Tiện nghi',
     expanded: true,
-    visibleLimit: 3,
+    visibleLimit: 5,
     showAll: false,
-    options: [
-      { label: 'Wifi miễn phí', value: 'wifi', checked: false },
-      { label: 'Hồ bơi', value: 'pool', checked: false },
-      { label: 'Bữa sáng miễn phí', value: 'breakfast', checked: false },
-      { label: 'Chỗ đỗ xe', value: 'parking', checked: false },
-      { label: 'Trung tâm thể dục (Gym)', value: 'gym', checked: false },
-      { label: 'Cho phép thú cưng', value: 'pets', checked: false },
-      { label: 'Spa & Massage', value: 'spa', checked: false },
-    ],
-  },
-  {
-    id: 'rooms-beds',
-    title: 'Số phòng & giường',
-    expanded: true,
-    options: [
-      { label: '2 giường trở lên', value: '2beds-up', checked: false },
-      { label: '3 người trở lên', value: '3people-up', checked: false },
-    ],
-  },
-  {
-    id: 'accessibility',
-    title: 'Tiện ích cho người khuyết tật',
-    expanded: true,
-    options: [
-      { label: 'Thang máy', value: 'elevator', checked: false },
-      { label: 'Lối đi cho xe lăn', value: 'wheelchair', checked: false },
-    ],
+    options: [],
   },
 ]);
+
+onMounted(async () => {
+  try {
+    const response = await getAllAmenities();
+    if (response.data?.statusCode === 200) {
+      const amenitiesGroup = filterGroups.find(g => g.id === 'amenities');
+      if (amenitiesGroup) {
+        amenitiesGroup.options = response.data.data.map(amenity => ({
+          label: amenity.name,
+          value: amenity.name,
+        }));
+
+        const currentAmenities = { ...props.filters.amenities };
+        let needsUpdate = false;
+        amenitiesGroup.options.forEach(opt => {
+          if (currentAmenities[opt.value] === undefined) {
+            currentAmenities[opt.value] = false;
+            needsUpdate = true;
+          }
+        });
+        if (needsUpdate) {
+          emit('update:filters', { ...props.filters, amenities: currentAmenities });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch amenities:", error);
+  }
+});
+
+const anyAmenitySelected = computed(() => {
+  if (!amenitiesModel.value) return false;
+  return Object.values(amenitiesModel.value).some(isSelected => isSelected);
+});
+
+function clearAmenities() {
+  const newAmenities = { ...amenitiesModel.value };
+  for (const key in newAmenities) {
+    newAmenities[key] = false;
+  }
+  amenitiesModel.value = newAmenities;
+}
 
 function toggleGroup(group) {
   group.expanded = !group.expanded;
@@ -165,13 +210,17 @@ function toggleGroup(group) {
 function toggleShowAll(group) {
   group.showAll = !group.showAll;
 }
+
+function updateChecked(option, checked) {
+  const newAmenities = { ...amenitiesModel.value };
+  newAmenities[option.value] = checked;
+  amenitiesModel.value = newAmenities;
+}
 </script>
 
 <style>
-/* Tùy chỉnh màu sắc cho thanh trượt để hợp với theme */
 .price-slider {
   --slider-connect-bg: #4f46e5;
-  /* indigo-600 */
   --slider-tooltip-bg: #4f46e5;
   --slider-handle-ring-color: #a5b4fc;
 }

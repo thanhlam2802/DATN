@@ -5,14 +5,9 @@ package backend.backend.entity;
 import lombok.Data;
 import lombok.Getter;
 import jakarta.persistence.*;
-import java.io.Serializable;
 
-@Data
-@Embeddable
-class TourImageId implements Serializable {
-    private Integer tourId;
-    private Integer imageId;
-}
+import backend.backend.entity.TourImageId;
+
 
 @Getter
 @Data

@@ -25,7 +25,6 @@ public class CloudinaryConfig {
 
     /**
      * Tạo một đối tượng Cloudinary và đăng ký nó như một Bean.
-     *
      * @return một instance của Cloudinary đã được cấu hình.
      */
     @Bean
@@ -38,6 +37,10 @@ public class CloudinaryConfig {
         config.put("secure", "true");
 
 
+
         return new Cloudinary(config);
     }
 }
+
+}
+

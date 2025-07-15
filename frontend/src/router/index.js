@@ -11,10 +11,9 @@ import TourDetail from "@/views/TourDetail.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import MainLayout from "@/layouts/Main.vue";
 
-import Login from "@/views/Login.vue";
-import Register from "@/views/Register.vue";
 import AccountView from "@/views/AccountView.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
+import BookingHistory from "@/components/User/Sidebar/BookingHistory.vue";
 import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
 import AccountSecurity from "@/components/User/Sidebar/AccountSecurity.vue";
 import BookingPage from "@/views/BookingPage.vue";
@@ -30,9 +29,13 @@ import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
 import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
+import HotelForm from "@/views/hotel/admin/HotelForm.vue"
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
-import HotelForm from "@/views/hotel/admin/HotelForm.vue";
-import TourManager from "@/layouts/TourManager.vue";
+
+import TourManager from "../layouts/TourManager.vue";
+import Register from "@/views/Register.vue";
+import Login from "@/views/Login.vue";
+
 
 const routes = [
   {
@@ -40,6 +43,8 @@ const routes = [
     component: MainLayout,
     children: [
       { path: "", name: "Home", component: Home },
+      { path: "register", name: "Register", component: Register },
+      { path: "login", name: "Login", component: Login },
       { path: "tour", name: "Tour", component: Tour },
       { path: "bus", name: "Bus", component: Bus },
       { path: "plane", name: "Plane", component: Plane },
@@ -82,14 +87,13 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
-      { path: "/login", name: "Login", component: Login },
-      { path: "/register", name: "Register", component: Register },
       {
         path: "/account",
         component: AccountView,
         children: [
           { path: "", redirect: "personal" },
           { path: "personal", component: AccountDetails },
+          { path: "bookings", component: BookingHistory },
           { path: "payment", component: PaymentDetails },
           { path: "security", component: AccountSecurity },
           { path: "notifications", component: NotificationSetting },
@@ -138,9 +142,11 @@ const routes = [
     children: [
       { path: "dashboard", component: Dashboard },
       { path: "hotelform", component: HotelForm },
-      { path: "", redirect: "/dashboard" },
+      { path: "", redirect: "dashboard" },
     ],
   },
+
+
 ];
 
 const router = createRouter({

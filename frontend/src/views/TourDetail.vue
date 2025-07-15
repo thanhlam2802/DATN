@@ -194,11 +194,13 @@ const toggleDay = (dayIndex) => {
 
   <div
     v-else-if="tour"
-    class="grid grid-cols-12 gap-4 container mx-auto px-4 py-6"
+    class="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-4 container mx-auto px-2 sm:px-4 py-4 sm:py-6"
   >
     <div class="col-span-12">
-      <h1 class="text-3xl font-semibold mb-4">{{ tour.name }}</h1>
-      <div class="flex items-center gap-4 mb-6">
+      <h1 class="text-2xl sm:text-3xl font-semibold mb-4">{{ tour.name }}</h1>
+      <div
+        class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-6"
+      >
         <div class="flex items-center">
           <span class="text-yellow-400 text-xl font-bold">{{
             averageRating

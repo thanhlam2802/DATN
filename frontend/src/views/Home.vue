@@ -162,7 +162,18 @@
             Xem tất cả
           </router-link>
         </div>
-        <div class="relative group">
+
+        <div v-if="loading.tours" class="text-center p-10">
+          <p class="text-gray-600">Đang tìm các tour hấp dẫn nhất...</p>
+        </div>
+        <div
+          v-else-if="error.tours"
+          class="text-center p-10 bg-red-50 text-red-600 rounded-lg"
+        >
+          <p>Rất tiếc, đã có lỗi xảy ra khi tải tour. Vui lòng thử lại sau.</p>
+        </div>
+
+        <div v-else class="relative group">
           <div
             ref="tourScrollContainer"
             @scroll="() => handleScroll('tours')"
@@ -197,6 +208,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
+import axios from "axios";
 import BannerAndSearch from "../components/Home/BannerAndSearch.vue";
 import SignatureSection from "../components/Home/SignatureSection.vue";
 import CouponSection from "../components/Home/CouponSection.vue";
@@ -207,10 +219,22 @@ import TourHomeCard from "../components/Home/TourHomeCard.vue";
 import { searchFlights } from "@/api/flightApi";
 import { searchHotels } from "../api/hotelApi";
 
+// State variables
 const hotels = ref([]);
-const loading = reactive({ hotels: true });
-const error = reactive({ hotels: null });
+const flights = ref([]);
+const tours = ref([]);
+const buses = ref([]); // Giả sử có dữ liệu mẫu hoặc API cho xe buýt
 
+const loading = reactive({
+  hotels: true,
+  tours: true,
+});
+const error = reactive({
+  hotels: null,
+  tours: null,
+});
+
+// Hàm fetch dữ liệu
 const fetchHotels = async () => {
   try {
     loading.hotels = true;
@@ -227,12 +251,36 @@ const fetchHotels = async () => {
     error.hotels = "Không thể tải dữ liệu khách sạn. Vui lòng thử lại sau.";
   } finally {
     loading.hotels = false;
+    nextTick(() => handleScroll("hotels"));
+  }
+};
+const fetchTours = async () => {
+  try {
+    loading.tours = true;
+    error.tours = null;
+    const response = await axios.get("http://localhost:8080/api/v1/tours", {
+      params: { size: 8 },
+    });
+
+    // SỬA LỖI Ở ĐÂY: Kiểm tra bằng statusCode thay vì success
+    if (response.data && response.data.statusCode === 200) {
+      tours.value = response.data.data.content;
+    } else {
+      // Ném lỗi nếu cấu trúc response không như ý muốn
+      throw new Error(response.data.message || "Lỗi không xác định từ server");
+    }
+  } catch (err) {
+    console.error("Lỗi khi tải danh sách tour:", err);
+    error.tours = "Không thể tải dữ liệu tour. Vui lòng thử lại sau.";
+  } finally {
+    loading.tours = false;
     nextTick(() => {
-      handleScroll("hotels");
+      handleScroll("tours");
     });
   }
 };
 
+// Logic xử lý cuộn ngang
 const hotelScrollContainer = ref(null);
 const busScrollContainer = ref(null);
 const flightScrollContainer = ref(null);
@@ -251,8 +299,6 @@ const containerRefs = {
   flights: flightScrollContainer,
   tours: tourScrollContainer,
 };
-
-const flights = ref([]);
 
 const scroll = (type, direction) => {
   const container = containerRefs[type].value;
@@ -277,26 +323,26 @@ const handleScroll = (type) => {
   }
 };
 
+// Lifecycle Hooks
 onMounted(async () => {
+  // Gọi các API
+  fetchHotels();
+  fetchTours();
+
   try {
-    // Gọi API tìm chuyến bay
     const res = await searchFlights({});
     flights.value = res.data;
-    console.log("=======================================");
-    console.log(flights.value);
   } catch (e) {
     flights.value = [];
+    console.error("Lỗi khi tải chuyến bay:", e);
   }
 
-  // Gọi API khách sạn
-  fetchHotels();
-
-  // Kéo scroll ban đầu
+  // Khởi tạo trạng thái scroll
   Object.keys(containerRefs).forEach((type) => {
     nextTick(() => handleScroll(type));
   });
 
-  // Theo dõi thay đổi kích thước để scroll lại
+  // Theo dõi thay đổi kích thước cửa sổ để cập nhật trạng thái scroll
   const resizeObserver = new ResizeObserver(() => {
     Object.keys(containerRefs).forEach(handleScroll);
   });
@@ -305,7 +351,6 @@ onMounted(async () => {
     if (ref.value) resizeObserver.observe(ref.value);
   });
 
-  // Cleanup khi unmounted
   onUnmounted(() => {
     resizeObserver.disconnect();
   });

@@ -84,24 +84,24 @@ const openModal = () => {
 </script>
 
 <template>
-  <div class="container mt-4">
+  <div class="mt-4 px-2 sm:px-0">
     <section
-      class="relative w-full h-48 sm:h-36 md:h-44 lg:h-52 xl:h-80 overflow-hidden"
+      class="relative w-full h-40 xs:h-48 sm:h-36 md:h-44 lg:h-52 xl:h-80 overflow-hidden mb-6"
     >
       <img
         :src="BANNER_IMAGE"
         alt="Tour Banner"
-        class="absolute rounded-br-4xl inset-0 w-full h-full object-cover brightness-75 transition-transform duration-700 hover:scale-105"
+        class="absolute rounded-br-3xl inset-0 w-full h-full object-cover brightness-75 transition-transform duration-700 hover:scale-105"
       />
       <div
-        class="relative z-10 grid grid-cols-12 gap-4 h-full items-center px-4 sm:px-6"
+        class="relative z-10 grid grid-cols-12 gap-2 sm:gap-4 h-full items-center px-2 sm:px-6"
       >
         <div class="col-span-12 md:col-span-6 flex flex-col gap-2">
-          <h5
-            class="text-white text-2xl sm:text-3xl font-semibold animate-fade-in"
+          <h1
+            class="text-white text-xl xs:text-2xl sm:text-3xl font-semibold animate-fade-in mb-2"
           >
             Du lịch
-          </h5>
+          </h1>
           <div>
             <button
               @click="openModal"

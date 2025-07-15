@@ -16,11 +16,6 @@ public class RegisterRequestDto {
     private String email;
 
     @NotBlank
-    @Size(min = 10, max = 20)
-    @Pattern(regexp = "^[0-9]*$")
-    private String phone;
-
-    @NotBlank
     private String name;
 
     @NotBlank

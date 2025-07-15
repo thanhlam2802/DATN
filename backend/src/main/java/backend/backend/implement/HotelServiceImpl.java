@@ -46,6 +46,7 @@ import backend.backend.entity.Amenity;
 import backend.backend.dao.Hotel.HotelRoomImageDAO;
 import backend.backend.entity.HotelRoomImage;
 import backend.backend.entity.HotelRoomImageId;
+import backend.backend.dao.UserDAO;
 
 @Service
 public class HotelServiceImpl implements HotelService {
@@ -70,6 +71,8 @@ public class HotelServiceImpl implements HotelService {
     private HotelMapper hotelMapper;
     @Autowired
     private HotelRoomImageDAO hotelRoomImageDAO;
+    @Autowired
+    private UserDAO userDAO;
 
     @Override
     @Transactional(readOnly = true)
@@ -168,6 +171,7 @@ public class HotelServiceImpl implements HotelService {
                                 Image img = new Image();
                                 img.setUrl(url);
                                 img.setAltText(room.getRoomType());
+                                img.setPublicId(publicId);
                                 img = imageDAO.save(img);
                                 HotelRoomImage hri = new HotelRoomImage();
                                 HotelRoomImageId hriId = new HotelRoomImageId();
@@ -208,6 +212,7 @@ public class HotelServiceImpl implements HotelService {
                     Image img = new Image();
                     img.setUrl(url);
                     img.setAltText(hotel.getName());
+                    img.setPublicId(publicId);
                     img = imageDAO.save(img);
                     HotelImage hi = new HotelImage();
                     HotelImageId hiId = new HotelImageId();
@@ -274,6 +279,7 @@ public class HotelServiceImpl implements HotelService {
                     Image img = new Image();
                     img.setUrl(url);
                     img.setAltText(hotel.getName());
+                    img.setPublicId(publicId);
                     img = imageDAO.save(img);
                     HotelImage hi = new HotelImage();
                     HotelImageId hiId = new HotelImageId();
@@ -293,11 +299,13 @@ public class HotelServiceImpl implements HotelService {
                 List<String> urls = entry.getValue();
                 if (urls != null) {
                     for (String url : urls) {
-                        Image img = imageDAO.findAll().stream().filter(i -> url.equals(i.getUrl())).findFirst().orElse(null);
+                        Image img = imageDAO.findAll().stream().filter(i -> url.equals(i.getUrl())).findFirst()
+                                .orElse(null);
                         if (img != null) {
                             try {
                                 String[] parts = img.getUrl().split("/");
-                                String publicId = parts[parts.length - 2] + "/" + parts[parts.length - 1].split("\\.")[0];
+                                String publicId = parts[parts.length - 2] + "/"
+                                        + parts[parts.length - 1].split("\\.")[0];
                                 cloudinaryService.delete(publicId);
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -387,6 +395,7 @@ public class HotelServiceImpl implements HotelService {
                             Image img = new Image();
                             img.setUrl(url);
                             img.setAltText(room.getRoomType());
+                            img.setPublicId(publicId);
                             img = imageDAO.save(img);
                             HotelRoomImage hri = new HotelRoomImage();
                             HotelRoomImageId hriId = new HotelRoomImageId();
@@ -487,6 +496,27 @@ public class HotelServiceImpl implements HotelService {
             }
         }
         hotelDAO.delete(hotel);
+    }
+
+    @Override
+    @Transactional
+    public void createHotelReview(Integer hotelId, String email, Integer rating, String content) {
+        if (!hotelDAO.existsById(hotelId)) {
+            throw new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId);
+        }
+        var userOpt = userDAO.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            throw new ResourceNotFoundException("Không tìm thấy user với email: " + email);
+        }
+        backend.backend.entity.User user = userOpt.get();
+        Review review = new Review();
+        review.setEntityType("Hotel");
+        review.setEntityId(hotelId);
+        review.setRating(rating.shortValue());
+        review.setContent(content);
+        review.setCreatedAt(java.time.LocalDateTime.now());
+        review.setUser(user);
+        reviewDAO.save(review);
     }
 
     private Set<Integer> getBookedVariantIds(Integer hotelId, HotelSearchRequestDto requestDto) {

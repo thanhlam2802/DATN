@@ -27,11 +27,19 @@ export const deleteHotel = (id) => {
     return axios.delete(`${API_ADMIN_BASE_URL}/${id}`);
 };
 
+export const createHotelReview = (hotelId, data) => {
+    // Lấy token từ localStorage
+    const token = localStorage.getItem('authToken');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axios.post(`${API_BASE_URL}/${hotelId}/reviews`, data, { headers });
+};
+
 export default {
     searchHotels,
     getHotelById,
     getHotelReviews,
     createHotel,
     updateHotel,
-    deleteHotel
+    deleteHotel,
+    createHotelReview
 };

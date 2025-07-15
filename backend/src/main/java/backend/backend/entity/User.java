@@ -3,6 +3,7 @@ package backend.backend.entity;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import jakarta.persistence.*;
 @Data
@@ -13,23 +14,29 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "address")
-    private String address;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "name", nullable = false, length = 200)
+    private String name;
 
     @Column(name = "email", nullable = false, unique = true, length = 200)
     private String email;
 
-    @Column(name = "name", nullable = false, length = 200)
-    private String name;
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "birthday")
+    private Date birthday;
+
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Column(name = "address")
+    private String address;
 
     @Column(name = "password_hash", nullable = false, length = 200)
     private String passwordHash;
 
-    @Column(name = "phone", length = 20)
-    private String phone;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;

@@ -115,7 +115,7 @@ export default {
     validateEmail() {
       const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!regex.test(this.email)) {
-        this.emailError = "Email không hợp lệ!";
+        this.emailError = "Invalid email, try again!";
         return false;
       }
       this.emailError = "";
@@ -123,7 +123,7 @@ export default {
     },
     validatePassword() {
       if (this.password.trim().length < 4) {
-        this.passwordError = "Mật khẩu phải có ít nhất 4 ký tự!";
+        this.passwordError = "Password must contain at least 4 characters!";
         return false;
       }
       this.passwordError = "";

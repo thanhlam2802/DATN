@@ -295,11 +295,11 @@
                             <CustomSelect
                                 v-model="newHotel.starRating"
                                 :options="[
-                                    { label: '1 Sao', value: '1' },
-                                    { label: '2 Sao', value: '2' },
-                                    { label: '3 Sao', value: '3' },
-                                    { label: '4 Sao', value: '4' },
-                                    { label: '5 Sao', value: '5' }
+                                    { label: '1 Sao', value: 1 },
+                                    { label: '2 Sao', value: 2 },
+                                    { label: '3 Sao', value: 3 },
+                                    { label: '4 Sao', value: 4 },
+                                    { label: '5 Sao', value: 5 }
                                 ]"
                                 placeholder="Chọn hạng sao"
                                 :disabled="isViewMode"
@@ -357,11 +357,33 @@
                         <div v-else>
                             <input type="file" multiple accept="image/*" ref="hotelImageInput" style="display:none"
                                 @change="handleHotelImageChange" />
-                            <button type="button" @click="$refs.hotelImageInput.click()"
-                                class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                                <i class="far fa-image text-2xl mb-1"></i>
-                                <span class="text-sm font-semibold">Thêm ảnh</span>
-                            </button>
+                            <div class="flex items-center gap-2 mb-2">
+                                <button type="button" @click="$refs.hotelImageInput.click()"
+                                    class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                    <i class="far fa-image text-2xl mb-1"></i>
+                                    <span class="text-sm font-semibold">Thêm ảnh</span>
+                                </button>
+                                <button type="button" ref="hotelImageUrlBtn" @click="openHotelImageUrlPopup"
+                                    class="flex flex-col items-center justify-center border border-blue-400 text-blue-600 rounded-md px-3 py-2 h-28 w-28 hover:bg-blue-50 transition">
+                                    <i class="fas fa-link text-xl mb-1"></i>
+                                    <span class="text-xs font-semibold">Thêm URL hình</span>
+                                </button>
+                            </div>
+                            <div v-if="showHotelImageUrlPopup" class="custom-url-popup" :style="hotelImageUrlPopupStyle" ref="hotelImageUrlPopupRef">
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Media URL</label>
+                                <div class="flex items-center gap-2">
+                                    <input
+                                        v-model="hotelImageUrlInput"
+                                        type="text"
+                                        placeholder="Paste the media URL in the input."
+                                        class="border border-slate-300 rounded px-2 py-1 text-sm w-64 flex-1"
+                                    />
+                                    <button @click="confirmHotelImageUrl" class="text-green-600 text-xl hover:text-green-800">✔</button>
+                                    <button @click="closeHotelImageUrlPopup" class="text-red-500 text-xl hover:text-red-700">✗</button>
+                                </div>
+                                <div v-if="hotelImageUrlError" class="text-red-500 text-xs mt-1">{{ hotelImageUrlError }}</div>
+                                <div class="text-xs text-slate-500 mt-1">Paste the media URL in the input.</div>
+                            </div>
                             <div class="flex flex-wrap gap-3 mt-2">
                                 <div v-for="(img, idx) in newHotel.imageUrls" :key="'old-' + idx"
                                     class="relative group">
@@ -517,11 +539,33 @@
                                 <div v-else>
                                     <input type="file" multiple accept="image/*" :ref="`roomImageInput${idx}`"
                                         style="display:none" @change="e => handleRoomImageChange(e, idx)" />
-                                    <button type="button" @click="triggerRoomImageInput(idx)"
-                                        class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                                        <i class="far fa-image text-2xl mb-1"></i>
-                                        <span class="text-sm font-semibold">Thêm ảnh</span>
-                                    </button>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <button type="button" @click="triggerRoomImageInput(idx)"
+                                            class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                            <i class="far fa-image text-2xl mb-1"></i>
+                                            <span class="text-sm font-semibold">Thêm ảnh</span>
+                                        </button>
+                                        <button type="button" :ref="el => setRoomImageUrlBtnRef(el, idx)" @click="openRoomImageUrlPopup(idx)"
+                                            class="flex flex-col items-center justify-center border border-blue-400 text-blue-600 rounded-md px-3 py-2 h-28 w-28 hover:bg-blue-50 transition">
+                                            <i class="fas fa-link text-xl mb-1"></i>
+                                            <span class="text-xs font-semibold">Thêm URL hình</span>
+                                        </button>
+                                    </div>
+                                    <div v-if="showRoomImageUrlPopup[idx]" class="custom-url-popup" :style="roomImageUrlPopupStyle[idx]" ref="roomUrlPopupRefs" :data-popup-idx="idx">
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Media URL</label>
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                v-model="roomImageUrlInput[idx]"
+                                                type="text"
+                                                placeholder="Paste the media URL in the input."
+                                                class="border border-slate-300 rounded px-2 py-1 text-sm w-64 flex-1"
+                                            />
+                                            <button @click="confirmRoomImageUrl(idx)" class="text-green-600 text-xl hover:text-green-800">✔</button>
+                                            <button @click="closeRoomImageUrlPopup(idx)" class="text-red-500 text-xl hover:text-red-700">✗</button>
+                                        </div>
+                                        <div v-if="roomImageUrlError[idx]" class="text-red-500 text-xs mt-1">{{ roomImageUrlError[idx] }}</div>
+                                        <div class="text-xs text-slate-500 mt-1">Paste the media URL in the input.</div>
+                                    </div>
                                     <div class="flex flex-wrap gap-3 mt-2">
                                         <div v-for="(img, imgIdx) in r.imagePreviews" :key="'roomimg-' + imgIdx"
                                             class="relative group">
@@ -736,6 +780,17 @@ export default {
             showAmenityModal: false,
             amenityModalRoomIdx: null,
             amenityModalSelected: [],
+            showHotelImageUrlPopup: false,
+            hotelImageUrlInput: '',
+            hotelImageUrlError: '',
+            hotelImageUrlAnchor: null,
+            showRoomImageUrlPopup: [false],
+            roomImageUrlInput: [''],
+            roomImageUrlError: [''],
+            roomImageUrlAnchor: [null],
+            roomImageUrlPopupStyle: [{}],
+            roomUrlPopupRefs: [],
+            hotelImageUrlPopupRef: null,
         };
     },
     computed: {
@@ -850,6 +905,11 @@ export default {
                         amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
                         policy: detail.policy || {},
                     };
+                    this.showRoomImageUrlPopup = this.newHotel.availableRooms.map(() => false);
+                    this.roomImageUrlInput = this.newHotel.availableRooms.map(() => '');
+                    this.roomImageUrlError = this.newHotel.availableRooms.map(() => '');
+                    this.roomImageUrlAnchor = this.newHotel.availableRooms.map(() => null);
+                    this.roomImageUrlPopupStyle = this.newHotel.availableRooms.map(() => ({}));
                 } catch (e) {
                     window.$toast('Không lấy được chi tiết khách sạn!', 'error');
                     return;
@@ -979,10 +1039,21 @@ export default {
                     }
                 ],
             });
+            const idx = this.newHotel.availableRooms.length - 1;
+            this.showRoomImageUrlPopup[idx] = false;
+            this.roomImageUrlInput[idx] = '';
+            this.roomImageUrlError[idx] = '';
+            this.roomImageUrlAnchor[idx] = null;
+            this.roomImageUrlPopupStyle[idx] = {};
         },
         removeRoom(index) {
             if (this.newHotel.availableRooms.length > 1) {
                 this.newHotel.availableRooms.splice(index, 1);
+                this.showRoomImageUrlPopup.splice(index, 1);
+                this.roomImageUrlInput.splice(index, 1);
+                this.roomImageUrlError.splice(index, 1);
+                this.roomImageUrlAnchor.splice(index, 1);
+                this.roomImageUrlPopupStyle.splice(index, 1);
             } else {
                 window.$toast('Phải có ít nhất một loại phòng.', 'error');
             }
@@ -1063,6 +1134,11 @@ export default {
             for (const key in this.form.amenities) { this.form.amenities[key] = false; }
             this.form.policy = { checkin: '', checkout: '', other: '' };
             this.modalMode = 'add';
+            this.showRoomImageUrlPopup = this.newHotel.availableRooms.map(() => false);
+            this.roomImageUrlInput = this.newHotel.availableRooms.map(() => '');
+            this.roomImageUrlError = this.newHotel.availableRooms.map(() => '');
+            this.roomImageUrlAnchor = this.newHotel.availableRooms.map(() => null);
+            this.roomImageUrlPopupStyle = this.newHotel.availableRooms.map(() => ({}));
         },
         changePage(page) { if (page >= 1 && page <= this.totalPages) this.currentPage = page; },
         nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
@@ -1369,6 +1445,16 @@ export default {
             if (!this.newHotel.email || !this.newHotel.email.trim()) {
                 return { valid: false, message: 'Vui lòng nhập email.' };
             }
+            for (let i = 0; i < this.newHotel.availableRooms.length; i++) {
+                const room = this.newHotel.availableRooms[i];
+                const selectedAmenities = Object.keys(room.amenities || {}).filter(k => room.amenities[k]);
+                if (!selectedAmenities.length) {
+                    return {
+                        valid: false,
+                        message: `Vui lòng chọn ít nhất 1 tiện ích cho phòng số ${i + 1} (${room.roomType || 'Chưa đặt tên'})`
+                    };
+                }
+            }
             return { valid: true };
         },
         switchMainTab(tabIdx) {
@@ -1642,6 +1728,109 @@ export default {
             }
             breadcrumbStore.setBreadcrumb(items);
         },
+        openHotelImageUrlPopup(e) {
+            this.showHotelImageUrlPopup = true;
+            this.hotelImageUrlInput = '';
+            this.hotelImageUrlError = '';
+            this.$nextTick(() => {
+                const btn = this.$refs.hotelImageUrlBtn;
+                if (btn) {
+                    const rect = btn.getBoundingClientRect();
+                    this.hotelImageUrlPopupStyle = {
+                        position: 'absolute',
+                        top: rect.bottom + window.scrollY + 8 + 'px',
+                        left: rect.left + window.scrollX + 'px',
+                    };
+                }
+            });
+        },
+        closeHotelImageUrlPopup() {
+            this.showHotelImageUrlPopup = false;
+            this.hotelImageUrlInput = '';
+            this.hotelImageUrlError = '';
+        },
+        confirmHotelImageUrl() {
+            const url = this.hotelImageUrlInput.trim();
+            if (!url) {
+                this.hotelImageUrlError = 'Vui lòng nhập URL.';
+                return;
+            }
+            if (!/^https?:\/\//.test(url)) {
+                this.hotelImageUrlError = 'URL không hợp lệ.';
+                return;
+            }
+            if (!this.newHotel.imageUrls.includes(url)) {
+                this.newHotel.imageUrls.push(url);
+            }
+            this.closeHotelImageUrlPopup();
+        },
+        setRoomImageUrlBtnRef(el, idx) {
+            if (!this.roomImageUrlAnchor) this.roomImageUrlAnchor = [];
+            this.roomImageUrlAnchor[idx] = el;
+        },
+        openRoomImageUrlPopup(idx) {
+            this.showRoomImageUrlPopup[idx] = true;
+            this.roomImageUrlInput[idx] = '';
+            this.roomImageUrlError[idx] = '';
+            this.$nextTick(() => {
+                const btn = this.roomImageUrlAnchor[idx];
+                if (btn) {
+                    const rect = btn.getBoundingClientRect();
+                    if (!this.roomImageUrlPopupStyle) this.roomImageUrlPopupStyle = [];
+                    this.roomImageUrlPopupStyle[idx] = {
+                        position: 'absolute',
+                        top: rect.bottom + window.scrollY + 8 + 'px',
+                        left: rect.left + window.scrollX + 'px',
+                    };
+                }
+            });
+        },
+        closeRoomImageUrlPopup(idx) {
+            this.showRoomImageUrlPopup[idx] = false;
+            this.roomImageUrlInput[idx] = '';
+            this.roomImageUrlError[idx] = '';
+        },
+        confirmRoomImageUrl(idx) {
+            const url = (this.roomImageUrlInput[idx] || '').trim();
+            if (!url) {
+                this.roomImageUrlError[idx] = 'Vui lòng nhập URL.';
+                return;
+            }
+            if (!/^https?:\/\//.test(url)) {
+                this.roomImageUrlError[idx] = 'URL không hợp lệ.';
+                return;
+            }
+            const room = this.newHotel.availableRooms[idx];
+            if (!room.imageUrls) room.imageUrls = [];
+            if (!room.imageUrls.includes(url)) {
+                room.imageUrls.push(url);
+            }
+            this.closeRoomImageUrlPopup(idx);
+        },
+        handleClickOutsideRoomUrlPopup(e) {
+            (this.showRoomImageUrlPopup || []).forEach((show, idx) => {
+                if (show) {
+                    const popupEls = this.$refs.roomUrlPopupRefs;
+                    let popupEl = null;
+                    if (Array.isArray(popupEls)) {
+                        popupEl = popupEls.find(el => el && Number(el.dataset.popupIdx) === idx);
+                    } else {
+                        popupEl = popupEls;
+                    }
+                    if (popupEl && !popupEl.contains(e.target)) {
+                        this.closeRoomImageUrlPopup(idx);
+                    }
+                }
+            });
+        },
+        handleClickOutsideHotelImageUrlPopup(e) {
+            if (this.showHotelImageUrlPopup) {
+                const popupEl = this.$refs.hotelImageUrlPopupRef;
+                if (popupEl && !popupEl.contains(e.target)) {
+                    this.closeHotelImageUrlPopup();
+                }
+            }
+        },
     },
     mounted() {
         this.fetchHotels();
@@ -1666,11 +1855,15 @@ export default {
             items.push({ label: 'Khách Sạn', active: true });
         }
         breadcrumbStore.setBreadcrumb(items);
+        document.addEventListener('mousedown', this.handleClickOutsideRoomUrlPopup);
+        document.addEventListener('mousedown', this.handleClickOutsideHotelImageUrlPopup);
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick, true);
         this.removeDropdownListeners();
         document.removeEventListener('click', this.closeAmenityDropdown, true);
+        document.removeEventListener('mousedown', this.handleClickOutsideRoomUrlPopup);
+        document.removeEventListener('mousedown', this.handleClickOutsideHotelImageUrlPopup);
     }
 };
 </script>
@@ -1730,5 +1923,16 @@ select option[disabled][value=""] {
     right: 0;
     background: white;
     z-index: 10;
+}
+
+.custom-url-popup {
+  position: absolute;
+  z-index: 50;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  padding: 1rem;
+  min-width: 320px;
 }
 </style>

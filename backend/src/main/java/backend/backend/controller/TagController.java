@@ -3,7 +3,6 @@ package backend.backend.controller;
 import backend.backend.dao.TagDAO;
 import backend.backend.dto.TagDto;
 import backend.backend.entity.Tag;
-import backend.backend.dao.TagDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -24,13 +23,11 @@ public class TagController {
 
     @GetMapping
     public ResponseEntity<List<TagDto>> getAllTags() {
-        // 1. Lấy danh sách Entity từ database
         List<Tag> tags = tagRepository.findAll();
         List<TagDto> tagDtos = tags.stream()
                 .map(tag -> new TagDto(tag.getId(), tag.getName()))
                 .collect(Collectors.toList());
 
-      
         return ResponseEntity.ok(tagDtos);
     }
 }

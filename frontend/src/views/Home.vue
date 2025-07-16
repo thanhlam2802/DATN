@@ -223,7 +223,7 @@ import { searchHotels } from "../api/hotelApi";
 const hotels = ref([]);
 const flights = ref([]);
 const tours = ref([]);
-const buses = ref([]); // Giả sử có dữ liệu mẫu hoặc API cho xe buýt
+const buses = ref([]); 
 
 const loading = reactive({
   hotels: true,

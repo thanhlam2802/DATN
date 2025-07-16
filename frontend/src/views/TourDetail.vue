@@ -13,6 +13,13 @@ const availableDates = ref([]);
 const isLoading = ref(true);
 const selectedTab = ref("schedule");
 
+// --- TRẠNG THÁI CHO LỊCH ---
+const today = new Date();
+today.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày
+const currentDisplayDate = ref(
+  new Date(today.getFullYear(), today.getMonth(), 1)
+);
+
 // --- LIFECYCLE HOOK: GỌI TẤT CẢ API KHI COMPONENT ĐƯỢC TẠO ---
 onMounted(async () => {
   try {
@@ -52,14 +59,22 @@ onMounted(async () => {
         display: new Date(d.departureDate).toLocaleDateString("vi-VN", {
           day: "2-digit",
           month: "2-digit",
+          year: "numeric",
         }),
         seats: d.seatCount - d.bookedSeats,
         price: d.adultPrice,
         promoPrice: d.discount > 0 ? d.adultPrice - d.discount : null,
       }));
-      // Tự động chọn ngày đầu tiên nếu có
+      // Tự động chọn ngày đầu tiên và set calendar view
       if (availableDates.value.length > 0) {
+        const firstAvailableDate = new Date(availableDates.value[0].date);
         selectDate(availableDates.value[0].date);
+        // Đặt lịch về tháng của ngày khởi hành đầu tiên
+        currentDisplayDate.value = new Date(
+          firstAvailableDate.getFullYear(),
+          firstAvailableDate.getMonth(),
+          1
+        );
       }
     }
   } catch (error) {
@@ -68,6 +83,94 @@ onMounted(async () => {
     isLoading.value = false;
   }
 });
+
+// --- LOGIC CHO LỊCH ---
+const availableDatesMap = computed(() => {
+  const map = new Map();
+  availableDates.value.forEach((d) => {
+    const dateObj = new Date(d.date);
+    // Chuẩn hóa key của map về dạng YYYY-MM-DD để tra cứu
+    const normalizedDateKey = new Date(
+      dateObj.getFullYear(),
+      dateObj.getMonth(),
+      dateObj.getDate()
+    )
+      .toISOString()
+      .split("T")[0];
+    map.set(normalizedDateKey, d); // Map key YYYY-MM-DD với object ngày đầy đủ
+  });
+  return map;
+});
+
+const monthYearDisplay = computed(() => {
+  return currentDisplayDate.value.toLocaleDateString("vi-VN", {
+    month: "long",
+    year: "numeric",
+  });
+});
+
+const calendarGrid = computed(() => {
+  const year = currentDisplayDate.value.getFullYear();
+  const month = currentDisplayDate.value.getMonth();
+
+  const firstDayOfMonth = new Date(year, month, 1);
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+  const daysInMonth = lastDayOfMonth.getDate();
+  const startDayOfWeek = firstDayOfMonth.getDay();
+
+  const grid = [];
+
+  const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    grid.push({
+      date: new Date(year, month - 1, lastDayOfPrevMonth - i),
+      isCurrentMonth: false,
+    });
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    grid.push({ date: new Date(year, month, day), isCurrentMonth: true });
+  }
+
+  const endDayOfWeek = lastDayOfMonth.getDay();
+  for (let i = 1; i < 7 - endDayOfWeek; i++) {
+    grid.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
+  }
+
+  return grid.map((dayObj) => {
+    const normalizedDateKey = dayObj.date.toISOString().split("T")[0];
+    const availableDateInfo = availableDatesMap.value.get(normalizedDateKey);
+    const isAvailable = !!availableDateInfo;
+    const isSelected =
+      isAvailable && bookingForm.value.selectedDate === availableDateInfo.date;
+    const isToday = dayObj.date.getTime() === today.getTime();
+
+    return {
+      ...dayObj,
+      fullDateString: availableDateInfo ? availableDateInfo.date : null,
+      dayOfMonth: dayObj.date.getDate(),
+      isAvailable,
+      isSelected,
+      isToday,
+    };
+  });
+});
+
+const prevMonth = () => {
+  currentDisplayDate.value = new Date(
+    currentDisplayDate.value.getFullYear(),
+    currentDisplayDate.value.getMonth() - 1,
+    1
+  );
+};
+
+const nextMonth = () => {
+  currentDisplayDate.value = new Date(
+    currentDisplayDate.value.getFullYear(),
+    currentDisplayDate.value.getMonth() + 1,
+    1
+  );
+};
 
 // --- LOGIC CHO BOOKING FORM ---
 const bookingForm = ref({
@@ -127,7 +230,9 @@ const updateTravelers = (type, action) => {
 };
 
 const selectDate = (date) => {
-  bookingForm.value.selectedDate = date;
+  if (date) {
+    bookingForm.value.selectedDate = date;
+  }
 };
 
 const formatPrice = (price) =>
@@ -136,9 +241,9 @@ const formatPrice = (price) =>
   );
 
 const getAvailabilityClass = (seats) => {
-  if (seats <= 5) return "text-red-500";
-  if (seats <= 10) return "text-orange-500";
-  return "text-green-500";
+  if (seats <= 5) return "text-red-500 font-semibold";
+  if (seats <= 10) return "text-orange-500 font-semibold";
+  return "text-green-600";
 };
 
 const handleBooking = () => {
@@ -429,43 +534,83 @@ const toggleDay = (dayIndex) => {
               <p class="text-sm text-gray-600">*Giá/người lớn</p>
             </div>
             <div class="p-4 space-y-4">
+              <!-- CẬP NHẬT: HIỂN THỊ NGÀY KHỞI HÀNH DẠNG LỊCH -->
               <div>
                 <label class="block text-sm font-medium mb-2"
                   >Chọn ngày khởi hành</label
                 >
-                <div class="grid grid-cols-2 gap-2">
-                  <button
-                    v-for="date in availableDates"
-                    :key="date.date"
-                    @click="selectDate(date.date)"
-                    :class="[
-                      'p-3 border rounded-lg text-left',
-                      bookingForm.selectedDate === date.date
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'hover:border-blue-300',
-                    ]"
+                <div class="border rounded-lg p-3 sm:p-4">
+                  <!-- Header của Lịch -->
+                  <div class="flex justify-between items-center mb-4">
+                    <button
+                      @click="prevMonth"
+                      class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <i class="fas fa-chevron-left text-sm"></i>
+                    </button>
+                    <span class="font-semibold text-center capitalize w-32">{{
+                      monthYearDisplay
+                    }}</span>
+                    <button
+                      @click="nextMonth"
+                      class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <i class="fas fa-chevron-right text-sm"></i>
+                    </button>
+                  </div>
+                  <!-- Lưới các ngày trong tuần -->
+                  <div
+                    class="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 font-medium"
                   >
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="font-medium">{{ date.display }}</span
-                      ><span
-                        v-if="date.promoPrice"
-                        class="text-xs font-medium text-red-500 bg-red-50 px-2 rounded-full"
-                        >Giảm giá</span
-                      >
+                    <div
+                      v-for="day in ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']"
+                      :key="day"
+                      class="py-2"
+                    >
+                      {{ day }}
                     </div>
-                    <div class="text-sm space-y-1">
-                      <div>
-                        {{ formatPrice(date.promoPrice || date.price) }}
-                      </div>
-                      <div
-                        :class="['text-xs', getAvailabilityClass(date.seats)]"
+                  </div>
+                  <!-- Lưới các ngày trong tháng -->
+                  <div class="grid grid-cols-7 gap-1 text-center">
+                    <div
+                      v-for="(day, index) in calendarGrid"
+                      :key="index"
+                      class="py-1 flex justify-center items-center"
+                    >
+                      <button
+                        v-if="day.isCurrentMonth"
+                        @click="selectDate(day.fullDateString)"
+                        :disabled="!day.isAvailable"
+                        :class="[
+                          'w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm transition-colors duration-200',
+                          {
+                            'cursor-not-allowed text-gray-300':
+                              !day.isAvailable,
+                            'cursor-pointer': day.isAvailable,
+                            'bg-blue-100 text-blue-700 hover:bg-blue-200':
+                              day.isAvailable && !day.isSelected,
+                            'bg-blue-600 text-white font-bold shadow-md':
+                              day.isSelected,
+                            'ring-2 ring-offset-1 ring-red-500':
+                              day.isToday && !day.isSelected,
+                            'text-red-500 font-bold':
+                              day.isToday && !day.isSelected,
+                          },
+                        ]"
                       >
-                        Còn {{ date.seats }} chỗ
-                      </div>
+                        {{ day.dayOfMonth }}
+                      </button>
+                      <span
+                        v-else
+                        class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-sm text-gray-300"
+                      >
+                        {{ day.dayOfMonth }}
+                      </span>
                     </div>
-                  </button>
+                  </div>
                 </div>
               </div>
+
               <div class="space-y-2">
                 <label class="block text-sm font-medium">Số lượng khách</label>
                 <div

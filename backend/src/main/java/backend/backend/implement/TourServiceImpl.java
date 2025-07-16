@@ -3,6 +3,8 @@ package backend.backend.implement;
 import backend.backend.dao.DepartureDAO;
 import backend.backend.dao.ReviewDAO;
 
+
+
 import backend.backend.dao.TourDAO;
 import backend.backend.dao.TourScheduleDAO;
 import backend.backend.dto.DepartureDto;
@@ -16,9 +18,12 @@ import backend.backend.entity.Departure;
 import backend.backend.entity.Review;
 import backend.backend.entity.Tour;
 import backend.backend.entity.TourSchedule;
+import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.TourService;
 import backend.backend.specification.TourSpecifications;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -152,7 +157,11 @@ public class TourServiceImpl implements TourService {
     public List<DepartureDto> getDeparturesForTour(Long tourId) {
         List<Departure> departures = departureRepository.findByTourId(tourId);
         return departures.stream()
-                      .map(DepartureDto::fromEntity)
-                      .collect(Collectors.toList());
+                .map(DepartureDto::fromEntity)
+                .collect(Collectors.toList());
     }
+    
+
+
+
 }

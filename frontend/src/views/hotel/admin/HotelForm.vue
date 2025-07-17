@@ -363,6 +363,7 @@
                                     <i class="far fa-image text-2xl mb-1"></i>
                                     <span class="text-sm font-semibold">Thêm ảnh</span>
                                 </button>
+                                <span class="mx-2 text-slate-500 font-semibold">hoặc</span>
                                 <button type="button" ref="hotelImageUrlBtn" @click="openHotelImageUrlPopup"
                                     class="flex flex-col items-center justify-center border border-blue-400 text-blue-600 rounded-md px-3 py-2 h-28 w-28 hover:bg-blue-50 transition">
                                     <i class="fas fa-link text-xl mb-1"></i>
@@ -545,6 +546,7 @@
                                             <i class="far fa-image text-2xl mb-1"></i>
                                             <span class="text-sm font-semibold">Thêm ảnh</span>
                                         </button>
+                                        <span class="mx-2 text-slate-500 font-semibold">hoặc</span>
                                         <button type="button" :ref="el => setRoomImageUrlBtnRef(el, idx)" @click="openRoomImageUrlPopup(idx)"
                                             class="flex flex-col items-center justify-center border border-blue-400 text-blue-600 rounded-md px-3 py-2 h-28 w-28 hover:bg-blue-50 transition">
                                             <i class="fas fa-link text-xl mb-1"></i>

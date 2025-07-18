@@ -37,6 +37,9 @@ import TourManager from "../layouts/TourManager.vue";
 import Register from "@/views/Register.vue";
 import Login from "@/views/Login.vue";
 
+import CheckoutView from "../views/CheckoutView.vue";
+import PaymentView from "../views/PaymentView.vue";
+import MyTripsView from "../views/MyTripsView.vue";
 const routes = [
   {
     path: "/",
@@ -53,6 +56,21 @@ const routes = [
         name: "FlightDetail",
         component: FlightDetail,
         props: true,
+      },
+      {
+        path: "/checkout",
+        name: "checkout",
+        component: CheckoutView,
+      },
+      {
+        path: "/payment/:orderId",
+        name: "payment", // Tên route phải khớp với tên trong router.push
+        component: PaymentView,
+      },
+      {
+        path: "/my-trips",
+        name: "my-trips",
+        component: MyTripsView,
       },
       {
         path: "hotel",
@@ -92,6 +110,7 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
+
       {
         path: "/account",
         component: AccountView,

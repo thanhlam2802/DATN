@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { StarIcon } from "@heroicons/vue/24/solid";
 
 const route = useRoute();
+const router = useRouter();
 const tourId = Number(route.params.id);
 
 const tour = ref(null);
@@ -20,7 +21,7 @@ const currentDisplayDate = ref(
   new Date(today.getFullYear(), today.getMonth(), 1)
 );
 
-// --- LIFECYCLE HOOK: GỌI TẤT CẢ API KHI COMPONENT ĐƯỢC TẠO ---
+// --- LIFECYCLE HOOK: GỌI TẤT CẢ API KHI COMPONENT ĐƯỢỢC TẠO ---
 onMounted(async () => {
   try {
     // Gọi đồng thời 4 API để tăng tốc độ tải trang
@@ -55,6 +56,7 @@ onMounted(async () => {
     const departuresData = await departuresRes.json();
     if (departuresData.statusCode === 200) {
       availableDates.value = departuresData.data.map((d) => ({
+        departureId: d.id, // SỬA LỖI: Lưu lại ID của ngày khởi hành
         date: d.departureDate,
         display: new Date(d.departureDate).toLocaleDateString("vi-VN", {
           day: "2-digit",
@@ -177,7 +179,7 @@ const bookingForm = ref({
   selectedDate: null,
   travelers: { adults: 1, children: 0, infants: 0 },
   maxTravelers: 20,
-  prices: { child_multiplier: 0.75, infant: 990000, singleRoomExtra: 6000000 },
+  prices: { child_multiplier: 0.75, infant: 990000 },
 });
 
 const currentPriceData = computed(() => {
@@ -212,11 +214,7 @@ const subtotal = computed(() => {
 });
 
 const total = computed(() => {
-  const singleRoomFee =
-    bookingForm.value.travelers.adults === 1
-      ? bookingForm.value.prices.singleRoomExtra
-      : 0;
-  return subtotal.value + singleRoomFee;
+  return subtotal.value;
 });
 
 const updateTravelers = (type, action) => {
@@ -251,10 +249,31 @@ const handleBooking = () => {
     alert("Vui lòng chọn ngày khởi hành");
     return;
   }
-  console.log("Booking details:", {
-    date: bookingForm.value.selectedDate,
-    travelers: bookingForm.value.travelers,
-    total: total.value,
+
+  // SỬA LỖI: Tìm đúng ngày khởi hành đã chọn để lấy ID
+  const selectedDeparture = availableDates.value.find(
+    (d) => d.date === bookingForm.value.selectedDate
+  );
+
+  if (!selectedDeparture) {
+    alert("Lỗi: Không tìm thấy thông tin ngày khởi hành. Vui lòng thử lại.");
+    return;
+  }
+
+  // Chuẩn bị dữ liệu để gửi đi
+  const bookingData = {
+    tourId: tour.value.id,
+    tourName: tour.value.name,
+    selectedDate: bookingForm.value.selectedDate,
+    departureId: selectedDeparture.departureId, // SỬA LỖI: Gửi departureId đi
+    travelers: JSON.stringify(bookingForm.value.travelers),
+    totalPrice: total.value,
+  };
+
+  // Chuyển hướng đến trang checkout và truyền dữ liệu qua query params
+  router.push({
+    name: "checkout", // Tên của route checkout trong file router/index.js của bạn
+    query: bookingData,
   });
 };
 
@@ -534,13 +553,11 @@ const toggleDay = (dayIndex) => {
               <p class="text-sm text-gray-600">*Giá/người lớn</p>
             </div>
             <div class="p-4 space-y-4">
-              <!-- CẬP NHẬT: HIỂN THỊ NGÀY KHỞI HÀNH DẠNG LỊCH -->
               <div>
                 <label class="block text-sm font-medium mb-2"
                   >Chọn ngày khởi hành</label
                 >
                 <div class="border rounded-lg p-3 sm:p-4">
-                  <!-- Header của Lịch -->
                   <div class="flex justify-between items-center mb-4">
                     <button
                       @click="prevMonth"
@@ -558,7 +575,6 @@ const toggleDay = (dayIndex) => {
                       <i class="fas fa-chevron-right text-sm"></i>
                     </button>
                   </div>
-                  <!-- Lưới các ngày trong tuần -->
                   <div
                     class="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 font-medium"
                   >
@@ -570,7 +586,6 @@ const toggleDay = (dayIndex) => {
                       {{ day }}
                     </div>
                   </div>
-                  <!-- Lưới các ngày trong tháng -->
                   <div class="grid grid-cols-7 gap-1 text-center">
                     <div
                       v-for="(day, index) in calendarGrid"
@@ -660,17 +675,6 @@ const toggleDay = (dayIndex) => {
                 <div class="flex justify-between">
                   <span class="text-gray-600">Tạm tính</span
                   ><span class="font-medium">{{ formatPrice(subtotal) }}</span>
-                </div>
-                <div
-                  v-if="bookingForm.travelers.adults === 1"
-                  class="flex justify-between"
-                >
-                  <span class="text-gray-600">Phụ thu phòng đơn</span
-                  ><span class="font-medium text-blue-600"
-                    >+{{
-                      formatPrice(bookingForm.prices.singleRoomExtra)
-                    }}</span
-                  >
                 </div>
                 <div
                   class="flex justify-between items-center text-lg font-bold pt-2"

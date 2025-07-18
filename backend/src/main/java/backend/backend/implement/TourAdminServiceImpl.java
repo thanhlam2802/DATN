@@ -232,4 +232,13 @@ public class TourAdminServiceImpl implements TourAdminService {
         }
         processAndSaveImages(newImages, tour);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TourDetailAdminDTO> getToursByUserId(Integer userId) {
+        return tourRepository.findByOwner_Id(userId).stream()
+                .map(TourDetailAdminDTO::new) 
+                .collect(Collectors.toList()); // gom vào List
+    }
+
 }

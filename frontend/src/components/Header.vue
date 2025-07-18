@@ -100,6 +100,15 @@ onBeforeUnmount(() => {
           class="flex items-center space-x-4 text-gray-900 text-lg cursor-pointer"
         >
           <i class="fas fa-globe-americas"></i>
+
+          <!-- ✨ THÊM MỚI: Icon "Chuyến đi" (My Trips) -->
+          <router-link
+            to="/my-trips"
+            class="hover:text-blue-600 transition-colors"
+          >
+            <i class="fas fa-suitcase-rolling"></i>
+          </router-link>
+
           <i class="fas fa-bell" @click.stop="toggleNotificationMenu"></i>
           <i class="fas fa-user-circle" @click.stop="toggleUserMenu"></i>
         </div>

@@ -33,8 +33,7 @@ public class BusBooking {
     @Column(name = "booking_date", nullable = false, updatable = false)
     private LocalDateTime bookingDate = LocalDateTime.now();
 
-    @OneToMany(mappedBy = "busBooking")
-    private List<Payment> payments;
+  
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_detail_id")

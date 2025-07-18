@@ -17,11 +17,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/hotels")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "https://poly-java-6-fb151.web.app",
+        "https://www.travela.io.vn",
+        "http://localhost:5173"
+})
 public class HotelAdminController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(HotelAdminController.class);
-    
+
     @Autowired
     private HotelService hotelService;
 

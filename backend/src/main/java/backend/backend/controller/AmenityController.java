@@ -15,7 +15,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/amenities")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "https://poly-java-6-fb151.web.app",
+        "https://www.travela.io.vn",
+        "http://localhost:5173"
+})
 public class AmenityController {
 
     @Autowired

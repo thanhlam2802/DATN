@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getAccessToken } from "@/services/TokenService.js";
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/hotels`;
 const API_ADMIN_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/admin/hotels`;
@@ -28,8 +29,7 @@ export const deleteHotel = (id) => {
 };
 
 export const createHotelReview = (hotelId, data) => {
-    // Lấy token từ localStorage
-    const token = localStorage.getItem('authToken');
+    const token = getAccessToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     return axios.post(`${API_BASE_URL}/${hotelId}/reviews`, data, { headers });
 };

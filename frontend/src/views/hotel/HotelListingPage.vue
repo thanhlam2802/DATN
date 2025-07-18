@@ -140,15 +140,14 @@
                     <span class="block text-xs font-normal text-gray-600">{{ hotelCountDisplay }}</span>
                 </h1>
                 <div class="flex items-center space-x-3 mt-2 sm:mt-0">
-                    <span class="text-xs font-medium text-gray-600">Xếp theo:</span>
-                    <select v-model="sortKey" @change="onFilterOrSortChange"
-                        class="bg-white border border-gray-300 rounded-full px-3 py-1 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
-                        <option value="default">Mặc định</option>
-                        <option value="priceAsc">Giá thấp nhất</option>
-                        <option value="priceDesc">Giá cao nhất</option>
-                        <option value="ratingDesc">Đánh giá cao nhất</option>
-                    </select>
-                    <div class="border-l border-gray-200 h-4"></div>
+                    <span class="text-xs font-medium text-gray-600 mr-2 whitespace-nowrap">Xếp theo:</span>
+                    <CustomSelect
+                        v-model="sortKey"
+                        :options="sortOptions"
+                        class="w-28"
+                        @update:modelValue="onFilterOrSortChange"
+                    />
+                    <div class="border-l border-gray-200 h-8 mx-2 w-10"></div>
                     <span class="text-xs font-medium text-gray-600">Xem:</span>
                     <div class="flex items-center bg-gray-100 rounded-full p-0.5">
                         <button @click="viewMode = 'list'"
@@ -213,6 +212,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HotelCard from '@/components/Hotel/HotelCard.vue'
 import FilterSidebar from '@/components/Hotel/FilterSidebar.vue'
+import CustomSelect from '@/components/CustomSelect.vue'
 import { searchHotels } from '@/api/hotelApi.js'
 import { getAllProvinces } from '@/api/provinceApi.js'
 
@@ -575,6 +575,13 @@ const toggleFavorite = (hotelId) => {
         favoritedHotels.value.add(hotelId);
     }
 };
+
+const sortOptions = [
+  { label: 'Mặc định', value: 'default' },
+  { label: 'Giá thấp nhất', value: 'priceAsc' },
+  { label: 'Giá cao nhất', value: 'priceDesc' },
+  { label: 'Đánh giá cao nhất', value: 'ratingDesc' }
+];
 </script>
 
 <style scoped>

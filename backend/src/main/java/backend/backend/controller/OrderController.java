@@ -14,6 +14,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import backend.backend.dto.DirectFlightReservationRequestDto;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -72,5 +73,14 @@ public class OrderController {
         OrderDto orderDetails = orderService.getOrderById(id);
         
         return ResponseFactory.success(orderDetails, "Lấy thông tin hóa đơn thành công.");
+    }
+
+    /**
+     * Endpoint xử lý giữ chỗ (mua ngay) cho flight slot.
+     */
+    @PostMapping("/reserve-flight-direct")
+    public ResponseEntity<ApiResponse<OrderDto>> createDirectFlightReservation(@RequestBody DirectFlightReservationRequestDto directRequest) {
+        OrderDto temporaryOrder = orderService.createDirectFlightReservation(directRequest);
+        return ResponseFactory.created(temporaryOrder, "Giữ chỗ thành công. Vui lòng hoàn tất thanh toán trong thời gian quy định.");
     }
 }

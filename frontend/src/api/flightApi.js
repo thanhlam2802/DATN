@@ -105,3 +105,7 @@ export const getAllFlightCategories = () => api.get('/flights/categories');
 // Find Available Slot
 export const findFirstAvailableSlot = (requestDto) => 
   api.post('/flights/find-available-slot', requestDto);
+
+// Đặt giữ chỗ vé máy bay trực tiếp (mua ngay)
+export const reserveFlightDirect = (dto) =>
+  api.post('/v1/orders/reserve-flight-direct', dto);

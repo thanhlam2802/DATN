@@ -21,8 +21,6 @@ public class FlightBooking {
     
     @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalPrice;
-    
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flight_slot_id", nullable = false)
     private FlightSlot flightSlot;

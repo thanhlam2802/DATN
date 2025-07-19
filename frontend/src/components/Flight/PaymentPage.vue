@@ -299,10 +299,10 @@
                 <!-- 🎯 Phần chọn phương thức thanh toán -->
                 
                 <div class="flex justify-center">
-                    <router-link to="/plane/getticket" @click="confirmAndPay"
+                    <button @click="confirmAndPay"
                         class="w-full block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-md">
                         Confirm and Pay
-                    </router-link>
+                </button>
                 </div>
                 
             </div>
@@ -313,7 +313,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { payForFlight, getFlightDetailPublic, findFirstAvailableSlot } from '@/api/flightApi'
+import { payForFlight, getFlightDetailPublic, findFirstAvailableSlot, reserveFlightDirect } from '@/api/flightApi'
 
 const router = useRouter()
 const route = useRoute()
@@ -460,28 +460,50 @@ function payWithGooglePay() {
     alert('Chức năng Google Pay chưa được tích hợp thực tế.')
 }
 
-function confirmAndPay() {
+async function confirmAndPay() {
     // Validate: chắc chắn điền đúng thông tin hành khách + payment
-    // Ví dụ:
     const invalidCustomer = !customer.value.fullName || !customer.value.phone || !customer.value.email
     if (invalidCustomer) {
         alert('Vui lòng điền đầy đủ thông tin hành khách.')
         return
     }
-
-    if (activeMethod.value === 'credit') {
-        if (!card.cardNumber || !card.cardHolder || !card.expiryDate || !card.cvv) {
-            alert('Vui lòng điền đầy đủ thông tin thẻ tín dụng.')
-            return
-        }
+  
+    if (!availableSlot.value) {
+        alert('Không tìm thấy thông tin ghế.')
+        return
     }
-
-    // Giả sử gọi API tạo đơn thanh toán:
-    // await api.createOrder({ flightId: flight.id, passengers: passengers.value, paymentMethod: activeMethod, cardInfo: card, total: subtotal.value, ... })
-
-    alert('Thanh toán thành công! Cảm ơn bạn đã đặt vé.')
-    // Sau khi thanh toán xong, chuyển hướng về trang hoàn tất hoặc trang Dashboard người dùng
-    router.push({ name: 'BookingSuccess', params: { orderId: 'ABC12345' } })
+    loading.value = true
+    error.value = ''
+    try {
+        // Chuẩn bị DTO gửi backend
+        const dto = {
+            flightSlotId: availableSlot.value.id,
+            customerName: customer.value.fullName,
+            phone: customer.value.phone,
+            email: customer.value.email,
+            passport: customer.value.passport,
+            gender: customer.value.gender === true ? 'male' : customer.value.gender === false ? 'female' : 'other',
+            dob: customer.value.dob,
+            notes: '',
+        }
+        // Gọi API giữ chỗ
+        const response = await reserveFlightDirect(dto)
+        const result = response.data
+        if (response.status === 201 && result.statusCode === 201) {
+            alert('Giữ chỗ thành công! Vui lòng thanh toán trong thời gian quy định.')
+            // router.push({ name: 'BookingSuccess', params: { orderId: result.data.id } })
+        } else {
+            alert(result.message || 'Không thể giữ chỗ. Vé có thể đã bị đặt bởi người khác.')
+        }
+    } catch (e) {
+        if (e.response && e.response.data && e.response.data.message) {
+            alert(e.response.data.message)
+        } else {
+            alert('Lỗi kết nối máy chủ hoặc lỗi không xác định.')
+        }
+    } finally {
+        loading.value = false
+    }
 }
 
 const bookingId = ref('') // Lấy bookingId từ route hoặc props thực tế

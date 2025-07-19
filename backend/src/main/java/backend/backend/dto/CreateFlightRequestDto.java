@@ -4,10 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -28,9 +26,6 @@ public class CreateFlightRequestDto {
     
     // Thông tin vé và ghế
     private TicketInfoDto ticketInfo;
-    
-    // Ảnh (sẽ được xử lý riêng)
-    private List<MultipartFile> images;
     
     @Data
     @NoArgsConstructor

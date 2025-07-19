@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class FlightImageDto {
+    private Long id;
     private Integer flightId;
     private Integer imageId;
     private String imageUrl;

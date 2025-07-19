@@ -42,6 +42,6 @@ public class HotelBooking {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_detail_id")
-    private TicketDetail ticketDetail;
+    @JoinColumn(name = "order_id")
+    private Order order;
 }

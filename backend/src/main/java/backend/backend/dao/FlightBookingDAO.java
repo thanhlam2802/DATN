@@ -21,5 +21,5 @@ public interface FlightBookingDAO extends JpaRepository<FlightBooking, Integer> 
             + "FROM FlightBooking fb "
             + "WHERE fb.flightSlot.flight.id = :flightId")
     Double sumRevenueByFlightId(@Param("flightId") Integer flightId);
-	List<FlightBooking> findByTicketDetailId(Integer id);
+	List<FlightBooking> findByOrderId(Integer id);
 } 

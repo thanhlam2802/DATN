@@ -14,7 +14,7 @@ import java.time.LocalDate;
 public class CustomerDto {
     private Integer id;
     private String fullName;
-    private String gender;
+    private Boolean gender;
     private LocalDate dob;
     private String passport;
     private String email;

@@ -13,5 +13,5 @@ public interface OrderDAO extends JpaRepository<Order, Integer> {
 	List<Order> findByUserIdOrderByCreatedAtDesc(Integer userId);
 
 	List<Order> findAllByStatusAndExpiresAtBefore(String status, LocalDateTime expiryTime);
-
+	Order findFirstByUserIdAndStatus(Integer userId, String status);
 }

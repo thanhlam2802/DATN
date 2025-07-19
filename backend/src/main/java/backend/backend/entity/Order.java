@@ -46,15 +46,6 @@ public class Order {
     @JoinColumn(name = "destination_id")
     private TouristDestination destination;
     
-    /**
-     * SỬA LỖI: Thêm cascade = CascadeType.ALL vào đây.
-     * Điều này đảm bảo khi lưu Order, TicketDetail liên quan cũng sẽ được lưu theo.
-     */
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL) 
-    @JoinColumn(name = "ticket_detail_id", nullable = false, unique = true)
-    private TicketDetail ticketDetail;
-
-    
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     

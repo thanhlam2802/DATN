@@ -27,7 +27,7 @@ public class Customer {
     private String fullName;
 
     @Column(length = 10)
-    private String gender;
+    private Boolean gender;
 
     @Column(length = 20)
     private String passport;

@@ -1,6 +1,7 @@
 package backend.backend.config.filters;
 
 import backend.backend.utils.JwtTokenUtil;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @RequestMapping
@@ -34,11 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             try {
                 String email = jwtUtil.extractUserEmail(token);
-
+                Claims claims = jwtUtil.extractAllClaims(token);
+                Map<String, Object> credentials = new HashMap<>();
+                credentials.put("email", email);
+                credentials.put("userId", claims.get("userId"));
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
                                 email,
-                                null
+                                credentials
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(auth);

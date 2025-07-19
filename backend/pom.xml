@@ -103,13 +103,19 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+
         <!-- SQL Server Driver -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
             <scope>runtime</scope>
         </dependency>
-      
+
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -159,7 +165,8 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>11.7.2</version>
                 <configuration>
-                    <url>jdbc:sqlserver://localhost:1433;databaseName=DATN;encrypt=true;trustServerCertificate=true;</url>
+                    <url>jdbc:sqlserver://localhost:1433;databaseName=DATN;encrypt=true;trustServerCertificate=true;
+                    </url>
                     <user>sa</user>
                     <password>123456aA</password>
                 </configuration>

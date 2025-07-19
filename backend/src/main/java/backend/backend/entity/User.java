@@ -5,7 +5,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+
 import jakarta.persistence.*;
+
 @Data
 @Entity
 @Table(name = "users")
@@ -49,7 +51,7 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<SearchHistory> searchHistories;
-    
+
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 
@@ -70,7 +72,7 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<TicketBooking> ticketBookings;
-    
+
     @OneToMany(mappedBy = "user")
     private List<Order> orders;
 

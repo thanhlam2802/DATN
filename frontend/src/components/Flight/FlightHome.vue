@@ -582,7 +582,7 @@
               >
                 <div class="flex items-center space-x-14 overflow-hidden">
                   <img
-                    :src="selectedFlight.image"
+                    :src="selectedFlight.images[0].imageUrl"
                     alt="flight image"
                     class="h-full object-cover rounded-lg overflow-hidden"
                   />

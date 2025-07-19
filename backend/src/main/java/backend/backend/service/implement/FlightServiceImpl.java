@@ -174,7 +174,7 @@ public class FlightServiceImpl implements FlightService {
                 .arrivalTime(flight.getArrivalTime())
                 .createdAt(flight.getCreatedAt())
                 .updatedAt(flight.getUpdatedAt())
-                .categoryId(flight.getCategory() != null ? flight.getCategory().getId() : null)
+
                 .category(flight.getCategory() != null ? toFlightCategoryDto(flight.getCategory()) : null)
                 .ownerId(flight.getOwner() != null ? flight.getOwner().getId() : null)
                 .departureAirport(flight.getDepartureAirport() != null ? toAirportDto(flight.getDepartureAirport()) : null)

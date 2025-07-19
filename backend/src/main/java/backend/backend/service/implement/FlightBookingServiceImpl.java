@@ -163,7 +163,7 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         dto.setUpdatedAt(flight.getUpdatedAt());
         if (flight.getCategory() != null) {
             log.debug("MAPPING_CATEGORY          - categoryId: {}", flight.getCategory().getId());
-            dto.setCategoryId(flight.getCategory().getId());
+
             dto.setCategory(toFlightCategoryDto(flight.getCategory()));
         }
         if (flight.getOwner() != null) {

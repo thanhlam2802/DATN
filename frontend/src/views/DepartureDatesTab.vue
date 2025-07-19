@@ -127,6 +127,7 @@
       </div>
     </div>
 
+    <!-- MODAL ĐÃ ĐƯỢC CẬP NHẬT -->
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
@@ -141,6 +142,7 @@
           }}
         </h3>
         <form @submit.prevent="handleSave" class="space-y-4">
+          <!-- Các trường form cơ bản -->
           <div v-for="field in formFields" :key="field.key">
             <label
               :for="field.key"
@@ -160,6 +162,65 @@
             />
           </div>
 
+          <!-- MỚI: Tùy chọn tạo hàng loạt (chỉ hiển thị khi thêm mới) -->
+          <div
+            v-if="!isEditing"
+            class="space-y-4 pt-4 border-t border-gray-200"
+          >
+            <div class="flex items-center">
+              <input
+                id="isBatch"
+                type="checkbox"
+                v-model="form.isBatch"
+                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label
+                for="isBatch"
+                class="ml-3 block text-sm font-medium text-gray-800"
+                >Tạo hàng loạt (lặp lại)</label
+              >
+            </div>
+
+            <div
+              v-if="form.isBatch"
+              class="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in"
+            >
+              <div>
+                <label
+                  for="count"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Số lần lặp</label
+                >
+                <input
+                  id="count"
+                  type="number"
+                  v-model="form.count"
+                  min="2"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label
+                  for="intervalDays"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Lặp lại sau (ngày)</label
+                >
+                <select
+                  id="intervalDays"
+                  v-model="form.intervalDays"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="10">10 ngày</option>
+                  <option value="30">30 ngày</option>
+                  <option value="60">60 ngày</option>
+                  <option value="7">7 ngày (hàng tuần)</option>
+                  <option value="14">14 ngày (2 tuần)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Số chỗ đã đặt (chỉ hiển thị khi sửa) -->
           <div v-if="isEditing">
             <label
               for="bookedSeats"
@@ -208,9 +269,10 @@ import {
 } from "lucide-vue-next";
 import DepartureCard from "../components/Tours/DepartureCard.vue";
 import tourAdminApi from "../api/tourAdminApi";
+// Import API đã có hàm createRecurringDepartures
 import { departureApi } from "../api/DepartureApi.js";
 
-// --- PARENT COMPONENT STATE & LOGIC ---
+// --- STATE & LOGIC ---
 const tours = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
@@ -221,9 +283,13 @@ const isEditing = ref(false);
 const form = ref({});
 const currentTourIdForModal = ref(null);
 
-// --- SỬA LỖI TẠI ĐÂY: Định nghĩa `step` cho từng trường ---
+// CẬP NHẬT: Thay đổi label cho rõ ràng hơn khi tạo hàng loạt
 const formFields = [
-  { key: "departureDate", label: "Ngày khởi hành", type: "date" },
+  {
+    key: "departureDate",
+    label: "Ngày khởi hành (hoặc ngày bắt đầu)",
+    type: "date",
+  },
   {
     key: "adultPrice",
     label: "Giá người lớn (VNĐ)",
@@ -246,12 +312,17 @@ const formatDateForInput = (dateStr) => {
 
 const todayString = formatDateForInput(new Date());
 
+// CẬP NHẬT: Thêm các trường cho chế độ tạo hàng loạt vào form mặc định
 const createEmptyForm = () => ({
   departureDate: todayString,
-  adultPrice: 0,
-  childPrice: 0,
+  adultPrice: 1000000,
+  childPrice: 500000,
   discount: 0,
   seatCount: 30,
+  // MỚI: Các trường cho tạo hàng loạt
+  isBatch: false,
+  count: 3, // Mặc định lặp lại 3 lần
+  intervalDays: 30, // Mặc định cách nhau 30 ngày
 });
 
 // --- COMPUTED PROPERTIES ---
@@ -339,37 +410,59 @@ const closeModal = () => {
   showModal.value = false;
 };
 
+// CẬP NHẬT: Logic lưu form để xử lý cả hai trường hợp
 const handleSave = async () => {
   try {
     const tour = tours.value.find((t) => t.id === currentTourIdForModal.value);
+
+    // TRƯỜNG HỢP SỬA (không đổi)
     if (isEditing.value) {
-      // Gọi API, `updatedData` chính là dữ liệu trả về đã được xử lý
       const updatedData = await departureApi.updateDeparture(
         form.value.id,
         form.value
       );
-
-      // Cập nhật trực tiếp vào state
       const index = tour.departures.findIndex((d) => d.id === updatedData.id);
       if (index !== -1) {
         tour.departures[index] = updatedData;
       }
-    } else {
-      // Tương tự, `newData` là dữ liệu trả về trực tiếp
-      const newData = await departureApi.createDeparture(
-        currentTourIdForModal.value,
-        form.value
-      );
-
-      // Cập nhật vào state
-      if (!tour.departures) {
-        tour.departures = [];
+    }
+    // TRƯỜNG HỢP THÊM MỚI
+    else {
+      // MỚI: Nếu chế độ tạo hàng loạt được bật
+      if (form.value.isBatch) {
+        const payload = {
+          templateDto: {
+            departureDate: form.value.departureDate,
+            adultPrice: form.value.adultPrice,
+            childPrice: form.value.childPrice,
+            discount: form.value.discount,
+            seatCount: form.value.seatCount,
+          },
+          intervalDays: parseInt(form.value.intervalDays, 10),
+          count: parseInt(form.value.count, 10),
+        };
+        // Gọi API mới để tạo hàng loạt
+        const newDepartures = await departureApi.createRecurringDepartures(
+          currentTourIdForModal.value,
+          payload
+        );
+        // Cập nhật state với danh sách ngày mới
+        if (!tour.departures) tour.departures = [];
+        tour.departures.push(...newDepartures);
       }
-      tour.departures.push(newData);
+      // Nếu chỉ thêm một ngày như bình thường
+      else {
+        const newData = await departureApi.createDeparture(
+          currentTourIdForModal.value,
+          form.value
+        );
+        if (!tour.departures) tour.departures = [];
+        tour.departures.push(newData);
+      }
     }
     closeModal();
   } catch (e) {
-    alert(`Lỗi: ${e.message}`);
+    alert(`Lỗi khi lưu: ${e.message}`);
   }
 };
 
@@ -382,8 +475,28 @@ const handleDelete = async (departureId, tourId) => {
         tour.departures = tour.departures.filter((d) => d.id !== departureId);
       }
     } catch (e) {
-      alert(`Lỗi: ${(e.response && e.response.data.message) || e.message}`);
+      alert(
+        `Lỗi khi xóa: ${(e.response && e.response.data.message) || e.message}`
+      );
     }
   }
 };
 </script>
+
+<style scoped>
+/* Thêm hiệu ứng fade-in mượt mà cho phần tùy chọn */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

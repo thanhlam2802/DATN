@@ -11,6 +11,9 @@ import java.util.List;
  * và thuận tiện cho việc viết Unit Test.
  */
 public interface TourAdminService {
+	
+	List<TourDetailAdminDTO> getToursByUserId(Integer userId);
+
 
     /**
      * Lấy danh sách tất cả các tour cho trang quản trị.

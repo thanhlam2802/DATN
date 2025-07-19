@@ -54,23 +54,22 @@ public class FlightServiceImpl implements FlightService {
             throw e;
         }
     }
-
-    @Override
     @Transactional
+    @Override
     public FlightDto getFlightDetail(Integer flightId) {
         String requestId = UUID.randomUUID().toString();
-        log.info("GET_FLIGHT_DETAIL_REQUEST - RequestId: {}, flightId: {}", requestId, flightId);
+        log.info("GET_FLIGHT_DETAIL_REQUEST  - RequestId: {}, flightId: {}", requestId, flightId);
         try {
-            Optional<Flight> opt = flightDAO.findById(flightId);
-            if (opt.isEmpty()) {
-                log.warn("GET_FLIGHT_DETAIL_NOT_FOUND - RequestId: {}, flightId: {}", requestId, flightId);
+            Flight f = flightDAO.findById(flightId).orElse(null);
+            if (f == null) {
+                log.warn("GET_FLIGHT_DETAIL_NOT_FOUND- RequestId: {}, flightId: {}", requestId, flightId);
                 return null;
             }
-            FlightDto dto = toFlightDto(opt.get());
-            log.info("GET_FLIGHT_DETAIL_SUCCESS - RequestId: {}, flightId: {}", requestId, flightId);
+            FlightDto dto = toFlightDto(f);
+            log.info("GET_FLIGHT_DETAIL_SUCCESS  - RequestId: {}, flightId: {}", requestId, flightId);
             return dto;
         } catch (Exception e) {
-            log.error("GET_FLIGHT_DETAIL_FAILED  - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+            log.error("GET_FLIGHT_DETAIL_FAILED   - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
             throw e;
         }
     }
@@ -251,4 +250,27 @@ public class FlightServiceImpl implements FlightService {
         log.debug("MAPPING_CATEGORY_TO_DTO_DONE- categoryId: {}", category.getId());
         return dto;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<FlightSlotDto> findFirstAvailableSlot(FindAvailableSlotRequestDto request) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("FIND_FIRST_AVAILABLE_SLOT_REQUEST - RequestId: {}, request: {}", requestId, request);
+        try {
+            Optional<FlightSlot> slot = flightSlotDAO.findFirstAvailableSlotByCriteria(
+                    request.getFlightId(),
+                    request.getIsAisle(),
+                    request.getIsWindow(),
+                    request.getIsBusiness()
+            );
+            
+            Optional<FlightSlotDto> result = slot.map(this::toFlightSlotDto);
+            log.info("FIND_FIRST_AVAILABLE_SLOT_SUCCESS - RequestId: {}, found: {}", requestId, result.isPresent());
+            return result;
+        } catch (Exception e) {
+            log.error("FIND_FIRST_AVAILABLE_SLOT_FAILED - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
 }

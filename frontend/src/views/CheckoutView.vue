@@ -22,10 +22,10 @@ const isProcessing = ref(false);
 onMounted(() => {
   // Đọc dữ liệu từ query params trên URL khi component được tạo
   bookingDetails.value = {
+    orderId: route.query.orderId, // Lấy orderId từ query
     tourId: route.query.tourId,
     tourName: route.query.tourName,
     selectedDate: route.query.selectedDate,
-    // SỬA LỖI: Đọc departureId từ query, rất quan trọng cho backend
     departureId: route.query.departureId,
     travelers: JSON.parse(route.query.travelers || "{}"),
     totalPrice: Number(route.query.totalPrice),
@@ -57,6 +57,17 @@ const handleProceedToPayment = async () => {
 
   isProcessing.value = true;
 
+  // Nếu đã có orderId (giữ chỗ xong), chỉ cần chuyển sang payment
+  if (bookingDetails.value.orderId) {
+    router.push({
+      name: "payment",
+      params: { orderId: bookingDetails.value.orderId },
+    });
+    isProcessing.value = false;
+    return;
+  }
+
+  // Nếu chưa có orderId, gọi API giữ chỗ như cũ
   // Chuẩn bị dữ liệu để gửi lên backend, khớp với DirectTourReservationRequestDto
   const reservationRequest = {
     userId: 1, // TODO: Thay bằng ID của người dùng đã đăng nhập

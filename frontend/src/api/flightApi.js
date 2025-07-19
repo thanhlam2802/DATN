@@ -9,6 +9,7 @@ const api = axios.create({
 // Flights
 export const searchFlights = (params) => api.get('/flights/search', { params });
 export const getFlightDetail = (flightId) => api.get(`/admin/flights/${flightId}`);
+export const getFlightDetailPublic = (flightId) => api.get(`/flights/${flightId}`);
 export function getAvailableSeats(flightId) {
   return api.get(`/flights/${flightId}/available-seats`);
 }
@@ -100,3 +101,7 @@ export const getAllAirports = () => api.get('/flights/airports');
 
 // Flight Categories
 export const getAllFlightCategories = () => api.get('/flights/categories');
+
+// Find Available Slot
+export const findFirstAvailableSlot = (requestDto) => 
+  api.post('/flights/find-available-slot', requestDto);

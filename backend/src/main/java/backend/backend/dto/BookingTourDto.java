@@ -30,4 +30,5 @@ public class BookingTourDto {
     private BigDecimal childPrice;
 
     private BigDecimal totalPrice;
+    private Integer orderId;
 }

@@ -46,9 +46,6 @@ public class AdminFlightController {
         log.info("GET_FLIGHT_DETAIL_REQUEST - RequestId: {}, flightId: {}", requestId, flightId);
         try {
             FlightDto dto = adminFlightService.getFlightDetail(flightId);
-            log.info("22572 s: {}", dto.getImages().size());
-            log.info("22572: {}", dto.getImages());
-            log.info("22572 id: {}", dto.getImages().get(0).getId());
             log.info("GET_FLIGHT_DETAIL_SUCCESS - RequestId: {}, flightId: {}", requestId, flightId);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {

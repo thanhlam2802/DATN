@@ -1,10 +1,9 @@
 package backend.backend.service;
 
-import backend.backend.dto.TicketDetailDto;
+import backend.backend.dto.OrderDto;
 
 public interface CartService {
-	
-	 TicketDetailDto createCartForUser(Integer userId);
-	    TicketDetailDto getCartById(Integer cartId);
-	    TicketDetailDto removeItemFromCart(Integer itemId, String itemType);
+    OrderDto createCartForUser(Integer userId);
+    OrderDto getCartById(Integer orderId);
+    OrderDto removeItemFromCart(Integer itemId, String itemType);
 }

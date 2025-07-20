@@ -58,29 +58,29 @@
           </div>
           <div class="bg-indigo-50 rounded-xl p-6 shadow-inner mt-8">
             <h3 class="text-lg font-bold text-indigo-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-ticket-alt"></i> Thông tin vé đã chọn</h3>
-            <div v-if="selectedSlot">
+            <div v-if="selectedGroup">
               <div class="flex flex-col gap-2 text-gray-700">
-                <div><span class="font-semibold">Loại vé:</span> <span v-if="selectedSlot.isBusiness" class="text-yellow-700 font-bold">Thương gia</span><span v-else class="text-indigo-700 font-bold">Phổ thông</span></div>
-                <div><span class="font-semibold">Số ghế:</span> {{ selectedSlot.seatNumber }}</div>
+                <div><span class="font-semibold">Loại vé:</span> <span v-if="selectedGroup.isBusiness" class="text-yellow-700 font-bold">Thương gia</span><span v-else class="text-indigo-700 font-bold">Phổ thông</span></div>
+                <div><span class="font-semibold">Số ghế:</span> {{ selectedGroup.slots[0]?.seatNumber }}</div>
                 <div><span class="font-semibold">Vị trí:</span>
-                  <span v-if="selectedSlot.isWindow">Cửa sổ</span>
-                  <span v-else-if="selectedSlot.isAisle">Lối đi</span>
+                  <span v-if="selectedGroup.isWindow">Cửa sổ</span>
+                  <span v-else-if="selectedGroup.isAisle">Lối đi</span>
                   <span v-else>Khác</span>
                 </div>
                 <div>
                   <span class="font-semibold">Giá:</span>
-                  <span class="font-bold text-green-700">{{ formatCurrency(selectedSlot.isWindow ? selectedSlot.price + 200000 : selectedSlot.price) }}</span>
+                  <span class="font-bold text-green-700">{{ formatCurrency(selectedGroup.slots[0]?.price) }}</span>
                 </div>
-                <div v-if="selectedSlot.isWindow" class="text-xs text-indigo-500 italic">Đã cộng thêm 200,000 VND do chọn ghế cửa sổ</div>
-                <div><span class="font-semibold">Hành lý xách tay:</span> {{ selectedSlot.carryOnLuggage }} kg</div>
+                <div v-if="selectedGroup.isWindow" class="text-xs text-indigo-500 italic">Đã cộng thêm 200,000 VND do chọn ghế cửa sổ</div>
+                <div><span class="font-semibold">Hành lý xách tay:</span> {{ selectedGroup.slots[0]?.carryOnLuggage }} kg</div>
               </div>
             </div>
             <div v-else class="text-gray-400 italic">Vui lòng chọn một vé để xem chi tiết.</div>
-            <button
+            <button @click="handleBooking"
               class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-lg shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!selectedSlot"
+              :disabled="!selectedGroup"
             >
-              Thanh toán
+              Đặt chỗ
             </button>
           </div>
         </div>
@@ -91,59 +91,32 @@
           <!-- Danh sách vé -->
           <div>
             <h2 class="text-xl font-bold text-indigo-700 mb-2">Chọn vé của bạn</h2>
-            <!-- Vé phổ thông -->
-            <div v-if="economySlots.length" class="mb-6">
-              <div class="font-semibold text-indigo-600 mb-2 flex items-center gap-2"><i class="fa-solid fa-chair"></i> Phổ thông</div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <label v-for="slot in economySlots" :key="slot.id" class="group block cursor-pointer rounded-xl border-2 transition-all duration-200 p-4 shadow hover:shadow-lg hover:border-indigo-400 bg-white relative"
-                  :class="selectedSlotId === slot.id ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-200'">
-                  <input type="radio" v-model="selectedSlotId" :value="slot.id" class="hidden" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <template v-for="group in seatGroups" :key="group.key">
+                <label class="group block cursor-pointer rounded-xl border-2 transition-all duration-200 p-4 shadow hover:shadow-lg hover:border-indigo-400 bg-white relative"
+                  :class="selectedGroupKey === group.key ? (group.isBusiness ? 'border-yellow-500 ring-2 ring-yellow-200' : 'border-indigo-600 ring-2 ring-indigo-200') : 'border-gray-200'">
+                  <input type="radio" v-model="selectedGroupKey" :value="group.key" class="hidden" />
                   <div class="flex items-center gap-2 mb-2">
-                    <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-xs font-semibold">Phổ thông</span>
-                    <span v-if="slot.isWindow" class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold ml-2">Cửa sổ</span>
-                    <span v-else-if="slot.isAisle" class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold ml-2">Lối đi</span>
+                    <span :class="group.isBusiness ? 'bg-yellow-100 text-yellow-700' : 'bg-indigo-100 text-indigo-700'" class="px-2 py-1 rounded-full text-xs font-semibold">
+                      {{ group.isBusiness ? 'Thương gia' : 'Phổ thông' }}
+                    </span>
+                    <span v-if="group.isWindow" class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold ml-2">Cửa sổ</span>
+                    <span v-else class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold ml-2">Lối đi</span>
                   </div>
                   <div class="flex items-center gap-2 mb-1">
-                    <i class="fa-solid fa-chair text-indigo-400"></i>
-                    <span class="font-bold">Ghế {{ slot.seatNumber }}</span>
+                    <i :class="group.isBusiness ? 'fa-solid fa-chair text-yellow-400' : 'fa-solid fa-chair text-indigo-400'"></i>
+                    <span class="font-bold">{{ group.count }} ghế khả dụng</span>
                   </div>
                   <div class="flex items-center gap-2 mb-1">
                     <i class="fa-solid fa-money-bill-wave text-green-400"></i>
-                    <span class="font-semibold text-indigo-700">{{ formatCurrency(slot.price) }}</span>
+                    <span :class="group.isBusiness ? 'font-semibold text-yellow-700' : 'font-semibold text-indigo-700'">{{ formatCurrency(group.price) }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <i class="fa-solid fa-suitcase-rolling text-gray-400"></i>
-                    <span class="text-xs text-gray-600">Hành lý: {{ slot.carryOnLuggage }} kg</span>
+                    <span class="text-xs text-gray-600">Hành lý: {{ group.carryOnLuggage }} kg</span>
                   </div>
                 </label>
-              </div>
-            </div>
-            <!-- Vé thương gia -->
-            <div v-if="businessSlots.length">
-              <div class="font-semibold text-yellow-600 mb-2 flex items-center gap-2"><i class="fa-solid fa-crown"></i> Thương gia</div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <label v-for="slot in businessSlots" :key="slot.id" class="group block cursor-pointer rounded-xl border-2 transition-all duration-200 p-4 shadow hover:shadow-lg hover:border-yellow-400 bg-white relative"
-                  :class="selectedSlotId === slot.id ? 'border-yellow-500 ring-2 ring-yellow-200' : 'border-gray-200'">
-                  <input type="radio" v-model="selectedSlotId" :value="slot.id" class="hidden" />
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-semibold">Thương gia</span>
-                    <span v-if="slot.isWindow" class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold ml-2">Cửa sổ</span>
-                    <span v-else-if="slot.isAisle" class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold ml-2">Lối đi</span>
-                  </div>
-                  <div class="flex items-center gap-2 mb-1">
-                    <i class="fa-solid fa-chair text-yellow-400"></i>
-                    <span class="font-bold">Ghế {{ slot.seatNumber }}</span>
-                  </div>
-                  <div class="flex items-center gap-2 mb-1">
-                    <i class="fa-solid fa-money-bill-wave text-green-400"></i>
-                    <span class="font-semibold text-yellow-700">{{ formatCurrency(slot.price) }}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-suitcase-rolling text-gray-400"></i>
-                    <span class="text-xs text-gray-600">Hành lý: {{ slot.carryOnLuggage }} kg</span>
-                  </div>
-                </label>
-              </div>
+              </template>
             </div>
           </div>
           <!-- Tổng quan vé đã chọn & thanh toán -->
@@ -156,8 +129,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
-import { getFlightDetail } from '@/api/flightApi';
+import { useRoute, useRouter } from 'vue-router';
+import { getFlightDetail, getAllAirlines } from '@/api/flightApi';
+import FindAvailableSlotRequestDto from '@/dto/FindAvailableSlotRequestDto';
 
 const route = useRoute();
 const flightDetail = ref({
@@ -192,12 +166,6 @@ const mainImage = computed(() =>
     : 'https://ix-marketing.imgix.net/autotagging.png?auto=format,compress&w=1946'
 );
 
-const economySlots = computed(() => (flightDetail.value.flightSlots || []).filter(s => !s.isBusiness));
-const businessSlots = computed(() => (flightDetail.value.flightSlots || []).filter(s => s.isBusiness));
-const selectedSlot = computed(() => {
-  const all = flightDetail.value.flightSlots || [];
-  return all.find(s => s.id === selectedSlotId.value) || null;
-});
 
 function formatTime(val) {
   if (!val) return '';
@@ -223,6 +191,28 @@ const durationDisplay = computed(() => {
   return `${h}h ${m}m`;
 });
 
+// Gom nhóm slot thành 4 loại
+const seatGroups = computed(() => {
+  const slots = flightDetail.value.flightSlots || [];
+  // 4 nhóm: phổ thông lối đi, phổ thông cửa sổ, thương gia lối đi, thương gia cửa sổ
+  const groups = [
+    { key: 'eco-aisle', isBusiness: false, isWindow: false, label: 'Phổ thông - Lối đi' },
+    { key: 'eco-window', isBusiness: false, isWindow: true, label: 'Phổ thông - Cửa sổ' },
+    { key: 'biz-aisle', isBusiness: true, isWindow: false, label: 'Thương gia - Lối đi' },
+    { key: 'biz-window', isBusiness: true, isWindow: true, label: 'Thương gia - Cửa sổ' },
+  ];
+  return groups.map(g => {
+    const filtered = slots.filter(s => s.isBusiness === g.isBusiness && (!!s.isWindow) === g.isWindow && (!!s.isAisle) === !g.isWindow);
+    return {
+      ...g,
+      count: filtered.length,
+      price: filtered.length ? filtered[0].price : 0,
+      carryOnLuggage: filtered.length ? filtered[0].carryOnLuggage : 0,
+      slots: filtered
+    };
+  }).filter(g => g.count > 0);
+});
+
 onMounted(async () => {
   loading.value = true;
   error.value = '';
@@ -236,6 +226,37 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+const router = useRouter();
+
+// Bỏ selectedSlot, luôn dùng FindAvailableSlotRequestDto
+const selectedGroupKey = ref(null)
+
+const selectedGroup = computed(() => {
+  return seatGroups.value.find(g => g.key === selectedGroupKey.value) || null;
+});
+
+const findAvailableSlotDto = computed(() => {
+  if (!selectedGroup.value) return null;
+  // Truyền đúng tham số: flightId, isAisle, isWindow, isBusiness
+  return new FindAvailableSlotRequestDto(
+    flightDetail.value.id,
+    selectedGroup.value.isAisle ?? null,
+    selectedGroup.value.isWindow ?? null,
+    selectedGroup.value.isBusiness ?? null
+  );
+});
+
+function handleBooking() {
+  if (!findAvailableSlotDto.value) {
+    alert('Vui lòng chọn loại vé và vị trí!');
+    return;
+  }
+  router.push({
+    path: '/plane/pay',
+    query: { dto: JSON.stringify(findAvailableSlotDto.value.toObject()) }
+  });
+}
 </script>
 
 <style scoped>

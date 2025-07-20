@@ -45,9 +45,9 @@ public class FlightBookingServiceImpl implements FlightBookingService {
                 Customer c = new Customer(); c.setId(bookingDto.getCustomerId());
                 booking.setCustomer(c);
             }
-            if (bookingDto.getTicketDetailId() != null) {
-                TicketDetail td = new TicketDetail(); td.setId(bookingDto.getTicketDetailId());
-                booking.setTicketDetail(td);
+            if (bookingDto.getOrderId() != null) {
+                Order order = new Order(); order.setId(bookingDto.getOrderId());
+                booking.setOrder(order);
             }
             flightBookingDAO.save(booking);
             log.info("BOOK_FLIGHT_SUCCESS      - RequestId: {}, bookingId: {}", requestId, booking.getId());
@@ -163,7 +163,7 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         dto.setUpdatedAt(flight.getUpdatedAt());
         if (flight.getCategory() != null) {
             log.debug("MAPPING_CATEGORY          - categoryId: {}", flight.getCategory().getId());
-            dto.setCategoryId(flight.getCategory().getId());
+
             dto.setCategory(toFlightCategoryDto(flight.getCategory()));
         }
         if (flight.getOwner() != null) {

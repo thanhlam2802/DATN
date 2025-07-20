@@ -2,6 +2,7 @@ package backend.backend.implement;
 
 import backend.backend.dao.*;
 import backend.backend.dto.CheckoutDto;
+import backend.backend.dto.DirectFlightReservationRequestDto;
 import backend.backend.dto.DirectTourReservationRequestDto;
 import backend.backend.dto.OrderDto;
 import backend.backend.entity.*;
@@ -23,58 +24,42 @@ public class OrderServiceImpl implements OrderService {
 
     // --- CÁC DAO CẦN THIẾT ---
     @Autowired private OrderDAO orderDAO;
-    @Autowired private TicketDetailDAO ticketDetailDAO;
     @Autowired private VoucherDAO voucherDAO;
     @Autowired private UserDAO userDAO;
     @Autowired private DepartureDAO departureDAO;
     @Autowired private BookingTourDAO bookingTourDAO;
     @Autowired private TourDAO tourDAO;
+    @Autowired private FlightSlotDAO flightSlotDAO;
+    @Autowired private FlightBookingDAO flightBookingDAO;
+    @Autowired private CustomerDAO customerDAO;
 
     @Override
     @Transactional
     public OrderDto placeOrder(CheckoutDto checkoutDto) {
-        TicketDetail cart = ticketDetailDAO.findById(checkoutDto.getTicketDetailId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giỏ hàng với ID: " + checkoutDto.getTicketDetailId()));
+        // 1. Lấy Order theo orderId
+        Order order = orderDAO.findById(checkoutDto.getOrderId())
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + checkoutDto.getOrderId()));
 
-        if (!"CART".equalsIgnoreCase(cart.getStatus())) {
-            throw new IllegalStateException("Giỏ hàng này đã được xử lý hoặc không hợp lệ.");
+        // 2. Kiểm tra trạng thái order (chỉ cho phép thanh toán nếu đang ở trạng thái CART hoặc PENDING)
+        if (!"CART".equalsIgnoreCase(order.getStatus()) && !"PENDING".equalsIgnoreCase(order.getStatus())) {
+            throw new IllegalStateException("Đơn hàng này đã được xử lý hoặc không hợp lệ.");
         }
 
-        if (isCartEmpty(cart)) {
-            throw new IllegalStateException("Giỏ hàng rỗng, không thể đặt hàng.");
-        }
-
-        BigDecimal totalAmount = calculateTotalAmount(cart);
-
-        Voucher voucher = null;
+        // 3. Áp dụng voucher nếu có
         if (checkoutDto.getVoucherId() != null) {
-            voucher = voucherDAO.findById(checkoutDto.getVoucherId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
+            Voucher voucher = voucherDAO.findById(checkoutDto.getVoucherId())
+                .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
+            order.setVoucher(voucher);
         }
 
-        Order order = new Order();
-        order.setUser(cart.getUser());
-        order.setTicketDetail(cart);
-        order.setAmount(totalAmount);
-        order.setStatus("PENDING");
-        order.setVoucher(voucher);
+        // 4. Cập nhật trạng thái, ngày thanh toán
+        order.setStatus("PAID");
+        order.setPayDate(LocalDateTime.now());
+        // Có thể cập nhật thêm paymentMethod, paymentDetails nếu cần
 
-        Order savedOrder = orderDAO.save(order);
-        boolean paymentSuccess = processPayment(savedOrder, checkoutDto);
+        orderDAO.save(order);
 
-        if (paymentSuccess) {
-            savedOrder.setStatus("PAID");
-            savedOrder.setPayDate(LocalDateTime.now());
-            cart.setStatus("CONFIRMED");
-        } else {
-            savedOrder.setStatus("FAILED");
-        }
-        
-        orderDAO.save(savedOrder);
-        ticketDetailDAO.save(cart);
-        
-        // SỬA LỖI: Gọi đúng mapper
-        return toOrderDTO(savedOrder);
+        return toOrderDTO(order);
     }
     
     @Override
@@ -100,13 +85,19 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal totalChildPrice = childPrice.multiply(new BigDecimal(directRequest.getNumberOfChildren()));
         BigDecimal totalPrice = totalAdultPrice.add(totalChildPrice);
 
-        TicketDetail tempTicketDetail = new TicketDetail();
-        tempTicketDetail.setUser(user);
-        tempTicketDetail.setStatus("PENDING_PAYMENT");
+        // Tạo Order mới
+        Order temporaryOrder = new Order();
+        temporaryOrder.setUser(user);
+        temporaryOrder.setAmount(totalPrice);
+        temporaryOrder.setStatus("PENDING_PAYMENT");
+        temporaryOrder.setExpiresAt(LocalDateTime.now().plusMinutes(30));
 
+        Order savedOrder = orderDAO.save(temporaryOrder);
+
+        // Tạo BookingTour liên kết trực tiếp với Order
         BookingTour bookingTour = new BookingTour();
         bookingTour.setDeparture(departure);
-        bookingTour.setTicketDetail(tempTicketDetail);
+        bookingTour.setOrder(savedOrder);
         bookingTour.setCustomerName(directRequest.getCustomerName());
         bookingTour.setPhone(directRequest.getPhone());
         bookingTour.setNumberOfAdults(directRequest.getNumberOfAdults());
@@ -114,17 +105,72 @@ public class OrderServiceImpl implements OrderService {
         bookingTour.setNotes(directRequest.getNotes());
         bookingTour.setTotalPrice(totalPrice);
         bookingTour.setBookingDate(LocalDate.now());
-        
-        tempTicketDetail.setTourBookings(Collections.singletonList(bookingTour));
+        bookingTourDAO.save(bookingTour);
 
-        Order temporaryOrder = new Order();
-        temporaryOrder.setUser(user);
-        temporaryOrder.setTicketDetail(tempTicketDetail);
-        temporaryOrder.setAmount(totalPrice);
-        temporaryOrder.setStatus("PENDING_PAYMENT");
-        temporaryOrder.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        return toOrderDTO(savedOrder);
+    }
 
-        Order savedOrder = orderDAO.save(temporaryOrder);
+    @Override
+    @Transactional
+    public OrderDto createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
+        // 1. Lấy user từ context (chuẩn):
+        // String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        // User user = userDAO.findByUsername(username).orElseThrow(...);
+        // Tạm thời hardcode:
+        User user = userDAO.findById(1)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+
+        // 2. Lấy slot và flight
+        FlightSlot slot = flightSlotDAO.findById(directRequest.getFlightSlotId())
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy slot ghế."));
+        Flight flight = slot.getFlight();
+
+        // 3. Kiểm tra slot đã được đặt chưa
+        boolean slotBooked = flightBookingDAO.findByFlightSlotId(slot.getId()).size() > 0;
+        if (slotBooked) {
+            throw new IllegalStateException("Vé này đã có người khác đặt. Bạn đã thao tác chậm, vui lòng chọn vé khác!");
+        }
+
+        // 4. Tính tổng tiền
+        BigDecimal totalPrice = slot.getPrice();
+
+        // 5. Tính expiresAt
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime departureTime = flight.getDepartureTime();
+        LocalDateTime expiresAt = now.plusMinutes(30);
+        if (departureTime.isBefore(now.plusMinutes(30))) {
+            expiresAt = departureTime;
+        }
+
+        // 6. Tạo order
+        Order order = new Order();
+        order.setUser(user);
+        order.setAmount(totalPrice);
+        order.setStatus("PENDING_PAYMENT");
+        order.setExpiresAt(expiresAt);
+        order.setCreatedAt(now);
+        Order savedOrder = orderDAO.save(order);
+
+        // 7. Lưu thông tin khách hàng
+        Customer customer = new Customer();
+        customer.setFullName(directRequest.getCustomerName());
+        customer.setPhone(directRequest.getPhone());
+        customer.setEmail(directRequest.getEmail());
+        customer.setPassport(directRequest.getPassport());
+        customer.setGender("male".equalsIgnoreCase(directRequest.getGender()));
+        if (directRequest.getDob() != null && !directRequest.getDob().isEmpty()) {
+            customer.setDob(java.time.LocalDate.parse(directRequest.getDob()));
+        }
+        Customer savedCustomer = customerDAO.save(customer);
+
+        // 8. Tạo booking flight
+        FlightBooking booking = new FlightBooking();
+        booking.setFlightSlot(slot);
+        booking.setOrder(savedOrder);
+        booking.setBookingDate(now);
+        booking.setTotalPrice(totalPrice);
+        booking.setCustomer(savedCustomer);
+        flightBookingDAO.save(booking);
 
         return toOrderDTO(savedOrder);
     }
@@ -142,10 +188,10 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderDto toOrderDTOWithProductInfo(Order entity) {
         OrderDto dto = toOrderDTO(entity);
-        if (entity.getTicketDetail() != null) {
-            if (entity.getTicketDetail().getTourBookings() != null && !entity.getTicketDetail().getTourBookings().isEmpty()) {
-                dto.setMainProduct(entity.getTicketDetail().getTourBookings().get(0).getDeparture().getTour().getName());
-            } 
+        // Lấy tên sản phẩm chính từ các booking liên kết với order
+        List<BookingTour> tours = bookingTourDAO.findByOrderId(entity.getId());
+        if (tours != null && !tours.isEmpty()) {
+            dto.setMainProduct(tours.get(0).getDeparture().getTour().getName());
         }
         if (dto.getMainProduct() == null) {
             dto.setMainProduct("Nhiều dịch vụ");
@@ -168,30 +214,12 @@ public class OrderServiceImpl implements OrderService {
         if (entity.getUser() != null) dto.setUserId(entity.getUser().getId());
         if (entity.getVoucher() != null) dto.setVoucherId(entity.getVoucher().getId());
         if (entity.getDestination() != null) dto.setDestinationId(entity.getDestination().getId());
-        if (entity.getTicketDetail() != null) dto.setTicketDetailId(entity.getTicketDetail().getId());
         
         return dto;
     }
     
     // --- CÁC HÀM HELPER KHÁC ---
-    private BigDecimal calculateTotalAmount(TicketDetail cart) {
-        BigDecimal total = BigDecimal.ZERO;
-        if (cart.getTourBookings() != null) {
-            total = total.add(cart.getTourBookings().stream()
-                    .map(tb -> tb.getTotalPrice())
-                    .reduce(BigDecimal.ZERO, BigDecimal::add));
-        }
-        // Thêm logic cho các loại booking khác nếu cần
-        return total;
-    }
-    
-    private boolean isCartEmpty(TicketDetail cart) {
-        return (cart.getTourBookings() == null || cart.getTourBookings().isEmpty());
-        // Thêm logic cho các loại booking khác nếu cần
-    }
-    
-    private boolean processPayment(Order order, CheckoutDto checkoutDto) {
-        System.out.println("Processing payment for order #" + order.getId() + " with amount " + order.getAmount());
-        return true;
-    }
+    // XÓA: private BigDecimal calculateTotalAmount(TicketDetail cart) { ... }
+    // XÓA: private boolean isCartEmpty(TicketDetail cart) { ... }
+    // XÓA: private boolean processPayment(Order order, CheckoutDto checkoutDto) { ... }
 }

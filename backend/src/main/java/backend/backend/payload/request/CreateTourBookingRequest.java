@@ -15,6 +15,13 @@ import jakarta.validation.constraints.NotNull;
 public class CreateTourBookingRequest {
 
     /**
+     * ID của đơn hàng (Order) mà booking này sẽ được liên kết.
+     * Bắt buộc để xác định giỏ hàng hoặc đơn hàng hiện tại.
+     */
+    @NotNull(message = "ID đơn hàng không được để trống")
+    private Integer orderId;
+
+    /**
      * ID của ngày khởi hành (Departure) mà người dùng đã chọn.
      * Bắt buộc phải có để lấy thông tin giá và tour.
      */
@@ -54,11 +61,4 @@ public class CreateTourBookingRequest {
      */
     private String notes;
     
-    /**
-     * ID của giỏ hàng (TicketDetail) mà booking này sẽ được thêm vào.
-     * Cần thiết để liên kết booking với một phiên giao dịch cụ thể.
-     */
-    @NotNull(message = "ID của giỏ hàng không được để trống")
-    private Integer ticketDetailId;
-
 }

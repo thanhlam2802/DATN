@@ -21,107 +21,54 @@
                     <div
                         class="absolute w-34 h-34 bg-sky-300 rounded-full bottom-4 -right-40 blur-xl [box-shadow:-100px_50px_30px_100px_#7dd3fc]">
                     </div>
-                    <h2 class="text-lg font-medium text-gray-700 mb-4 z-10 relative">Thông tin hành khách 1</h2>
+                    <h2 class="text-lg font-medium text-gray-700 mb-4 z-10 relative">Thông tin khách hàng</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 z-10 relative">
-                        <!-- Họ và tên (theo CMND/CCCD) -->
+                        <!-- Họ và tên -->
                         <div>
-                            <label for="fullName1" class="block text-sm font-medium text-gray-600 mb-1">Họ và Tên (theo
-                                CMND/CCCD)</label>
-                            <input id="fullName1" v-model="passengers[0].fullName" type="text"
-                                placeholder="Nhập họ tên đầy đủ"
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Họ và tên</label>
+                            <input v-model="customer.fullName" type="text" placeholder="Nhập họ tên đầy đủ"
                                 class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
-
+                        <!-- Giới tính -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Giới tính</label>
+                            <select v-model="customer.gender" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option :value="true">Nam</option>
+                                <option :value="false">Nữ</option>
+                                <option :value="null">Khác</option>
+                            </select>
+                        </div>
+                        <!-- Ngày sinh -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Ngày sinh</label>
+                            <input v-model="customer.dob" type="date"
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <!-- Số hộ chiếu -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Số hộ chiếu</label>
+                            <input v-model="customer.passport" type="text" placeholder="Nhập số hộ chiếu"
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <!-- Email -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                            <input v-model="customer.email" type="email" placeholder="Nhập email"
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
                         <!-- Số điện thoại -->
                         <div>
-                            <label for="phone1" class="block text-sm font-medium text-gray-600 mb-1">Số điện
-                                thoại</label>
-                            <input id="phone1" v-model="passengers[0].phone" type="text"
-                                placeholder="Nhập số điện thoại"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        </div>
-
-                        <!-- Email -->
-                        <div class="sm:col-span-2">
-                            <label for="email1" class="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                            <input id="email1" v-model="passengers[0].email" type="email" placeholder="Nhập email"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Số điện thoại</label>
+                            <input v-model="customer.phone" type="text" placeholder="Nhập số điện thoại"
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                     </div>
                 </section>
                 <!-- Passenger #2 -->
-                <section class="bg-white rounded-lg shadow-md p-6 relative overflow-hidden">
-                      <div
+                <div class="bg-white rounded-lg shadow-md p-6 relative overflow-hidden">
+                    <div
                         class="absolute w-34 h-34 bg-sky-300 rounded-full -top-20 -right-40 blur-xl [box-shadow:-100px_50px_30px_100px_#7dd3fc]">
                     </div>
-                    <h2 class="text-lg font-medium text-gray-700 mb-4 z-10 relative">Thông tin hành khách 2</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 z-10 relative">
-                        <!-- Họ và tên (theo CMND/CCCD) -->
-                        <div>
-                            <label for="fullName2" class="block text-sm font-medium text-gray-600 mb-1">Họ và Tên (theo
-                                CMND/CCCD)</label>
-                            <input id="fullName2" v-model="passengers[1].fullName" type="text"
-                                placeholder="Nhập họ tên đầy đủ"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        </div>
-                        <!-- Số điện thoại -->
-                        <div>
-                            <label for="phone2" class="block text-sm font-medium text-gray-600 mb-1">Số điện
-                                thoại</label>
-                            <input id="phone2" v-model="passengers[1].phone" type="text"
-                                placeholder="Nhập số điện thoại"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        </div>
-                        <!-- Email -->
-                        <div class="sm:col-span-2">
-                            <label for="email2" class="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                            <input id="email2" v-model="passengers[1].email" type="email" placeholder="Nhập email"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        </div>
-                    </div>
-                </section>
-                
-            </div>
-
-            <!-- --- Cột phải: Tóm tắt chuyến đi & Thanh toán --- -->
-            <div class="lg:col-span-4 space-y-6">
-                <!-- 🎫 Thẻ tóm tắt chuyến đi -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="space-y-3">
-                        <!-- Logo hãng + thông tin cơ bản -->
-                        <div class="flex items-center space-x-3">
-                            <img src="https://ix-marketing.imgix.net/FINALMarketing%20Blog%20image.jpg?ixembed=1720648016530&auto=format,compress"
-                                alt="Vietnam Airlines" class="w-10 h-10 object-contain" />
-                            <div>
-                                <p class="text-sm text-gray-500">HAN → CXR</p>
-                                <p class="text-sm text-gray-500">Fri, 13 Jun 2025</p>
-                            </div>
-                        </div>
-                        <!-- Dải giờ và giá -->
-                        <div class="flex justify-between items-center pt-2 pb-4 border-t border-gray-200">
-                            <div class="text-gray-600 text-sm italic">VN123 • 14:15 – 16:15</div>
-                            <div class="text-lg font-semibold text-indigo-600">{{ formatCurrency(flight.price) }} VND
-                            </div>
-                        </div>
-                        <!-- Ô nhập mã giảm giá -->
-                        <div class="flex space-x-2">
-                            <input v-model="discountCode" type="text" placeholder="Nhập mã giảm giá"
-                                class="flex-1 border border-gray-300 rounded-lg px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                            <button @click="applyDiscount"
-                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">
-                                Áp dụng
-                            </button>
-                        </div>
-                        <!-- Tổng tạm tính -->
-                        <div class="flex justify-between items-center mt-4">
-                            <span class="text-gray-600">Tạm tính:</span>
-                            <span class="text-lg font-semibold text-gray-800">{{ formatCurrency(subtotal) }} VND</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 🎯 Phần chọn phương thức thanh toán -->
-                <div class="bg-white rounded-lg shadow-md p-6">
                     <h3 class="text-lg font-medium text-gray-700 mb-4">Pay with</h3>
                     <!-- Tabs -->
                     <div class="flex space-x-2 mb-4">
@@ -199,43 +146,241 @@
                     </div>
                 </div>
 
-                <!-- 🎉 Nút Confirm and Pay -->
+                
+            </div>
+
+            <!-- --- Cột phải: Tóm tắt chuyến đi & Thanh toán --- -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- 🎫 Thẻ tóm tắt chuyến đi -->
+                <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+    <!-- Loading state -->
+    <div v-if="loading" class="text-center py-8">
+        <div class="relative">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-indigo-600 mx-auto"></div>
+            <div class="absolute inset-0 rounded-full h-12 w-12 border-4 border-transparent border-t-indigo-300 animate-ping mx-auto"></div>
+        </div>
+        <p class="text-gray-600 mt-4 font-medium">Đang tải thông tin...</p>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="text-center py-8">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <p class="text-red-600 font-medium">{{ error }}</p>
+    </div>
+
+    <!-- Content -->
+    <div v-else-if="flight && availableSlot" class="space-y-5">
+        <!-- Header với logo hãng + route -->
+        <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <img v-if="flight.airline && flight.airline.name" 
+                        :src="flight.images[0].imageUrl"
+                        :alt="flight.airline.name" 
+                        class="w-14 h-14 object-contain rounded-xl shadow-sm ring-2 ring-white" />
+                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <h3 class="text-sm font-bold text-gray-800">
+                            {{ flight.departureAirport?.name || 'N/A' }}
+                        </h3>
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                        <h3 class="text-sm font-bold text-gray-800">
+                            {{ flight.arrivalAirport?.name || 'N/A' }}
+                        </h3>
+                    </div>
+                    <p class="text-sm text-gray-500 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        {{ formatDate(flight.departureTime) }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Flight details với timeline -->
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="font-semibold text-gray-800 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    {{ flight.flightNumber }}
+                </h4>
+                <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-medium">
+                    {{ availableSlot.isBusiness ? 'Business' : 'Economy' }}
+                </span>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-gray-800">{{ formatTime(flight.departureTime) }}</p>
+                    <p class="text-xs text-gray-500">Khởi hành</p>
+                </div>
+                <div class="flex-1 mx-4">
+                    <div class="relative">
+                        <div class="h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"></div>
+                        <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-indigo-500 rounded-full"></div>
+                        <div class="absolute right-0 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <svg class="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-gray-800">{{ formatTime(flight.arrivalTime) }}</p>
+                    <p class="text-xs text-gray-500">Hạ cánh</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông tin ghế với card design -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-sm font-semibold text-gray-700">Thông tin ghế</h5>
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Số ghế:</span>
+                        <span class="font-bold text-indigo-700 text-lg">{{ availableSlot.seatNumber }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Vị trí:</span>
+                        <span class="text-xs px-2 py-1 rounded-full font-medium" 
+                              :class="availableSlot.isWindow ? 'bg-blue-100 text-blue-800' : availableSlot.isAisle ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
+                            {{ availableSlot.isWindow ? 'Cửa sổ' : availableSlot.isAisle ? 'Lối đi' : 'Thường' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-sm font-semibold text-gray-700">Hành lý</h5>
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-green-700">{{ availableSlot.carryOnLuggage }}</p>
+                    <p class="text-xs text-gray-600">kg xách tay</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Giá và CTA -->
+        <div class=" border border-indigo-600 border-2 rounded-xl p-4 text-indigo-600">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm opacity-90">Tổng giá vé</p>
+                    <p class="text-3xl font-bold">{{ formatCurrency(availableSlot.price) }} VND</p>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+                <!-- 🎯 Phần chọn phương thức thanh toán -->
+                
                 <div class="flex justify-center">
-                    <router-link to="/plane/getticket" @click="confirmAndPay"
+                    <button @click="confirmAndPay"
                         class="w-full block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-md">
                         Confirm and Pay
-                    </router-link>
+                </button>
                 </div>
+                
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { payForFlight } from '@/api/flightApi'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { payForFlight, getFlightDetailPublic, findFirstAvailableSlot, reserveFlightDirect } from '@/api/flightApi'
 
 const router = useRouter()
+const route = useRoute()
 
 /** ========== Dữ liệu từ props hoặc route ========== **/
-const flight = reactive({
-    id: 101,
-    airline: { name: 'Vietnam Airlines' },
-    from: 'HAN',
-    to: 'CXR',
-    date: '2025-06-13',
-    flightNumber: 'VN123',
-    departTime: '14:15',
-    arriveTime: '16:15',
-    price: 5000000, // 5.000.000 VND giả định
+const flight = ref(null)
+const availableSlot = ref(null)
+const loading = ref(false)
+const error = ref('')
+
+// Lấy DTO từ route query
+const getDtoFromRoute = () => {
+  try {
+    const dtoString = route.query.dto
+    if (dtoString) {
+      return JSON.parse(dtoString)
+    }
+  } catch (e) {
+    console.error('Lỗi khi parse DTO từ route:', e)
+  }
+  return null
+}
+
+// Gọi 2 API khi component mount
+onMounted(async () => {
+  const dto = getDtoFromRoute()
+  const flightId = route.params.flightId
+
+  if (!dto ) {
+    console.error('Thiếu thông tin DTO ')
+    console.log('DTO:', dto)
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    // Gọi API 1: Lấy thông tin flight
+    console.log('Gọi API getFlightDetailPublic với flightId:', dto.flightId)
+    const flightResponse = await getFlightDetailPublic( dto.flightId)
+    flight.value = flightResponse.data
+    console.log('Flight data:', flight.value)
+
+    // Gọi API 2: Tìm vé khả dụng
+    console.log('Gọi API findFirstAvailableSlot với DTO:', dto)
+    const slotResponse = await findFirstAvailableSlot(dto)
+    availableSlot.value = slotResponse.data
+    console.log('Available slot:', availableSlot.value)
+
+  } catch (e) {
+    console.error('Lỗi khi load dữ liệu:', e)
+    error.value = 'Không thể tải thông tin chuyến bay'
+  } finally {
+    loading.value = false
+  }
 })
 
-/** ========== Thông tin hành khách (2 người) ========== **/
-const passengers = ref([
-    { fullName: '', phone: '', email: '' },
-    { fullName: '', phone: '', email: '' },
-])
+
+const customer = ref({
+    fullName: '',
+    gender: null,
+    dob: '',
+    passport: '',
+    email: '',
+    phone: '',
+})
 
 /** ========== Mã giảm giá ========== **/
 const discountCode = ref('')
@@ -243,7 +388,8 @@ const discountAmount = ref(0) // số tiền giảm (ví dụ từ backend trả
 function applyDiscount() {
     // Giả sử nếu code === "VIETNAM10" thì giảm 10%
     if (discountCode.value.trim().toUpperCase() === 'VIETNAM10') {
-        discountAmount.value = Math.floor(flight.price * 0.1)
+        const basePrice = availableSlot.value ? availableSlot.value.price : 0
+        discountAmount.value = Math.floor(basePrice * 0.1)
         alert(`Áp dụng thành công: giảm ${formatCurrency(discountAmount.value)} VND`)
     } else {
         discountAmount.value = 0
@@ -253,9 +399,10 @@ function applyDiscount() {
 
 /** ========== Tính toán subtotal (tổng tiền tạm tính) ========== **/
 const subtotal = computed(() => {
+    if (!availableSlot.value) return 0
     // Giả định 2 hành khách
-    const base = flight.price * passengers.value.length
-    return base - discountAmount.value * passengers.value.length
+    const base = availableSlot.value.price * 1 // Assuming only one customer for now
+    return base - discountAmount.value * 1
 })
 
 /** ========== Phương thức thanh toán ========== **/
@@ -277,8 +424,26 @@ const card = reactive({
 
 /** ========== Các hàm hành động ========== **/
 function formatCurrency(value) {
+    if (!value) return '0'
     // format 5000000 => "5.000.000"
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
+function formatTime(timeString) {
+    if (!timeString) return 'N/A'
+    const date = new Date(timeString)
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('vi-VN', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    })
 }
 
 function goBack() {
@@ -295,35 +460,55 @@ function payWithGooglePay() {
     alert('Chức năng Google Pay chưa được tích hợp thực tế.')
 }
 
-function confirmAndPay() {
+async function confirmAndPay() {
     // Validate: chắc chắn điền đúng thông tin hành khách + payment
-    // Ví dụ:
-    const invalidPassenger = passengers.value.some(p => !p.fullName || !p.phone || !p.email)
-    if (invalidPassenger) {
+    const invalidCustomer = !customer.value.fullName || !customer.value.phone || !customer.value.email
+    if (invalidCustomer) {
         alert('Vui lòng điền đầy đủ thông tin hành khách.')
         return
     }
-
-    if (activeMethod.value === 'credit') {
-        if (!card.cardNumber || !card.cardHolder || !card.expiryDate || !card.cvv) {
-            alert('Vui lòng điền đầy đủ thông tin thẻ tín dụng.')
-            return
-        }
+  
+    if (!availableSlot.value) {
+        alert('Không tìm thấy thông tin ghế.')
+        return
     }
-
-    // Giả sử gọi API tạo đơn thanh toán:
-    // await api.createOrder({ flightId: flight.id, passengers: passengers.value, paymentMethod: activeMethod, cardInfo: card, total: subtotal.value, ... })
-
-    alert('Thanh toán thành công! Cảm ơn bạn đã đặt vé.')
-    // Sau khi thanh toán xong, chuyển hướng về trang hoàn tất hoặc trang Dashboard người dùng
-    router.push({ name: 'BookingSuccess', params: { orderId: 'ABC12345' } })
+    loading.value = true
+    error.value = ''
+    try {
+        // Chuẩn bị DTO gửi backend
+        const dto = {
+            flightSlotId: availableSlot.value.id,
+            customerName: customer.value.fullName,
+            phone: customer.value.phone,
+            email: customer.value.email,
+            passport: customer.value.passport,
+            gender: customer.value.gender === true ? 'male' : customer.value.gender === false ? 'female' : 'other',
+            dob: customer.value.dob,
+            notes: '',
+        }
+        // Gọi API giữ chỗ
+        const response = await reserveFlightDirect(dto)
+        const result = response.data
+        if (response.status === 201 && result.statusCode === 201) {
+            alert('Giữ chỗ thành công! Vui lòng thanh toán trong thời gian quy định.')
+            // router.push({ name: 'BookingSuccess', params: { orderId: result.data.id } })
+        } else {
+            alert(result.message || 'Không thể giữ chỗ. Vé có thể đã bị đặt bởi người khác.')
+        }
+    } catch (e) {
+        if (e.response && e.response.data && e.response.data.message) {
+            alert(e.response.data.message)
+        } else {
+            alert('Lỗi kết nối máy chủ hoặc lỗi không xác định.')
+        }
+    } finally {
+        loading.value = false
+    }
 }
 
 const bookingId = ref('') // Lấy bookingId từ route hoặc props thực tế
 const paymentMethod = ref('credit_card')
 const paymentStatus = ref(null)
-const loading = ref(false)
-const error = ref('')
 
 async function handlePayment() {
   loading.value = true

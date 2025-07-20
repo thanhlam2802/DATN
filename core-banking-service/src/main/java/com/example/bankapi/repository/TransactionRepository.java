@@ -6,8 +6,10 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByAccountIdAndBookingDateBetween(Long accountId, LocalDate from, LocalDate to);
+    Transaction findByTransactionId(UUID transactionId);
 } 

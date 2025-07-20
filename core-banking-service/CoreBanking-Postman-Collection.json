@@ -67,17 +67,17 @@
       }
     },
     {
-      "name": "Payment with Fee (Nguồn hệ thống -> 4, phí: 5)",
+      "name": "Service Payment (Khách hàng nạp vào hệ thống)",
       "request": {
         "method": "POST",
         "header": [
           { "key": "X-API-KEY", "value": "test-api-key" },
           { "key": "Content-Type", "value": "application/json" }
         ],
-        "url": { "raw": "http://localhost:8081/api/v1/payments/fee", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments", "fee"] },
+        "url": { "raw": "http://localhost:8081/api/v1/payments/service", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments", "service"] },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"feeAccountId\": 5,\n  \"targetAccountId\": 4,\n  \"amount\": 500000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Thanh toan dich vu\",\n  \"idempotencyKey\": \"demo-2\"\n}"
+          "raw": "{\n  \"customerAccountId\": 2,\n  \"amount\": 50000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Thanh toán dịch vụ\",\n  \"idempotencyKey\": \"demo-service-1\"\n}"
         }
       }
     },

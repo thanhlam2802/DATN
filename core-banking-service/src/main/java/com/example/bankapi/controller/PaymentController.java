@@ -1,9 +1,6 @@
 package com.example.bankapi.controller;
 
-import com.example.bankapi.model.dto.PaymentRequestDto;
-import com.example.bankapi.model.dto.PaymentDto;
-import com.example.bankapi.model.dto.RefundRequestDto;
-import com.example.bankapi.model.dto.RefundDto;
+import com.example.bankapi.model.dto.*;
 import com.example.bankapi.service.PaymentService;
 import com.example.bankapi.mapper.PaymentMapper;
 import com.example.bankapi.mapper.RefundMapper;
@@ -19,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -30,6 +29,8 @@ public class PaymentController {
     private PaymentMapper paymentMapper;
     @Autowired
     private RefundMapper refundMapper;
+
+    private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
 
     @Operation(summary = "Khởi tạo giao dịch thanh toán",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -44,9 +45,11 @@ public class PaymentController {
     )
     @PostMapping("/payments")
     public ResponseEntity<PaymentDto> initiatePayment(@RequestBody PaymentRequestDto req) {
+        logger.info("[PaymentController] initiatePayment - Request: {}", req);
         var payment = paymentService.initiatePayment(
                 req.getDebtorAccountId(), req.getCreditorAccountId(), req.getAmount(), req.getCurrency(), req.getRemittanceInfo(), req.getIdempotencyKey()
         );
+        logger.info("[PaymentController] initiatePayment - Result: {}", payment);
         return ResponseEntity.ok(paymentMapper.toDto(payment));
     }
 
@@ -104,13 +107,12 @@ public class PaymentController {
         return ResponseEntity.ok(refundMapper.toDto(refund));
     }
 
-    @Operation(summary = "Thanh toán từ tài khoản nguồn cố định, tài khoản khác chịu phí",
+    @Operation(summary = "Thanh toán dịch vụ: chuyển tiền từ khách hàng vào tài khoản nguồn hệ thống",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     content = @Content(schema = @Schema(
                         example = "{" +
-                                "\n  'feeAccountId': 3," +
-                                "\n  'targetAccountId': 2," +
+                                "\n  'customerAccountId': 2," +
                                 "\n  'amount': 50000.00," +
                                 "\n  'currency': 'VND'," +
                                 "\n  'remittanceInfo': 'Thanh toán dịch vụ'," +
@@ -122,15 +124,16 @@ public class PaymentController {
                     content = @Content(schema = @Schema(implementation = PaymentDto.class))
             )
     )
-    @PostMapping("/payments/fee")
-    public ResponseEntity<PaymentDto> payWithFeeAccount(@RequestBody Map<String, Object> req) {
-        Long feeAccountId = Long.valueOf(req.get("feeAccountId").toString());
-        Long targetAccountId = Long.valueOf(req.get("targetAccountId").toString());
+    @PostMapping("/payments/service")
+    public ResponseEntity<PaymentDto> payServicePayment(@RequestBody Map<String, Object> req) {
+        logger.info("[PaymentController] payServicePayment - Request: {}", req);
+        Long customerAccountId = Long.valueOf(req.get("customerAccountId").toString());
         java.math.BigDecimal amount = new java.math.BigDecimal(req.get("amount").toString());
         String currency = req.get("currency").toString();
         String remittanceInfo = req.get("remittanceInfo").toString();
         String idempotencyKey = req.get("idempotencyKey").toString();
-        var payment = paymentService.payWithFeeAccount(feeAccountId, targetAccountId, amount, currency, remittanceInfo, idempotencyKey);
+        var payment = paymentService.payServicePayment(customerAccountId, amount, currency, remittanceInfo, idempotencyKey);
+        logger.info("[PaymentController] payServicePayment - Result: {}", payment);
         return ResponseEntity.ok(paymentMapper.toDto(payment));
     }
 
@@ -149,10 +152,13 @@ public class PaymentController {
             )
     )
     @PostMapping("/refunds/by-transaction")
-    public ResponseEntity<RefundDto> refundByTransactionId(@RequestBody Map<String, Object> req) {
-        Long transactionId = Long.valueOf(req.get("transactionId").toString());
-        String reason = req.get("reason").toString();
+    public ResponseEntity<RefundDto> refundByTransactionId(@RequestBody RefundByTransactionRequest req) {
+        logger.info("[PaymentController] refundByTransactionId - Request: {}", req);
+        UUID transactionId = req.getTransactionId();
+        String reason       = req.getReason();
+
         var refund = paymentService.refundByTransactionId(transactionId, reason);
+        logger.info("[PaymentController] refundByTransactionId - Result: {}", refund);
         return ResponseEntity.ok(refundMapper.toDto(refund));
     }
 } 

@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -30,6 +32,8 @@ public class AccountController {
     private TransactionService transactionService;
     @Autowired
     private TransactionMapper transactionMapper;
+
+    private static final Logger logger = LoggerFactory.getLogger(AccountController.class);
 
     @Operation(summary = "Tra cứu thông tin tài khoản theo bankCode & accountNumber",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -44,7 +48,10 @@ public class AccountController {
     )
     @PostMapping("/account-lookup")
     public ResponseEntity<AccountDto> lookupAccount(@RequestBody AccountLookupRequestDto req) {
-        return ResponseEntity.ok(accountService.lookupAccountDto(req.getBankCode(), req.getAccountNumber()));
+        logger.info("[AccountController] lookupAccount - Request: {}", req);
+        AccountDto result = accountService.lookupAccountDto(req.getBankCode(), req.getAccountNumber());
+        logger.info("[AccountController] lookupAccount - Result: {}", result);
+        return ResponseEntity.ok(result);
     }
 
     @Operation(summary = "Lấy số dư tài khoản",
@@ -59,9 +66,12 @@ public class AccountController {
     )
     @GetMapping("/accounts/{id}/balances")
     public ResponseEntity<AccountDto> getBalance(@PathVariable Long id) {
-        return accountService.lookupAccountById(id)
-                .map(account -> ResponseEntity.ok(accountService.toDto(account)))
-                .orElse(ResponseEntity.notFound().build());
+        logger.info("[AccountController] getBalance - id: {}", id);
+        var result = accountService.lookupAccountById(id)
+                .map(accountService::toDto)
+                .orElse(null);
+        logger.info("[AccountController] getBalance - Result: {}", result);
+        return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
     }
 
     @Operation(summary = "Lấy lịch sử giao dịch tài khoản",
@@ -81,10 +91,12 @@ public class AccountController {
             @PathVariable Long id,
             @RequestParam String from,
             @RequestParam String to) {
+        logger.info("[AccountController] getTransactions - id: {}, from: {}, to: {}", id, from, to);
         LocalDate fromDate = LocalDate.parse(from);
         LocalDate toDate = LocalDate.parse(to);
         List<TransactionDto> dtos = transactionService.queryTransactions(id, fromDate, toDate)
                 .stream().map(transactionMapper::toDto).collect(Collectors.toList());
+        logger.info("[AccountController] getTransactions - Result: {}", dtos);
         return ResponseEntity.ok(dtos);
     }
 } 

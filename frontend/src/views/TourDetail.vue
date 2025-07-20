@@ -33,7 +33,7 @@ onMounted(async () => {
     ] = await Promise.all([
       fetch(`http://localhost:8080/api/v1/tours/${tourId}`),
       fetch(`http://localhost:8080/api/v1/tours/${tourId}/reviews`),
-      fetch(`http://localhost:8080/api/v1/tours/${tourId}/itinerary`), // API cho lịch trình chi tiết
+      fetch(`http://localhost:8080/api/v1/tours/${tourId}/itinerary`),
       fetch(`http://localhost:8080/api/v1/tours/${tourId}/departures`),
     ]);
 
@@ -55,23 +55,25 @@ onMounted(async () => {
 
     const departuresData = await departuresRes.json();
     if (departuresData.statusCode === 200) {
-      availableDates.value = departuresData.data.map((d) => ({
-        departureId: d.id, // SỬA LỖI: Lưu lại ID của ngày khởi hành
-        date: d.departureDate,
-        display: new Date(d.departureDate).toLocaleDateString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }),
-        seats: d.seatCount - d.bookedSeats,
-        price: d.adultPrice,
-        promoPrice: d.discount > 0 ? d.adultPrice - d.discount : null,
-      }));
-      // Tự động chọn ngày đầu tiên và set calendar view
+      availableDates.value = departuresData.data
+
+        .filter((d) => new Date(d.departureDate) >= today)
+        .map((d) => ({
+          departureId: d.id,
+          date: d.departureDate,
+          display: new Date(d.departureDate).toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }),
+          seats: d.seatCount - d.bookedSeats,
+          price: d.adultPrice,
+          promoPrice: d.discount > 0 ? d.adultPrice - d.discount : null,
+        }));
+
       if (availableDates.value.length > 0) {
         const firstAvailableDate = new Date(availableDates.value[0].date);
         selectDate(availableDates.value[0].date);
-        // Đặt lịch về tháng của ngày khởi hành đầu tiên
         currentDisplayDate.value = new Date(
           firstAvailableDate.getFullYear(),
           firstAvailableDate.getMonth(),

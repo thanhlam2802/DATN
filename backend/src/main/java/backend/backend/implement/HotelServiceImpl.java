@@ -220,6 +220,8 @@ public class HotelServiceImpl implements HotelService {
                         variant.setCancellable(variantDto.getCancellable());
                         variant.setPayAtHotel(variantDto.getPayAtHotel());
                         variant.setTaxAndFeeAmount(variantDto.getTaxAndFeeAmount());
+                        variant.setDiscountType(variantDto.getDiscountType());
+                        variant.setDiscountValue(variantDto.getDiscountValue());
                         hotelRoomVariantDAO.save(variant);
                     }
                 }
@@ -518,6 +520,8 @@ public class HotelServiceImpl implements HotelService {
                 variant.setCancellable(variantDto.getCancellable());
                 variant.setPayAtHotel(variantDto.getPayAtHotel());
                 variant.setTaxAndFeeAmount(variantDto.getTaxAndFeeAmount());
+                variant.setDiscountType(variantDto.getDiscountType());
+                variant.setDiscountValue(variantDto.getDiscountValue());
                 hotelRoomVariantDAO.save(variant);
             }
             roomIdx++;

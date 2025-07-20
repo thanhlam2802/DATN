@@ -110,9 +110,32 @@ public class HotelDAOImpl implements HotelDAOCustom {
 
             Map<Integer, List<String>> imagesByHotelId = findImagesForHotels(hotelIds);
 
+            Map<Integer, BigDecimal> minDiscountedPriceByHotelId = new HashMap<>();
+            for (Integer hotelId : hotelIds) {
+                TypedQuery<backend.backend.entity.HotelRoomVariant> q = em.createQuery(
+                    "SELECT v FROM HotelRoomVariant v WHERE v.room.hotel.id = :hotelId", backend.backend.entity.HotelRoomVariant.class);
+                q.setParameter("hotelId", hotelId);
+                List<backend.backend.entity.HotelRoomVariant> variants = q.getResultList();
+                BigDecimal min = null;
+                for (backend.backend.entity.HotelRoomVariant v : variants) {
+                    BigDecimal price = v.getPrice();
+                    if (v.getDiscountType() != null && v.getDiscountValue() != null && v.getDiscountValue().compareTo(BigDecimal.ZERO) > 0) {
+                        if ("amount".equals(v.getDiscountType())) {
+                            price = price.subtract(v.getDiscountValue());
+                        } else if ("percent".equals(v.getDiscountType())) {
+                            price = price.multiply(BigDecimal.ONE.subtract(v.getDiscountValue().divide(new BigDecimal("100"))));
+                        }
+                        if (price.compareTo(BigDecimal.ZERO) < 0) price = BigDecimal.ZERO;
+                    }
+                    if (min == null || price.compareTo(min) < 0) min = price;
+                }
+                minDiscountedPriceByHotelId.put(hotelId, min);
+            }
+
             resultList.forEach(hotelDto -> {
                 hotelDto.setAmenities(amenitiesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList()));
                 hotelDto.setImageUrls(imagesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList()));
+                hotelDto.setMinDiscountedPrice(minDiscountedPriceByHotelId.getOrDefault(hotelDto.getId(), null));
             });
         }
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);

@@ -15,7 +15,7 @@
     <transition name="fade">
       <ul
         v-if="showDropdown"
-        class="absolute left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-60 overflow-auto py-1"
+        :class="['absolute left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-60 overflow-auto py-1', direction === 'up' ? 'bottom-full mb-2' : 'mt-2']"
       >
         <li
           v-for="option in options"
@@ -48,6 +48,10 @@ export default {
     disabled: {
       type: Boolean,
       default: false
+    },
+    direction: {
+      type: String,
+      default: 'down',
     }
   },
   data() {

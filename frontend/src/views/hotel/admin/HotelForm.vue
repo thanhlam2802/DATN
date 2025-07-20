@@ -96,7 +96,7 @@
                 </div>
             </div>
 
-            <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
                 <table class="min-w-full w-full divide-y divide-slate-200">
                     <thead class="bg-gradient-to-r from-slate-100 to-slate-200">
                         <tr>
@@ -146,7 +146,7 @@
                             </td>
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="text-sm font-bold text-green-600">
-                                    {{ formatCurrency(h.startingPrice) }}
+                                    {{ formatCurrency(h.minDiscountedPrice != null ? h.minDiscountedPrice : h.startingPrice) }}
                                 </div>
                                 <div class="text-xs text-slate-500">VND/đêm</div>
                             </td>
@@ -186,62 +186,40 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
-
-            <div class="flex flex-col sm:flex-row justify-between items-center mt-8 p-6 bg-white rounded-xl shadow-sm">
-                <div class="flex items-center space-x-3 mb-4 sm:mb-0">
-                    <div class="flex items-center space-x-2">
-                        <i class="fas fa-list-ul text-slate-500"></i>
-                        <label for="itemsPerPage" class="text-sm font-medium text-slate-700">Hiển thị:</label>
-                    </div>
-                    <select v-model="itemsPerPage" id="itemsPerPage"
-                        class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
-                        <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
-                            {{ option === 'Tất cả' ? 'Tất cả' : option }}
-                        </option>
-                    </select>
-                    <div class="flex items-center space-x-1 text-sm text-slate-600">
-                        <span>kết quả trên tổng số</span>
-                        <span class="font-bold text-blue-600">{{ filteredHotels.length }}</span>
-                        <span>khách sạn</span>
-                    </div>
-                </div>
-
-                <div class="w-full sm:w-auto">
-                    <nav v-if="totalPages > 1 && itemsPerPage !== 'Tất cả'" aria-label="Pagination">
-                        <div class="flex items-center space-x-2">
-                            <div class="flex items-center space-x-1 text-sm text-slate-600">
-                                <span>Trang</span>
-                                <span class="font-semibold text-slate-900">{{ currentPage }}</span>
-                                <span>trên</span>
-                                <span class="font-semibold text-slate-900">{{ totalPages }}</span>
-                            </div>
-                            <ul class="flex items-center space-x-1">
-                                <li>
-                                    <button @click="prevPage" :disabled="currentPage === 1"
-                                        class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
-                                        <i class="fas fa-chevron-left text-sm"></i>
-                                    </button>
-                                </li>
-                                <li v-for="(page, index) in displayedPages" :key="index">
-                                    <span v-if="page === '...'"
-                                        class="flex items-center justify-center w-10 h-10 text-slate-400 font-medium">...</span>
-                                    <button v-else @click="changePage(page)" :class="[
-                                        'flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 font-medium shadow-sm',
-                                        currentPage === page
-                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
-                                            : 'text-slate-700 bg-white hover:bg-slate-50 hover:shadow-md'
-                                    ]">{{ page }}</button>
-                                </li>
-                                <li>
-                                    <button @click="nextPage" :disabled="currentPage === totalPages"
-                                        class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
-                                        <i class="fas fa-chevron-right text-sm"></i>
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </nav>
+                <div class="flex items-center justify-end gap-4 px-4 py-3 bg-white border-t border-slate-200 rounded-b-xl">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">Số dòng</span>
+                    <CustomSelect
+                      v-model="itemsPerPageStr"
+                      :options="itemsPerPageOptions.map(opt => ({ label: String(opt), value: String(opt) }))"
+                      class="w-20 min-w-[100px] h-8 [&>button]:h-8 [&>button]:py-1 [&>button]:text-sm"
+                      :direction="'up'"
+                    />
+                  </div>
+                  <nav v-if="totalPages > 1 && itemsPerPageStr !== 'Tất cả'" aria-label="Pagination">
+                    <ul class="inline-flex items-center space-x-1">
+                      <li>
+                        <button @click="prevPage" :disabled="currentPage === 1"
+                          class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
+                          <i class="fas fa-chevron-left text-xs"></i>
+                        </button>
+                      </li>
+                      <li v-for="page in displayedPages" :key="page">
+                        <button v-if="page !== '...'" @click="changePage(page)"
+                          :class="['w-8 h-8 flex items-center justify-center rounded font-medium',
+                            currentPage === page ? 'bg-orange-500 text-white border-orange-500' : 'text-gray-700 hover:bg-gray-100 border border-slate-200']">
+                          {{ page }}
+                        </button>
+                        <span v-else class="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
+                      </li>
+                      <li>
+                        <button @click="nextPage" :disabled="currentPage === totalPages"
+                          class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
+                          <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
                 </div>
             </div>
         </div>
@@ -603,8 +581,8 @@
                                                 <th class="py-2 px-3 font-semibold text-center">Hủy miễn phí</th>
                                                 <th class="py-2 px-3 font-semibold text-center">Thanh toán tại KS</th>
                                                 <th class="py-2 px-3 font-semibold text-center">Thuế/Phí</th>
-                                                <th v-if="!isViewMode" class="py-2 px-3 font-semibold text-center">Xóa
-                                                </th>
+                                                <th class="py-2 px-3 font-semibold text-center">Giảm giá / Giá sau giảm</th>
+                                                <th v-if="!isViewMode" class="py-2 px-3 font-semibold text-center">Xóa</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -644,6 +622,37 @@
                                                             'w-full border border-slate-200 rounded px-2 py-1 text-xs',
                                                             isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
                                                         ]" />
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <div class="flex flex-col items-center gap-1">
+                                                        <div class="flex items-center gap-2">
+                                                            <CustomSelect
+                                                                v-model="v.discountType"
+                                                                :options="[
+                                                                    { label: 'Không giảm', value: '' },
+                                                                    { label: 'VND', value: 'amount' },
+                                                                    { label: '%', value: 'percent' }
+                                                                ]"
+                                                                class="w-24 min-w-[80px] h-8 [&>button]:h-8 [&>button]:py-1 [&>button]:text-xs"
+                                                                :disabled="isViewMode"
+                                                                placeholder="Loại giảm"
+                                                            />
+                                                            <input
+                                                                v-if="v.discountType"
+                                                                v-model.number="v.discountValue"
+                                                                type="number"
+                                                                min="0"
+                                                                :disabled="isViewMode"
+                                                                class="border rounded px-2 py-1 text-xs w-20 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                                                :placeholder="v.discountType === 'percent' ? '%' : 'VND'"
+                                                            />
+                                                            <span v-if="v.discountType === 'percent'" class="ml-1 text-xs text-gray-500">%</span>
+                                                            <span v-else-if="v.discountType === 'amount'" class="ml-1 text-xs text-gray-500">VND</span>
+                                                        </div>
+                                                        <div class="text-green-700 font-bold text-xs mt-1">
+                                                            Giá sau giảm: {{ formatCurrency(getDiscountedPrice(v)) }}
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td v-if="!isViewMode" class="py-2 px-3 text-center">
                                                     <button type="button" @click="removeVariant(idx, vIdx)"
@@ -743,7 +752,7 @@ export default {
             form: { amenities: { wifi: false, parking: false, pool: false, restaurant: false, spa: false, gym: false, ac: false, breakfast: false, elevator: false }, policy: { checkin: '', checkout: '', other: '' } },
             amenityLabels: { wifi: 'WiFi miễn phí', parking: 'Bãi đỗ xe', pool: 'Hồ bơi', restaurant: 'Nhà hàng', spa: 'Spa', gym: 'Phòng tập gym', ac: 'Điều hòa', breakfast: 'Bữa sáng', elevator: 'Thang máy' },
             currentPage: 1,
-            itemsPerPage: 5,
+            itemsPerPageStr: '5',
             itemsPerPageOptions: [5, 10, 15, 20, 50, 'Tất cả'],
             dropdownBtnRefMap: {},
             dropdownStyle: {},
@@ -799,18 +808,20 @@ export default {
         filteredHotels() {
             return [...this.hotels].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         },
+        itemsPerPage() {
+            return this.itemsPerPageStr === 'Tất cả' ? this.filteredHotels.length : Number(this.itemsPerPageStr);
+        },
         totalPages() {
-            const perPage = this.itemsPerPage === 'Tất cả' ? (this.filteredHotels.length || 1) : Number(this.itemsPerPage);
-            return Math.ceil(this.filteredHotels.length / perPage);
+            const perPage = this.itemsPerPage;
+            return Math.ceil(this.filteredHotels.length / (perPage || 1));
         },
         paginatedHotels() {
-            if (this.itemsPerPage === 'Tất cả') {
+            if (this.itemsPerPageStr === 'Tất cả') {
                 return this.filteredHotels;
             }
-            const perPage = Number(this.itemsPerPage);
+            const perPage = this.itemsPerPage;
             const start = (this.currentPage - 1) * perPage;
-            const end = start + perPage;
-            return this.filteredHotels.slice(start, end);
+            return this.filteredHotels.slice(start, start + perPage);
         },
         displayedPages() {
             const total = this.totalPages; const current = this.currentPage; const result = [];
@@ -830,7 +841,7 @@ export default {
     },
     watch: {
         searchQuery() { this.currentPage = 1; this.fetchHotels(); },
-        itemsPerPage() { this.currentPage = 1; this.fetchHotels(); },
+        itemsPerPageStr() { this.currentPage = 1; this.fetchHotels(); },
         mode() {
             this.$nextTick(() => this.updateBreadcrumb());
         },
@@ -902,6 +913,8 @@ export default {
                                 cancellable: variant.cancellable || false,
                                 payAtHotel: variant.payAtHotel || false,
                                 taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                                discountType: variant.discountType || '',
+                                discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                             })),
                         })),
                         amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
@@ -1006,6 +1019,8 @@ export default {
                             cancellable: variant.cancellable || false,
                             payAtHotel: variant.payAtHotel || false,
                             taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                            discountType: variant.discountType || '',
+                            discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                         })),
                     })),
                     amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
@@ -1519,6 +1534,8 @@ export default {
                             cancellable: variant.cancellable || false,
                             payAtHotel: variant.payAtHotel || false,
                             taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                            discountType: variant.discountType || '',
+                            discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                         })),
                     })),
                     amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
@@ -1655,6 +1672,8 @@ export default {
                                 cancellable: variant.cancellable || false,
                                 payAtHotel: variant.payAtHotel || false,
                                 taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                                discountType: variant.discountType || '',
+                                discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                             })),
                         })),
                         amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
@@ -1832,6 +1851,29 @@ export default {
                     this.closeHotelImageUrlPopup();
                 }
             }
+        },
+        getDiscountedPrice(v) {
+            if (!v.discountType || !v.discountValue) return v.price;
+            if (v.discountType === 'amount') return Math.max(0, v.price - v.discountValue);
+            if (v.discountType === 'percent') return Math.max(0, v.price * (1 - v.discountValue / 100));
+            return v.price;
+        },
+        getMinDiscountedPrice(room) {
+            if (!room.availableVariants || room.availableVariants.length === 0) return 0;
+            return Math.min(...room.availableVariants.map(v => this.getDiscountedPrice(v)));
+        },
+        getMinDiscountedPriceForHotel(hotel) {
+            if (!hotel.availableRooms) return 0;
+            let min = Infinity;
+            hotel.availableRooms.forEach(room => {
+                if (room.availableVariants) {
+                    room.availableVariants.forEach(variant => {
+                        const price = this.getDiscountedPrice(variant);
+                        if (price < min) min = price;
+                    });
+                }
+            });
+            return min === Infinity ? 0 : min;
         },
     },
     mounted() {

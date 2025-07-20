@@ -169,8 +169,11 @@
           </div>
         </div>
         <div class="flex items-center gap-4 mt-4 sm:mt-0">
-          <div class="text-left"><span class="text-gray-500 text-sm block">Giá/phòng/đêm từ</span>
-            <div class="text-2xl font-bold text-orange-500 whitespace-nowrap">{{ minRoomPrice }}</div>
+          <div class="text-left">
+            <span class="text-gray-500 text-sm block">Giá/phòng/đêm từ</span>
+            <div class="text-2xl font-bold text-orange-500 whitespace-nowrap">
+              {{ getHeaderDisplayPrice(hotel) !== null ? formatPrice(getHeaderDisplayPrice(hotel)) : 'Liên hệ' }}
+            </div>
           </div>
           <button
             class="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-6 py-2 text-base font-semibold transition focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -361,10 +364,13 @@
                 </td>
                 <td class="text-center align-middle py-4 px-4">
                   <div class="relative inline-block">
-                    <p class="text-orange-500 font-bold text-base peer">
-                      {{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) :
-                        variant.price) }}
-                    </p>
+                    <template v-if="showVariantDiscount(variant)">
+                      <span class="text-gray-400 font-bold text-base line-through block">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
+                      <span class="text-orange-500 font-bold text-xl block peer">{{ formatPrice(getDiscountedPrice(variant)) }}</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-orange-500 font-bold text-xl block peer">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
+                    </template>
                     <p class="text-xs text-gray-400 font-normal mt-1">
                       {{ priceDisplayMode === 'totalPrice' ? 'Đã bao gồm thuế và phí' : 'Chưa bao gồm thuế và phí' }}
                     </p>
@@ -372,16 +378,12 @@
                       class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 translate-z-0 w-max max-w-[280px] bg-gray-800 text-white text-xs rounded-lg py-2 px-3 opacity-0 peer-hover:opacity-100 transition-opacity whitespace-nowrap z-9999 shadow-lg cursor-default">
                       <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-left">
                         <span class="font-medium text-gray-300">Giá phòng:</span>
-                        <span class="text-right font-semibold">{{ formatPrice(variant.price) }}</span>
-
+                        <span class="text-right font-semibold">{{ formatPrice(getDiscountedBasePrice(variant)) }}</span>
                         <span class="font-medium text-gray-300">Thuế và phí:</span>
-                        <span class="text-right font-semibold">{{ formatPrice(getTaxesAndFees(variant)) }}</span>
-
+                        <span class="text-right font-semibold">{{ formatPrice(getDiscountedTaxesAndFees(variant)) }}</span>
                         <div class="col-span-2 border-t border-gray-600 my-1"></div>
-
                         <span class="font-bold text-gray-100">Tổng cộng:</span>
-                        <span class="text-right font-bold text-gray-100">{{ formatPrice(variant.totalPrice ??
-                          variant.price) }}</span>
+                        <span class="text-right font-bold text-gray-100">{{ formatPrice(getDiscountedTotalPrice(variant)) }}</span>
                       </div>
                       <div
                         class="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800">
@@ -414,30 +416,67 @@
     </section>
 
     <section class="bg-white rounded-xl shadow p-6 mb-8">
-      <div class="flex items-center gap-4 mb-8">
-        <h2 class="text-2xl font-bold text-gray-800">{{ hotel.reviewCount }} đánh giá</h2>
-      </div>
-      <div v-if="reviewsList.length > 0" class="space-y-6">
-        <div v-for="review in paginatedReviews" :key="review.id"
-          class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl border border-gray-100 shadow-md mb-6 transition hover:shadow-lg">
-          <div class="flex items-start gap-5">
-            <img :alt="review.author" class="w-14 h-14 rounded-full object-cover border-2 border-blue-200 shadow"
-              :src="review.avatar || 'https://i.pravatar.cc/150?u=' + review.author" />
-            <div class="flex-1">
-              <div class="flex items-center justify-between">
-                <div>
-                  <span class="font-semibold text-lg text-gray-900">{{ review.author }}</span>
-                  <span class="ml-2 text-xs text-gray-400">{{ review.date }}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                  <i class="fas fa-star text-yellow-400 text-lg"></i>
-                  <span class="font-bold text-yellow-500 text-base">{{ review.rating }}/5</span>
-                </div>
+      <div class="flex flex-col sm:flex-row items-center gap-8 mb-8">
+        <div class="flex flex-row items-center gap-6 w-full sm:w-auto">
+          <div class="flex items-center justify-center">
+            <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-white border-2 border-blue-100 shadow p-0.5">
+              <div class="w-24 h-24 flex items-center justify-center rounded-2xl bg-blue-50">
+                <span class="text-5xl font-extrabold text-blue-500">{{ averageRating.toFixed(1) }}</span>
               </div>
-              <p class="mt-3 text-gray-800 text-base leading-relaxed whitespace-pre-line">
-                {{ review.content }}
-              </p>
             </div>
+          </div>
+          <div class="flex flex-col justify-center">
+            <div class="text-2xl font-extrabold text-blue-600">{{ ratingLabel }}</div>
+            <div class="text-lg font-bold text-gray-900 mt-1">Từ {{ reviewsList.length }} đánh giá</div>
+            <div class="text-gray-400 text-sm mt-1">Bởi khách du lịch trên hệ thống</div>
+          </div>
+        </div>
+        <div class="flex-1 flex flex-col sm:flex-row gap-4 items-center justify-end">
+          <div class="flex items-center gap-8">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Sắp xếp theo:</span>
+              <CustomSelect
+                v-model="selectedSortOption"
+                :options="sortOptions"
+                class="w-44 min-w-[235px]"
+                @update:modelValue="val => selectedSortOption = val"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Lọc theo mức độ:</span>
+              <CustomSelect
+                v-model="selectedLevelFilter"
+                :options="levelOptions"
+                class="w-44 min-w-[200px]"
+                @update:modelValue="val => selectedLevelFilter = val"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="filteredReviews.length > 0" class="space-y-6">
+        <div v-for="review in paginatedReviews" :key="review.id"
+          class="flex items-start gap-6 bg-white p-6 rounded-2xl border border-gray-200 shadow mb-4">
+          <div class="flex-shrink-0">
+            <div v-if="review.avatar" class="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+              <img :src="review.avatar" :alt="review.author" class="w-full h-full object-cover" />
+            </div>
+            <div v-else class="w-16 h-16 rounded-full bg-blue-900 flex items-center justify-center text-white text-2xl font-bold">
+              {{ (review.author || '').charAt(0).toUpperCase() }}
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-row items-start justify-between gap-2">
+              <div class="flex items-center gap-3 flex-wrap">
+                <span class="font-bold text-lg text-gray-900">{{ review.author }}</span>
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-base">
+                  <i class="fas fa-crow text-blue-400"></i> {{ review.rating?.toFixed(1) || review.rating }}/5
+                </span>
+              </div>
+              <span class="text-gray-500 text-sm font-medium whitespace-nowrap">{{ formatRelativeTime(review) }}</span>
+            </div>
+            <div class="mt-2 text-base text-gray-900 font-normal whitespace-pre-line">{{ review.content }}</div>
+            <div v-if="review.translated" class="text-xs text-gray-400 italic mt-1">translated by Google <a href="#" class="text-blue-500 underline ml-1">Xem bản gốc</a></div>
           </div>
         </div>
       </div>
@@ -469,12 +508,13 @@
       </div>
       <div v-if="reviewsList.length > 0" class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-2">
-          <label for="reviews-per-page" class="text-sm font-medium text-gray-700">Hiển thị:</label>
-          <select id="reviews-per-page" v-model="reviewsPerPage"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5">
-            <option v-for="option in reviewsPerPageOptions" :key="option.value" :value="option.value">{{ option.text }}
-            </option>
-          </select>
+          <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Hiển thị:</span>
+          <CustomSelect
+            v-model="reviewsPerPage"
+            :options="reviewsPerPageOptions"
+            class="w-44 min-w-[140px]"
+            @update:modelValue="val => reviewsPerPage = val"
+          />
         </div>
         <div class="flex items-center gap-4">
           <span class="text-sm font-medium text-gray-700">Trang {{ currentPage }} / {{ totalPages }}</span>
@@ -608,6 +648,7 @@ import { getHotelById, getHotelReviews, searchHotels, createHotelReview } from "
 import { getAllProvinces } from "@/api/provinceApi.js";
 import HotelCard from '@/components/Home/HotelCard.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
+import CustomSelect from '@/components/CustomSelect.vue';
 
 const hotel = ref(null);
 const reviewsList = ref([]);
@@ -848,8 +889,8 @@ const getTaxesAndFees = (variant) => {
 const currentPage = ref(1);
 const reviewsPerPage = ref(5);
 const reviewsPerPageOptions = ref([
-  { value: 5, text: "5 đánh giá" },
-  { value: 10, text: "10 đánh giá" },
+  { value: 5, label: '5 đánh giá' },
+  { value: 10, label: '10 đánh giá' }
 ]);
 
 const totalPages = computed(() => {
@@ -857,10 +898,51 @@ const totalPages = computed(() => {
   return Math.ceil(reviewsList.value.length / reviewsPerPage.value);
 });
 
+const averageRating = computed(() => {
+  if (!reviewsList.value.length) return 0;
+  const sum = reviewsList.value.reduce((acc, r) => acc + (r.rating || 0), 0);
+  return sum / reviewsList.value.length;
+});
+const ratingLabel = computed(() => {
+  const avg = averageRating.value;
+  if (avg >= 4.5) return 'Xuất sắc';
+  if (avg >= 4.0) return 'Rất tốt';
+  if (avg >= 3.0) return 'Tốt';
+  if (avg >= 2.0) return 'Trung bình';
+  return 'Kém';
+});
+const selectedSortOption = ref('recent');
+const selectedLevelFilter = ref('all');
+const filteredReviews = computed(() => {
+  let filtered = reviewsList.value.slice();
+  if (selectedLevelFilter.value !== 'all') {
+    filtered = filtered.filter(r => {
+      if (selectedLevelFilter.value === 'excellent') return r.rating === 5;
+      if (selectedLevelFilter.value === 'verygood') return r.rating === 4;
+      if (selectedLevelFilter.value === 'good') return r.rating === 3;
+      if (selectedLevelFilter.value === 'average') return r.rating === 2;
+      if (selectedLevelFilter.value === 'poor') return r.rating === 1;
+      return true;
+    });
+  }
+  if (selectedSortOption.value === 'recent') {
+    filtered.sort((a, b) => {
+      const dateA = parseVNDate(a.createdAt || a.created_at || a.date);
+      const dateB = parseVNDate(b.createdAt || b.created_at || b.date);
+      return dateB - dateA;
+    });
+  } else if (selectedSortOption.value === 'ratingDesc') {
+    filtered.sort((a, b) => b.rating - a.rating);
+  } else if (selectedSortOption.value === 'ratingAsc') {
+    filtered.sort((a, b) => a.rating - b.rating);
+  }
+  return filtered;
+});
+
 const paginatedReviews = computed(() => {
   const start = (currentPage.value - 1) * reviewsPerPage.value;
   const end = start + reviewsPerPage.value;
-  return reviewsList.value.slice(start, end);
+  return filteredReviews.value.slice(start, end);
 });
 
 const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++; };
@@ -1099,6 +1181,37 @@ function scrollThumbToActive() {
 }
 watch(modalImageIndex, () => scrollThumbToActive());
 
+function parseVNDate(str) {
+  if (!str) return new Date(0);
+  const [datePart, timePart] = str.split(' ');
+  const [day, month, year] = datePart.split('/').map(Number);
+  let hours = 0, minutes = 0;
+  if (timePart) {
+    [hours, minutes] = timePart.split(':').map(Number);
+  }
+  return new Date(year, month - 1, day, hours, minutes);
+}
+
+function formatRelativeTime(review) {
+  const raw = review.createdAt || review.created_at || review.date;
+  if (!raw) return '';
+  const date = parseVNDate(raw);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  const diffWeek = Math.floor(diffDay / 7);
+  const diffMonth = Math.floor(diffDay / 30);
+  if (diffMin < 1) return 'Vừa xong';
+  if (diffHour < 1) return `${diffMin} phút trước`;
+  if (diffDay < 1) return `${diffHour} giờ trước`;
+  if (diffWeek < 1) return `${diffDay} ngày trước`;
+  if (diffMonth < 1) return `${diffWeek} tuần trước`;
+  return `${diffMonth} tháng trước`;
+}
+
 const submitReview = async () => {
   reviewError.value = '';
   reviewSuccess.value = '';
@@ -1124,6 +1237,80 @@ const submitReview = async () => {
     submittingReview.value = false;
   }
 };
+
+const sortOptions = [
+  { label: 'Gần đây nhất', value: 'recent' },
+  { label: 'Đánh giá (cao xuống thấp)', value: 'ratingDesc' },
+  { label: 'Đánh giá (thấp đến cao)', value: 'ratingAsc' },
+];
+const levelOptions = [
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Xuất sắc (5★)', value: 'excellent' },
+  { label: 'Rất tốt (4★)', value: 'verygood' },
+  { label: 'Tốt (3★)', value: 'good' },
+  { label: 'Trung bình (2★)', value: 'average' },
+  { label: 'Kém (1★)', value: 'poor' },
+];
+
+function getDiscountedPrice(variant) {
+  if (!variant.discountType || !variant.discountValue) return priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+  let base = priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+  if (variant.discountType === 'amount') return Math.max(0, base - variant.discountValue);
+  if (variant.discountType === 'percent') return Math.max(0, base * (1 - variant.discountValue / 100));
+  return base;
+}
+function showVariantDiscount(variant) {
+  if (!variant.discountType || !variant.discountValue) return false;
+  let base = priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+  let discounted = getDiscountedPrice(variant);
+  return discounted < base;
+}
+
+function getHeaderDisplayPrice(hotel) {
+  let min = Infinity;
+  if (hotel.availableRooms) {
+    hotel.availableRooms.forEach(room => {
+      if (room.availableVariants) {
+        room.availableVariants.forEach(variant => {
+          let base = priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+          let price = base;
+          if (variant.discountType && variant.discountValue) {
+            if (variant.discountType === 'amount') price = base - variant.discountValue;
+            if (variant.discountType === 'percent') price = base * (1 - variant.discountValue / 100);
+          }
+          if (price < min) min = price;
+        });
+      }
+    });
+  }
+  return min !== Infinity ? min : null;
+}
+
+function getDiscountedBasePrice(variant) {
+  let base = variant.price;
+  if (variant.discountType && variant.discountValue) {
+    if (variant.discountType === 'amount') base = base - variant.discountValue;
+    if (variant.discountType === 'percent') base = base * (1 - variant.discountValue / 100);
+  }
+  return base;
+}
+function getDiscountedTaxesAndFees(variant) {
+  let base = variant.price;
+  if (variant.discountType && variant.discountValue) {
+    if (variant.discountType === 'amount') base = base - variant.discountValue;
+    if (variant.discountType === 'percent') base = base * (1 - variant.discountValue / 100);
+  }
+  if (variant.taxAndFeeAmount) return variant.taxAndFeeAmount;
+  return 0;
+}
+function getDiscountedTotalPrice(variant) {
+  let base = variant.price;
+  if (variant.discountType && variant.discountValue) {
+    if (variant.discountType === 'amount') base = base - variant.discountValue;
+    if (variant.discountType === 'percent') base = base * (1 - variant.discountValue / 100);
+  }
+  return base + (variant.taxAndFeeAmount || 0);
+}
 </script>
 
 <style scoped>

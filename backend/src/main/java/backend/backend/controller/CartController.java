@@ -1,6 +1,6 @@
 package backend.backend.controller;
 
-import backend.backend.dto.TicketDetailDto;
+import backend.backend.dto.OrderDto;
 import backend.backend.entity.ApiResponse;
 import backend.backend.service.CartService;
 import backend.backend.utils.ResponseFactory;
@@ -21,19 +21,19 @@ public class CartController {
      * @return Chi tiết giỏ hàng vừa được tạo.
      */
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<TicketDetailDto>> createCart(@RequestParam Integer userId) {
-        TicketDetailDto newCart = cartService.createCartForUser(userId);
+    public ResponseEntity<ApiResponse<OrderDto>> createCart(@RequestParam Integer userId) {
+        OrderDto newCart = cartService.createCartForUser(userId);
         return ResponseFactory.created(newCart, "Tạo giỏ hàng mới thành công.");
     }
 
     /**
      * Lấy thông tin chi tiết của một giỏ hàng, bao gồm tất cả các mục bên trong.
-     * @param cartId ID của giỏ hàng (TicketDetail).
+     * @param orderId ID của giỏ hàng (Order).
      * @return Chi tiết giỏ hàng.
      */
-    @GetMapping("/{cartId}")
-    public ResponseEntity<ApiResponse<TicketDetailDto>> getCartDetails(@PathVariable Integer cartId) {
-        TicketDetailDto cart = cartService.getCartById(cartId);
+    @GetMapping("/{orderId}")
+    public ResponseEntity<ApiResponse<OrderDto>> getCartDetails(@PathVariable Integer orderId) {
+        OrderDto cart = cartService.getCartById(orderId);
         return ResponseFactory.success(cart, "Lấy thông tin giỏ hàng thành công.");
     }
 
@@ -44,8 +44,8 @@ public class CartController {
      * @return Chi tiết giỏ hàng sau khi đã xóa mục.
      */
     @DeleteMapping("/items")
-    public ResponseEntity<ApiResponse<TicketDetailDto>> removeItemFromCart(@RequestParam Integer itemId, @RequestParam String itemType) {
-        TicketDetailDto updatedCart = cartService.removeItemFromCart(itemId, itemType);
+    public ResponseEntity<ApiResponse<OrderDto>> removeItemFromCart(@RequestParam Integer itemId, @RequestParam String itemType) {
+        OrderDto updatedCart = cartService.removeItemFromCart(itemId, itemType);
         return ResponseFactory.success(updatedCart, "Xóa sản phẩm khỏi giỏ hàng thành công.");
     }
 }

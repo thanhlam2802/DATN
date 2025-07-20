@@ -16,9 +16,9 @@ public class FlightBookingDto {
     private java.time.LocalDateTime bookingDate;
     private Integer flightSlotId;
     private Integer customerId;
-    private Integer ticketDetailId;
     private Integer flightId;
     private Integer userId;
+    private Integer orderId;
     private List<String> seatCodes;
     private double totalPrice;
 

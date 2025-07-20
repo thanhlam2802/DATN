@@ -14,7 +14,6 @@ public class OrderDto {
     private Integer voucherId; 
     private Integer destinationId;
     private LocalDateTime createdAt;
-    private Integer ticketDetailId;
     private String mainProduct;
     private LocalDateTime expiresAt;
 

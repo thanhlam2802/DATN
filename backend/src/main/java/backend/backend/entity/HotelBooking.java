@@ -17,10 +17,6 @@ public class HotelBooking {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_variant_id", nullable = false)
     private HotelRoomVariant roomVariant;
 
@@ -42,6 +38,10 @@ public class HotelBooking {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_detail_id")
-    private TicketDetail ticketDetail;
+    @JoinColumn(name = "order_id")
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
 }

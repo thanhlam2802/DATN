@@ -9,6 +9,6 @@ import backend.backend.entity.BookingTour;
 
 public interface BookingTourDAO extends JpaRepository<BookingTour, Integer> {
 
-	List<BookingTour> findByTicketDetailId(Integer id);
+	List<BookingTour> findByOrderId(Integer id);
 
 }

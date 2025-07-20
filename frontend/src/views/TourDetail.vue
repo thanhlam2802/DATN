@@ -244,37 +244,64 @@ const getAvailabilityClass = (seats) => {
   return "text-green-600";
 };
 
-const handleBooking = () => {
+const handleBooking = async () => {
   if (!bookingForm.value.selectedDate) {
     alert("Vui lòng chọn ngày khởi hành");
     return;
   }
 
-  // SỬA LỖI: Tìm đúng ngày khởi hành đã chọn để lấy ID
+  // Tìm ngày khởi hành đã chọn
   const selectedDeparture = availableDates.value.find(
     (d) => d.date === bookingForm.value.selectedDate
   );
-
   if (!selectedDeparture) {
     alert("Lỗi: Không tìm thấy thông tin ngày khởi hành. Vui lòng thử lại.");
     return;
   }
 
-  // Chuẩn bị dữ liệu để gửi đi
-  const bookingData = {
+  // Chuẩn bị dữ liệu giữ chỗ (mua ngay)
+  const reservationRequest = {
+    userId: 1, // TODO: Lấy userId thực tế
     tourId: tour.value.id,
-    tourName: tour.value.name,
-    selectedDate: bookingForm.value.selectedDate,
-    departureId: selectedDeparture.departureId, // SỬA LỖI: Gửi departureId đi
-    travelers: JSON.stringify(bookingForm.value.travelers),
+    departureId: selectedDeparture.departureId,
+    numberOfAdults: bookingForm.value.travelers.adults,
+    numberOfChildren: bookingForm.value.travelers.children,
+    customerName: '', // Sẽ nhập ở bước tiếp theo
+    phone: '',
+    email: '',
+    notes: '',
     totalPrice: total.value,
   };
 
-  // Chuyển hướng đến trang checkout và truyền dữ liệu qua query params
-  router.push({
-    name: "checkout", // Tên của route checkout trong file router/index.js của bạn
-    query: bookingData,
-  });
+  // Gọi API giữ chỗ (tạo order tạm thời)
+  try {
+    const response = await fetch('http://localhost:8080/api/v1/orders/reserve-tour-direct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reservationRequest),
+    });
+    const result = await response.json();
+    if (response.ok && result.statusCode === 201) {
+      const order = result.data;
+      // Chuyển sang trang checkout, truyền orderId và các thông tin cần thiết
+      router.push({
+        name: 'checkout',
+        query: {
+          orderId: order.id,
+          tourId: tour.value.id,
+          tourName: tour.value.name,
+          selectedDate: bookingForm.value.selectedDate,
+          departureId: selectedDeparture.departureId,
+          travelers: JSON.stringify(bookingForm.value.travelers),
+          totalPrice: total.value,
+        },
+      });
+    } else {
+      alert(result.message || 'Không thể giữ chỗ.');
+    }
+  } catch (error) {
+    alert('Lỗi kết nối máy chủ.');
+  }
 };
 
 const averageRating = computed(() => {

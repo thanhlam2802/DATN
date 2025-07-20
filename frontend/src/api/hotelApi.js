@@ -34,6 +34,12 @@ export const createHotelReview = (hotelId, data) => {
     return axios.post(`${API_BASE_URL}/${hotelId}/reviews`, data, { headers });
 };
 
+export const bookHotel = (data) => {
+    const token = getAccessToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axios.post(`${API_BASE_URL}/book`, data, { headers });
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -41,5 +47,6 @@ export default {
     createHotel,
     updateHotel,
     deleteHotel,
-    createHotelReview
+    createHotelReview,
+    bookHotel
 };

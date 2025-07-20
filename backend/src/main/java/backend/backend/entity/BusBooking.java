@@ -36,6 +36,6 @@ public class BusBooking {
   
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_detail_id")
-    private TicketDetail ticketDetail;
+    @JoinColumn(name = "order_id")
+    private Order order;
 }

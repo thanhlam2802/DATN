@@ -1,0 +1,115 @@
+{
+  "info": {
+    "_postman_id": "core-banking-demo-collection",
+    "name": "Core Banking Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Demo các API core banking với dữ liệu mẫu. Tất cả request đều cần header X-API-KEY: test-api-key"
+  },
+  "item": [
+    {
+      "name": "Account Lookup (MB Bank)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/account-lookup", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "account-lookup"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bankCode\": \"MB Bank\",\n  \"accountNumber\": \"11111\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Balance (Account 2)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/accounts/2/balances", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "accounts", "2", "balances"] }
+      }
+    },
+    {
+      "name": "Get Transactions (Account 2)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/api/v1/accounts/2/transactions?from=2025-07-01&to=2025-07-31",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8081",
+          "path": ["api", "v1", "accounts", "2", "transactions"],
+          "query": [
+            { "key": "from", "value": "2025-07-01" },
+            { "key": "to", "value": "2025-07-31" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Payment (Account 2 -> 3)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/payments", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"debtorAccountId\": 2,\n  \"creditorAccountId\": 3,\n  \"amount\": 1000000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Chuyen tien cho Ty\",\n  \"idempotencyKey\": \"demo-1\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Payment with Fee (Nguồn hệ thống -> 4, phí: 5)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/payments/fee", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments", "fee"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"feeAccountId\": 5,\n  \"targetAccountId\": 4,\n  \"amount\": 500000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Thanh toan dich vu\",\n  \"idempotencyKey\": \"demo-2\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Refund by PaymentId (giả sử paymentId là uuid-1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/payments/uuid-1/refunds", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments", "uuid-1", "refunds"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 100000.00,\n  \"reason\": \"Hoan tien demo\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Refund by TransactionId (giả sử transactionId là 10)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/refunds/by-transaction", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "refunds", "by-transaction"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transactionId\": 10,\n  \"reason\": \"Hoan tien do loi dich vu\"\n}"
+        }
+      }
+    }
+  ]
+} 

@@ -1,9 +1,6 @@
 package backend.backend.entity;
 
 
-
-
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,15 +9,6 @@ import jakarta.persistence.*;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode
-@Embeddable 
-class UserRoleId implements Serializable {
-    private Integer userId;
-    private Integer roleId;
-}
 
 @Data
 @Entity

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>OTP Verification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+        }
+        p {
+            font-size: 16px;
+            color: #555;
+        }
+        .otp-code {
+            display: inline-block;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #007BFF;
+            padding: 12px 24px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Xác thực tài khoản</h2>
+    <p>Chào bạn,</p>
+    <p>Chúng tôi đã nhận được yêu cầu xác thực từ bạn. Vui lòng sử dụng mã OTP bên dưới để tiếp tục:</p>
+
+    <div class="otp-code">{{OTP_CODE}}</div>
+
+    <p>Mã này sẽ hết hạn sau {{EXPIRED_MINUTE}} phút.</p>
+    <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
+
+    <div class="footer">
+        &copy; 2025 Your Company. All rights reserved.
+    </div>
+</div>
+</body>
+</html>

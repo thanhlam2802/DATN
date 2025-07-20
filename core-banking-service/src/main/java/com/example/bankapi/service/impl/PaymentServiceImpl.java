@@ -2,6 +2,7 @@ package com.example.bankapi.service.impl;
 
 import com.example.bankapi.exception.AccountNotFoundException;
 import com.example.bankapi.exception.InsufficientFundsException;
+import com.example.bankapi.model.dto.RefundDto;
 import com.example.bankapi.model.entity.Account;
 import com.example.bankapi.model.entity.Payment;
 import com.example.bankapi.model.entity.Refund;
@@ -11,7 +12,6 @@ import com.example.bankapi.repository.PaymentRepository;
 import com.example.bankapi.repository.RefundRepository;
 import com.example.bankapi.repository.TransactionRepository;
 import com.example.bankapi.service.PaymentService;
-import com.example.bankapi.mapper.PaymentMapper;
 import com.example.bankapi.model.dto.PaymentDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +29,9 @@ public class PaymentServiceImpl implements PaymentService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
-    private static final Long FIXED_SOURCE_ACCOUNT_ID = 1L; // ID tài khoản nguồn cố định
+    private static final String accountNumber = "66666";
+
+    private static final String bankcore = "MB Bank";
     private static final Logger logger = LoggerFactory.getLogger(PaymentServiceImpl.class);
 
     @Autowired
@@ -41,14 +43,14 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Payment initiatePayment(Long debtorAccountId, Long creditorAccountId, BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey) {
-        logger.info("[PaymentService] initiatePayment - debtorAccountId: {}, creditorAccountId: {}, amount: {}, currency: {}, remittanceInfo: {}, idempotencyKey: {}", debtorAccountId, creditorAccountId, amount, currency, remittanceInfo, idempotencyKey);
-        Account debtor = accountRepository.findById(debtorAccountId)
+    public PaymentDto initiatePayment(String debtorAccountNumber, String debtorBankCode, String creditorAccountNumber, String creditorBankCode, BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey) {
+        logger.info("[PaymentService] initiatePayment - debtorAccountNumber: {}, debtorBankCode: {}, creditorAccountNumber: {}, creditorBankCode: {}, amount: {}, currency: {}, remittanceInfo: {}, idempotencyKey: {}", debtorAccountNumber, debtorBankCode, creditorAccountNumber, creditorBankCode, amount, currency, remittanceInfo, idempotencyKey);
+        Account debtor = accountRepository.findByBankCodeAndAccountNumber(debtorBankCode, debtorAccountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản ghi nợ"));
-        Account creditor = accountRepository.findById(creditorAccountId)
+        Account creditor = accountRepository.findByBankCodeAndAccountNumber(creditorBankCode, creditorAccountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản ghi có"));
-        logger.info("[PaymentService] initiatePayment - Debtor: id={}, accountNumber={}, balance={}", debtor.getId(), debtor.getAccountNumber(), debtor.getAvailableBalance());
-        logger.info("[PaymentService] initiatePayment - Creditor: id={}, accountNumber={}, balance={}", creditor.getId(), creditor.getAccountNumber(), creditor.getAvailableBalance());
+        logger.info("[PaymentService] initiatePayment - Debtor: id={}, accountNumber={}, bankCode={}, balance={}", debtor.getId(), debtor.getAccountNumber(), debtor.getBankCode(), debtor.getAvailableBalance());
+        logger.info("[PaymentService] initiatePayment - Creditor: id={}, accountNumber={}, bankCode={}, balance={}", creditor.getId(), creditor.getAccountNumber(), creditor.getBankCode(), creditor.getAvailableBalance());
         if (debtor.getAvailableBalance().add(debtor.getOverdraftLimit()).compareTo(amount) < 0) {
             throw new InsufficientFundsException("Số dư không đủ");
         }
@@ -93,13 +95,14 @@ public class PaymentServiceImpl implements PaymentService {
         logger.info("[PaymentService] initiatePayment - Transaction created: id={}, accountId={}, amount={}, description={}, bookingDate={}",
             t2.getId(), t2.getAccount().getId(), t2.getAmount(), t2.getDescription(), t2.getBookingDate()
         );
-        return payment;
+        return toPaymentDto(payment);
     }
 
     @Override
-    public Optional<Payment> getStatus(UUID paymentId) {
-        // TODO: Implement logic
-        return paymentRepository.findByPaymentId(paymentId);
+    public PaymentDto getStatus(UUID paymentId) {
+        return paymentRepository.findByPaymentId(paymentId)
+                .map(this::toPaymentDto)
+                .orElse(null);
     }
 
     @Override
@@ -111,7 +114,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Refund refundPayment(UUID paymentId, BigDecimal amount, String reason) {
+    public RefundDto refundPayment(UUID paymentId, BigDecimal amount, String reason) {
         Payment payment = paymentRepository.findByPaymentId(paymentId)
                 .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy giao dịch thanh toán"));
         Account creditor = payment.getCreditorAccount();
@@ -147,16 +150,16 @@ public class PaymentServiceImpl implements PaymentService {
         t2.setAmount(amount);
         t2.setDescription("Nhận hoàn tiền từ " + creditor.getAccountNumber());
         transactionRepository.save(t2);
-        return refund;
+        return toRefundDto(refund);
     }
 
     @Override
-    public Payment payServicePayment(Long customerAccountId, BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey) {
-        Account customer = accountRepository.findById(customerAccountId)
+    public PaymentDto payServicePayment(String customerAccountNumber, String customerBankCode, BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey) {
+        Account customer = accountRepository.findByBankCodeAndAccountNumber(customerBankCode, customerAccountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản khách hàng"));
-        Account system = accountRepository.findById(FIXED_SOURCE_ACCOUNT_ID)
+        Account system = accountRepository.findByBankCodeAndAccountNumber(bankcore,accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản nguồn hệ thống"));
-        logger.info("[PaymentService] payServicePayment - Customer: id={}, accountNumber={}, balance={}", customer.getId(), customer.getAccountNumber(), customer.getAvailableBalance());
+        logger.info("[PaymentService] payServicePayment - Customer: id={}, accountNumber={}, bankCode={}, balance={}", customer.getId(), customer.getAccountNumber(), customer.getBankCode(), customer.getAvailableBalance());
         logger.info("[PaymentService] payServicePayment - System: id={}, accountNumber={}, balance={}", system.getId(), system.getAccountNumber(), system.getAvailableBalance());
         if (customer.getAvailableBalance().add(customer.getOverdraftLimit()).compareTo(amount) < 0) {
             throw new InsufficientFundsException("Số dư tài khoản khách hàng không đủ");
@@ -202,21 +205,41 @@ public class PaymentServiceImpl implements PaymentService {
         logger.info("[PaymentService] payServicePayment - Transaction created: id={}, accountId={}, amount={}, description={}, bookingDate={}",
             t2.getId(), t2.getAccount().getId(), t2.getAmount(), t2.getDescription(), t2.getBookingDate()
         );
-        return payment;
+        return toPaymentDto(payment);
     }
 
     @Override
-    public Refund refundByTransactionId(UUID transactionId, String reason) {
+    public RefundDto refundByTransactionId(UUID transactionId, String reason) {
         logger.info("[PaymentService] refundByTransactionId - transactionId: {}, reason: {}", transactionId, reason);
         Transaction tx = transactionRepository.findByTransactionId(transactionId);
         Payment payment = paymentRepository.findAll().stream()
                 .filter(p -> p.getDebtorAccount().getId().equals(tx.getAccount().getId()) || p.getCreditorAccount().getId().equals(tx.getAccount().getId()))
                 .findFirst().orElseThrow(() -> new AccountNotFoundException("Không tìm thấy payment liên quan"));
         BigDecimal amount = tx.getAmount().abs();
-        Refund refund = refundPayment(payment.getPaymentId(), amount, reason);
-        logger.info("[PaymentService] refundByTransactionId - Refund created: id={}, refundId={}, amount={}, status={}, paymentId={}, createdAt={}",
-            refund.getId(), refund.getRefundId(), refund.getAmount(), refund.getStatus(), refund.getPayment().getId(), refund.getCreatedAt()
+        RefundDto refund = refundPayment(payment.getPaymentId(), amount, reason);
+        logger.info("[PaymentService] refundByTransactionId - Refund created:  refundId={}, amount={}, status={}, createdAt={}",
+             refund.getRefundId(), refund.getAmount(), refund.getStatus(), refund.getCreatedAt()
         );
         return refund;
+    }
+
+    public PaymentDto toPaymentDto(Payment entity) {
+        if (entity == null) return null;
+        PaymentDto dto = new PaymentDto();
+        dto.setPaymentId(entity.getPaymentId());
+        dto.setStatus(entity.getStatus());
+        dto.setAmount(entity.getAmount());
+        dto.setCurrency(entity.getCurrency());
+        dto.setCreatedAt(entity.getCreatedAt());
+        return dto;
+    }
+    public RefundDto toRefundDto(Refund entity) {
+        if (entity == null) return null;
+        RefundDto dto = new RefundDto();
+        dto.setRefundId(entity.getRefundId());
+        dto.setStatus(entity.getStatus());
+        dto.setAmount(entity.getAmount());
+        dto.setCreatedAt(entity.getCreatedAt());
+        return dto;
     }
 } 

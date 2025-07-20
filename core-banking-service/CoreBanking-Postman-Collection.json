@@ -22,29 +22,41 @@
       }
     },
     {
-      "name": "Get Balance (Account 2)",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "X-API-KEY", "value": "test-api-key" }
-        ],
-        "url": { "raw": "http://localhost:8081/api/v1/accounts/2/balances", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "accounts", "2", "balances"] }
-      }
-    },
-    {
-      "name": "Get Transactions (Account 2)",
+      "name": "Get Balance (Account MB Bank)",
       "request": {
         "method": "GET",
         "header": [
           { "key": "X-API-KEY", "value": "test-api-key" }
         ],
         "url": {
-          "raw": "http://localhost:8081/api/v1/accounts/2/transactions?from=2025-07-01&to=2025-07-31",
+          "raw": "http://localhost:8081/api/v1/accounts/balances?accountNumber=11111&bankCode=MB%20Bank",
           "protocol": "http",
           "host": ["localhost"],
           "port": "8081",
-          "path": ["api", "v1", "accounts", "2", "transactions"],
+          "path": ["api", "v1", "accounts", "balances"],
           "query": [
+            { "key": "accountNumber", "value": "11111" },
+            { "key": "bankCode", "value": "MB Bank" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Transactions (Account MB Bank)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/api/v1/accounts/transactions?accountNumber=11111&bankCode=MB%20Bank&from=2025-07-01&to=2025-07-31",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8081",
+          "path": ["api", "v1", "accounts", "transactions"],
+          "query": [
+            { "key": "accountNumber", "value": "11111" },
+            { "key": "bankCode", "value": "MB Bank" },
             { "key": "from", "value": "2025-07-01" },
             { "key": "to", "value": "2025-07-31" }
           ]
@@ -62,7 +74,7 @@
         "url": { "raw": "http://localhost:8081/api/v1/payments", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments"] },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"debtorAccountId\": 2,\n  \"creditorAccountId\": 3,\n  \"amount\": 1000000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Chuyen tien cho Ty\",\n  \"idempotencyKey\": \"demo-1\"\n}"
+          "raw": "{\n  \"debtorAccountNumber\": \"22222\",\n  \"debtorBankCode\": \"Techcombank\",\n  \"creditorAccountNumber\": \"33333\",\n  \"creditorBankCode\": \"VP Bank\",\n  \"amount\": 1000000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Chuyen tien cho Ty\",\n  \"idempotencyKey\": \"demo-1\"\n}"
         }
       }
     },
@@ -77,7 +89,7 @@
         "url": { "raw": "http://localhost:8081/api/v1/payments/service", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments", "service"] },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"customerAccountId\": 2,\n  \"amount\": 50000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Thanh toán dịch vụ\",\n  \"idempotencyKey\": \"demo-service-1\"\n}"
+          "raw": "{\n  \"customerAccountNumber\": \"11111\",\n  \"customerBankCode\": \"MB Bank\",\n  \"amount\": 50000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Thanh toán dịch vụ\",\n  \"idempotencyKey\": \"demo-service-1\"\n}"
         }
       }
     },

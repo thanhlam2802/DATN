@@ -10,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    List<Transaction> findByAccountIdAndBookingDateBetween(Long accountId, LocalDate from, LocalDate to);
+    List<Transaction> findByAccount_AccountNumberAndAccount_BankCodeAndBookingDateBetween(String accountNumber, String bankCode, java.time.LocalDate from, java.time.LocalDate to);
     Transaction findByTransactionId(UUID transactionId);
 } 

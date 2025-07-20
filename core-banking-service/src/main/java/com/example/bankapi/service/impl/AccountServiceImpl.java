@@ -3,7 +3,6 @@ package com.example.bankapi.service.impl;
 import com.example.bankapi.model.entity.Account;
 import com.example.bankapi.repository.AccountRepository;
 import com.example.bankapi.service.AccountService;
-import com.example.bankapi.mapper.AccountMapper;
 import com.example.bankapi.model.dto.AccountDto;
 import com.example.bankapi.exception.AccountNotFoundException;
 import org.slf4j.Logger;
@@ -19,9 +18,6 @@ public class AccountServiceImpl implements AccountService {
     private static final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
     @Autowired
-    private AccountMapper accountMapper;
-
-    @Autowired
     public AccountServiceImpl(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
     }
@@ -35,7 +31,7 @@ public class AccountServiceImpl implements AccountService {
         logger.info("[AccountService] lookupAccountDto - Result: id={}, bankCode={}, accountNumber={}, accountHolderName={}, currency={}, availableBalance={}, currentBalance={}, overdraftLimit={}, createdAt={}, updatedAt={}",
             account.getId(), account.getBankCode(), account.getAccountNumber(), account.getAccountHolderName(), account.getCurrency(), account.getAvailableBalance(), account.getCurrentBalance(), account.getOverdraftLimit(), account.getCreatedAt(), account.getUpdatedAt()
         );
-        return accountMapper.toDto(account);
+        return toDto(account);
     }
 
 
@@ -51,7 +47,26 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public Optional<Account> lookupAccountByNumberAndBankCode(String accountNumber, String bankCode) {
+        logger.info("[AccountService] lookupAccountByNumberAndBankCode - accountNumber: {}, bankCode: {}", accountNumber, bankCode);
+        Optional<Account> result = accountRepository.findByBankCodeAndAccountNumber(bankCode, accountNumber);
+        result.ifPresent(account -> logger.info("[AccountService] lookupAccountByNumberAndBankCode - Result: id={}, bankCode={}, accountNumber={}, accountHolderName={}, currency={}, availableBalance={}, currentBalance={}, overdraftLimit={}, createdAt={}, updatedAt={}",
+            account.getId(), account.getBankCode(), account.getAccountNumber(), account.getAccountHolderName(), account.getCurrency(), account.getAvailableBalance(), account.getCurrentBalance(), account.getOverdraftLimit(), account.getCreatedAt(), account.getUpdatedAt()
+        ));
+        return result;
+    }
+
+    @Override
     public AccountDto toDto(Account entity) {
-        return accountMapper.toDto(entity);
+        if (entity == null) return null;
+        AccountDto dto = new AccountDto();
+        dto.setBankCode(entity.getBankCode());
+        dto.setAccountNumber(entity.getAccountNumber());
+        dto.setAccountHolderName(entity.getAccountHolderName());
+        dto.setCurrency(entity.getCurrency());
+        dto.setAvailableBalance(entity.getAvailableBalance());
+        dto.setCurrentBalance(entity.getCurrentBalance());
+        dto.setOverdraftLimit(entity.getOverdraftLimit());
+        return dto;
     }
 } 

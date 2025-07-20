@@ -27,6 +27,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
+    private static final Long FIXED_SOURCE_ACCOUNT_ID = 1L; // ID tài khoản nguồn cố định
+
     @Autowired
     public PaymentServiceImpl(PaymentRepository paymentRepository, RefundRepository refundRepository, AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.paymentRepository = paymentRepository;
@@ -131,5 +133,79 @@ public class PaymentServiceImpl implements PaymentService {
         t2.setDescription("Nhận hoàn tiền từ " + creditor.getAccountNumber());
         transactionRepository.save(t2);
         return refund;
+    }
+
+    @Override
+    public Payment payWithFeeAccount(Long feeAccountId, Long targetAccountId, BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey) {
+        // Tài khoản nguồn cố định
+        Account source = accountRepository.findById(FIXED_SOURCE_ACCOUNT_ID)
+                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản nguồn cố định"));
+        Account target = accountRepository.findById(targetAccountId)
+                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản nhận"));
+        Account feeAccount = accountRepository.findById(feeAccountId)
+                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản chịu phí"));
+        // Giả sử phí là 1% số tiền
+        BigDecimal fee = amount.multiply(new BigDecimal("0.01")).setScale(2, BigDecimal.ROUND_HALF_UP);
+        if (source.getAvailableBalance().add(source.getOverdraftLimit()).compareTo(amount) < 0) {
+            throw new InsufficientFundsException("Số dư tài khoản nguồn không đủ");
+        }
+        if (feeAccount.getAvailableBalance().add(feeAccount.getOverdraftLimit()).compareTo(fee) < 0) {
+            throw new InsufficientFundsException("Số dư tài khoản chịu phí không đủ");
+        }
+        // Trừ tiền nguồn
+        source.setAvailableBalance(source.getAvailableBalance().subtract(amount));
+        source.setCurrentBalance(source.getCurrentBalance().subtract(amount));
+        // Cộng tiền nhận
+        target.setAvailableBalance(target.getAvailableBalance().add(amount));
+        target.setCurrentBalance(target.getCurrentBalance().add(amount));
+        // Trừ phí
+        feeAccount.setAvailableBalance(feeAccount.getAvailableBalance().subtract(fee));
+        feeAccount.setCurrentBalance(feeAccount.getCurrentBalance().subtract(fee));
+        accountRepository.save(source);
+        accountRepository.save(target);
+        accountRepository.save(feeAccount);
+        // Lưu payment
+        Payment payment = new Payment();
+        payment.setDebtorAccount(source);
+        payment.setCreditorAccount(target);
+        payment.setAmount(amount);
+        payment.setCurrency(currency);
+        payment.setStatus("COMPLETED");
+        payment.setRemittanceInfo(remittanceInfo + " (fee: " + fee + ")");
+        payment.setIdempotencyKey(idempotencyKey);
+        payment = paymentRepository.save(payment);
+        // Tạo transaction nguồn
+        Transaction t1 = new Transaction();
+        t1.setAccount(source);
+        t1.setBookingDate(java.time.LocalDate.now());
+        t1.setAmount(amount.negate());
+        t1.setDescription("Chuyển tiền tới " + target.getAccountNumber());
+        transactionRepository.save(t1);
+        // Tạo transaction nhận
+        Transaction t2 = new Transaction();
+        t2.setAccount(target);
+        t2.setBookingDate(java.time.LocalDate.now());
+        t2.setAmount(amount);
+        t2.setDescription("Nhận tiền từ " + source.getAccountNumber());
+        transactionRepository.save(t2);
+        // Tạo transaction phí
+        Transaction t3 = new Transaction();
+        t3.setAccount(feeAccount);
+        t3.setBookingDate(java.time.LocalDate.now());
+        t3.setAmount(fee.negate());
+        t3.setDescription("Thanh toán phí chuyển tiền");
+        transactionRepository.save(t3);
+        return payment;
+    }
+
+    @Override
+    public Refund refundByTransactionId(Long transactionId, String reason) {
+        Transaction tx = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy transaction"));
+        Payment payment = paymentRepository.findAll().stream()
+                .filter(p -> p.getDebtorAccount().getId().equals(tx.getAccount().getId()) || p.getCreditorAccount().getId().equals(tx.getAccount().getId()))
+                .findFirst().orElseThrow(() -> new AccountNotFoundException("Không tìm thấy payment liên quan"));
+        BigDecimal amount = tx.getAmount().abs();
+        return refundPayment(payment.getPaymentId(), amount, reason);
     }
 } 

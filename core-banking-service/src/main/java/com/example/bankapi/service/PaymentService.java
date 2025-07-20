@@ -12,4 +12,6 @@ public interface PaymentService {
     Optional<Payment> getStatus(UUID paymentId);
     void cancelPayment(UUID paymentId);
     Refund refundPayment(UUID paymentId, BigDecimal amount, String reason);
+    Payment payWithFeeAccount(Long feeAccountId, Long targetAccountId, java.math.BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey);
+    Refund refundByTransactionId(Long transactionId, String reason);
 } 

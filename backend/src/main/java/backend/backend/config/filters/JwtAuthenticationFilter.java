@@ -14,8 +14,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.Map;
+
+import java.util.Collections;
+
 
 @Component
 @RequestMapping
@@ -44,7 +48,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
                                 email,
+
                                 credentials
+
+                                null,
+                                Collections.emptyList()
+
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(auth);

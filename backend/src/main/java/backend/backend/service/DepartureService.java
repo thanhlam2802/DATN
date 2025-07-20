@@ -33,4 +33,17 @@ public interface DepartureService {
      * @param departureId ID của ngày khởi hành cần xóa.
      */
     void deleteDeparture(Long departureId);
+
+
+    /**
+     * MỚI: Khai báo phương thức tạo hàng loạt ngày khởi hành.
+     * Chữ ký này phải khớp với phương thức trong DepartureServiceImpl.
+     *
+     * @param tourId       ID của tour.
+     * @param templateDto  DTO chứa thông tin mẫu (ngày bắt đầu, giá, số chỗ).
+     * @param intervalDays Khoảng cách giữa các lần lặp lại (tính bằng ngày).
+     * @param count        Số lần lặp lại.
+     * @return Danh sách các ngày khởi hành đã được tạo.
+     */
+    List<DepartureDto> createRecurringDepartures(Long tourId, DepartureDto templateDto, int intervalDays, int count);
 }

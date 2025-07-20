@@ -1,27 +1,5 @@
 <template>
     <main class="flex-grow bg-white rounded-xl shadow-xl overflow-hidden">
-        <header class="bg-transparent border-b border-slate-200 py-4 px-8 flex justify-between items-center z-10">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">Dashboard</h1>
-                <p class="text-sm text-slate-500 mt-1">Welcome back, Admin. Here's what's happening.</p>
-            </div>
-            <div class="flex items-center space-x-6">
-                <button
-                    class="text-slate-500 hover:text-blue-600 hover:bg-slate-100 p-2 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="fas fa-bell text-lg"></i>
-                </button>
-                <div class="flex items-center space-x-3">
-                    <img src="https://readdy.ai/api/search-image?query=professional%20headshot%20of%20a%20hotel%20manager%2C%20business%20attire%2C%20confident%20smile%2C%20neutral%20background%2C%20high%20quality%20portrait%2C%20corporate%20style&width=40&height=40&seq=9&orientation=squarish"
-                        alt="Admin Avatar"
-                        class="w-10 h-10 rounded-full object-cover border-2 border-white ring-2 ring-slate-200" />
-                    <div>
-                        <span class="text-slate-800 font-semibold">John Doe</span>
-                        <p class="text-xs text-slate-500">Administrator</p>
-                    </div>
-                </div>
-            </div>
-        </header>
-
         <div class="p-8">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div

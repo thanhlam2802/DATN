@@ -70,8 +70,6 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<UserVoucher> userVouchers;
 
-    @OneToMany(mappedBy = "user")
-    private List<TicketBooking> ticketBookings;
 
     @OneToMany(mappedBy = "user")
     private List<Order> orders;

@@ -1,5 +1,5 @@
 <template>
-    <aside class="w-64 bg-white rounded-xl shadow-xl flex flex-col sticky top-6 self-start">
+    <aside class="w-64 bg-white flex flex-col min-h-screen fixed left-0 top-0 bottom-0 z-20 border-r border-slate-200">
         <div class="p-6 border-b border-slate-200">
             <div class="flex items-center">
                 <i class="fas fa-hotel text-blue-600 text-2xl mr-3"></i>

@@ -16,7 +16,7 @@
 
   <main v-else-if="hotel" class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:w-[1320px]" style="padding-top: 1rem;">
     <div ref="searchWidgetContainer"
-      class="sticky top-16 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
+      class="sticky top-18 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
       <div class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
         <div ref="locationContainer"
           class="relative flex flex-grow cursor-pointer items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[200px] rounded-t-md md:rounded-l-md md:rounded-tr-none">
@@ -183,13 +183,11 @@
           <h2 class="text-xl font-bold text-gray-800 mb-4">Tổng quan</h2>
           <div class="text-sm text-gray-700 leading-relaxed space-y-4">
             <div>
-              <div :class="!showMoreOverview && 'line-clamp-4'"
-                class="prose prose-sm max-w-none text-justify text-gray-700" v-html="hotel.description"></div>
-              <button @click="showMoreOverview = !showMoreOverview"
-                class="text-blue-600 font-semibold text-sm hover:underline focus:outline-none mt-2 inline-flex items-center gap-1.5">
-                <span>{{ showMoreOverview ? "Thu gọn" : "Xem thêm" }}</span>
-                <i class="fas fa-chevron-down transition-transform duration-200"
-                  :class="{ 'rotate-180': showMoreOverview }"></i>
+              <div class="prose prose-sm max-w-none text-justify text-gray-700 line-clamp-4" v-html="hotel.description">
+              </div>
+              <button @click="showDescriptionModal = true" class="btn-outline-blue mt-2">
+                <span>Xem thêm</span>
+                <i class="fas fa-chevron-down"></i>
               </button>
             </div>
             <div class="border-t border-gray-200 pt-4 mt-4">
@@ -240,11 +238,9 @@
             </div>
           </div>
           <button v-if="hotel.amenities && hotel.amenities.length > INITIAL_AMENITIES_COUNT"
-            @click="showAllAmenities = !showAllAmenities"
-            class="mt-4 text-sm font-semibold text-blue-600 hover:underline focus:outline-none inline-flex items-center gap-1.5">
+            @click="showAllAmenities = !showAllAmenities" class="btn-outline-blue mt-4">
             <span>{{ showAllAmenities ? "Ẩn bớt" : "Xem tất cả tiện ích" }}</span>
-            <i class="fas fa-chevron-down transition-transform duration-200"
-              :class="{ 'rotate-180': showAllAmenities }"></i>
+            <i class="fas fa-chevron-down" :class="{ 'rotate-180': showAllAmenities }"></i>
           </button>
         </div>
       </div>
@@ -260,10 +256,12 @@
               chọn những tiện nghi bạn cần</h3>
             <div class="flex flex-wrap gap-x-6 gap-y-3 pt-2">
               <div v-for="filter in amenityFilters" :key="filter.id" class="flex items-center">
-                <input :id="`filter-${filter.id}`" type="checkbox" :value="filter.id" v-model="selectedAmenities"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer" />
-                <label :for="`filter-${filter.id}`" class="ml-2 block text-sm text-gray-900 cursor-pointer">{{
-                  filter.label }}</label>
+                <label class="custom-checkbox flex items-center cursor-pointer">
+                  <input :id="`filter-${filter.id}`" type="checkbox" :value="filter.id" v-model="selectedAmenities"
+                    class="hidden" />
+                  <span class="checkmark"></span>
+                  <span class="ml-2 block text-sm text-gray-900">{{ filter.label }}</span>
+                </label>
               </div>
             </div>
           </div>
@@ -415,37 +413,61 @@
       </div>
     </section>
 
-    <section v-if="reviewsList.length > 0" class="bg-white rounded-xl shadow p-6 mb-8">
+    <section class="bg-white rounded-xl shadow p-6 mb-8">
       <div class="flex items-center gap-4 mb-8">
         <h2 class="text-2xl font-bold text-gray-800">{{ hotel.reviewCount }} đánh giá</h2>
       </div>
-      <div class="space-y-6">
+      <div v-if="reviewsList.length > 0" class="space-y-6">
         <div v-for="review in paginatedReviews" :key="review.id"
-          class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0 w-40">
-              <div class="flex items-center gap-4">
-                <img :alt="review.username" class="w-12 h-12 rounded-full object-cover"
-                  :src="review.avatar || 'https://i.pravatar.cc/150?u=' + review.username" />
+          class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl border border-gray-100 shadow-md mb-6 transition hover:shadow-lg">
+          <div class="flex items-start gap-5">
+            <img :alt="review.author" class="w-14 h-14 rounded-full object-cover border-2 border-blue-200 shadow"
+              :src="review.avatar || 'https://i.pravatar.cc/150?u=' + review.author" />
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-base font-bold text-gray-900">{{ review.username }}</h3>
-                  <p class="text-sm text-gray-500 mt-0.5">{{ formatDate(review.createdAt) }}</p>
+                  <span class="font-semibold text-lg text-gray-900">{{ review.author }}</span>
+                  <span class="ml-2 text-xs text-gray-400">{{ review.date }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <i class="fas fa-star text-yellow-400 text-lg"></i>
+                  <span class="font-bold text-yellow-500 text-base">{{ review.rating }}/5</span>
                 </div>
               </div>
-            </div>
-            <div class="flex-grow">
-              <div class="flex items-center justify-between mb-2">
-                <div
-                  class="flex items-center gap-1.5 bg-blue-100 text-blue-800 font-bold text-sm px-2.5 py-1 rounded-full">
-                  <i class="fas fa-star text-xs"></i><span>{{ review.rating.toFixed(1) }}</span>
-                </div>
-              </div>
-              <p class="text-gray-700 leading-relaxed">{{ review.comment }}</p>
+              <p class="mt-3 text-gray-800 text-base leading-relaxed whitespace-pre-line">
+                {{ review.content }}
+              </p>
             </div>
           </div>
         </div>
       </div>
-      <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div v-else class="text-center text-gray-500 text-base py-8">
+        Chưa có nhận xét nào cho khách sạn này. Hãy là người đầu tiên đánh giá!
+      </div>
+      <div class="mt-10 bg-slate-50 rounded-xl p-6 shadow flex flex-col gap-4 max-w-xl mx-auto">
+        <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <i class="fas fa-pen-nib text-blue-500"></i> Viết đánh giá của bạn
+        </h3>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-gray-700 font-medium mr-2">Chọn số sao:</span>
+          <template v-for="n in 5" :key="n">
+            <i class="fas fa-star cursor-pointer text-2xl transition"
+              :class="n <= newReview.rating ? 'text-yellow-400' : 'text-gray-300'" @click="newReview.rating = n"></i>
+          </template>
+        </div>
+        <textarea v-model="newReview.content" rows="3" maxlength="500"
+          class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-blue-200 focus:outline-none resize-none"
+          placeholder="Chia sẻ cảm nhận của bạn về khách sạn này..."></textarea>
+        <button @click="submitReview" :disabled="submittingReview || !canSubmitReview"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-lg transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <i class="fas fa-paper-plane"></i>
+          <span v-if="!submittingReview">Gửi đánh giá</span>
+          <span v-else>Đang gửi...</span>
+        </button>
+        <p v-if="reviewError" class="text-red-500 text-sm text-center mt-2">{{ reviewError }}</p>
+        <p v-if="reviewSuccess" class="text-green-600 text-sm text-center mt-2">{{ reviewSuccess }}</p>
+      </div>
+      <div v-if="reviewsList.length > 0" class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-2">
           <label for="reviews-per-page" class="text-sm font-medium text-gray-700">Hiển thị:</label>
           <select id="reviews-per-page" v-model="reviewsPerPage"
@@ -470,23 +492,46 @@
   </main>
 
   <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center pt-15"
-    style="backdrop-filter: blur(6px); background-color: rgba(0, 0, 0, 0.15)" @click.self="closeModal">
+    style="background-color: rgba(0,0,0,0.5)" @click.self="closeModal">
     <div
       class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 lg:mx-0 overflow-hidden relative flex flex-col md:flex-row"
       style="max-height: 80vh">
       <div class="md:w-1/2 w-full flex flex-col bg-gray-50">
-        <div class="flex-grow flex items-center justify-center p-4">
-          <div class="w-full h-80 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden shadow">
+        <div class="flex-grow flex items-center justify-center p-4 relative">
+          <div
+            class="w-full h-80 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden shadow relative">
             <img v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length"
               :src="selectedRoom.imageUrls[modalImageIndex]" :alt="selectedRoom.roomType"
               class="w-full h-full object-cover transition-all duration-200" />
+            <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="prevModalImage"
+              class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 z-10">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="nextModalImage"
+              class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 z-10">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            <div v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1"
+              class="absolute top-3 right-4 bg-black/60 text-white text-xs font-semibold rounded-full px-3 py-1 z-20">
+              {{ modalImageIndex + 1 }}/{{ selectedRoom.imageUrls.length }}
+            </div>
           </div>
         </div>
-        <div class="flex gap-3 justify-center p-3 bg-white">
-          <img v-for="(img, idx) in selectedRoom.imageUrls" :key="idx" :src="img" :alt="`Ảnh ${idx + 1}`"
-            class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 transition-all duration-200"
-            :class="modalImageIndex === idx ? 'border-blue-500 shadow-lg scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'"
-            @click="modalImageIndex = idx" />
+        <div class="flex gap-3 justify-center p-3 bg-white relative items-center group">
+          <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="prevModalImage"
+            class="absolute left-0 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div ref="thumbsContainer" class="flex gap-3 overflow-x-auto scrollbar-hide w-full px-8">
+            <img v-for="(img, idx) in selectedRoom.imageUrls" :key="idx" :src="img" :alt="`Ảnh ${idx + 1}`"
+              class="w-24 h-20 object-cover rounded-lg cursor-pointer border-2 transition-all duration-200 mt-2 mb-2"
+              :class="modalImageIndex === idx ? 'border-blue-500 shadow-lg scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'"
+              @click="modalImageIndex = idx" />
+          </div>
+          <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="nextModalImage"
+            class="absolute right-0 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
       <div class="md:w-1/2 w-full flex flex-col h-full">
@@ -535,14 +580,34 @@
           class="fas fa-times fa-lg"></i></button>
     </div>
   </div>
+
+  <div v-if="showDescriptionModal" class="fixed inset-0 z-50 flex items-center justify-center pt-15"
+    style="background-color: rgba(0,0,0,0.5)" @click.self="showDescriptionModal = false">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 lg:mx-0 overflow-hidden relative flex flex-col"
+      style="max-height: 80vh">
+      <button @click="showDescriptionModal = false"
+        class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 z-50 text-2xl"><i
+          class="fas fa-times"></i></button>
+      <h2 class="text-xl font-bold text-gray-800 mb-4 px-8 pt-8">Giới thiệu {{ hotel.name }}</h2>
+      <hr class="mb-4 mt-2" />
+      <div class="flex-1 overflow-auto px-8">
+        <HtmlContent :content="hotel.description" />
+      </div>
+      <button @click="showDescriptionModal = false"
+        class="m-8 w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors">
+        Khám phá thêm về {{ hotel.name }}
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { getHotelById, getHotelReviews, searchHotels } from "@/api/hotelApi";
+import { getHotelById, getHotelReviews, searchHotels, createHotelReview } from "@/api/hotelApi";
 import { getAllProvinces } from "@/api/provinceApi.js";
 import HotelCard from '@/components/Home/HotelCard.vue';
+import HtmlContent from '@/components/HtmlContent.vue';
 
 const hotel = ref(null);
 const reviewsList = ref([]);
@@ -582,6 +647,14 @@ const priceDisplayMode = ref('price');
 const provinces = ref([]);
 const hotelSuggestions = ref([]);
 const debounceTimer = ref(null);
+const showDescriptionModal = ref(false);
+const thumbsContainer = ref(null);
+
+const newReview = ref({ rating: 0, content: '' });
+const submittingReview = ref(false);
+const reviewError = ref('');
+const reviewSuccess = ref('');
+const canSubmitReview = computed(() => newReview.value.rating > 0 && newReview.value.content.trim().length > 0);
 
 const goToBooking = (room, variant) => {
   router.push({
@@ -919,6 +992,9 @@ const updateGuests = (type, amount) => {
 };
 
 const handleClickOutside = (event) => {
+  if (priceDropdownRef.value && !priceDropdownRef.value.contains(event.target)) {
+    showPriceDropdown.value = false;
+  }
   if (searchWidgetContainer.value && !searchWidgetContainer.value.contains(event.target)) {
     showLocationDropdown.value = false;
     showGuestsDropdown.value = false;
@@ -932,8 +1008,6 @@ const handleClickOutside = (event) => {
     if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
       showGuestsDropdown.value = false;
     }
-    if (priceDropdownRef.value && !priceDropdownRef.value.contains(event.target))
-      showPriceDropdown.value = false;
   }
 };
 
@@ -992,6 +1066,64 @@ const selectPriceOption = (value) => {
   priceDisplayMode.value = value;
   showPriceDropdown.value = false;
 };
+
+function prevModalImage() {
+  if (!selectedRoom.value?.imageUrls?.length) return;
+  modalImageIndex.value = (modalImageIndex.value - 1 + selectedRoom.value.imageUrls.length) % selectedRoom.value.imageUrls.length;
+  scrollThumbToActive();
+}
+function nextModalImage() {
+  if (!selectedRoom.value?.imageUrls?.length) return;
+  modalImageIndex.value = (modalImageIndex.value + 1) % selectedRoom.value.imageUrls.length;
+  scrollThumbToActive();
+}
+function scrollThumbs(direction) {
+  const el = thumbsContainer.value;
+  if (!el) return;
+  const scrollAmount = 120;
+  if (direction === 'left') el.scrollLeft -= scrollAmount;
+  else el.scrollLeft += scrollAmount;
+}
+function scrollThumbToActive() {
+  const el = thumbsContainer.value;
+  if (!el) return;
+  const active = el.querySelectorAll('img')[modalImageIndex.value];
+  if (active) {
+    const offsetLeft = active.offsetLeft;
+    const offsetWidth = active.offsetWidth;
+    const containerWidth = el.offsetWidth;
+    if (offsetLeft < el.scrollLeft || offsetLeft + offsetWidth > el.scrollLeft + containerWidth) {
+      el.scrollLeft = offsetLeft - containerWidth / 2 + offsetWidth / 2;
+    }
+  }
+}
+watch(modalImageIndex, () => scrollThumbToActive());
+
+const submitReview = async () => {
+  reviewError.value = '';
+  reviewSuccess.value = '';
+  if (!canSubmitReview.value) return;
+  submittingReview.value = true;
+  try {
+    await createHotelReview(hotel.value.id, {
+      rating: newReview.value.rating,
+      content: newReview.value.content.trim()
+    });
+    reviewSuccess.value = 'Đánh giá của bạn đã được gửi!';
+    newReview.value.rating = 0;
+    newReview.value.content = '';
+    await fetchHotelData(hotel.value.id);
+  } catch (e) {
+    if (e.response && e.response.status === 401) {
+      if (window.$toast) window.$toast('Bạn cần đăng nhập để gửi đánh giá!', 'error');
+      return;
+    } else {
+      reviewError.value = 'Gửi đánh giá thất bại. Vui lòng thử lại.';
+    }
+  } finally {
+    submittingReview.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -1024,5 +1156,80 @@ const selectPriceOption = (value) => {
 
 .slide-right-leave-to {
   transform: translateX(100%);
+}
+
+.custom-checkbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.custom-checkbox .checkmark {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.custom-checkbox input:checked+.checkmark {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.custom-checkbox .checkmark::after {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  mask: url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="gray" stroke-width="3" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>') center/contain no-repeat;
+  background: #d1d5db;
+  opacity: 0.7;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.custom-checkbox input:checked+.checkmark::after {
+  background: #fff;
+  opacity: 1;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.btn-outline-blue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: #e6f0fa;
+  color: #1976d2;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  transition: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-outline-blue:active,
+.btn-outline-blue:focus,
+.btn-outline-blue:hover {
+  background: #e6f0fa;
+  color: #1976d2;
+  text-decoration: none;
+  box-shadow: none;
 }
 </style>

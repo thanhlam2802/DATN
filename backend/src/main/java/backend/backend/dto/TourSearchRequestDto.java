@@ -1,28 +1,32 @@
 package backend.backend.dto;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class TourSearchRequestDto {
-    // Từ SideBar (giả định)
-    private String keyword;
-    private BigDecimal minPrice;
-    private BigDecimal maxPrice;
-    private Double minRating;
-    private String category;
 
-    // Từ dropdown sắp xếp
-    // Giá trị mặc định là "popular" giống như trong state 'sortBy' của Vue
-    private String sortBy = "popular";
+  
+    private Optional<String> keyword = Optional.empty();
+    private Optional<BigDecimal> minPrice = Optional.empty();
+    private Optional<BigDecimal> maxPrice = Optional.empty();
+    private Optional<Double> minRating = Optional.empty();
 
-    // Cho phân trang
-    private int page = 0; // Trang bắt đầu từ 0
-    private int size = 12; // Số kết quả mỗi trang
+  
+    private Optional<List<String>> tags = Optional.empty();
+
+  
+    private String sortBy = "popular"; 
+
+   
+    private int page = 0;
+    private int size = 12;
 }

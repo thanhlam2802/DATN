@@ -56,8 +56,10 @@ public class AuthServiceImpl implements AuthService {
         }
         User newUser = userMapper.fromRegisterRequestToEntity(registerRequestDto);
         newUser.setPasswordHash(passwordEncoder.encode(registerRequestDto.getPassword()));
+
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
+
         newUser = userRepository.save(newUser);
 
         Optional<Role> role = roleRepository.findByName(registerRequestDto.getRole());

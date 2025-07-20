@@ -10,13 +10,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/hotels")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "https://poly-java-6-fb151.web.app",
+        "https://www.travela.io.vn",
+        "http://localhost:5173"
+})
 public class HotelAdminController {
+
+    private static final Logger logger = LoggerFactory.getLogger(HotelAdminController.class);
+
     @Autowired
     private HotelService hotelService;
 
@@ -40,6 +49,7 @@ public class HotelAdminController {
             HotelDetailDto created = hotelService.createHotel(hotelDto, images, roomImagesMap);
             return ResponseFactory.success(created, "Tạo khách sạn thành công");
         } catch (Exception e) {
+            logger.error("[CREATE] Error creating hotel: {}", e.getMessage(), e);
             return ResponseFactory.error(org.springframework.http.HttpStatus.BAD_REQUEST,
                     "Lỗi parse JSON: " + e.getMessage(), null);
         }
@@ -91,6 +101,7 @@ public class HotelAdminController {
                     deleteRoomImageUrlsMap);
             return ResponseFactory.success(updated, "Cập nhật khách sạn thành công");
         } catch (Exception e) {
+            logger.error("[UPDATE] Error updating hotel ID {}: {}", id, e.getMessage(), e);
             return ResponseFactory.error(org.springframework.http.HttpStatus.BAD_REQUEST,
                     "Lỗi parse JSON: " + e.getMessage(), null);
         }

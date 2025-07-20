@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getAccessToken } from "@/services/TokenService.js";
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/hotels`;
 const API_ADMIN_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/admin/hotels`;
@@ -27,11 +28,18 @@ export const deleteHotel = (id) => {
     return axios.delete(`${API_ADMIN_BASE_URL}/${id}`);
 };
 
+export const createHotelReview = (hotelId, data) => {
+    const token = getAccessToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axios.post(`${API_BASE_URL}/${hotelId}/reviews`, data, { headers });
+};
+
 export default {
     searchHotels,
     getHotelById,
     getHotelReviews,
     createHotel,
     updateHotel,
-    deleteHotel
+    deleteHotel,
+    createHotelReview
 };

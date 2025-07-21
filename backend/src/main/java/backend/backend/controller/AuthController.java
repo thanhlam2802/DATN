@@ -38,4 +38,11 @@ public class AuthController {
         Long userId = SecurityUtil.getUserId();
         otpTransactionService.verifyOtp(userId, OtpType.REGISTER_ACCOUNT, requestDto.getCode());
     }
+
+
+    @PreAuthorize("@authService.isAuthenticated()")
+    @PostMapping("/update")
+    public void update(@Valid @RequestBody UpdatePasswordRequestDto requestDto) {
+        authService.updatePassword(requestDto);
+    }
 }

@@ -1,4 +1,4 @@
-package backend.backend;
+package com.example;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +13,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("https://poly-java-6-fb151.web.app", "https://www.travela.io.vn", "http://localhost:5173")
+                        .allowedOrigins("http://localhost:8080", "http://localhost:5173")
                         .allowedMethods("*")
                         .allowedHeaders("*");
             }

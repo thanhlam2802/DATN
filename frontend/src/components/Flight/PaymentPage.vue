@@ -49,7 +49,7 @@
                             <label class="block text-sm font-medium text-gray-600 mb-1">Số hộ chiếu</label>
                             <input v-model="customer.passport" type="text" placeholder="Nhập số hộ chiếu"
                                 class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        </div>
+                    </div>
                         <!-- Email -->
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
@@ -65,86 +65,8 @@
                     </div>
                 </section>
                 <!-- Passenger #2 -->
-                <div class="bg-white rounded-lg shadow-md p-6 relative overflow-hidden">
-                    <div
-                        class="absolute w-34 h-34 bg-sky-300 rounded-full -top-20 -right-40 blur-xl [box-shadow:-100px_50px_30px_100px_#7dd3fc]">
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-4">Pay with</h3>
-                    <!-- Tabs -->
-                    <div class="flex space-x-2 mb-4">
-                        <button v-for="method in paymentMethods" :key="method.key" @click="activeMethod = method.key"
-                            :class="activeMethod === method.key
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'"
-                            class="px-4 py-2 rounded-full text-sm font-medium transition-colors">
-                            {{ method.label }}
-                        </button>
-                    </div>
-
-                    <!-- Form tương ứng với từng phương thức -->
-                    <div>
-                        <!-- ====== Credit Card Form ====== -->
-                        <div v-if="activeMethod === 'credit'">
-                            <div class="space-y-4">
-                                <!-- Card Number -->
-                                <div>
-                                    <label for="cardNumber" class="block text-sm font-medium text-gray-600 mb-1">Card
-                                        Number</label>
-                                    <input id="cardNumber" v-model="card.cardNumber" type="text"
-                                        placeholder="1234 5678 1234 5678"
-                                        class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                                </div>
-                                <!-- Card Holder -->
-                                <div>
-                                    <label for="cardHolder" class="block text-sm font-medium text-gray-600 mb-1">Card
-                                        Holder</label>
-                                    <input id="cardHolder" v-model="card.cardHolder" type="text"
-                                        placeholder="Name on card"
-                                        class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                                </div>
-                                <!-- Expiry & CVV -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="expiryDate"
-                                            class="block text-sm font-medium text-gray-600 mb-1">Expiration Date</label>
-                                        <input id="expiryDate" v-model="card.expiryDate" type="month"
-                                            class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                                    </div>
-                                    <div>
-                                        <label for="cvv"
-                                            class="block text-sm font-medium text-gray-600 mb-1">CVV</label>
-                                        <input id="cvv" v-model="card.cvv" type="password" maxlength="4"
-                                            placeholder="123"
-                                            class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                                    </div>
-                                </div>
-                                <!-- Save Card Checkbox -->
-                                <div class="flex items-center space-x-2">
-                                    <input id="saveCard" v-model="card.saveCard" type="checkbox"
-                                        class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
-                                    <label for="saveCard" class="text-sm text-gray-600">Save my card for future
-                                        reservations</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ====== PayPal ====== -->
-                        <div v-else-if="activeMethod === 'paypal'" class="flex justify-center">
-                            <button @click="payWithPayPal"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
-                                Pay with PayPal
-                            </button>
-                        </div>
-
-                        <!-- ====== Google Pay ====== -->
-                        <div v-else-if="activeMethod === 'googlepay'" class="flex justify-center">
-                            <button @click="payWithGooglePay"
-                                class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-3 rounded-lg transition-colors">
-                                Google Pay
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Đã tách phần thanh toán sang component khác -->
+                <!-- <BankTransferForm @submit="(data) => { console.log('Bank transfer submit:', data) }" /> -->
 
                 
             </div>
@@ -314,6 +236,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { payForFlight, getFlightDetailPublic, findFirstAvailableSlot, reserveFlightDirect } from '@/api/flightApi'
+import BankTransferForm from './BankTransferForm.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -390,10 +313,10 @@ function applyDiscount() {
     if (discountCode.value.trim().toUpperCase() === 'VIETNAM10') {
         const basePrice = availableSlot.value ? availableSlot.value.price : 0
         discountAmount.value = Math.floor(basePrice * 0.1)
-        alert(`Áp dụng thành công: giảm ${formatCurrency(discountAmount.value)} VND`)
+        window.$toast(`Áp dụng thành công: giảm ${formatCurrency(discountAmount.value)} VND`, 'success')
     } else {
         discountAmount.value = 0
-        alert('Mã giảm giá không hợp lệ hoặc đã hết hạn')
+        window.$toast('Mã giảm giá không hợp lệ hoặc đã hết hạn', 'error')
     }
 }
 
@@ -422,6 +345,51 @@ const card = reactive({
     saveCard: false,
 })
 
+/** ========== Dữ liệu cho chuyển khoản ngân hàng ========== **/
+const banks = [
+    { code: 'VCB', name: 'Vietcombank' },
+    { code: 'VIB', name: 'Vietinbank' },
+    { code: 'BIDV', name: 'BIDV' },
+    { code: 'TECH', name: 'Techcombank' },
+    { code: 'ACB', name: 'ACB' },
+    { code: 'SCB', name: 'Sacombank' },
+    { code: 'VPB', name: 'VPBank' },
+    { code: 'MB', name: 'MB Bank' },
+    { code: 'OJB', name: 'OceanBank' },
+    { code: 'DAB', name: 'DongA Bank' },
+    { code: 'IVB', name: 'Indovina Bank' },
+    { code: 'HDB', name: 'HDBank' },
+    { code: 'MSB', name: 'MSB' },
+    { code: 'ABB', name: 'ABBank' },
+    { code: 'BAB', name: 'BacA Bank' },
+    { code: 'PVB', name: 'PVcomBank' },
+    { code: 'SHB', name: 'SHB' },
+    { code: 'TCB', name: 'TPBank' },
+    { code: 'VNM', name: 'Vietnam Bank for Agriculture and Rural Development' },
+    { code: 'ACB', name: 'ACB' },
+    { code: 'SCB', name: 'Sacombank' },
+    { code: 'VPB', name: 'VPBank' },
+    { code: 'MB', name: 'MB Bank' },
+    { code: 'OJB', name: 'OceanBank' },
+    { code: 'DAB', name: 'DongA Bank' },
+    { code: 'IVB', name: 'Indovina Bank' },
+    { code: 'HDB', name: 'HDBank' },
+    { code: 'MSB', name: 'MSB' },
+    { code: 'ABB', name: 'ABBank' },
+    { code: 'BAB', name: 'BacA Bank' },
+    { code: 'PVB', name: 'PVcomBank' },
+    { code: 'SHB', name: 'SHB' },
+    { code: 'TCB', name: 'TPBank' },
+    { code: 'VNM', name: 'Vietnam Bank for Agriculture and Rural Development' },
+]
+const bankTransfer = reactive({
+    bankCode: '',
+    accountNumber: '',
+    accountName: '',
+    availableBalance: 0, // Số dư khả dụng
+    amount: 0, // Số tiền muốn thanh toán
+})
+
 /** ========== Các hàm hành động ========== **/
 function formatCurrency(value) {
     if (!value) return '0'
@@ -446,31 +414,19 @@ function formatDate(dateString) {
     })
 }
 
-function goBack() {
-    router.back()
-}
 
-function payWithPayPal() {
-    // Ở đây bạn có thể gọi SDK PayPal hoặc redirect
-    alert('Chức năng PayPal chưa được tích hợp thực tế.')
-}
-
-function payWithGooglePay() {
-    // Gọi Google Pay SDK
-    alert('Chức năng Google Pay chưa được tích hợp thực tế.')
-}
 
 async function confirmAndPay() {
     // Validate: chắc chắn điền đúng thông tin hành khách + payment
     const invalidCustomer = !customer.value.fullName || !customer.value.phone || !customer.value.email
     if (invalidCustomer) {
-        alert('Vui lòng điền đầy đủ thông tin hành khách.')
+        window.$toast('Vui lòng điền đầy đủ thông tin hành khách.', 'error')
         return
     }
-  
+
     if (!availableSlot.value) {
-        alert('Không tìm thấy thông tin ghế.')
-        return
+        window.$toast('Không tìm thấy thông tin ghế.', 'error')
+            return
     }
     loading.value = true
     error.value = ''
@@ -490,16 +446,20 @@ async function confirmAndPay() {
         const response = await reserveFlightDirect(dto)
         const result = response.data
         if (response.status === 201 && result.statusCode === 201) {
-            alert('Giữ chỗ thành công! Vui lòng thanh toán trong thời gian quy định.')
-            // router.push({ name: 'BookingSuccess', params: { orderId: result.data.id } })
+            window.$toast('Giữ chỗ thành công! Vui lòng thanh toán trong thời gian quy định.', 'success')
+            router.push({ name: 'SuccessHold', params: { id: result.data.id } })
+            console.log(result.data);
+            
         } else {
-            alert(result.message || 'Không thể giữ chỗ. Vé có thể đã bị đặt bởi người khác.')
+            window.$toast(result.message || 'Không thể giữ chỗ. Vé có thể đã bị đặt bởi người khác.', 'error')
         }
     } catch (e) {
+        console.log(e);
         if (e.response && e.response.data && e.response.data.message) {
-            alert(e.response.data.message)
+            window.$toast(e.response.data.message, 'error')
         } else {
-            alert('Lỗi kết nối máy chủ hoặc lỗi không xác định.')
+            console.log(e);
+            window.$toast('Lỗi kết nối máy chủ hoặc lỗi không xác định.', 'error')
         }
     } finally {
         loading.value = false

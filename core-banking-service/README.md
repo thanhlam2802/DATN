@@ -16,6 +16,7 @@
 | createdAt          | DATETIME2        | Thời điểm tạo                  |
 | updatedAt          | DATETIME2        | Thời điểm cập nhật cuối        |
 
+
 ### **Payment** (Bảng giao dịch thanh toán)
 | Trường             | Kiểu dữ liệu      | Ý nghĩa                        |
 |--------------------|------------------|--------------------------------|

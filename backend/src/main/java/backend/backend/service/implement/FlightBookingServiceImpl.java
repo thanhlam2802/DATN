@@ -3,11 +3,15 @@ package backend.backend.service.implement;
 import backend.backend.dao.FlightBookingDAO;
 import backend.backend.dao.FlightDAO;
 import backend.backend.dao.FlightSlotDAO;
-import backend.backend.dao.OrderDAO; // BỔ SUNG
+
+
+import backend.backend.dao.OrderDAO;
+
 import backend.backend.dto.*;
 import backend.backend.entity.*;
 import backend.backend.exception.ResourceNotFoundException; // BỔ SUNG
 import backend.backend.service.FlightBookingService;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,10 +26,16 @@ import java.util.stream.Collectors;
 @Service
 public class FlightBookingServiceImpl implements FlightBookingService {
 
-    @Autowired private FlightBookingDAO flightBookingDAO;
-    @Autowired private FlightDAO flightDAO;
-    @Autowired private FlightSlotDAO flightSlotDAO;
-    @Autowired private OrderDAO orderDAO; // BỔ SUNG
+
+    @Autowired
+    private FlightBookingDAO flightBookingDAO;
+    @Autowired
+    private FlightDAO flightDAO;
+    @Autowired
+    private FlightSlotDAO flightSlotDAO;
+    @Autowired
+    private OrderDAO orderDAO;
+
 
     /**
      * SỬA ĐỔI: Phương thức này giờ sẽ cập nhật tổng tiền của Order.
@@ -113,7 +123,7 @@ public class FlightBookingServiceImpl implements FlightBookingService {
             throw e;
         }
     }
-
+    @Transactional
     @Override
     public FlightBookingDetailDto getFlightBookingDetail(Integer bookingId) {
         String requestId = UUID.randomUUID().toString();
@@ -149,6 +159,18 @@ public class FlightBookingServiceImpl implements FlightBookingService {
             log.error("CANCEL_BOOKING_FAILED    - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
             throw e;
         }
+    }
+    @Transactional
+    @Override
+    public FlightOrderReservationDto getFlightReservationSummary(Integer orderId) {
+        FlightBooking booking = flightBookingDAO.findByOrderId(orderId).stream().findFirst().orElse(null);
+        if (booking == null) return null;
+        FlightOrderReservationDto dto = new FlightOrderReservationDto();
+        dto.setOrder(toOrderDto(booking.getOrder()));
+        dto.setBooking(getFlightBookingDetail(booking.getId()));
+        dto.setCustomer(toCustomerDto(booking.getCustomer()));
+        dto.setFlightSlot(toFlightSlotDto(booking.getFlightSlot()));
+        return dto;
     }
 
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking booking, Flight flight) {
@@ -223,4 +245,47 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         log.debug("MAPPING_CATEGORY_TO_DTO_DONE - categoryId: {}", category.getId());
         return dto;
     }
+
+
+    private static OrderDto toOrderDto(Order entity) {
+        if (entity == null) return null;
+        OrderDto dto = new OrderDto();
+        dto.setId(entity.getId());
+        dto.setUserId(entity.getUser() != null ? entity.getUser().getId() : null);
+        dto.setAmount(entity.getAmount());
+        dto.setStatus(entity.getStatus());
+        dto.setPayDate(entity.getPayDate());
+        dto.setVoucherId(entity.getVoucher() != null ? entity.getVoucher().getId() : null);
+        dto.setDestinationId(entity.getDestination() != null ? entity.getDestination().getId() : null);
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setMainProduct("");
+        dto.setExpiresAt(entity.getExpiresAt());
+        return dto;
+    }
+    private static CustomerDto toCustomerDto(Customer entity) {
+        if (entity == null) return null;
+        CustomerDto dto = new CustomerDto();
+        dto.setId(entity.getId());
+        dto.setFullName(entity.getFullName());
+        dto.setGender(entity.getGender());
+        dto.setDob(entity.getDob());
+        dto.setPassport(entity.getPassport());
+        dto.setEmail(entity.getEmail());
+        dto.setPhone(entity.getPhone());
+        return dto;
+    }
+    private static FlightSlotDto toFlightSlotDto(FlightSlot entity) {
+        if (entity == null) return null;
+        FlightSlotDto dto = new FlightSlotDto();
+        dto.setId(entity.getId());
+        dto.setPrice(entity.getPrice());
+        dto.setIsBusiness(entity.getIsBusiness());
+        dto.setSeatNumber(entity.getSeatNumber());
+        dto.setIsWindow(entity.getIsWindow());
+        dto.setIsAisle(entity.getIsAisle());
+        dto.setFlightId(entity.getFlight() != null ? entity.getFlight().getId() : null);
+        dto.setCarryOnLuggage(entity.getCarryOnLuggage());
+        return dto;
+    }
 }
+

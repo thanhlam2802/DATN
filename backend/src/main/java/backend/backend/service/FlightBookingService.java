@@ -4,6 +4,7 @@ import backend.backend.dto.FlightBookingDetailDto;
 import backend.backend.dto.FlightBookingDto;
 import backend.backend.dto.PaymentRequestDto;
 import backend.backend.dto.PaymentStatusDto;
+import backend.backend.dto.FlightOrderReservationDto;
 import java.util.List;
 
 public interface FlightBookingService {
@@ -12,4 +13,5 @@ public interface FlightBookingService {
     List<FlightBookingDetailDto> getCustomerFlightBookings(Integer customerId);
     FlightBookingDetailDto getFlightBookingDetail(Integer bookingId);
     PaymentStatusDto cancelFlightBooking(Integer bookingId);
+    FlightOrderReservationDto getFlightReservationSummary(Integer orderId);
 } 

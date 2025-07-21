@@ -51,6 +51,10 @@ public class Account {
     @Schema(description = "Hạn mức thấu chi", example = "500000.00")
     private BigDecimal overdraftLimit;
 
+    @Column(length = 100, nullable = false)
+    @Schema(description = "Email chủ tài khoản", example = "user@example.com")
+    private String email;
+
     @CreationTimestamp
     @Column(updatable = false)
     @Schema(description = "Thời điểm tạo", example = "2024-06-01T12:00:00Z")

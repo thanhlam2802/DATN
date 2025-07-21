@@ -40,6 +40,8 @@ import Login from "@/views/Login.vue";
 import CheckoutView from "../views/CheckoutView.vue";
 import PaymentView from "../views/PaymentView.vue";
 import MyTripsView from "../views/MyTripsView.vue";
+import SuccessHold from "@/components/Flight/SuccessHold.vue";
+import BankTransferForm from "@/components/Flight/BankTransferForm.vue";
 const routes = [
   {
     path: "/",
@@ -66,6 +68,11 @@ const routes = [
         path: "/checkout/:id",
         name: "checkout",
         component: CheckoutView,
+      },
+      {
+        path: "/flight/successhold/:id",
+        name: "SuccessHold",
+        component: SuccessHold,
       },
       {
         path: "/payment/:orderId",
@@ -115,7 +122,16 @@ const routes = [
         name: "BookingPage",
         component: BookingPage,
       },
-
+      {
+        path: "/plane/pay",
+        name: "PayFlight",
+        component: PayFlight,
+      },
+      {
+        path: "/plane/getticket",
+        name: "GetTicket",
+        component: GetTicket,
+      },
       {
         path: "/account",
         component: AccountView,
@@ -136,16 +152,7 @@ const routes = [
     component: BusManagementLayout,
   },
 
-  {
-    path: "/plane/pay",
-    name: "PayFlight",
-    component: PayFlight,
-  },
-  {
-    path: "/plane/getticket",
-    name: "GetTicket",
-    component: GetTicket,
-  },
+ 
   {
     path: "/plane/admin",
     name: "AdminFight",
@@ -179,6 +186,11 @@ const routes = [
     path: "/admin/dashboard",
     name: "AdminDashboard",
     component: AdminDashboard,
+  },
+  {
+    path: "/bank-transfer-form",
+    name: "BankTransferForm",
+    component: BankTransferForm,
   },
 ];
 

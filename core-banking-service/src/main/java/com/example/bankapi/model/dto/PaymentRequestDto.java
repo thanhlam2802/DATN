@@ -8,10 +8,14 @@ import java.math.BigDecimal;
 @Data
 @Schema(description = "Yêu cầu khởi tạo thanh toán")
 public class PaymentRequestDto {
-    @Schema(example = "1")
-    private Long debtorAccountId;
-    @Schema(example = "2")
-    private Long creditorAccountId;
+    @Schema(example = "11111")
+    private String debtorAccountNumber;
+    @Schema(example = "MB Bank")
+    private String debtorBankCode;
+    @Schema(example = "22222")
+    private String creditorAccountNumber;
+    @Schema(example = "Techcombank")
+    private String creditorBankCode;
     @Schema(example = "50000.00")
     private BigDecimal amount;
     @Schema(example = "VND")

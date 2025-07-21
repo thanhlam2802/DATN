@@ -109,3 +109,7 @@ export const findFirstAvailableSlot = (requestDto) =>
 // Đặt giữ chỗ vé máy bay trực tiếp (mua ngay)
 export const reserveFlightDirect = (dto) =>
   api.post('/v1/orders/reserve-flight-direct', dto);
+
+// Lấy thông tin tổng hợp giữ chỗ chuyến bay (reservation summary)
+export const getFlightReservationSummary = (orderId) =>
+  api.get(`/bookings/flights/reservation-summary/${orderId}`);

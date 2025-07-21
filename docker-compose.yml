@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  vault-server:
+    image: hashicorp/vault:1.19.4
+    container_name: vault
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault-data:/vault/data
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "myroot"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    restart: always
+
+  init-vault:
+    image: hashicorp/vault:1.19.4
+    container_name: init-vault
+    depends_on:
+      - vault-server
+    volumes:
+      - ./init-vault.sh:/init-vault.sh:ro
+    entrypoint: ["sh", "/init-vault.sh"]
+    environment:
+      VAULT_ADDR: http://vault-server:8200
+      VAULT_TOKEN: myroot
+    restart: "no"
+
+  kafka:
+    image: bitnami/kafka:3.7.0
+    container_name: Apache-Kafka
+    hostname: kafka
+    ports:
+      - "9094:9094"
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["bash", "-c", "redis-server --appendonly yes --requirepass 123"]
+    volumes:
+      - cache:/data
+
+volumes:
+  vault-data:
+  cache:

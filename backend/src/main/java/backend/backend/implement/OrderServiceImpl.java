@@ -138,10 +138,6 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime departureTime = flight.getDepartureTime();
         LocalDateTime expiresAt = now.plusMinutes(30);
-        if (departureTime.isBefore(now.plusMinutes(30))) {
-            expiresAt = departureTime;
-        }
-
         // 6. Tạo order
         Order order = new Order();
         order.setUser(user);

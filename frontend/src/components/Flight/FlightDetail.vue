@@ -249,7 +249,7 @@ const findAvailableSlotDto = computed(() => {
 
 function handleBooking() {
   if (!findAvailableSlotDto.value) {
-    alert('Vui lòng chọn loại vé và vị trí!');
+    window.$toast('Vui lòng chọn loại vé và vị trí!', 'error');
     return;
   }
   router.push({

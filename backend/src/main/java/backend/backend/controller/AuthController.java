@@ -45,4 +45,9 @@ public class AuthController {
     public void update(@Valid @RequestBody UpdatePasswordRequestDto requestDto) {
         authService.updatePassword(requestDto);
     }
+
+    @PostMapping("/forgot-password")
+    public void forgotPassword(@Valid @RequestBody UpdatePasswordRequestDto requestDto) {
+        authService.updatePassword(requestDto);
+    }
 }

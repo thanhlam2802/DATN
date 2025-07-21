@@ -61,7 +61,7 @@ public class HotelDAOImpl implements HotelDAOCustom {
                 HotelDto.class,
                 hotelRoot.get("id"),
                 hotelRoot.get("name"),
-                imageUrlSubquery.getSelection(),
+                cb.nullLiteral(String.class),
                 hotelRoot.get("address"),
                 provinceJoin.get("name"),
                 hotelRoot.get("starRating"),
@@ -134,7 +134,9 @@ public class HotelDAOImpl implements HotelDAOCustom {
 
             resultList.forEach(hotelDto -> {
                 hotelDto.setAmenities(amenitiesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList()));
-                hotelDto.setImageUrls(imagesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList()));
+                List<String> images = imagesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList());
+                hotelDto.setImageUrls(images);
+                hotelDto.setImageUrl(images.isEmpty() ? null : images.get(0));
                 hotelDto.setMinDiscountedPrice(minDiscountedPriceByHotelId.getOrDefault(hotelDto.getId(), null));
             });
         }

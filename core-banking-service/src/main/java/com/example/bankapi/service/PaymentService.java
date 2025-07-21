@@ -4,6 +4,8 @@ import com.example.bankapi.model.entity.Payment;
 import com.example.bankapi.model.entity.Refund;
 import com.example.bankapi.model.dto.PaymentDto;
 import com.example.bankapi.model.dto.RefundDto;
+import com.example.bankapi.model.dto.ServicePaymentRequestDto;
+import com.example.bankapi.model.dto.TransactionDto;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -16,4 +18,6 @@ public interface PaymentService {
     RefundDto refundByTransactionId(UUID transactionId, String reason);
     PaymentDto getStatus(UUID paymentId);
     void cancelPayment(UUID paymentId);
+    PaymentDto makeServicePayment(ServicePaymentRequestDto req);
+    TransactionDto confirmServicePayment(String paymentId, String otp);
 } 

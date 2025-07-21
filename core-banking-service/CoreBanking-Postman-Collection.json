@@ -122,6 +122,36 @@
           "raw": "{\n  \"transactionId\": 10,\n  \"reason\": \"Hoan tien do loi dich vu\"\n}"
         }
       }
+    },
+    {
+      "name": "Service Payment Make (Gửi OTP)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/payments/service/make", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments", "service", "make"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"recipient\": \"user@example.com\",\n  \"recipientName\": \"Nguyen Van A\",\n  \"customerAccountNumber\": \"11111\",\n  \"customerBankCode\": \"MB Bank\",\n  \"amount\": 50000.00,\n  \"currency\": \"VND\",\n  \"remittanceInfo\": \"Thanh toán dịch vụ\",\n  \"idempotencyKey\": \"demo-service-otp-1\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Service Payment Confirm (Xác nhận OTP)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-API-KEY", "value": "test-api-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "http://localhost:8081/api/v1/payments/service/confirm", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "v1", "payments", "service", "confirm"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"paymentId\": \"{paymentId từ bước make}\",\n  \"otp\": \"{otp nhận qua email}\"\n}"
+        }
+      }
     }
   ]
 } 

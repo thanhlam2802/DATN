@@ -66,7 +66,7 @@ public class AccountController {
         logger.info("[AccountController] getBalance - accountNumber: {}, bankCode: {}", accountNumber, bankCode);
         AccountDto result = accountService.lookupAccountDto(bankCode, accountNumber);
         logger.info("[AccountController] getBalance - Result: {}", result);
-        return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
+        return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().<AccountDto>build();
     }
 
     @Operation(summary = "Lấy lịch sử giao dịch tài khoản",

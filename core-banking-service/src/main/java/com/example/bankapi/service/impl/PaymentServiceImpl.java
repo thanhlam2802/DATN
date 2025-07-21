@@ -16,11 +16,23 @@ import com.example.bankapi.model.dto.PaymentDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.cloud.stream.function.StreamBridge;
+import com.example.bankapi.model.dto.OtpMailDto;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Random;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
+import com.example.bankapi.model.dto.ServicePaymentRequestDto;
+import com.example.bankapi.model.dto.TransactionDto;
 
 @Service
 public class PaymentServiceImpl implements PaymentService {
@@ -29,9 +41,11 @@ public class PaymentServiceImpl implements PaymentService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
-    private static final String accountNumber = "66666";
+    @Value("${corebanking.accountNumber:66666}")
+    private String accountNumber;
+    @Value("${corebanking.bankCode:MB Bank}")
+    private String bankcore;
 
-    private static final String bankcore = "MB Bank";
     private static final Logger logger = LoggerFactory.getLogger(PaymentServiceImpl.class);
 
     @Autowired
@@ -42,13 +56,137 @@ public class PaymentServiceImpl implements PaymentService {
         this.transactionRepository = transactionRepository;
     }
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+    @Autowired
+    private StreamBridge streamBridge;
+
+    public PaymentDto makeServicePayment(ServicePaymentRequestDto req) {
+        // Truy vấn account để lấy email và tên
+        Account customer = accountRepository.findByBankCodeAndAccountNumber(req.getCustomerBankCode(), req.getCustomerAccountNumber()).orElse(null);
+        if (customer == null) {
+            throw new AccountNotFoundException("Không tìm thấy tài khoản khách hàng");
+        }
+        Account system = accountRepository.findByBankCodeAndAccountNumber(bankcore, accountNumber).orElse(null);
+        if (system == null) {
+            throw new AccountNotFoundException("Không tìm thấy tài khoản nguồn hệ thống");
+        }
+        String recipient = "phanhuynhphuckhang12c8@gmail.com";
+        String recipientName = customer.getAccountHolderName();
+        // 1. Tạo OTP
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        // 2. Tạo paymentId
+        String paymentId = UUID.randomUUID().toString();
+        Payment payment = new Payment();
+        payment.setDebtorAccount(customer);
+        payment.setCreditorAccount(system);
+        payment.setAmount(req.getAmount());
+        payment.setPaymentId(UUID.fromString(paymentId));
+        payment.setCurrency(req.getCurrency());
+        payment.setStatus("PENDING");
+        payment.setRemittanceInfo(req.getRemittanceInfo());
+        payment.setIdempotencyKey(req.getIdempotencyKey());
+        payment = paymentRepository.save(payment);
+        logger.info("[PaymentService] payServicePayment - Payment created: id={}, paymentId={}, amount={}, status={}, debtorAccountId={}, creditorAccountId={}, createdAt={}",
+                payment.getId(), payment.getPaymentId(), payment.getAmount(), payment.getStatus(), payment.getDebtorAccount().getId(), payment.getCreditorAccount().getId(), payment.getCreatedAt()
+        );
+        // 3. Lưu OTP vào Redis (10 phút)
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        ops.set("otp:" + paymentId, otp, Duration.ofMinutes(10));
+        // 4. Gửi OTP qua Kafka
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        OtpMailDto otpMail = new OtpMailDto(
+            recipient,
+            recipientName,
+            req.getCustomerBankCode(),
+            otp,
+            paymentId,
+            req.getAmount() + " " + req.getCurrency(),
+            now,
+            LocalDateTime.now().plusMinutes(10).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        );
+        streamBridge.send("otpMail-out-0", otpMail);
+        // 5. Trả về PaymentDto với paymentId (chưa thực hiện giao dịch)
+        PaymentDto dto = new PaymentDto();
+        dto.setPaymentId(UUID.fromString(paymentId));
+        dto.setStatus("OTP_SENT");
+        dto.setAmount(req.getAmount());
+        dto.setCurrency(req.getCurrency());
+        return dto;
+    }
+
+    public TransactionDto confirmServicePayment(String paymentId, String otp) {
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        String redisOtp = ops.get("otp:" + paymentId);
+        if (redisOtp == null) {
+            throw new RuntimeException("OTP expired or not found");
+        }
+        if (!redisOtp.equals(otp)) {
+            throw new RuntimeException("OTP invalid");
+        }
+        // Xóa OTP khỏi Redis
+        redisTemplate.delete("otp:" + paymentId);
+        // Thực hiện giao dịch thật sự
+        Payment payment = paymentRepository.findByPaymentId(UUID.fromString(paymentId)).orElse(null);
+        if (payment == null) {
+            throw new RuntimeException("Không tìm thấy payment để xác nhận");
+        }
+        if (payment.getStatus() != null && payment.getStatus().equals("COMPLETED")) {
+            throw new RuntimeException("Giao dịch đã được xác nhận trước đó");
+        }
+        Account customer = payment.getDebtorAccount();
+        Account system = payment.getCreditorAccount();
+        BigDecimal amount = payment.getAmount();
+        String currency = payment.getCurrency();
+        // Kiểm tra số dư
+        if (customer.getAvailableBalance().add(customer.getOverdraftLimit()).compareTo(amount) < 0) {
+            throw new InsufficientFundsException("Số dư tài khoản khách hàng không đủ");
+        }
+        // Trừ tiền khách hàng
+        customer.setAvailableBalance(customer.getAvailableBalance().subtract(amount));
+        customer.setCurrentBalance(customer.getCurrentBalance().subtract(amount));
+        // Cộng tiền hệ thống
+        system.setAvailableBalance(system.getAvailableBalance().add(amount));
+        system.setCurrentBalance(system.getCurrentBalance().add(amount));
+        accountRepository.save(customer);
+        accountRepository.save(system);
+        // Cập nhật trạng thái payment
+        payment.setStatus("COMPLETED");
+        paymentRepository.save(payment);
+        // Lưu transaction khách hàng
+        Transaction t1 = new Transaction();
+        t1.setAccount(customer);
+        t1.setBookingDate(java.time.LocalDate.now());
+        t1.setAmount(amount.negate());
+        t1.setDescription("Thanh toán dịch vụ vào hệ thống");
+        transactionRepository.save(t1);
+        // Lưu transaction hệ thống
+        Transaction t2 = new Transaction();
+        t2.setAccount(system);
+        t2.setBookingDate(java.time.LocalDate.now());
+        t2.setAmount(amount);
+        t2.setDescription("Nhận thanh toán dịch vụ từ khách hàng " + customer.getAccountNumber());
+        transactionRepository.save(t2);
+        // Trả về TransactionDto của t1
+        TransactionDto dto = new TransactionDto();
+        dto.setTransactionId(t1.getTransactionId());
+        dto.setBookingDate(t1.getBookingDate());
+        dto.setAmount(t1.getAmount());
+        dto.setDescription(t1.getDescription());
+        return dto;
+    }
+
     @Override
     public PaymentDto initiatePayment(String debtorAccountNumber, String debtorBankCode, String creditorAccountNumber, String creditorBankCode, BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey) {
         logger.info("[PaymentService] initiatePayment - debtorAccountNumber: {}, debtorBankCode: {}, creditorAccountNumber: {}, creditorBankCode: {}, amount: {}, currency: {}, remittanceInfo: {}, idempotencyKey: {}", debtorAccountNumber, debtorBankCode, creditorAccountNumber, creditorBankCode, amount, currency, remittanceInfo, idempotencyKey);
-        Account debtor = accountRepository.findByBankCodeAndAccountNumber(debtorBankCode, debtorAccountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản ghi nợ"));
-        Account creditor = accountRepository.findByBankCodeAndAccountNumber(creditorBankCode, creditorAccountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản ghi có"));
+        Account debtor = accountRepository.findByBankCodeAndAccountNumber(debtorBankCode, debtorAccountNumber).orElse(null);
+        if (debtor == null) {
+            throw new AccountNotFoundException("Không tìm thấy tài khoản ghi nợ");
+        }
+        Account creditor = accountRepository.findByBankCodeAndAccountNumber(creditorBankCode, creditorAccountNumber).orElse(null);
+        if (creditor == null) {
+            throw new AccountNotFoundException("Không tìm thấy tài khoản ghi có");
+        }
         logger.info("[PaymentService] initiatePayment - Debtor: id={}, accountNumber={}, bankCode={}, balance={}", debtor.getId(), debtor.getAccountNumber(), debtor.getBankCode(), debtor.getAvailableBalance());
         logger.info("[PaymentService] initiatePayment - Creditor: id={}, accountNumber={}, bankCode={}, balance={}", creditor.getId(), creditor.getAccountNumber(), creditor.getBankCode(), creditor.getAvailableBalance());
         if (debtor.getAvailableBalance().add(debtor.getOverdraftLimit()).compareTo(amount) < 0) {
@@ -100,23 +238,30 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentDto getStatus(UUID paymentId) {
-        return paymentRepository.findByPaymentId(paymentId)
-                .map(this::toPaymentDto)
-                .orElse(null);
+        Optional<Payment> optionalPayment = paymentRepository.findByPaymentId(paymentId);
+        if (optionalPayment.isPresent()) {
+            Payment payment = optionalPayment.get();
+            return toPaymentDto(payment);
+        }
+        return null;
     }
 
     @Override
     public void cancelPayment(UUID paymentId) {
-        Payment payment = paymentRepository.findByPaymentId(paymentId)
-                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy giao dịch thanh toán"));
+        Payment payment = paymentRepository.findByPaymentId(paymentId).orElse(null);
+        if (payment == null) {
+            throw new AccountNotFoundException("Không tìm thấy giao dịch thanh toán");
+        }
         payment.setStatus("CANCELLED");
         paymentRepository.save(payment);
     }
 
     @Override
     public RefundDto refundPayment(UUID paymentId, BigDecimal amount, String reason) {
-        Payment payment = paymentRepository.findByPaymentId(paymentId)
-                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy giao dịch thanh toán"));
+        Payment payment = paymentRepository.findByPaymentId(paymentId).orElse(null);
+        if (payment == null) {
+            throw new AccountNotFoundException("Không tìm thấy giao dịch thanh toán");
+        }
         Account creditor = payment.getCreditorAccount();
         Account debtor = payment.getDebtorAccount();
         if (creditor.getAvailableBalance().add(creditor.getOverdraftLimit()).compareTo(amount) < 0) {
@@ -155,10 +300,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentDto payServicePayment(String customerAccountNumber, String customerBankCode, BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey) {
-        Account customer = accountRepository.findByBankCodeAndAccountNumber(customerBankCode, customerAccountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản khách hàng"));
-        Account system = accountRepository.findByBankCodeAndAccountNumber(bankcore,accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy tài khoản nguồn hệ thống"));
+        Account customer = accountRepository.findByBankCodeAndAccountNumber(customerBankCode, customerAccountNumber).orElse(null);
+        if (customer == null) {
+            throw new AccountNotFoundException("Không tìm thấy tài khoản khách hàng");
+        }
+        Account system = accountRepository.findByBankCodeAndAccountNumber(bankcore, accountNumber).orElse(null);
+        if (system == null) {
+            throw new AccountNotFoundException("Không tìm thấy tài khoản nguồn hệ thống");
+        }
         logger.info("[PaymentService] payServicePayment - Customer: id={}, accountNumber={}, bankCode={}, balance={}", customer.getId(), customer.getAccountNumber(), customer.getBankCode(), customer.getAvailableBalance());
         logger.info("[PaymentService] payServicePayment - System: id={}, accountNumber={}, balance={}", system.getId(), system.getAccountNumber(), system.getAvailableBalance());
         if (customer.getAvailableBalance().add(customer.getOverdraftLimit()).compareTo(amount) < 0) {
@@ -212,9 +361,13 @@ public class PaymentServiceImpl implements PaymentService {
     public RefundDto refundByTransactionId(UUID transactionId, String reason) {
         logger.info("[PaymentService] refundByTransactionId - transactionId: {}, reason: {}", transactionId, reason);
         Transaction tx = transactionRepository.findByTransactionId(transactionId);
-        Payment payment = paymentRepository.findAll().stream()
-                .filter(p -> p.getDebtorAccount().getId().equals(tx.getAccount().getId()) || p.getCreditorAccount().getId().equals(tx.getAccount().getId()))
-                .findFirst().orElseThrow(() -> new AccountNotFoundException("Không tìm thấy payment liên quan"));
+        Optional<Payment> paymentOpt = paymentRepository.findFirstByDebtorAccount_IdOrCreditorAccount_Id(
+            tx.getAccount().getId(), tx.getAccount().getId()
+        );
+        Payment payment = paymentOpt.orElse(null);
+        if (payment == null) {
+            throw new AccountNotFoundException("Không tìm thấy giao dịch thanh toán");
+        }
         BigDecimal amount = tx.getAmount().abs();
         RefundDto refund = refundPayment(payment.getPaymentId(), amount, reason);
         logger.info("[PaymentService] refundByTransactionId - Refund created:  refundId={}, amount={}, status={}, createdAt={}",

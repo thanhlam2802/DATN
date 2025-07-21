@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByPaymentId(UUID paymentId);
+    Optional<Payment> findFirstByDebtorAccount_IdOrCreditorAccount_Id(Long debtorAccountId, Long creditorAccountId);
 } 

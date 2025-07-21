@@ -9,6 +9,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.cloud.stream.function.StreamBridge;
+import com.example.bankapi.model.dto.OtpMailDto;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Random;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +33,10 @@ import com.example.bankapi.model.dto.ServicePaymentRequestDto;
 public class PaymentController {
     @Autowired
     private PaymentService paymentService;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+    @Autowired
+    private StreamBridge streamBridge;
 
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
@@ -63,7 +75,7 @@ public class PaymentController {
     @GetMapping("/payments/{id}/status")
     public ResponseEntity<PaymentDto> getStatus(@PathVariable String id) {
         PaymentDto paymentDto = paymentService.getStatus(UUID.fromString(id));
-        return paymentDto != null ? ResponseEntity.ok(paymentDto) : ResponseEntity.notFound().build();
+        return paymentDto != null ? ResponseEntity.ok(paymentDto) : ResponseEntity.notFound().<PaymentDto>build();
     }
 
     @Operation(summary = "Hủy giao dịch thanh toán",
@@ -149,5 +161,19 @@ public class PaymentController {
         String reason = req.get("reason").toString();
         RefundDto refundDto = paymentService.refundByTransactionId(transactionId, reason);
         return ResponseEntity.ok(refundDto);
+    }
+
+    @PostMapping("/payments/service/make")
+    public ResponseEntity<PaymentDto> makeServicePayment(@RequestBody ServicePaymentRequestDto req) {
+        PaymentDto dto = paymentService.makeServicePayment(req);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PostMapping("/payments/service/confirm")
+    public ResponseEntity<TransactionDto> confirmServicePayment(@RequestBody Map<String, String> req) {
+        String paymentId = req.get("paymentId");
+        String otp = req.get("otp");
+        TransactionDto dto = paymentService.confirmServicePayment(paymentId, otp);
+        return ResponseEntity.ok(dto);
     }
 } 

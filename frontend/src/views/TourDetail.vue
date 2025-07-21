@@ -13,31 +13,28 @@ const itinerary = ref([]);
 const availableDates = ref([]);
 const isLoading = ref(true);
 const selectedTab = ref("schedule");
+const activeCartId = ref(null);
 
 // --- TRẠNG THÁI CHO LỊCH ---
 const today = new Date();
-today.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày
+today.setHours(0, 0, 0, 0);
 const currentDisplayDate = ref(
   new Date(today.getFullYear(), today.getMonth(), 1)
 );
 
 // --- LIFECYCLE HOOK: GỌI TẤT CẢ API KHI COMPONENT ĐƯỢỢC TẠO ---
 onMounted(async () => {
-  try {
-    // Gọi đồng thời 4 API để tăng tốc độ tải trang
-    const [
-      tourRes,
-      reviewsRes,
-      itineraryRes, // Gọi API itinerary mới
-      departuresRes,
-    ] = await Promise.all([
-      fetch(`http://localhost:8080/api/v1/tours/${tourId}`),
-      fetch(`http://localhost:8080/api/v1/tours/${tourId}/reviews`),
-      fetch(`http://localhost:8080/api/v1/tours/${tourId}/itinerary`), // API cho lịch trình chi tiết
-      fetch(`http://localhost:8080/api/v1/tours/${tourId}/departures`),
-    ]);
+  activeCartId.value = localStorage.getItem("activeCartId");
 
-    // Xử lý và gán dữ liệu vào các biến state
+  try {
+    const [tourRes, reviewsRes, itineraryRes, departuresRes] =
+      await Promise.all([
+        fetch(`http://localhost:8080/api/v1/tours/${tourId}`),
+        fetch(`http://localhost:8080/api/v1/tours/${tourId}/reviews`),
+        fetch(`http://localhost:8080/api/v1/tours/${tourId}/itinerary`),
+        fetch(`http://localhost:8080/api/v1/tours/${tourId}/departures`),
+      ]);
+
     const tourData = await tourRes.json();
     if (tourData.statusCode === 200) {
       tour.value = tourData.data;
@@ -56,7 +53,7 @@ onMounted(async () => {
     const departuresData = await departuresRes.json();
     if (departuresData.statusCode === 200) {
       availableDates.value = departuresData.data.map((d) => ({
-        departureId: d.id, // SỬA LỖI: Lưu lại ID của ngày khởi hành
+        departureId: d.id,
         date: d.departureDate,
         display: new Date(d.departureDate).toLocaleDateString("vi-VN", {
           day: "2-digit",
@@ -67,11 +64,9 @@ onMounted(async () => {
         price: d.adultPrice,
         promoPrice: d.discount > 0 ? d.adultPrice - d.discount : null,
       }));
-      // Tự động chọn ngày đầu tiên và set calendar view
       if (availableDates.value.length > 0) {
         const firstAvailableDate = new Date(availableDates.value[0].date);
         selectDate(availableDates.value[0].date);
-        // Đặt lịch về tháng của ngày khởi hành đầu tiên
         currentDisplayDate.value = new Date(
           firstAvailableDate.getFullYear(),
           firstAvailableDate.getMonth(),
@@ -91,7 +86,6 @@ const availableDatesMap = computed(() => {
   const map = new Map();
   availableDates.value.forEach((d) => {
     const dateObj = new Date(d.date);
-    // Chuẩn hóa key của map về dạng YYYY-MM-DD để tra cứu
     const normalizedDateKey = new Date(
       dateObj.getFullYear(),
       dateObj.getMonth(),
@@ -99,7 +93,7 @@ const availableDatesMap = computed(() => {
     )
       .toISOString()
       .split("T")[0];
-    map.set(normalizedDateKey, d); // Map key YYYY-MM-DD với object ngày đầy đủ
+    map.set(normalizedDateKey, d);
   });
   return map;
 });
@@ -114,14 +108,11 @@ const monthYearDisplay = computed(() => {
 const calendarGrid = computed(() => {
   const year = currentDisplayDate.value.getFullYear();
   const month = currentDisplayDate.value.getMonth();
-
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
   const daysInMonth = lastDayOfMonth.getDate();
   const startDayOfWeek = firstDayOfMonth.getDay();
-
   const grid = [];
-
   const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
   for (let i = startDayOfWeek - 1; i >= 0; i--) {
     grid.push({
@@ -129,24 +120,21 @@ const calendarGrid = computed(() => {
       isCurrentMonth: false,
     });
   }
-
   for (let day = 1; day <= daysInMonth; day++) {
     grid.push({ date: new Date(year, month, day), isCurrentMonth: true });
   }
-
   const endDayOfWeek = lastDayOfMonth.getDay();
   for (let i = 1; i < 7 - endDayOfWeek; i++) {
     grid.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
   }
-
   return grid.map((dayObj) => {
     const normalizedDateKey = dayObj.date.toISOString().split("T")[0];
     const availableDateInfo = availableDatesMap.value.get(normalizedDateKey);
-    const isAvailable = !!availableDateInfo;
+    const isAvailable =
+      !!availableDateInfo && dayObj.date.getTime() >= today.getTime();
     const isSelected =
       isAvailable && bookingForm.value.selectedDate === availableDateInfo.date;
     const isToday = dayObj.date.getTime() === today.getTime();
-
     return {
       ...dayObj,
       fullDateString: availableDateInfo ? availableDateInfo.date : null,
@@ -154,6 +142,7 @@ const calendarGrid = computed(() => {
       isAvailable,
       isSelected,
       isToday,
+      seats: availableDateInfo ? availableDateInfo.seats : null,
     };
   });
 });
@@ -177,9 +166,9 @@ const nextMonth = () => {
 // --- LOGIC CHO BOOKING FORM ---
 const bookingForm = ref({
   selectedDate: null,
-  travelers: { adults: 1, children: 0, infants: 0 },
+  travelers: { adults: 1, children: 0 },
   maxTravelers: 20,
-  prices: { child_multiplier: 0.75, infant: 990000 },
+  prices: { child_multiplier: 0.75 },
 });
 
 const currentPriceData = computed(() => {
@@ -194,8 +183,8 @@ const currentPrice = computed(
 );
 
 const totalTravelers = computed(() => {
-  const { adults, children, infants } = bookingForm.value.travelers;
-  return adults + children + infants;
+  const { adults, children } = bookingForm.value.travelers;
+  return adults + children;
 });
 
 const canAddTraveler = computed(
@@ -204,12 +193,11 @@ const canAddTraveler = computed(
 
 const subtotal = computed(() => {
   if (!currentPrice.value) return 0;
-  const { adults, children, infants } = bookingForm.value.travelers;
+  const { adults, children } = bookingForm.value.travelers;
   const { prices } = bookingForm.value;
   return (
     adults * currentPrice.value +
-    children * (currentPrice.value * prices.child_multiplier) +
-    infants * prices.infant
+    children * (currentPrice.value * prices.child_multiplier)
   );
 });
 
@@ -238,19 +226,15 @@ const formatPrice = (price) =>
     price
   );
 
-const getAvailabilityClass = (seats) => {
-  if (seats <= 5) return "text-red-500 font-semibold";
-  if (seats <= 10) return "text-orange-500 font-semibold";
-  return "text-green-600";
-};
+const bookingButtonText = computed(() => {
+  return activeCartId.value ? "Thêm vào chuyến đi" : "Đặt tour ngay";
+});
 
 const handleBooking = async () => {
   if (!bookingForm.value.selectedDate) {
     alert("Vui lòng chọn ngày khởi hành");
     return;
   }
-
-  // Tìm ngày khởi hành đã chọn
   const selectedDeparture = availableDates.value.find(
     (d) => d.date === bookingForm.value.selectedDate
   );
@@ -258,49 +242,79 @@ const handleBooking = async () => {
     alert("Lỗi: Không tìm thấy thông tin ngày khởi hành. Vui lòng thử lại.");
     return;
   }
-
-  // Chuẩn bị dữ liệu giữ chỗ (mua ngay)
-  const reservationRequest = {
-    userId: 1, // TODO: Lấy userId thực tế
-    tourId: tour.value.id,
-    departureId: selectedDeparture.departureId,
-    numberOfAdults: bookingForm.value.travelers.adults,
-    numberOfChildren: bookingForm.value.travelers.children,
-    customerName: '', // Sẽ nhập ở bước tiếp theo
-    phone: '',
-    email: '',
-    notes: '',
-    totalPrice: total.value,
-  };
-
-  // Gọi API giữ chỗ (tạo order tạm thời)
   try {
-    const response = await fetch('http://localhost:8080/api/v1/orders/reserve-tour-direct', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reservationRequest),
-    });
-    const result = await response.json();
-    if (response.ok && result.statusCode === 201) {
-      const order = result.data;
-      // Chuyển sang trang checkout, truyền orderId và các thông tin cần thiết
-      router.push({
-        name: 'checkout',
-        query: {
-          orderId: order.id,
-          tourId: tour.value.id,
-          tourName: tour.value.name,
-          selectedDate: bookingForm.value.selectedDate,
-          departureId: selectedDeparture.departureId,
-          travelers: JSON.stringify(bookingForm.value.travelers),
-          totalPrice: total.value,
-        },
-      });
-    } else {
-      alert(result.message || 'Không thể giữ chỗ.');
+    // --- TRƯỜNG HỢP 1: ĐÃ CÓ GIỎ HÀNG (Dùng logic "Thêm vào chuyến đi") ---
+    if (activeCartId.value) {
+      const addToCartRequest = {
+        itemId: tour.value.id,
+        itemType: "TOUR",
+        numberOfAdults: bookingForm.value.travelers.adults,
+        numberOfChildren: bookingForm.value.travelers.children,
+        departureId: selectedDeparture.departureId,
+      };
+      const response = await fetch(
+        `http://localhost:8080/api/v1/cart/${activeCartId.value}/items`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(addToCartRequest),
+        }
+      );
+      if (response.ok) {
+        alert("Đã thêm tour vào chuyến đi thành công!");
+        localStorage.removeItem("activeCartId");
+        router.push(`/orders/${activeCartId.value}`);
+      } else {
+        const result = await response.json();
+        alert(result.message || "Không thể thêm tour vào chuyến đi.");
+      }
+    }
+    // --- TRƯỜNG HỢP 2: CHƯA CÓ GIỎ HÀNG (Dùng logic cũ "Đặt ngay") ---
+    else {
+      const reservationRequest = {
+        userId: 1, // TODO: Lấy userId thực tế
+        tourId: tour.value.id,
+        departureId: selectedDeparture.departureId,
+        numberOfAdults: bookingForm.value.travelers.adults,
+        numberOfChildren: bookingForm.value.travelers.children,
+        customerName: "", // Sẽ nhập ở bước tiếp theo
+        phone: "",
+        email: "",
+        notes: "",
+        totalPrice: total.value,
+      };
+
+      const response = await fetch(
+        "http://localhost:8080/api/v1/orders/reserve-tour-direct",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reservationRequest),
+        }
+      );
+      const result = await response.json();
+      if (response.ok && result.statusCode === 201) {
+        const order = result.data;
+        // Chuyển sang trang checkout, truyền orderId và các thông tin cần thiết
+        router.push({
+          name: "checkout",
+          query: {
+            orderId: order.id,
+            tourId: tour.value.id,
+            tourName: tour.value.name,
+            selectedDate: bookingForm.value.selectedDate,
+            departureId: selectedDeparture.departureId,
+            travelers: JSON.stringify(bookingForm.value.travelers),
+            totalPrice: total.value,
+          },
+        });
+      } else {
+        alert(result.message || "Không thể giữ chỗ.");
+      }
     }
   } catch (error) {
-    alert('Lỗi kết nối máy chủ.');
+    console.error("Lỗi khi xử lý đặt tour:", error);
+    alert("Lỗi kết nối máy chủ.");
   }
 };
 
@@ -333,7 +347,10 @@ const toggleDay = (dayIndex) => {
 </script>
 
 <template>
-  <div v-if="isLoading" class="flex justify-center items-center h-screen">
+  <div
+    v-if="isLoading"
+    class="flex justify-center items-center h-screen w-full"
+  >
     <div class="text-center">
       <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
       <h2 class="text-xl font-semibold text-gray-700">
@@ -624,7 +641,7 @@ const toggleDay = (dayIndex) => {
                         @click="selectDate(day.fullDateString)"
                         :disabled="!day.isAvailable"
                         :class="[
-                          'w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm transition-colors duration-200',
+                          'w-9 h-9 sm:w-10 sm:h-10 rounded-full flex flex-col items-center justify-center text-sm transition-colors duration-200',
                           {
                             'cursor-not-allowed text-gray-300':
                               !day.isAvailable,
@@ -640,7 +657,16 @@ const toggleDay = (dayIndex) => {
                           },
                         ]"
                       >
-                        {{ day.dayOfMonth }}
+                        <span>{{ day.dayOfMonth }}</span>
+                        <span
+                          v-if="day.isAvailable && day.seats !== null"
+                          class="text-[10px] -mt-0.5"
+                          :class="
+                            day.isSelected ? 'text-blue-200' : 'text-gray-500'
+                          "
+                        >
+                          {{ day.seats }} chỗ
+                        </span>
                       </button>
                       <span
                         v-else
@@ -659,7 +685,6 @@ const toggleDay = (dayIndex) => {
                   v-for="(type, key) in {
                     adults: { label: 'Người lớn', desc: '> 10 tuổi', min: 1 },
                     children: { label: 'Trẻ em', desc: '2 - 10 tuổi', min: 0 },
-                    infants: { label: 'Em bé', desc: '< 2 tuổi', min: 0 },
                   }"
                   :key="key"
                   class="p-2.5 border rounded-lg"
@@ -715,7 +740,7 @@ const toggleDay = (dayIndex) => {
                 :disabled="!bookingForm.selectedDate"
                 class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                Đặt tour ngay
+                {{ bookingButtonText }}
               </button>
             </div>
           </div>

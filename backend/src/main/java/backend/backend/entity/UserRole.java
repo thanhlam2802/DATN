@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
@@ -19,6 +20,7 @@ public class UserRole {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
+    @ToString.Exclude
     @JoinColumn(name = "user_id")
     private User user;
 

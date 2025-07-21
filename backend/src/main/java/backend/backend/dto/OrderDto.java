@@ -3,6 +3,7 @@ package backend.backend.dto;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class OrderDto {
@@ -16,5 +17,8 @@ public class OrderDto {
     private LocalDateTime createdAt;
     private String mainProduct;
     private LocalDateTime expiresAt;
+    
+    private List<BookingTourDto> tourBookings;
+    private List<FlightBookingDto> flightBookings;
 
 }

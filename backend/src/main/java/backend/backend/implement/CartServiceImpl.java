@@ -4,12 +4,15 @@ import backend.backend.dao.*;
 import backend.backend.dto.*;
 import backend.backend.entity.*;
 import backend.backend.exception.ResourceNotFoundException;
+import backend.backend.mapper.OrderMapper;
+import backend.backend.service.BookingTourService;
 import backend.backend.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.math.BigDecimal;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class CartServiceImpl implements CartService {
@@ -20,6 +23,10 @@ public class CartServiceImpl implements CartService {
     @Autowired private HotelBookingDAO hotelBookingDAO;
     @Autowired private BusBookingDAO busBookingDAO;
     @Autowired private BookingTourDAO bookingTourDAO;
+    @Autowired private  BookingTourService tourBookingService;
+    @Autowired
+    private OrderMapper orderMapper; 
+   
 
     @Override
     @Transactional
@@ -42,47 +49,122 @@ public class CartServiceImpl implements CartService {
     public OrderDto getCartById(Integer orderId) {
         Order cart = orderDAO.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giỏ hàng với ID: " + orderId));
-        if (!"CART".equalsIgnoreCase(cart.getStatus())) {
+        if (!"CART".equalsIgnoreCase(cart.getStatus()) && !"PENDING_PAYMENT".equalsIgnoreCase(cart.getStatus())) {
             throw new IllegalStateException("Order này không phải là giỏ hàng.");
         }
         return toOrderDto(cart);
     }
 
+  
+
+   
+   
+
     @Override
     @Transactional
     public OrderDto removeItemFromCart(Integer itemId, String itemType) {
-        Integer orderId = null;
+        Order orderToUpdate;
+
+        // 1. Tìm và xóa mục khỏi giỏ hàng
         switch (itemType.toUpperCase()) {
-            case "FLIGHT":
+            case "FLIGHT": {
                 FlightBooking flight = flightBookingDAO.findById(itemId)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vé máy bay với ID: " + itemId));
-                orderId = flight.getOrder().getId();
+                orderToUpdate = flight.getOrder();
+                orderToUpdate.getFlightBookings().remove(flight);
                 flightBookingDAO.delete(flight);
                 break;
-            case "HOTEL":
+            }
+            case "HOTEL": {
                 HotelBooking hotel = hotelBookingDAO.findById(itemId)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt phòng khách sạn với ID: " + itemId));
-                orderId = hotel.getOrder().getId();
+                orderToUpdate = hotel.getOrder();
+                orderToUpdate.getHotelBookings().remove(hotel);
                 hotelBookingDAO.delete(hotel);
                 break;
-            case "BUS":
+            }
+            case "BUS": {
                 BusBooking bus = busBookingDAO.findById(itemId)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vé xe buýt với ID: " + itemId));
-                orderId = bus.getOrder().getId();
+                orderToUpdate = bus.getOrder();
+                orderToUpdate.getBusBookings().remove(bus);
                 busBookingDAO.delete(bus);
                 break;
-            case "TOUR":
+            }
+            case "TOUR": {
                 BookingTour tour = bookingTourDAO.findById(itemId)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt tour với ID: " + itemId));
-                orderId = tour.getOrder().getId();
+                orderToUpdate = tour.getOrder();
+                orderToUpdate.getBookingTours().remove(tour);
                 bookingTourDAO.delete(tour);
                 break;
+            }
             default:
                 throw new IllegalArgumentException("Loại sản phẩm không hợp lệ: " + itemType);
         }
-        return getCartById(orderId);
+
+        // 2. Gọi phương thức helper để tính toán lại toàn bộ chi tiết đơn hàng
+        recalculateOrderDetails(orderToUpdate);
+
+        // 3. Quyết định và trả về DTO phù hợp dựa trên trạng thái mới của đơn hàng
+        if ("CANCELLED".equals(orderToUpdate.getStatus())) {
+            // Nếu đơn hàng đã bị hủy (do rỗng), trả về DTO của nó ngay lập tức
+            return orderMapper.toDto(orderToUpdate);
+        }
+        
+        // Nếu đơn hàng vẫn là giỏ hàng hợp lệ, gọi getCartById để lấy thông tin mới nhất
+        return getCartById(orderToUpdate.getId());
     }
 
+    /**
+     * Phương thức private để tính toán và cập nhật lại toàn bộ chi tiết cho Order.
+     * Phương thức này chỉ cập nhật đối tượng Order, không trả về giá trị (void).
+     * @param order Đối tượng Order cần được cập nhật.
+     */
+    private void recalculateOrderDetails(Order order) {
+        // --- 1. TÍNH TOÁN LẠI TỔNG PHỤ (SUBTOTAL) ---
+        BigDecimal subTotal = Stream.of(
+                order.getFlightBookings().stream().map(FlightBooking::getTotalPrice),
+                order.getHotelBookings().stream().map(HotelBooking::getTotalPrice),
+                order.getBusBookings().stream().map(BusBooking::getTotalPrice),
+                order.getBookingTours().stream().map(BookingTour::getTotalPrice)
+            )
+            .flatMap(s -> s)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // --- 2. KIỂM TRA VÀ CẬP NHẬT VOUCHER ---
+        Voucher voucher = order.getVoucher();
+        BigDecimal discountAmount = BigDecimal.ZERO;
+
+//        if (voucher != null) {
+//            // Nếu tổng phụ nhỏ hơn mức chi tiêu tối thiểu của voucher, hãy loại bỏ nó.
+//            // Giả sử voucher.getConditionMinAmount() tồn tại
+//            if (subTotal.compareTo(voucher.getConditionMinAmount()) < 0) {
+//                order.setVoucher(null); 
+//            } else {
+//                // Nếu voucher vẫn hợp lệ, tính toán lại số tiền giảm giá
+//                if ("PERCENTAGE".equals(voucher.getDiscountType())) {
+//                    discountAmount = subTotal.multiply(voucher.getDiscountAmount().divide(new BigDecimal("100")));
+//                    if (discountAmount.compareTo(voucher.getMaxDiscount()) > 0) {
+//                        discountAmount = voucher.getMaxDiscount();
+//                    }
+//                } else if ("FIXED".equals(voucher.getDiscountType())) {
+//                    // Chuyển đổi getDiscountAmount() sang BigDecimal nếu cần
+//                    discountAmount = BigDecimal.valueOf(voucher.getDiscountAmount());
+//                }
+//            }
+//        }
+
+        // --- 3. CẬP NHẬT SỐ TIỀN THANH TOÁN CUỐI CÙNG (amount) ---
+        BigDecimal finalAmount = subTotal.subtract(discountAmount);
+        order.setAmount(finalAmount.max(BigDecimal.ZERO));
+
+        // --- 4. CẬP NHẬT TRẠNG THÁI (status) ---
+        // Nếu giỏ hàng trống, cập nhật trạng thái đã hủy
+        if (subTotal.compareTo(BigDecimal.ZERO) == 0) {
+            order.setStatus("CANCELLED");
+        }
+    }
     // Helper: convert Order entity to OrderDto (bạn cần hoàn thiện mapping booking nếu muốn trả về booking list)
     private OrderDto toOrderDto(Order entity) {
         OrderDto dto = new OrderDto();
@@ -106,4 +188,46 @@ public class CartServiceImpl implements CartService {
         HotelBookingDto dto = new HotelBookingDto();
         return dto;
     }
+
+    @Override
+    @Transactional
+    public OrderDto addItemToCart(Integer orderId, AddItemRequestDto genericRequest) {
+      
+        // 1. Lấy đối tượng Order. Đây là một "managed entity".
+        Order order = orderDAO.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giỏ hàng với ID: " + orderId));
+
+        // 2. Gọi service con để cập nhật
+        switch (genericRequest.getItemType()) {
+            case TOUR:
+                BookingTourRequestDto tourRequest = mapToTourRequest(order, genericRequest);
+                // tourBookingService sẽ cập nhật trực tiếp vào đối tượng 'order' ở trên
+                tourBookingService.createBookingTour(tourRequest); 
+                break;
+            case HOTEL:
+                 break;
+            case BUS:
+                 break;
+            case FLIGHT:
+                 break;
+            
+            default:
+                throw new IllegalArgumentException("Loại dịch vụ không được hỗ trợ: " + genericRequest.getItemType());
+        }
+      
+       
+        return orderMapper.toDto(order); 
+    }
+
+    private BookingTourRequestDto mapToTourRequest(Order order, AddItemRequestDto genericRequest) {
+        BookingTourRequestDto tourRequest = new BookingTourRequestDto();
+        tourRequest.setUserId(order.getUser().getId());
+        tourRequest.setOrderId(order.getId());
+        tourRequest.setTourId(genericRequest.getItemId());
+        tourRequest.setDepartureId(genericRequest.getDepartureId());
+        tourRequest.setNumberOfAdults(genericRequest.getNumberOfAdults());
+        tourRequest.setNumberOfChildren(genericRequest.getNumberOfChildren());
+        return tourRequest;
+    }
+    
 }

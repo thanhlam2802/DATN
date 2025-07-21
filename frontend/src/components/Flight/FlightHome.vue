@@ -957,9 +957,11 @@ function onSearch() {
   })
     .then(res => {
       flights.value = res.data
+      window.$toast('Tìm kiếm thành công!', 'success');
     })
     .catch(() => {
       error.value = 'Không thể tìm chuyến bay.'
+      window.$toast('Không tìm thấy chuyến bay!', 'error');
     })
     .finally(() => {
       loading.value = false

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Xác thực OTP đăng ký - Công ty ABC</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            margin: 0;
+            padding: 0;
+            color: #ffffff;
+        }
+
+        .banner {
+            background: linear-gradient(to right, #1f4037, #99f2c8);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 4px solid #00c9a7;
+        }
+
+        .banner-logo {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .banner-logo svg {
+            height: 50px;
+            width: 50px;
+        }
+
+        .banner-title {
+            display: inline-block;
+            margin-left: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffffff;
+            vertical-align: middle;
+        }
+
+        .container {
+            max-width: 600px;
+            background-color: #1a1a2e;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        h2 {
+            color: #00ffe7;
+        }
+
+        .otp-code {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 25px 0;
+            color: #ff4081;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            letter-spacing: 8px;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #d0d0d0;
+        }
+
+        .footer {
+            margin-top: 50px;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+<div class="banner">
+    <div class="banner-logo">
+        <svg viewBox="0 0 64 64" fill="#00ffe7" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="30" stroke="#00ffe7" stroke-width="4" fill="none"/>
+            <path d="M32 12 L42 32 L32 52 L22 32 Z" fill="#00ffe7"/>
+        </svg>
+    </div>
+    <div class="banner-title">Công ty ABC</div>
+</div>
+
+<div class="container">
+    <h2>Xin chào <span th:text="${name}">Bạn</span>,</h2>
+    <p>Bạn đã yêu cầu <span th:text="${request}"></span>. Mã OTP của bạn để xác thực là:</p>
+    <div class="otp-code" th:text="${otp}"></div>
+    <p>⚠️ Mã này có hiệu lực trong <strong><span th:text="${ttl}"></span> phút</strong>. Vui lòng nhập mã này để hoàn tất đăng ký.</p>
+    <p>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.</p>
+
+    <div class="footer">
+        © 2025 Công ty ABC. Thiết kế bởi CTV JAVA TEAM PRO.
+    </div>
+</div>
+
+</body>
+</html>

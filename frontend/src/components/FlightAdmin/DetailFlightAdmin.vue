@@ -210,7 +210,7 @@ async function onImageChange(e) {
     console.log('Thêm ảnh thành công:', newImages.length, 'ảnh')
   } catch (error) {
     console.error('Lỗi khi thêm ảnh:', error)
-    alert('Lỗi khi thêm ảnh!')
+    window.$toast('Lỗi khi thêm ảnh!', 'error')
   }
 }
 
@@ -232,7 +232,7 @@ async function removeImage(idx) {
     console.log('Xóa ảnh thành công:', imageToRemove.id)
   } catch (error) {
     console.error('Lỗi khi xóa ảnh:', error)
-    alert('Lỗi khi xóa ảnh!')
+    window.$toast('Lỗi khi xóa ảnh!', 'error')
   }
 }
 
@@ -253,10 +253,10 @@ async function submitUpdate() {
     }
     
     await updateAdminFlight(flight.value.id, flightData)
-    alert('Cập nhật chuyến bay thành công!')
+    window.$toast('Cập nhật chuyến bay thành công!', 'success')
   } catch (error) {
     console.error('Lỗi khi cập nhật chuyến bay:', error)
-    alert('Lỗi khi cập nhật chuyến bay!')
+    window.$toast('Có lỗi khi cập nhật chuyến bay!', 'error')
   }
 }
 
@@ -278,7 +278,7 @@ function deleteSeat(seat) {
       seats.value = seats.value.filter(s => s.id !== seat.id)
     })
     .catch(() => {
-      alert('Xóa ghế thất bại!')
+      window.$toast('Xóa ghế thất bại!', 'error')
     })
 }
 

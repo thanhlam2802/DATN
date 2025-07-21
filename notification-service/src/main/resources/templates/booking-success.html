@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Đặt chỗ thành công</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f7fafd; margin: 0; padding: 0; color: #222; }
+        .container { max-width: 520px; background: #fff; margin: 40px auto; padding: 36px; border-radius: 16px; box-shadow: 0 0 32px rgba(4,121,247,0.10); }
+        .header { text-align: center; margin-bottom: 28px; }
+        .icon-success { color: #0479f7; font-size: 48px; margin-bottom: 8px; }
+        .title { color: #0479f7; font-size: 26px; font-weight: bold; margin-bottom: 8px; }
+        .info { margin: 18px 0; font-size: 16px; }
+        .info strong { color: #0479f7; }
+        .details { background: #f2f8fd; border-radius: 8px; padding: 18px 20px; margin: 18px 0; }
+        .details p { margin: 8px 0; font-size: 15px; }
+        .details strong { color: #0479f7; min-width: 120px; display: inline-block; }
+        .footer { margin-top: 32px; font-size: 13px; color: #888; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <i class="fa-solid fa-ticket icon-success"></i>
+        <div class="title" th:text="${subject}">Đặt chỗ thành công</div>
+    </div>
+    <div class="info">
+        Xin chào <strong th:text="${recipientName}"></strong>,<br/>
+        <span th:text="${content}"></span>
+    </div>
+    <div class="footer">
+        <i class="fa-solid fa-plane-departure"></i> Đội ngũ hỗ trợ Travela<br/>
+        Email này được gửi tự động, vui lòng không phản hồi.
+    </div>
+</div>
+</body>
+</html> 

@@ -590,10 +590,10 @@ async function submitFlight() {
       console.log('Images uploaded:', uploadResponse);
     }
     
-    alert(isEdit.value ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
+    window.$toast(isEdit.value ? 'Cập nhật thành công!' : 'Thêm mới thành công!', 'success');
   } catch (error) {
     console.error('Error creating flight:', error);
-    alert('Có lỗi xảy ra khi tạo chuyến bay: ' + (error.response?.data?.message || error.message));
+    window.$toast('Có lỗi xảy ra khi tạo chuyến bay: ' + (error.response?.data?.message || error.message), 'error');
   } finally {
     loading.value = false;
   }

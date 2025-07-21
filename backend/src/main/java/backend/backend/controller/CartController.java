@@ -1,5 +1,6 @@
 package backend.backend.controller;
 
+import backend.backend.dto.AddItemRequestDto;
 import backend.backend.dto.OrderDto;
 import backend.backend.entity.ApiResponse;
 import backend.backend.service.CartService;
@@ -36,6 +37,26 @@ public class CartController {
         OrderDto cart = cartService.getCartById(orderId);
         return ResponseFactory.success(cart, "Lấy thông tin giỏ hàng thành công.");
     }
+    
+ // --- API MỚI ĐỂ THÊM DỊCH VỤ VÀO GIỎ HÀNG ---
+    /**
+     * Thêm một dịch vụ (tour, khách sạn, v.v.) vào một giỏ hàng đã tồn tại.
+     * Dựa vào 'itemType' trong request body để xác định và xử lý dịch vụ phù hợp.
+     *
+     * @param orderId ID của giỏ hàng (Order) cần thêm mục vào.
+     * @param request Đối tượng chứa thông tin chi tiết về mục cần thêm.
+     * @return Chi tiết giỏ hàng sau khi đã được cập nhật.
+     */
+    @PostMapping("/{orderId}/items")
+    public ResponseEntity<ApiResponse<OrderDto>> addItemToCart(
+            @PathVariable Integer orderId,
+            @RequestBody AddItemRequestDto request) {
+        
+        // Nhiệm vụ của controller là nhận request và gọi service tương ứng
+        OrderDto updatedCart = cartService.addItemToCart(orderId, request);
+        return ResponseFactory.success(updatedCart, "Thêm dịch vụ vào giỏ hàng thành công.");
+    }
+
 
     /**
      * Xóa một mục (booking) cụ thể khỏi giỏ hàng.

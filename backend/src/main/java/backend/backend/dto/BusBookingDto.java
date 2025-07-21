@@ -11,5 +11,5 @@ public class BusBookingDto {
     private BigDecimal totalPrice;
     private LocalDateTime bookingDate;
     private Integer orderId;
-    // Thêm các trường khác nếu cần
+   
 }

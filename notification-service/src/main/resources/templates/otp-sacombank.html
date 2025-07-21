@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Sacombank - Mã OTP giao dịch</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f6faff; margin: 0; padding: 0; color: #222; }
+        .container { max-width: 500px; background: #fff; margin: 40px auto; padding: 32px; border-radius: 12px; box-shadow: 0 0 24px rgba(0, 102, 204, 0.08); }
+        .header { text-align: center; margin-bottom: 24px; }
+        .logo { height: 56px; }
+        .bank-name { color: #0066cc; font-size: 28px; font-weight: bold; margin-top: 8px; }
+        .otp-box { background: #eaf4ff; border: 2px solid #0066cc; border-radius: 8px; padding: 18px 0; text-align: center; margin: 24px 0; }
+        .otp { font-size: 36px; font-weight: bold; color: #0066cc; letter-spacing: 8px; }
+        .info { margin: 18px 0; font-size: 16px; }
+        .info strong { color: #0066cc; }
+        .footer { margin-top: 32px; font-size: 13px; color: #888; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Logo-Sacombank-new.png" alt="Sacombank Logo" />
+        <div class="bank-name">Sacombank</div>
+    </div>
+    <div class="info">
+        Kính gửi <strong th:text="${recipientName}"></strong>,<br/>
+        Bạn vừa thực hiện một giao dịch thanh toán tại Sacombank.<br/>
+        Vui lòng sử dụng mã OTP dưới đây để xác nhận giao dịch:
+    </div>
+    <div class="otp-box">
+        <span class="otp" th:text="${otp}"></span>
+    </div>
+    <div class="info">
+        <strong>Số tiền:</strong> <span th:text="${amount}"></span><br/>
+        <strong>Mã giao dịch:</strong> <span th:text="${transactionId}"></span><br/>
+        <strong>Thời gian:</strong> <span th:text="${time}"></span><br/>
+        <strong>Mã OTP có hiệu lực đến:</strong> <span th:text="${expiredTime}"></span>
+    </div>
+    <div class="info" style="color:#d32f2f; font-size:15px;">
+        ⚠️ Không chia sẻ mã OTP này với bất kỳ ai. Sacombank không bao giờ yêu cầu bạn cung cấp OTP qua điện thoại, email hoặc bất kỳ hình thức nào khác.
+    </div>
+    <div class="footer">
+        © 2025 Sacombank. Email này được gửi tự động, vui lòng không phản hồi.<br/>
+        Hotline: 1900 555588 | Website: <a href="https://www.sacombank.com.vn" style="color:#0066cc;">www.sacombank.com.vn</a>
+    </div>
+</div>
+</body>
+</html> 

@@ -1,6 +1,7 @@
 package backend.backend.entity;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -42,7 +43,7 @@ public class User {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
+    @ToString.Exclude 
     @OneToMany(mappedBy = "user")
     private List<UserRole> userRoles;
 

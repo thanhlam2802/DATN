@@ -20,7 +20,6 @@ public class FlightDto {
     private String flightNumber;
     private String name;
     private java.time.LocalDateTime updatedAt;
-    private Integer categoryId;
     private FlightCategoryDto category;
     private Integer ownerId;
     private AirportDto arrivalAirport;

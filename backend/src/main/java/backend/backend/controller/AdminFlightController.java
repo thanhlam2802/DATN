@@ -55,7 +55,7 @@ public class AdminFlightController {
     }
 
     @PostMapping("/flights")
-    public ResponseEntity<FlightDto> createFlight(@ModelAttribute CreateFlightRequestDto requestDto) {
+    public ResponseEntity<FlightDto> createFlight(@RequestBody CreateFlightRequestDto requestDto) {
         String requestId = UUID.randomUUID().toString();
         log.info("CREATE_FLIGHT_REQUEST - RequestId: {}, Payload: {}", requestId, requestDto);
         try {
@@ -64,6 +64,22 @@ public class AdminFlightController {
             return ResponseEntity.ok(created);
         } catch (Exception e) {
             log.error("CREATE_FLIGHT_FAILED - RequestId: {}, Error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @PostMapping("/flights/{flightId}/images")
+    public ResponseEntity<List<ImageDto>> uploadFlightImages(
+            @PathVariable Integer flightId,
+            @RequestParam("files") List<MultipartFile> files) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPLOAD_FLIGHT_IMAGES_REQUEST - RequestId: {}, flightId: {}, fileCount: {}", requestId, flightId, files.size());
+        try {
+            List<ImageDto> uploadedImages = adminFlightService.uploadFlightImages(flightId, files);
+            log.info("UPLOAD_FLIGHT_IMAGES_SUCCESS - RequestId: {}, flightId: {}, uploadedCount: {}", requestId, flightId, uploadedImages.size());
+            return ResponseEntity.ok(uploadedImages);
+        } catch (Exception e) {
+            log.error("UPLOAD_FLIGHT_IMAGES_FAILED - RequestId: {}, flightId: {}, Error: {}", requestId, flightId, e.getMessage(), e);
             throw e;
         }
     }
@@ -280,19 +296,51 @@ public class AdminFlightController {
         }
     }
 
-    @PutMapping("/flights/{flightId}/images")
-    public ResponseEntity<List<ImageDto>> updateFlightImages(
+//    @PutMapping("/flights/{flightId}/images")
+//    public ResponseEntity<List<ImageDto>> updateFlightImages(
+//            @PathVariable Integer flightId,
+//            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+//            @RequestParam(value = "keepImageIds", required = false) List<Integer> keepImageIds) {
+//        String requestId = UUID.randomUUID().toString();
+//        log.info("UPDATE_FLIGHT_IMAGES_REQUEST - RequestId: {}, flightId: {}, keepImageIds: {}, files: {}", requestId, flightId, keepImageIds, files != null ? files.size() : 0);
+//        try {
+//            List<ImageDto> updated = adminFlightService.updateFlightImages(flightId, files, keepImageIds);
+//            log.info("UPDATE_FLIGHT_IMAGES_SUCCESS - RequestId: {}, flightId: {}, updatedCount: {}", requestId, flightId, updated.size());
+//            return ResponseEntity.ok(updated);
+//        } catch (Exception e) {
+//            log.error("UPDATE_FLIGHT_IMAGES_FAILED - RequestId: {}, flightId: {}, Error: {}", requestId, flightId, e.getMessage(), e);
+//            throw e;
+//        }
+//    }
+
+    @DeleteMapping("/flights/{flightId}/images/{imageId}")
+    public ResponseEntity<Void> deleteFlightImage(
             @PathVariable Integer flightId,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files,
-            @RequestParam(value = "keepImageIds", required = false) List<Integer> keepImageIds) {
+            @PathVariable Integer imageId) {
         String requestId = UUID.randomUUID().toString();
-        log.info("UPDATE_FLIGHT_IMAGES_REQUEST - RequestId: {}, flightId: {}, keepImageIds: {}, files: {}", requestId, flightId, keepImageIds, files != null ? files.size() : 0);
+        log.info("DELETE_FLIGHT_IMAGE_REQUEST - RequestId: {}, flightId: {}, imageId: {}", requestId, flightId, imageId);
         try {
-            List<ImageDto> updated = adminFlightService.updateFlightImages(flightId, files, keepImageIds);
-            log.info("UPDATE_FLIGHT_IMAGES_SUCCESS - RequestId: {}, flightId: {}, updatedCount: {}", requestId, flightId, updated.size());
-            return ResponseEntity.ok(updated);
+            adminFlightService.deleteFlightImage(flightId, imageId);
+            log.info("DELETE_FLIGHT_IMAGE_SUCCESS - RequestId: {}, flightId: {}, imageId: {}", requestId, flightId, imageId);
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("UPDATE_FLIGHT_IMAGES_FAILED - RequestId: {}, flightId: {}, Error: {}", requestId, flightId, e.getMessage(), e);
+            log.error("DELETE_FLIGHT_IMAGE_FAILED - RequestId: {}, flightId: {}, imageId: {}, Error: {}", requestId, flightId, imageId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @PostMapping("/flights/{flightId}/imagesAdd")
+    public ResponseEntity<List<ImageDto>> addFlightImages(
+            @PathVariable Integer flightId,
+            @RequestParam("files") List<MultipartFile> files) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("ADD_FLIGHT_IMAGES_REQUEST - RequestId: {}, flightId: {}, fileCount: {}", requestId, flightId, files.size());
+        try {
+            List<ImageDto> uploadedImages = adminFlightService.addFlightImages(flightId, files);
+            log.info("ADD_FLIGHT_IMAGES_SUCCESS - RequestId: {}, flightId: {}, uploadedCount: {}", requestId, flightId, uploadedImages.size());
+            return ResponseEntity.ok(uploadedImages);
+        } catch (Exception e) {
+            log.error("ADD_FLIGHT_IMAGES_FAILED - RequestId: {}, flightId: {}, Error: {}", requestId, flightId, e.getMessage(), e);
             throw e;
         }
     }

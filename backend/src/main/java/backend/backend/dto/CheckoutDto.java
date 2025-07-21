@@ -10,16 +10,16 @@ import lombok.Data;
 @Data
 public class CheckoutDto {
 
-	/**
-     * ID của giỏ hàng (TicketDetail) cần được xử lý.
-     */
-    private Integer ticketDetailId;
-
     /**
      * ID của voucher mà người dùng muốn áp dụng.
      * Có thể là null nếu không áp dụng voucher.
      */
     private Integer voucherId; 
+
+    /**
+     * ID của đơn hàng (Order) cần được checkout.
+     */
+    private Integer orderId;
 
     /**
      * Phương thức thanh toán được chọn (ví dụ: "CREDIT_CARD", "MOMO", "BANK_TRANSFER").

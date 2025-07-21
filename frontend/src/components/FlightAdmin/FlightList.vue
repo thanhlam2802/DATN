@@ -153,6 +153,7 @@ import { getAdminFlights } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import { useRouter } from 'vue-router'
 
+
 // State
 const searchQuery = ref('')
 const statusFilter = ref('')

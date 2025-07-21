@@ -47,9 +47,13 @@ import backend.backend.dao.Hotel.HotelRoomImageDAO;
 import backend.backend.entity.HotelRoomImage;
 import backend.backend.entity.HotelRoomImageId;
 import backend.backend.dao.UserDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class HotelServiceImpl implements HotelService {
+
+    private static final Logger logger = LoggerFactory.getLogger(HotelServiceImpl.class);
 
     @Autowired
     private HotelDAO hotelDAO;
@@ -187,6 +191,25 @@ public class HotelServiceImpl implements HotelService {
                         }
                     }
                 }
+                if (roomDto.getImageUrls() != null && !roomDto.getImageUrls().isEmpty()) {
+                    for (String url : roomDto.getImageUrls()) {
+                        boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
+                        if (exists)
+                            continue;
+                        Image img = new Image();
+                        img.setUrl(url);
+                        img.setAltText(room.getRoomType());
+                        img = imageDAO.save(img);
+                        HotelRoomImage hri = new HotelRoomImage();
+                        HotelRoomImageId hriId = new HotelRoomImageId();
+                        hriId.setRoomId(room.getId());
+                        hriId.setImageId(img.getId());
+                        hri.setId(hriId);
+                        hri.setRoom(room);
+                        hri.setImage(img);
+                        hotelRoomImageDAO.save(hri);
+                    }
+                }
                 if (roomDto.getAvailableVariants() != null) {
                     for (HotelRoomVariantDto variantDto : roomDto.getAvailableVariants()) {
                         HotelRoomVariant variant = new HotelRoomVariant();
@@ -225,6 +248,25 @@ public class HotelServiceImpl implements HotelService {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+        }
+        if (hotelDto.getImageUrls() != null && !hotelDto.getImageUrls().isEmpty()) {
+            for (String url : hotelDto.getImageUrls()) {
+                boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
+                if (exists)
+                    continue;
+                Image img = new Image();
+                img.setUrl(url);
+                img.setAltText(hotel.getName());
+                img = imageDAO.save(img);
+                HotelImage hi = new HotelImage();
+                HotelImageId hiId = new HotelImageId();
+                hiId.setHotelId(hotel.getId());
+                hiId.setImageId(img.getId());
+                hi.setId(hiId);
+                hi.setHotel(hotel);
+                hi.setImage(img);
+                hotelImageDAO.save(hi);
             }
         }
         hotel = hotelDAO.findById(hotel.getId()).orElse(hotel);
@@ -292,6 +334,25 @@ public class HotelServiceImpl implements HotelService {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+        }
+        if (hotelDto.getImageUrls() != null && !hotelDto.getImageUrls().isEmpty()) {
+            for (String url : hotelDto.getImageUrls()) {
+                boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
+                if (exists)
+                    continue;
+                Image img = new Image();
+                img.setUrl(url);
+                img.setAltText(hotel.getName());
+                img = imageDAO.save(img);
+                HotelImage hi = new HotelImage();
+                HotelImageId hiId = new HotelImageId();
+                hiId.setHotelId(hotel.getId());
+                hiId.setImageId(img.getId());
+                hi.setId(hiId);
+                hi.setHotel(hotel);
+                hi.setImage(img);
+                hotelImageDAO.save(hi);
             }
         }
         if (deleteRoomImageUrlsMap != null && !deleteRoomImageUrlsMap.isEmpty()) {
@@ -411,6 +472,25 @@ public class HotelServiceImpl implements HotelService {
                     }
                 }
             }
+            if (roomDto.getImageUrls() != null && !roomDto.getImageUrls().isEmpty()) {
+                for (String url : roomDto.getImageUrls()) {
+                    boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
+                    if (exists)
+                        continue;
+                    Image img = new Image();
+                    img.setUrl(url);
+                    img.setAltText(room.getRoomType());
+                    img = imageDAO.save(img);
+                    HotelRoomImage hri = new HotelRoomImage();
+                    HotelRoomImageId hriId = new HotelRoomImageId();
+                    hriId.setRoomId(room.getId());
+                    hriId.setImageId(img.getId());
+                    hri.setId(hriId);
+                    hri.setRoom(room);
+                    hri.setImage(img);
+                    hotelRoomImageDAO.save(hri);
+                }
+            }
             List<HotelRoomVariant> currentVariants = hotelRoomVariantDAO.findByRoomId(room.getId());
             List<HotelRoomVariantDto> newVariants = roomDto.getAvailableVariants();
             for (HotelRoomVariant oldVar : currentVariants) {
@@ -507,6 +587,12 @@ public class HotelServiceImpl implements HotelService {
         var userOpt = userDAO.findByEmail(email);
         if (userOpt.isEmpty()) {
             throw new ResourceNotFoundException("Không tìm thấy user với email: " + email);
+        }
+        if (rating == null) {
+            throw new IllegalArgumentException("Rating không được để trống");
+        }
+        if (content == null) {
+            content = "";
         }
         backend.backend.entity.User user = userOpt.get();
         Review review = new Review();

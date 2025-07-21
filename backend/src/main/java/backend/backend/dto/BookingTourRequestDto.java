@@ -10,10 +10,10 @@ import lombok.Data;
 public class BookingTourRequestDto {
 
     /**
-     * ID của giỏ hàng (TicketDetail) hiện tại mà booking này sẽ được thêm vào.
-     * Bắt buộc phải có để biết thêm sản phẩm vào giỏ hàng nào.
+     * ID của đơn hàng (Order) mà booking này sẽ được thêm vào.
+     * Bắt buộc phải có để biết thêm sản phẩm vào đơn hàng nào.
      */
-    private Integer cartId;
+    private Integer orderId;
 
     /**
      * ID của ngày khởi hành (Departure) mà người dùng đã chọn.

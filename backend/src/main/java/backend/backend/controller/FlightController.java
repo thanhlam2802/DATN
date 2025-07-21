@@ -71,6 +71,25 @@ public class FlightController {
         }
     }
 
+    @PostMapping("/find-available-slot")
+    public ResponseEntity<FlightSlotDto> findFirstAvailableSlot(@RequestBody FindAvailableSlotRequestDto request) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("FIND_FIRST_AVAILABLE_SLOT_REQUEST - RequestId: {}, request: {}", requestId, request);
+        try {
+            Optional<FlightSlotDto> result = flightService.findFirstAvailableSlot(request);
+            if (result.isPresent()) {
+                log.info("FIND_FIRST_AVAILABLE_SLOT_SUCCESS - RequestId: {}, found slot: {}", requestId, result.get().getId());
+                return ResponseEntity.ok(result.get());
+            } else {
+                log.warn("FIND_FIRST_AVAILABLE_SLOT_NOT_FOUND - RequestId: {}", requestId);
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            log.error("FIND_FIRST_AVAILABLE_SLOT_FAILED - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
     @GetMapping("/airlines")
     public ResponseEntity<List<AirlineDto>> getAllAirlines() {
         String requestId = UUID.randomUUID().toString();

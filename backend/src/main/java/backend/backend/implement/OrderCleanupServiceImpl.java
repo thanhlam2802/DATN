@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Service // SỬA LỖI: Thêm annotation này để Spring nhận diện
+@Service 
 public class OrderCleanupServiceImpl implements OrderCleanupService {
 
     @Autowired

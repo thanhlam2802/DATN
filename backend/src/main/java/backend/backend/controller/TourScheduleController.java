@@ -25,7 +25,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/tour-schedules") 
-@CrossOrigin("*") 
+
 public class TourScheduleController {
 @Autowired
 TourScheduleService tourScheduleService;

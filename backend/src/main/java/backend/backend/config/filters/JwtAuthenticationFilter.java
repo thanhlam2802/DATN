@@ -47,12 +47,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 credentials.put("userId", claims.get("userId"));
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
-                                email,
-
-                                credentials
-
-                                null,
-                                Collections.emptyList()
+                        		 email,
+                                 credentials, 
+                                 Collections.emptyList()
 
                         );
 

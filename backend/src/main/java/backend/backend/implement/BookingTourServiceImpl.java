@@ -24,45 +24,55 @@ import java.time.LocalDate;
 @Service
 public class BookingTourServiceImpl implements BookingTourService {
 
-	 @Autowired private DepartureDAO departureDAO;
+    @Autowired private DepartureDAO departureDAO;
     @Autowired private BookingTourDAO bookingTourDAO;
     @Autowired private UserDAO userDAO;
     @Autowired private TourDAO tourDAO;
     @Autowired private OrderDAO orderDAO;
 
     /**
-     * Tạo một booking tour mới (thêm sản phẩm tour vào giỏ hàng).
+     * Tạo một booking tour mới và cập nhật tổng tiền của giỏ hàng.
      */
     @Override
     @Transactional
     public BookingTourDto createBookingTour(BookingTourRequestDto request) {
-        // 1. Lấy các đối tượng entity từ database dựa trên ID trong request
+        // 1. Lấy các đối tượng entity từ database
         User user = userDAO.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + request.getUserId()));
 
         Tour tour = tourDAO.findById(request.getTourId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tour với ID: " + request.getTourId()));
+
         Departure departure = departureDAO.findById(request.getDepartureId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ngày khởi hành với ID: " + request.getDepartureId()));
-        // Lấy order (Order) đã tồn tại
-        Order order = null;
+        
+        // Lấy order (giỏ hàng hoặc đơn hàng đang chờ) đã tồn tại
+        Order order;
         if (request.getOrderId() != null) {
             order = orderDAO.findById(request.getOrderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy order với ID: " + request.getOrderId()));
+        } else {
+            throw new IllegalArgumentException("OrderId là bắt buộc để thêm sản phẩm.");
         }
 
-        // 2. Kiểm tra bảo mật: Đảm bảo người dùng chỉ có thể thêm vào giỏ hàng của chính mình
-        if (order != null && !order.getUser().getId().equals(user.getId())) {
+        // 2. Kiểm tra bảo mật
+        if (!order.getUser().getId().equals(user.getId())) {
             throw new SecurityException("Bạn không có quyền thêm sản phẩm vào giỏ hàng này.");
         }
         
-     // 3. Tính toán tổng giá tiền cho booking này theo logic mới
+        // 3. Tính toán giá tiền cho booking tour MỚI
         BigDecimal adultPrice = departure.getAdultPrice();
         BigDecimal childPrice = departure.getChildPrice();
         BigDecimal totalAdultPrice = adultPrice.multiply(new BigDecimal(request.getNumberOfAdults()));
         BigDecimal totalChildPrice = childPrice.multiply(new BigDecimal(request.getNumberOfChildren()));
-        BigDecimal totalPrice = totalAdultPrice.add(totalChildPrice);
+        BigDecimal newBookingPrice = totalAdultPrice.add(totalChildPrice);
 
+        // 4. *** THAY ĐỔI QUAN TRỌNG: Cập nhật tổng tiền của Order cha ***
+        BigDecimal currentOrderAmount = order.getAmount() != null ? order.getAmount() : BigDecimal.ZERO;
+        order.setAmount(currentOrderAmount.add(newBookingPrice));
+        orderDAO.save(order); 
+
+        // 5. Tạo và lưu BookingTour mới
         BookingTour bookingTour = new BookingTour();
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(order);
@@ -70,8 +80,8 @@ public class BookingTourServiceImpl implements BookingTourService {
         bookingTour.setPhone(request.getPhone());
         bookingTour.setNumberOfAdults(request.getNumberOfAdults());
         bookingTour.setNumberOfChildren(request.getNumberOfChildren());
-        bookingTour.setTotalPrice(totalPrice);
-        bookingTour.setBookingDate(java.time.LocalDate.now());
+        bookingTour.setTotalPrice(newBookingPrice); 
+        bookingTour.setBookingDate(LocalDate.now());
         bookingTour.setNotes(request.getNotes());
 
         bookingTourDAO.save(bookingTour);
@@ -89,7 +99,7 @@ public class BookingTourServiceImpl implements BookingTourService {
     }
     
     /**
-     * Phương thức nội bộ để chuyển đổi từ Entity sang DTO (phiên bản đã sửa).
+     * Phương thức nội bộ để chuyển đổi từ Entity sang DTO.
      */
     private BookingTourDto toDto(BookingTour entity) {
         Departure departure = entity.getDeparture();
@@ -101,12 +111,9 @@ public class BookingTourServiceImpl implements BookingTourService {
                 .departureDate(departure.getDepartureDate())
                 .numberOfAdults(entity.getNumberOfAdults())
                 .numberOfChildren(entity.getNumberOfChildren())
-
                 .adultPrice(departure.getAdultPrice())
                 .childPrice(departure.getChildPrice())
-
                 .totalPrice(entity.getTotalPrice())
-                
                 .build();
     }
 }

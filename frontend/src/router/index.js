@@ -60,7 +60,12 @@ const routes = [
         props: true,
       },
       {
-        path: "/checkout",
+        path: "/orders/:id",
+        name: "order-detail",
+        component: () => import("../views/OrderDetail.vue"),
+      },
+      {
+        path: "/checkout/:id",
         name: "checkout",
         component: CheckoutView,
       },
@@ -71,7 +76,7 @@ const routes = [
       },
       {
         path: "/payment/:orderId",
-        name: "payment", // Tên route phải khớp với tên trong router.push
+        name: "payment",
         component: PaymentView,
       },
       {

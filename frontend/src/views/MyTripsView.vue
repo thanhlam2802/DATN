@@ -1,21 +1,18 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
 
-// --- STATE MANAGEMENT ---
 const orders = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
 const selectedStatus = ref("ALL");
+const router = useRouter();
 
-// --- API CALL ---
-// Hàm gọi API để lấy danh sách các đơn hàng của người dùng.
 const fetchMyOrders = async () => {
   isLoading.value = true;
   error.value = null;
   try {
-    const userId = 1; // Sử dụng userId là 1 như yêu cầu.
-
-    // Trong thực tế, bạn sẽ lấy userId của người dùng đã đăng nhập.
+    const userId = 1;
     const response = await fetch(
       `http://localhost:8080/api/v1/orders/my-orders?userId=${userId}`
     );
@@ -27,8 +24,6 @@ const fetchMyOrders = async () => {
     const data = await response.json();
 
     if (data.statusCode === 200) {
-      // Giả sử API trả về một trường 'mainProduct' để hiển thị.
-      // Nếu không, bạn cần xử lý logic để lấy tên sản phẩm chính từ ticketDetail.
       orders.value = data.data;
     } else {
       throw new Error(data.message || "Không thể tải danh sách chuyến đi.");
@@ -83,14 +78,21 @@ const getStatusInfo = (status) => {
       return { text: status, color: "gray" };
   }
 };
+
+/**
+ * Xử lý khi người dùng muốn thêm dịch vụ vào đơn hàng đang chờ.
+ */
+const addMoreServices = (orderId) => {
+  localStorage.setItem("activeCartId", orderId);
+  router.push("/");
+};
 </script>
 
 <template>
-  <div class="bg-gray-50 min-h-screen">
+  <div class="bg-gray-50  w-full">
     <div class="container mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold mb-6">Chuyến đi của tôi</h1>
 
-      <!-- Tabs để lọc trạng thái -->
       <div class="mb-6 border-b border-gray-200">
         <nav class="-mb-px flex space-x-6">
           <button
@@ -140,20 +142,17 @@ const getStatusInfo = (status) => {
         </nav>
       </div>
 
-      <!-- Trạng thái Loading -->
       <div v-if="isLoading" class="text-center py-16">
         <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
         <p class="mt-4 text-gray-600">Đang tải các chuyến đi...</p>
       </div>
 
-      <!-- Trạng thái Lỗi -->
       <div v-else-if="error" class="text-center py-16 bg-red-50 p-6 rounded-lg">
         <i class="fas fa-exclamation-triangle text-4xl text-red-500"></i>
         <p class="mt-4 font-semibold text-red-700">Đã xảy ra lỗi</p>
         <p class="text-red-600">{{ error }}</p>
       </div>
 
-      <!-- Hiển thị danh sách đơn hàng -->
       <div v-else-if="filteredOrders.length > 0" class="space-y-4">
         <div
           v-for="order in filteredOrders"
@@ -186,17 +185,29 @@ const getStatusInfo = (status) => {
             <p class="text-xl font-bold text-blue-600">
               {{ formatPrice(order.amount) }}
             </p>
-            <router-link
-              :to="`/orders/${order.id}`"
-              class="mt-2 inline-block text-sm text-blue-600 hover:underline"
+
+            <div
+              class="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
             >
-              Xem chi tiết <i class="fas fa-arrow-right text-xs ml-1"></i>
-            </router-link>
+              <button
+                v-if="order.status === 'PENDING_PAYMENT'"
+                @click="addMoreServices(order.id)"
+                class="w-full sm:w-auto text-sm text-gray-700 bg-white border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50"
+              >
+                Thêm dịch vụ
+              </button>
+
+              <router-link
+                :to="`/orders/${order.id}`"
+                class="w-full sm:w-auto text-sm text-blue-600 hover:underline font-medium text-center"
+              >
+                Xem chi tiết <i class="fas fa-arrow-right text-xs ml-1"></i>
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Trạng thái không có đơn hàng -->
       <div v-else class="text-center py-16 border-2 border-dashed rounded-lg">
         <i class="fas fa-inbox text-4xl text-gray-400"></i>
         <p class="mt-4 font-semibold text-gray-700">Không có chuyến đi nào</p>

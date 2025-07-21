@@ -2,6 +2,7 @@ package backend.backend.entity;
 
 
 
+import backend.backend.dto.auth.UserRoleEnum;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.util.List;
@@ -12,10 +13,11 @@ import java.util.List;
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Column(nullable = false, unique = true, length = 50)
-    private String name;
+    @Enumerated(EnumType.STRING)
+    private UserRoleEnum name;
 
     @OneToMany(mappedBy = "role")
     private List<UserRole> userRoles;

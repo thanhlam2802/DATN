@@ -1,26 +1,15 @@
 package backend.backend.entity;
 
 
-
-
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode
-@Embeddable 
-class UserRoleId implements Serializable {
-    private Integer userId;
-    private Integer roleId;
-}
 
 @Data
 @Entity
@@ -31,6 +20,7 @@ public class UserRole {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
+    @ToString.Exclude
     @JoinColumn(name = "user_id")
     private User user;
 

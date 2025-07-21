@@ -1,11 +1,12 @@
 package backend.backend.controller;
 
-import backend.backend.dto.auth.JwtResultDto;
-import backend.backend.dto.auth.LoginRequestDto;
-import backend.backend.dto.auth.RegisterRequestDto;
+import backend.backend.dto.auth.*;
 import backend.backend.service.AuthService;
+import backend.backend.service.OTPTransactionService;
+import backend.backend.utils.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final OTPTransactionService otpTransactionService;
 
     @PostMapping("/register")
     public JwtResultDto register(@Valid @RequestBody RegisterRequestDto requestDto) {
@@ -28,5 +30,12 @@ public class AuthController {
     @PostMapping("/login")
     public JwtResultDto login(@Valid @RequestBody LoginRequestDto requestDto) {
         return authService.login(requestDto);
+    }
+
+    @PreAuthorize("@authService.isAuthenticated()")
+    @PostMapping("/register/verify-otp")
+    public void verifyOtp(@Valid @RequestBody VerifyOtpRequestDto requestDto) {
+        Long userId = SecurityUtil.getUserId();
+        otpTransactionService.verifyOtp(userId, OtpType.REGISTER_ACCOUNT, requestDto.getCode());
     }
 }

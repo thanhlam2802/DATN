@@ -3,6 +3,7 @@ package backend.backend.entity;
 import jakarta.persistence.*;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,13 +11,16 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name = "departures")
+@Table(name = "departures", uniqueConstraints = {
+	    @UniqueConstraint(columnNames = {"tour_id", "departure_date"})
+	})
 public class Departure {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @ToString.Exclude
     @JoinColumn(name = "tour_id", nullable = false)
     private Tour tour;
 

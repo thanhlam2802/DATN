@@ -75,6 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
         String recipientName = customer.getAccountHolderName();
         // 1. Tạo OTP
         String otp = String.format("%06d", new Random().nextInt(1000000));
+        logger.info("otp: {}",otp);
         // 2. Tạo paymentId
         String paymentId = UUID.randomUUID().toString();
         Payment payment = new Payment();

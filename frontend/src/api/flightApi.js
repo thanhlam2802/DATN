@@ -111,5 +111,5 @@ export const reserveFlightDirect = (dto) =>
   api.post('/v1/orders/reserve-flight-direct', dto);
 
 // Lấy thông tin tổng hợp giữ chỗ chuyến bay (reservation summary)
-export const getFlightReservationSummary = (orderId) =>
-  api.get(`/bookings/flights/reservation-summary/${orderId}`);
+export const getFlightReservationSummary = (bookingId) =>
+  api.get(`/bookings/flights/reservation-summary/${bookingId}`);

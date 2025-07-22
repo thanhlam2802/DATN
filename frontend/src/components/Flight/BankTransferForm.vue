@@ -127,6 +127,7 @@ const banks = [
   { code: 'TCB', name: 'TPBank', logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/02/Icon-TPBank.png' },
   { code: 'Agri Bank', name: 'Agribank', logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/01/Icon-Agribank.png' },
 ]
+console.log(banks);
 
 const bankTransfer = reactive({
   bankCode: '',
@@ -183,6 +184,8 @@ onBeforeUnmount(() => {
 })
 
 async function onAccountNumberBlur() {
+
+  
   if (!selectedBank.value || !bankTransfer.accountNumber) {
     resetAccountInfo()
     return

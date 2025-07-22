@@ -24,7 +24,7 @@ public class AddItemRequestDto {
     private Integer roomId;
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
-
+    private Integer customerId;
     // Dành cho Flight
     private Integer flightSlotId;
 

@@ -12,13 +12,13 @@
             </p>
         </div>
 
-        <div class="p-4 flex flex-col justify-between" style="height: calc(100% - 12rem);">
+        <div class="py-1 px-4 pt-4 flex flex-col justify-between" style="height: calc(100% - 12rem);">
             <div>
                 <h3 class="font-bold text-xl text-gray-800 leading-tight h-14 overflow-hidden" :title="hotel.name">
                     {{ hotel.name }}
                 </h3>
 
-                <div class="mt-2">
+                <div class="mt-0">
                     <div class="flex items-center text-gray-600 text-sm">
                         <i class="fas fa-hotel mr-2 text-blue-500"></i>
                         <span class="mr-2">Khách sạn</span>
@@ -33,10 +33,19 @@
                 </div>
             </div>
 
-            <div class="mt-3 pt-1 border-t border-gray-100">
+            <div class="mt-2 pt-1 mb-2 border-t border-gray-100">
                 <p>
                     <span class="text-gray-500 text-sm">Giá từ</span><br>
-                    <span class="text-red-500 font-bold text-xl">{{ formattedPrice }}</span>
+                    <template v-if="showDiscount">
+                        <span class="text-gray-400 font-bold text-xs line-through block">{{
+                            formatPrice(hotel.startingPrice) }}</span>
+                        <span class="text-red-500 font-bold text-base block">{{ formatPrice(hotel.minDiscountedPrice)
+                            }}</span>
+                    </template>
+                    <template v-else>
+                        <span class="text-red-500 font-bold text-base block">{{ formatPrice(hotel.startingPrice)
+                            }}</span>
+                    </template>
                     <span class="block text-xs text-gray-400 font-normal mt-1">Chưa bao gồm thuế và phí</span>
                 </p>
             </div>
@@ -54,18 +63,23 @@ export default {
         },
     },
     computed: {
-        formattedPrice() {
-            if (this.hotel.startingPrice === null || typeof this.hotel.startingPrice === 'undefined') {
-                return "Liên hệ";
-            }
-            const priceNumber = Number(this.hotel.startingPrice);
-
-            return new Intl.NumberFormat('vi-VN', {
-                style: 'currency',
-                currency: 'VND',
-                currencyDisplay: 'code'
-            }).format(priceNumber).replace('VND', ' VND');
+        showDiscount() {
+            return (
+                this.hotel.minDiscountedPrice != null &&
+                this.hotel.startingPrice != null &&
+                Number(this.hotel.minDiscountedPrice) < Number(this.hotel.startingPrice)
+            );
         },
+        formatPrice() {
+            return (price) => {
+                if (price === null || typeof price === 'undefined') return "Liên hệ";
+                return new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND',
+                    currencyDisplay: 'code'
+                }).format(Number(price)).replace('VND', ' VND');
+            };
+        }
     },
 };
 </script>

@@ -6,6 +6,7 @@ public enum ErrorCode {
     AUTH_003("AUTH", "003", 401, "Invalid credentials"),
     AUTH_004("AUTH", "004", 401, "Invalid password"),
     AUTH_005("AUTH", "005", 403, "Invalid role"),
+    AUTH_006("AUTH", "006", 400, "Password is not match"),
     OTP_001("OTP", "001", 400, "Cannot find OTP transaction"),
     OTP_002("OTP", "002", 400, "OTP not match"),
     OTP_003("OTP", "003", 400, "OTP expired");

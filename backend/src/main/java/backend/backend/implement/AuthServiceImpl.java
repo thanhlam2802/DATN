@@ -3,8 +3,6 @@ package backend.backend.implement;
 import backend.backend.dto.auth.*;
 import backend.backend.entity.Role;
 import backend.backend.entity.User;
-import backend.backend.entity.UserRole;
-import backend.backend.entity.UserRoleId;
 import backend.backend.exception.AuthException;
 import backend.backend.exception.BadRequestException;
 import backend.backend.exception.ErrorCode;
@@ -13,10 +11,10 @@ import backend.backend.repository.RoleRepository;
 import backend.backend.repository.UserRepository;
 import backend.backend.repository.UserRoleRepository;
 import backend.backend.service.AuthService;
-import backend.backend.service.EmailService;
 import backend.backend.service.OTPTransactionService;
 import backend.backend.utils.JwtTokenUtil;
 import backend.backend.utils.RegexUtil;
+import backend.backend.utils.SecurityUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -134,6 +132,18 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("User not found", ErrorCode.AUTH_002);
         }
         return user.get();
+    }
+
+    @Override
+    public void updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
+        String email = SecurityUtil.getCurrentUserEmail();
+        User user = getUserByEmail(email);
+        String oldPassword = updatePasswordRequestDto.getOldPassword();
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new BadRequestException("Password is not match", ErrorCode.AUTH_005);
+        }
+        user.setPasswordHash(passwordEncoder.encode(updatePasswordRequestDto.getNewPassword()));
+        userRepository.save(user);
     }
 
 }

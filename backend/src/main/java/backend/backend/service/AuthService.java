@@ -3,6 +3,7 @@ package backend.backend.service;
 import backend.backend.dto.auth.JwtResultDto;
 import backend.backend.dto.auth.LoginRequestDto;
 import backend.backend.dto.auth.RegisterRequestDto;
+import backend.backend.dto.auth.UpdatePasswordRequestDto;
 import backend.backend.entity.User;
 
 public interface AuthService {
@@ -13,4 +14,6 @@ public interface AuthService {
 
     User getUserByEmail(String email);
     User getUserByPhone(String phone);
+
+    void updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto);
 }

@@ -14,4 +14,6 @@ public class HotelBookingRequestDto {
     private Short numAdults;
     private Short numChildren;
     private BigDecimal totalPrice;
+    private Short rooms;
+    private Integer orderId;
 } 

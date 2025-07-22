@@ -7,11 +7,12 @@ import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.mapper.OrderMapper;
 import backend.backend.service.BookingTourService;
 import backend.backend.service.CartService;
+import backend.backend.service.HotelBookingService;
+import backend.backend.dto.Hotel.HotelBookingRequestDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -24,6 +25,8 @@ public class CartServiceImpl implements CartService {
     @Autowired private BusBookingDAO busBookingDAO;
     @Autowired private BookingTourDAO bookingTourDAO;
     @Autowired private  BookingTourService tourBookingService;
+    @Autowired
+    private HotelBookingService hotelBookingService;
     @Autowired
     private OrderMapper orderMapper; 
    
@@ -80,6 +83,12 @@ public class CartServiceImpl implements CartService {
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt phòng khách sạn với ID: " + itemId));
                 orderToUpdate = hotel.getOrder();
                 orderToUpdate.getHotelBookings().remove(hotel);
+                if (hotel.getRoomVariant() != null && hotel.getRooms() != null && hotel.getRooms() > 0) {
+                    var room = hotel.getRoomVariant().getRoom();
+                    if (room != null && room.getRoomQuantity() != null) {
+                        room.setRoomQuantity((short) (room.getRoomQuantity() + hotel.getRooms()));
+                    }
+                 }
                 hotelBookingDAO.delete(hotel);
                 break;
             }
@@ -204,8 +213,23 @@ public class CartServiceImpl implements CartService {
                 // tourBookingService sẽ cập nhật trực tiếp vào đối tượng 'order' ở trên
                 tourBookingService.createBookingTour(tourRequest); 
                 break;
-            case HOTEL:
-                 break;
+            case HOTEL: {
+                HotelBookingRequestDto hotelRequest = new HotelBookingRequestDto();
+                User user = order.getUser();
+                hotelRequest.setFullName(user != null ? user.getName() : "");
+                hotelRequest.setEmail(user != null ? user.getEmail() : "");
+                hotelRequest.setPhone(user != null ? user.getPhone() : "");
+                hotelRequest.setRoomVariantId(genericRequest.getRoomId());
+                hotelRequest.setCheckInDate(genericRequest.getCheckInDate() != null ? genericRequest.getCheckInDate().toString() : null);
+                hotelRequest.setCheckOutDate(genericRequest.getCheckOutDate() != null ? genericRequest.getCheckOutDate().toString() : null);
+                hotelRequest.setNumAdults((short) genericRequest.getNumberOfAdults());
+                hotelRequest.setNumChildren((short) genericRequest.getNumberOfChildren());
+                hotelRequest.setTotalPrice(genericRequest.getTotalPrice());
+                hotelRequest.setRooms(genericRequest.getNumberOfRooms() != null ? genericRequest.getNumberOfRooms().shortValue() : 1);
+                hotelRequest.setOrderId(order.getId());
+                hotelBookingService.bookHotel(hotelRequest, null);
+                break;
+            }
             case BUS:
                  break;
             case FLIGHT:

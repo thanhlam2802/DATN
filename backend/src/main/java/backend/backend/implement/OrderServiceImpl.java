@@ -217,14 +217,20 @@ public class OrderServiceImpl implements OrderService {
 
         List<BookingTour> tourBookings = bookingTourDAO.findByOrderId(entity.getId());
         List<FlightBooking> flightBookings = flightBookingDAO.findByOrderId(entity.getId());
+        List<HotelBooking> hotelBookings = hotelBookingDAO.findByOrderId(entity.getId());
 
-        int totalItems = tourBookings.size() + flightBookings.size();
+        int totalItems = tourBookings.size() + flightBookings.size() + hotelBookings.size();
 
         if (totalItems == 1) {
             if (!tourBookings.isEmpty()) {
                 mainProductName = tourBookings.get(0).getDeparture().getTour().getName();
             } else if (!flightBookings.isEmpty()) {
                 mainProductName = flightBookings.get(0).getFlightSlot().getFlight().getName();
+            } else if (!hotelBookings.isEmpty()) {
+                HotelBooking hotel = hotelBookings.get(0);
+                String hotelName = hotel.getRoomVariant() != null && hotel.getRoomVariant().getRoom() != null && hotel.getRoomVariant().getRoom().getHotel() != null ? hotel.getRoomVariant().getRoom().getHotel().getName() : "Khách sạn";
+                String variantName = hotel.getRoomVariant() != null ? hotel.getRoomVariant().getVariantName() : "";
+                mainProductName = hotelName + (variantName.isEmpty() ? "" : (" - " + variantName));
             }
         }
 
@@ -266,6 +272,10 @@ public class OrderServiceImpl implements OrderService {
         List<FlightBooking> flightBookings = flightBookingDAO.findByOrderId(entity.getId());
         dto.setFlightBookings(
                 flightBookings.stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
+
+        List<HotelBooking> hotelBookings = hotelBookingDAO.findByOrderId(entity.getId());
+        dto.setHotelBookings(
+                hotelBookings.stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
 
         return dto;
     }
@@ -326,6 +336,46 @@ public class OrderServiceImpl implements OrderService {
             dto.setSeatCodes(java.util.Collections.singletonList(slot.getSeatNumber()));
         }
 
+        return dto;
+    }
+
+    private backend.backend.dto.HotelBookingDto toHotelBookingDto(HotelBooking hotelBooking) {
+        backend.backend.dto.HotelBookingDto dto = new backend.backend.dto.HotelBookingDto();
+        dto.setId(hotelBooking.getId());
+        dto.setRoomVariantId(hotelBooking.getRoomVariant().getId());
+        dto.setCheckInDate(hotelBooking.getCheckInDate());
+        dto.setCheckOutDate(hotelBooking.getCheckOutDate());
+        dto.setNumAdults(hotelBooking.getNumAdults());
+        dto.setNumChildren(hotelBooking.getNumChildren());
+        dto.setTotalPrice(hotelBooking.getTotalPrice());
+        dto.setCreatedAt(hotelBooking.getCreatedAt());
+        dto.setOrderId(hotelBooking.getOrder() != null ? hotelBooking.getOrder().getId() : null);
+        if (hotelBooking.getOrder() != null && hotelBooking.getOrder().getUser() != null) {
+            dto.setUserId(hotelBooking.getOrder().getUser().getId());
+        }
+        if (hotelBooking.getRoomVariant() != null) {
+            dto.setVariantName(hotelBooking.getRoomVariant().getVariantName());
+            if (hotelBooking.getRoomVariant().getRoom() != null) {
+                dto.setRoomType(hotelBooking.getRoomVariant().getRoom().getRoomType());
+                if (hotelBooking.getRoomVariant().getRoom().getHotel() != null) {
+                    dto.setHotelName(hotelBooking.getRoomVariant().getRoom().getHotel().getName());
+                }
+                if (hotelBooking.getRoomVariant().getRoom().getRoomImages() != null && !hotelBooking.getRoomVariant().getRoom().getRoomImages().isEmpty()) {
+                    var roomImages = hotelBooking.getRoomVariant().getRoom().getRoomImages();
+                    var img = roomImages.get(0);
+                    if (img.getImage() != null) {
+                        dto.setImageUrl(img.getImage().getUrl());
+                    }
+                    java.util.List<String> urls = new java.util.ArrayList<>();
+                    for (var ri : roomImages) {
+                        if (ri.getImage() != null && ri.getImage().getUrl() != null) {
+                            urls.add(ri.getImage().getUrl());
+                        }
+                    }
+                    dto.setImageUrls(urls);
+                }
+            }
+        }
         return dto;
     }
 }

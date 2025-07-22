@@ -24,44 +24,34 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    @Autowired
-    private BusBookingDAO busBookingDAO;
-    @Autowired
-    private BookingTourDAO bookingTourDAO;
-    @Autowired
-    private CustomerDAO customerDAO;
-    @Autowired
-    private DepartureDAO departureDAO;
-    @Autowired
-    private FlightBookingDAO flightBookingDAO;
-    @Autowired
-    private FlightSlotDAO flightSlotDAO;
-    @Autowired
-    private HotelBookingDAO hotelBookingDAO;
-    @Autowired
-    private OrderDAO orderDAO;
-    @Autowired
-    private TourDAO tourDAO;
-    @Autowired
-    private UserDAO userDAO;
-    @Autowired
-    private VoucherDAO voucherDAO;
+  @Autowired private BusBookingDAO busBookingDAO;
+  @Autowired private BookingTourDAO bookingTourDAO;
+  @Autowired private CustomerDAO customerDAO;
+  @Autowired private DepartureDAO departureDAO;
+  @Autowired private FlightBookingDAO flightBookingDAO;
+  @Autowired private FlightSlotDAO flightSlotDAO;
+  @Autowired private HotelBookingDAO hotelBookingDAO;
+  @Autowired private OrderDAO orderDAO;
+  @Autowired private TourDAO tourDAO;
+  @Autowired private UserDAO userDAO;
+  @Autowired private VoucherDAO voucherDAO;
 
-    @Override
-    @Transactional
-    public OrderDto placeOrder(CheckoutDto checkoutDto) {
-        Order order =
-                orderDAO
-                        .findById(checkoutDto.getOrderId())
-                        .orElseThrow(
-                                () ->
-                                        new ResourceNotFoundException(
-                                                "Không tìm thấy đơn hàng với ID: " + checkoutDto.getOrderId()));
+  @Override
+  @Transactional
+  public OrderDto placeOrder(CheckoutDto checkoutDto) {
+    Order order =
+        orderDAO
+            .findById(checkoutDto.getOrderId())
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        "Không tìm thấy đơn hàng với ID: " + checkoutDto.getOrderId()));
 
-        if (!"CART".equalsIgnoreCase(order.getStatus())
-                && !"PENDING_PAYMENT".equalsIgnoreCase(order.getStatus())) {
-            throw new IllegalStateException("Đơn hàng này đã được xử lý hoặc không hợp lệ.");
-        }
+    if (!"CART".equalsIgnoreCase(order.getStatus())
+        && !"PENDING_PAYMENT".equalsIgnoreCase(order.getStatus())) {
+      throw new IllegalStateException("Đơn hàng này đã được xử lý hoặc không hợp lệ.");
+    }
+
 
         if (checkoutDto.getVoucherId() != null) {
             Voucher voucher =

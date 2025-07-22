@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface HotelImageDAO extends JpaRepository<HotelImage, HotelImageId> {
+    long countByIdImageId(Integer imageId);
 } 

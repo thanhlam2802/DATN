@@ -1,103 +1,102 @@
 <template>
     <div class="w-full p-6">
         <div v-if="mode === 'list'">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold text-slate-800">Danh sách khách sạn</h1>
-                <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm">
-                    Thêm khách sạn
-                </button>
-            </div>
-
-            <div
-                class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
-                <div class="relative w-full sm:w-2/3">
-                    <input type="text" v-model="searchQuery" placeholder="Tìm kiếm khách sạn theo tên hoặc thành phố..."
-                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
-                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                </div>
-
-                <div ref="filterDropdownContainer" class="relative w-full sm:w-1/3 text-right">
-                    <button @click="toggleFilterDropdown"
-                        class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center justify-center sm:justify-between w-full">
-                        <i class="fas fa-filter mr-2 sm:mr-3"></i>
-                        <span>Bộ lọc</span>
-                        <i class="fas ml-2"
-                            :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
-                    </button>
-
-                    <div v-if="showFilterDropdown"
-                        class="origin-top-right absolute right-0 mt-2 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
-                        style="max-height: calc(100vh - 12rem);">
-
-                        <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
-                            <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-slate-800 mb-4">Danh sách khách sạn</h1>
+                <div class="flex flex-col sm:flex-row items-center gap-2">
+                    <div class="flex flex-1 flex-col sm:flex-row items-center gap-2 w-full">
+                        <div class="relative w-full sm:w-[300px]">
+                            <input type="text" v-model="searchQuery" placeholder="Tìm kiếm khách sạn theo tên hoặc thành phố..."
+                                class="w-full sm:w-[300px] pl-10 pr-4 py-2 h-12 text-base border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                         </div>
+                        <div ref="filterDropdownContainer" class="relative sm:w-[140px]">
+                            <button @click="toggleFilterDropdown"
+                                class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center flex-nowrap justify-center sm:w-[140px] h-12 text-base">
+                                <i class="fas fa-filter mr-2"></i>
+                                <span>Bộ lọc</span>
+                                <i class="fas ml-2"
+                                    :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
+                            </button>
 
-                        <div class="p-5 overflow-y-auto">
-                            <div class="mb-5">
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
-                                <div class="flex flex-wrap gap-2">
-                                    <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
-                                        :class="{ 'bg-blue-600 text-white': tempFilterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== n }"
-                                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                        {{ n }} <i class="fas fa-star text-yellow-400"></i>
-                                    </button>
-                                    <button @click="setFilterStar('')"
-                                        :class="{ 'bg-blue-600 text-white': tempFilterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== '' }"
-                                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                        Tất cả
-                                    </button>
-                                </div>
-                            </div>
+                            <div v-if="showFilterDropdown"
+                                class="origin-top-right absolute right-0 mt-2 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
+                                style="max-height: calc(100vh - 12rem);">
 
-                            <div class="mb-5">
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối
-                                    đa):</label>
-                                <input type="range" v-model="tempFilterPriceMax" min="0" max="20000000" step="100000"
-                                    class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                                <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
-                                    <span>Giá tối đa:</span>
-                                    <span class="text-blue-600">{{ formatCurrency(tempFilterPriceMax) }} VND</span>
+                                <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
+                                    <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
                                 </div>
-                            </div>
 
-                            <div class="mb-5">
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Thời gian tạo:</label>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <button v-for="preset in createdAtPresets" :key="preset.value"
-                                        @click="setCreatedAtPreset(preset.value)"
-                                        :class="tempFilterCreatedAtPreset === preset.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
-                                        class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200">
-                                        {{ preset.label }}
-                                    </button>
-                                </div>
-                                <div v-if="tempFilterCreatedAtPreset === 'custom'" class="flex gap-2 items-center">
-                                    <input type="date" v-model="tempFilterCreatedAtFrom"
-                                        class="border border-slate-300 rounded px-2 py-1 text-sm" />
-                                    <span>-</span>
-                                    <input type="date" v-model="tempFilterCreatedAtTo"
-                                        class="border border-slate-300 rounded px-2 py-1 text-sm" />
-                                </div>
-                            </div>
-                        </div>
+                                <div class="p-5 overflow-y-auto">
+                                    <div class="mb-5">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
+                                                :class="{ 'bg-blue-600 text-white': tempFilterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== n }"
+                                                class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                                {{ n }} <i class="fas fa-star text-yellow-400"></i>
+                                            </button>
+                                            <button @click="setFilterStar('')"
+                                                :class="{ 'bg-blue-600 text-white': tempFilterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== '' }"
+                                                class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                                Tất cả
+                                            </button>
+                                        </div>
+                                    </div>
 
-                        <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
-                            <div class="flex justify-end">
-                                <button @click="resetFilters"
-                                    class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
-                                    <i class="fas fa-redo-alt mr-2"></i> Đặt lại
-                                </button>
-                                <button @click="applyFilters"
-                                    class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm ml-2">
-                                    <i class="fas fa-check mr-2"></i> Áp dụng
-                                </button>
+                                    <div class="mb-5">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối
+                                            đa):</label>
+                                        <input type="range" v-model="tempFilterPriceMax" min="0" max="20000000" step="100000"
+                                            class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                        <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
+                                            <span>Giá tối đa:</span>
+                                            <span class="text-blue-600">{{ formatCurrency(tempFilterPriceMax) }} VND</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-5">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Thời gian tạo:</label>
+                                        <div class="flex flex-wrap gap-2 mb-2">
+                                            <button v-for="preset in createdAtPresets" :key="preset.value"
+                                                @click="setCreatedAtPreset(preset.value)"
+                                                :class="tempFilterCreatedAtPreset === preset.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                                                class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200">
+                                                {{ preset.label }}
+                                            </button>
+                                        </div>
+                                        <div v-if="tempFilterCreatedAtPreset === 'custom'" class="flex gap-2 items-center">
+                                            <input type="date" v-model="tempFilterCreatedAtFrom"
+                                                class="border border-slate-300 rounded px-2 py-1 text-sm" />
+                                            <span>-</span>
+                                            <input type="date" v-model="tempFilterCreatedAtTo"
+                                                class="border border-slate-300 rounded px-2 py-1 text-sm" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
+                                    <div class="flex justify-end">
+                                        <button @click="resetFilters"
+                                            class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
+                                            <i class="fas fa-redo-alt mr-2"></i> Đặt lại
+                                        </button>
+                                        <button @click="applyFilters"
+                                            class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm ml-2">
+                                            <i class="fas fa-check mr-2"></i> Áp dụng
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm w-full sm:w-auto whitespace-nowrap">
+                        Thêm khách sạn
+                    </button>
                 </div>
             </div>
 
-            <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
                 <table class="min-w-full w-full divide-y divide-slate-200">
                     <thead class="bg-gradient-to-r from-slate-100 to-slate-200">
                         <tr>
@@ -147,7 +146,7 @@
                             </td>
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="text-sm font-bold text-green-600">
-                                    {{ formatCurrency(h.startingPrice) }}
+                                    {{ formatCurrency(h.minDiscountedPrice != null ? h.minDiscountedPrice : h.startingPrice) }}
                                 </div>
                                 <div class="text-xs text-slate-500">VND/đêm</div>
                             </td>
@@ -187,62 +186,40 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
-
-            <div class="flex flex-col sm:flex-row justify-between items-center mt-8 p-6 bg-white rounded-xl shadow-sm">
-                <div class="flex items-center space-x-3 mb-4 sm:mb-0">
-                    <div class="flex items-center space-x-2">
-                        <i class="fas fa-list-ul text-slate-500"></i>
-                        <label for="itemsPerPage" class="text-sm font-medium text-slate-700">Hiển thị:</label>
-                    </div>
-                    <select v-model="itemsPerPage" id="itemsPerPage"
-                        class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
-                        <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
-                            {{ option === 'Tất cả' ? 'Tất cả' : option }}
-                        </option>
-                    </select>
-                    <div class="flex items-center space-x-1 text-sm text-slate-600">
-                        <span>kết quả trên tổng số</span>
-                        <span class="font-bold text-blue-600">{{ filteredHotels.length }}</span>
-                        <span>khách sạn</span>
-                    </div>
-                </div>
-
-                <div class="w-full sm:w-auto">
-                    <nav v-if="totalPages > 1 && itemsPerPage !== 'Tất cả'" aria-label="Pagination">
-                        <div class="flex items-center space-x-2">
-                            <div class="flex items-center space-x-1 text-sm text-slate-600">
-                                <span>Trang</span>
-                                <span class="font-semibold text-slate-900">{{ currentPage }}</span>
-                                <span>trên</span>
-                                <span class="font-semibold text-slate-900">{{ totalPages }}</span>
-                            </div>
-                            <ul class="flex items-center space-x-1">
-                                <li>
-                                    <button @click="prevPage" :disabled="currentPage === 1"
-                                        class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
-                                        <i class="fas fa-chevron-left text-sm"></i>
-                                    </button>
-                                </li>
-                                <li v-for="(page, index) in displayedPages" :key="index">
-                                    <span v-if="page === '...'"
-                                        class="flex items-center justify-center w-10 h-10 text-slate-400 font-medium">...</span>
-                                    <button v-else @click="changePage(page)" :class="[
-                                        'flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 font-medium shadow-sm',
-                                        currentPage === page
-                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
-                                            : 'text-slate-700 bg-white hover:bg-slate-50 hover:shadow-md'
-                                    ]">{{ page }}</button>
-                                </li>
-                                <li>
-                                    <button @click="nextPage" :disabled="currentPage === totalPages"
-                                        class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 bg-white hover:bg-slate-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-sm">
-                                        <i class="fas fa-chevron-right text-sm"></i>
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </nav>
+                <div class="flex items-center justify-end gap-4 px-4 py-3 bg-white border-t border-slate-200 rounded-b-xl">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">Số dòng</span>
+                    <CustomSelect
+                      v-model="itemsPerPageStr"
+                      :options="itemsPerPageOptions.map(opt => ({ label: String(opt), value: String(opt) }))"
+                      class="w-20 min-w-[100px] h-8 [&>button]:h-8 [&>button]:py-1 [&>button]:text-sm"
+                      :direction="'up'"
+                    />
+                  </div>
+                  <nav v-if="totalPages > 1 && itemsPerPageStr !== 'Tất cả'" aria-label="Pagination">
+                    <ul class="inline-flex items-center space-x-1">
+                      <li>
+                        <button @click="prevPage" :disabled="currentPage === 1"
+                          class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
+                          <i class="fas fa-chevron-left text-xs"></i>
+                        </button>
+                      </li>
+                      <li v-for="page in displayedPages" :key="page">
+                        <button v-if="page !== '...'" @click="changePage(page)"
+                          :class="['w-8 h-8 flex items-center justify-center rounded font-medium',
+                            currentPage === page ? 'bg-orange-500 text-white border-orange-500' : 'text-gray-700 hover:bg-gray-100 border border-slate-200']">
+                          {{ page }}
+                        </button>
+                        <span v-else class="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
+                      </li>
+                      <li>
+                        <button @click="nextPage" :disabled="currentPage === totalPages"
+                          class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
+                          <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
                 </div>
             </div>
         </div>
@@ -293,27 +270,27 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Hạng sao</label>
-                            <select v-model="newHotel.starRating" :disabled="isViewMode" :class="[
-                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                            ]">
-                                <option disabled value="">Chọn hạng sao</option>
-                                <option>1</option>
-                                <option>2</option>
-                                <option>3</option>
-                                <option>4</option>
-                                <option>5</option>
-                            </select>
+                            <CustomSelect
+                                v-model="newHotel.starRating"
+                                :options="[
+                                    { label: '1 Sao', value: 1 },
+                                    { label: '2 Sao', value: 2 },
+                                    { label: '3 Sao', value: 3 },
+                                    { label: '4 Sao', value: 4 },
+                                    { label: '5 Sao', value: 5 }
+                                ]"
+                                placeholder="Chọn hạng sao"
+                                :disabled="isViewMode"
+                            />
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Thành phố</label>
-                            <select v-model="newHotel.provinceId" :disabled="isViewMode" :class="[
-                                'w-full border border-slate-300 rounded-md px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                            ]" :selected="!newHotel.provinceId">
-                                <option disabled value="" :selected="!newHotel.provinceId">Chọn thành phố</option>
-                                <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
-                            </select>
+                            <CustomSelect
+                                v-model="newHotel.provinceId"
+                                :options="provinces.map(p => ({ label: p.name, value: p.id }))"
+                                placeholder="Chọn thành phố"
+                                :disabled="isViewMode"
+                            />
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Địa chỉ</label>
@@ -358,24 +335,47 @@
                         <div v-else>
                             <input type="file" multiple accept="image/*" ref="hotelImageInput" style="display:none"
                                 @change="handleHotelImageChange" />
-                            <button type="button" @click="$refs.hotelImageInput.click()"
-                                class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                                <i class="far fa-image text-2xl mb-1"></i>
-                                <span class="text-sm font-semibold">Thêm ảnh</span>
-                            </button>
+                            <div class="flex items-center gap-2 mb-2">
+                                <button type="button" @click="$refs.hotelImageInput.click()"
+                                    class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                    <i class="far fa-image text-2xl mb-1"></i>
+                                    <span class="text-sm font-semibold">Thêm ảnh</span>
+                                </button>
+                                <span class="mx-2 text-slate-500 font-semibold">hoặc</span>
+                                <button type="button" ref="hotelImageUrlBtn" @click="openHotelImageUrlPopup"
+                                    class="flex flex-col items-center justify-center border border-blue-400 text-blue-600 rounded-md px-3 py-2 h-28 w-28 hover:bg-blue-50 transition">
+                                    <i class="fas fa-link text-xl mb-1"></i>
+                                    <span class="text-xs font-semibold">Thêm URL hình</span>
+                                </button>
+                            </div>
+                            <div v-if="showHotelImageUrlPopup" class="custom-url-popup" :style="hotelImageUrlPopupStyle" ref="hotelImageUrlPopupRef">
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Media URL</label>
+                                <div class="flex items-center gap-2">
+                                    <input
+                                        v-model="hotelImageUrlInput"
+                                        type="text"
+                                        placeholder="Paste the media URL in the input."
+                                        class="border border-slate-300 rounded px-2 py-1 text-sm w-64 flex-1"
+                                    />
+                                    <button @click="confirmHotelImageUrl" class="text-green-600 text-xl hover:text-green-800">✔</button>
+                                    <button @click="closeHotelImageUrlPopup" class="text-red-500 text-xl hover:text-red-700">✗</button>
+                                </div>
+                                <div v-if="hotelImageUrlError" class="text-red-500 text-xs mt-1">{{ hotelImageUrlError }}</div>
+                                <div class="text-xs text-slate-500 mt-1">Paste the media URL in the input.</div>
+                            </div>
                             <div class="flex flex-wrap gap-3 mt-2">
                                 <div v-for="(img, idx) in newHotel.imageUrls" :key="'old-' + idx"
                                     class="relative group">
                                     <img :src="img"
                                         class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
-                                    <button @click="removeHotelImage(idx, true)"
+                                    <button type="button" @click="removeHotelImage(idx, true)"
                                         class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
                                 </div>
                                 <div v-for="(img, idx) in hotelImagePreviews" :key="'new-' + idx"
                                     class="relative group">
                                     <img :src="img"
                                         class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
-                                    <button @click="removeHotelImage(idx)"
+                                    <button type="button" @click="removeHotelImage(idx)"
                                         class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
                                 </div>
                             </div>
@@ -518,24 +518,47 @@
                                 <div v-else>
                                     <input type="file" multiple accept="image/*" :ref="`roomImageInput${idx}`"
                                         style="display:none" @change="e => handleRoomImageChange(e, idx)" />
-                                    <button type="button" @click="triggerRoomImageInput(idx)"
-                                        class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                                        <i class="far fa-image text-2xl mb-1"></i>
-                                        <span class="text-sm font-semibold">Thêm ảnh</span>
-                                    </button>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <button type="button" @click="triggerRoomImageInput(idx)"
+                                            class="w-40 h-28 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                                            <i class="far fa-image text-2xl mb-1"></i>
+                                            <span class="text-sm font-semibold">Thêm ảnh</span>
+                                        </button>
+                                        <span class="mx-2 text-slate-500 font-semibold">hoặc</span>
+                                        <button type="button" :ref="el => setRoomImageUrlBtnRef(el, idx)" @click="openRoomImageUrlPopup(idx)"
+                                            class="flex flex-col items-center justify-center border border-blue-400 text-blue-600 rounded-md px-3 py-2 h-28 w-28 hover:bg-blue-50 transition">
+                                            <i class="fas fa-link text-xl mb-1"></i>
+                                            <span class="text-xs font-semibold">Thêm URL hình</span>
+                                        </button>
+                                    </div>
+                                    <div v-if="showRoomImageUrlPopup[idx]" class="custom-url-popup" :style="roomImageUrlPopupStyle[idx]" ref="roomUrlPopupRefs" :data-popup-idx="idx">
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Media URL</label>
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                v-model="roomImageUrlInput[idx]"
+                                                type="text"
+                                                placeholder="Paste the media URL in the input."
+                                                class="border border-slate-300 rounded px-2 py-1 text-sm w-64 flex-1"
+                                            />
+                                            <button @click="confirmRoomImageUrl(idx)" class="text-green-600 text-xl hover:text-green-800">✔</button>
+                                            <button @click="closeRoomImageUrlPopup(idx)" class="text-red-500 text-xl hover:text-red-700">✗</button>
+                                        </div>
+                                        <div v-if="roomImageUrlError[idx]" class="text-red-500 text-xs mt-1">{{ roomImageUrlError[idx] }}</div>
+                                        <div class="text-xs text-slate-500 mt-1">Paste the media URL in the input.</div>
+                                    </div>
                                     <div class="flex flex-wrap gap-3 mt-2">
                                         <div v-for="(img, imgIdx) in r.imagePreviews" :key="'roomimg-' + imgIdx"
                                             class="relative group">
                                             <img :src="img"
                                                 class="w-20 h-20 object-cover rounded-lg border border-slate-200 shadow-sm" />
-                                            <button @click="removeRoomImage(idx, imgIdx)"
+                                            <button type="button" @click="removeRoomImage(idx, imgIdx)"
                                                 class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
                                         </div>
                                         <div v-for="(img, imgIdx) in r.imageUrls" :key="'oldroomimg-' + imgIdx"
                                             class="relative group">
                                             <img :src="img"
                                                 class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
-                                            <button @click="removeRoomImage(idx, imgIdx, true)"
+                                            <button type="button" @click="removeRoomImage(idx, imgIdx, true)"
                                                 class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs opacity-80 group-hover:opacity-100">✕</button>
                                         </div>
                                     </div>
@@ -548,72 +571,65 @@
                                         class="text-blue-600 text-xs font-semibold hover:underline">+ Thêm gói
                                         phòng</button>
                                 </div>
-                                <div class="overflow-x-auto rounded-lg">
-                                    <table class="w-full text-xs border border-slate-100 rounded-lg overflow-hidden">
-                                        <thead>
-                                            <tr class="bg-slate-100 text-slate-700">
-                                                <th class="py-2 px-3 font-semibold text-left">Tên gói</th>
-                                                <th class="py-2 px-3 font-semibold text-center">Giá</th>
-                                                <th class="py-2 px-3 font-semibold text-center">Bữa sáng</th>
-                                                <th class="py-2 px-3 font-semibold text-center">Hủy miễn phí</th>
-                                                <th class="py-2 px-3 font-semibold text-center">Thanh toán tại KS</th>
-                                                <th class="py-2 px-3 font-semibold text-center">Thuế/Phí</th>
-                                                <th v-if="!isViewMode" class="py-2 px-3 font-semibold text-center">Xóa
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="(v, vIdx) in r.availableVariants" :key="vIdx"
-                                                class="border-t border-slate-100">
-                                                <td class="py-2 px-3">
-                                                    <input v-model="v.variantName" type="text" placeholder="Tên gói"
-                                                        :disabled="isViewMode" :class="[
-                                                            'w-full border border-slate-200 rounded px-2 py-1 text-xs',
-                                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                                                        ]" />
-                                                </td>
-                                                <td class="py-2 px-3">
-                                                    <input v-model.number="v.price" type="number" min="0"
-                                                        placeholder="Giá" :disabled="isViewMode" :class="[
-                                                            'w-full border border-slate-200 rounded px-2 py-1 text-xs',
-                                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                                                        ]" />
-                                                </td>
-                                                <td class="py-2 px-3 text-center">
-                                                    <input type="checkbox" v-model="v.hasBreakfast"
-                                                        :disabled="isViewMode"
-                                                        :class="isViewMode ? 'cursor-not-allowed' : ''" />
-                                                </td>
-                                                <td class="py-2 px-3 text-center">
-                                                    <input type="checkbox" v-model="v.cancellable"
-                                                        :disabled="isViewMode"
-                                                        :class="isViewMode ? 'cursor-not-allowed' : ''" />
-                                                </td>
-                                                <td class="py-2 px-3 text-center">
-                                                    <input type="checkbox" v-model="v.payAtHotel" :disabled="isViewMode"
-                                                        :class="isViewMode ? 'cursor-not-allowed' : ''" />
-                                                </td>
-                                                <td class="py-2 px-3">
-                                                    <input v-model.number="v.taxAndFeeAmount" type="number" min="0"
-                                                        placeholder="Thuế/Phí" :disabled="isViewMode" :class="[
-                                                            'w-full border border-slate-200 rounded px-2 py-1 text-xs',
-                                                            isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
-                                                        ]" />
-                                                </td>
-                                                <td v-if="!isViewMode" class="py-2 px-3 text-center">
-                                                    <button type="button" @click="removeVariant(idx, vIdx)"
-                                                        class="text-red-500 hover:underline text-xs">Xóa</button>
-                                                </td>
-                                            </tr>
-                                            <tr v-if="!r.availableVariants || r.availableVariants.length === 0">
-                                                <td :colspan="isViewMode ? 6 : 7"
-                                                    class="text-center text-slate-400 py-4">Chưa
-                                                    có gói
-                                                    phòng nào
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div class="flex flex-col gap-4">
+                                  <div v-for="(v, vIdx) in r.availableVariants" :key="vIdx" class="bg-slate-50 rounded-xl p-4 shadow flex flex-col gap-3 relative">
+                                    <div class="flex flex-col gap-2">
+                                      <label class="text-sm font-semibold text-slate-700 mb-1">Tên gói</label>
+                                      <input v-model="v.variantName" :disabled="isViewMode" placeholder="Tên gói"
+                                        :class="[
+                                          'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                          isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]"
+                                      />
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                      <label class="text-sm font-semibold text-slate-700 mb-1">Giá</label>
+                                      <input v-model.number="v.price" :disabled="isViewMode" type="number" min="0" placeholder="Giá"
+                                        :class="[
+                                          'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                          isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]"
+                                      />
+                                    </div>
+                                    <div class="flex gap-6 flex-wrap">
+                                      <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" v-model="v.hasBreakfast" :disabled="isViewMode" class="w-5 h-5 accent-blue-600" /> Bữa sáng</label>
+                                      <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" v-model="v.cancellable" :disabled="isViewMode" class="w-5 h-5 accent-blue-600" /> Hủy miễn phí</label>
+                                      <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" v-model="v.payAtHotel" :disabled="isViewMode" class="w-5 h-5 accent-blue-600" /> Thanh toán tại KS</label>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                      <label class="text-sm font-semibold text-slate-700 mb-1">Thuế/Phí</label>
+                                      <input v-model.number="v.taxAndFeeAmount" :disabled="isViewMode" type="number" min="0" placeholder="Thuế/Phí"
+                                        :class="[
+                                          'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                                          isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]"
+                                      />
+                                    </div>
+                                    <div class="flex flex-row items-center gap-2 mb-1">
+                                      <label class="text-sm font-semibold text-slate-700 min-w-max w-24">Giảm giá</label>
+                                      <CustomSelect
+                                        v-model="v.discountType"
+                                        :options="[
+                                          { label: 'Không giảm', value: '' },
+                                          { label: 'VND', value: 'amount' },
+                                          { label: '%', value: 'percent' }
+                                        ]"
+                                        :disabled="isViewMode"
+                                        style="max-width: 160px; min-width: 150px; width: 150px;"
+                                      />
+                                      <input v-if="v.discountType" v-model.number="v.discountValue" :disabled="isViewMode" type="number" min="0"
+                                        :class="[
+                                          'w-30 border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition',
+                                          isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        ]"
+                                        :placeholder="v.discountType === 'percent' ? '%' : 'VND'" />
+                                      <span v-if="v.discountType === 'percent'" class="ml-1 text-base text-gray-500">%</span>
+                                      <span v-else-if="v.discountType === 'amount'" class="ml-1 text-base text-gray-500">VND</span>
+                                    </div>
+                                    <div class="text-green-700 font-bold text-base">Giá sau giảm: {{ formatCurrency(getDiscountedPrice(v)) }}</div>
+                                    <button v-if="!isViewMode" type="button" @click="removeVariant(idx, vIdx)" class="absolute top-2 right-2 text-red-500 text-base font-semibold">Xóa</button>
+                                  </div>
+                                  <div v-if="!r.availableVariants || r.availableVariants.length === 0" class="text-center text-slate-400 py-6 text-base bg-slate-50 rounded-xl">Chưa có gói phòng nào</div>
                                 </div>
                             </div>
                         </div>
@@ -640,10 +656,11 @@ import AmenityApi from '@/api/AmenityApi';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import Ckeditor from '@/components/Ckeditor.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
+import CustomSelect from '@/components/CustomSelect.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
 export default {
     name: 'HotelManager',
-    components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent },
+    components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent, CustomSelect },
     data() {
         return {
             mode: 'list',
@@ -683,7 +700,9 @@ export default {
                                 hasBreakfast: false,
                                 cancellable: false,
                                 payAtHotel: false,
-                                taxAndFeeAmount: 0
+                                taxAndFeeAmount: 0,
+                                discountType: '',
+                                discountValue: 0
                             }
                         ],
                     }
@@ -697,7 +716,7 @@ export default {
             form: { amenities: { wifi: false, parking: false, pool: false, restaurant: false, spa: false, gym: false, ac: false, breakfast: false, elevator: false }, policy: { checkin: '', checkout: '', other: '' } },
             amenityLabels: { wifi: 'WiFi miễn phí', parking: 'Bãi đỗ xe', pool: 'Hồ bơi', restaurant: 'Nhà hàng', spa: 'Spa', gym: 'Phòng tập gym', ac: 'Điều hòa', breakfast: 'Bữa sáng', elevator: 'Thang máy' },
             currentPage: 1,
-            itemsPerPage: 5,
+            itemsPerPageStr: '5',
             itemsPerPageOptions: [5, 10, 15, 20, 50, 'Tất cả'],
             dropdownBtnRefMap: {},
             dropdownStyle: {},
@@ -736,24 +755,37 @@ export default {
             showAmenityModal: false,
             amenityModalRoomIdx: null,
             amenityModalSelected: [],
+            showHotelImageUrlPopup: false,
+            hotelImageUrlInput: '',
+            hotelImageUrlError: '',
+            hotelImageUrlAnchor: null,
+            showRoomImageUrlPopup: [false],
+            roomImageUrlInput: [''],
+            roomImageUrlError: [''],
+            roomImageUrlAnchor: [null],
+            roomImageUrlPopupStyle: [{}],
+            roomUrlPopupRefs: [],
+            hotelImageUrlPopupRef: null,
         };
     },
     computed: {
         filteredHotels() {
             return [...this.hotels].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         },
+        itemsPerPage() {
+            return this.itemsPerPageStr === 'Tất cả' ? this.filteredHotels.length : Number(this.itemsPerPageStr);
+        },
         totalPages() {
-            const perPage = this.itemsPerPage === 'Tất cả' ? (this.filteredHotels.length || 1) : Number(this.itemsPerPage);
-            return Math.ceil(this.filteredHotels.length / perPage);
+            const perPage = this.itemsPerPage;
+            return Math.ceil(this.filteredHotels.length / (perPage || 1));
         },
         paginatedHotels() {
-            if (this.itemsPerPage === 'Tất cả') {
+            if (this.itemsPerPageStr === 'Tất cả') {
                 return this.filteredHotels;
             }
-            const perPage = Number(this.itemsPerPage);
+            const perPage = this.itemsPerPage;
             const start = (this.currentPage - 1) * perPage;
-            const end = start + perPage;
-            return this.filteredHotels.slice(start, end);
+            return this.filteredHotels.slice(start, start + perPage);
         },
         displayedPages() {
             const total = this.totalPages; const current = this.currentPage; const result = [];
@@ -773,7 +805,7 @@ export default {
     },
     watch: {
         searchQuery() { this.currentPage = 1; this.fetchHotels(); },
-        itemsPerPage() { this.currentPage = 1; this.fetchHotels(); },
+        itemsPerPageStr() { this.currentPage = 1; this.fetchHotels(); },
         mode() {
             this.$nextTick(() => this.updateBreadcrumb());
         },
@@ -845,11 +877,18 @@ export default {
                                 cancellable: variant.cancellable || false,
                                 payAtHotel: variant.payAtHotel || false,
                                 taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                                discountType: variant.discountType || '',
+                                discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                             })),
                         })),
                         amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
                         policy: detail.policy || {},
                     };
+                    this.showRoomImageUrlPopup = this.newHotel.availableRooms.map(() => false);
+                    this.roomImageUrlInput = this.newHotel.availableRooms.map(() => '');
+                    this.roomImageUrlError = this.newHotel.availableRooms.map(() => '');
+                    this.roomImageUrlAnchor = this.newHotel.availableRooms.map(() => null);
+                    this.roomImageUrlPopupStyle = this.newHotel.availableRooms.map(() => ({}));
                 } catch (e) {
                     window.$toast('Không lấy được chi tiết khách sạn!', 'error');
                     return;
@@ -944,6 +983,8 @@ export default {
                             cancellable: variant.cancellable || false,
                             payAtHotel: variant.payAtHotel || false,
                             taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                            discountType: variant.discountType || '',
+                            discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                         })),
                     })),
                     amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
@@ -975,14 +1016,27 @@ export default {
                         hasBreakfast: false,
                         cancellable: false,
                         payAtHotel: false,
-                        taxAndFeeAmount: 0
+                        taxAndFeeAmount: 0,
+                        discountType: '',
+                        discountValue: 0
                     }
                 ],
             });
+            const idx = this.newHotel.availableRooms.length - 1;
+            this.showRoomImageUrlPopup[idx] = false;
+            this.roomImageUrlInput[idx] = '';
+            this.roomImageUrlError[idx] = '';
+            this.roomImageUrlAnchor[idx] = null;
+            this.roomImageUrlPopupStyle[idx] = {};
         },
         removeRoom(index) {
             if (this.newHotel.availableRooms.length > 1) {
                 this.newHotel.availableRooms.splice(index, 1);
+                this.showRoomImageUrlPopup.splice(index, 1);
+                this.roomImageUrlInput.splice(index, 1);
+                this.roomImageUrlError.splice(index, 1);
+                this.roomImageUrlAnchor.splice(index, 1);
+                this.roomImageUrlPopupStyle.splice(index, 1);
             } else {
                 window.$toast('Phải có ít nhất một loại phòng.', 'error');
             }
@@ -1001,7 +1055,13 @@ export default {
                 this.backToList();
                 this.fetchHotels();
             } catch (e) {
-                window.$toast('Xóa khách sạn thất bại!', 'error');
+                let msg = 'Xóa khách sạn thất bại!';
+                if (e?.response?.data?.message) {
+                    msg = e.response.data.message;
+                } else if (e?.message) {
+                    msg = e.message;
+                }
+                window.$toast(msg, 'error');
             }
             this.hotelIdToDelete = null;
         },
@@ -1052,7 +1112,9 @@ export default {
                                 hasBreakfast: false,
                                 cancellable: false,
                                 payAtHotel: false,
-                                taxAndFeeAmount: 0
+                                taxAndFeeAmount: 0,
+                                discountType: '',
+                                discountValue: 0
                             }
                         ],
                     }
@@ -1063,6 +1125,11 @@ export default {
             for (const key in this.form.amenities) { this.form.amenities[key] = false; }
             this.form.policy = { checkin: '', checkout: '', other: '' };
             this.modalMode = 'add';
+            this.showRoomImageUrlPopup = this.newHotel.availableRooms.map(() => false);
+            this.roomImageUrlInput = this.newHotel.availableRooms.map(() => '');
+            this.roomImageUrlError = this.newHotel.availableRooms.map(() => '');
+            this.roomImageUrlAnchor = this.newHotel.availableRooms.map(() => null);
+            this.roomImageUrlPopupStyle = this.newHotel.availableRooms.map(() => ({}));
         },
         changePage(page) { if (page >= 1 && page <= this.totalPages) this.currentPage = page; },
         nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
@@ -1184,7 +1251,9 @@ export default {
                 hasBreakfast: false,
                 cancellable: false,
                 payAtHotel: false,
-                taxAndFeeAmount: 0
+                taxAndFeeAmount: 0,
+                discountType: '',
+                discountValue: 0
             });
         },
         removeVariant(roomIdx, vIdx) {
@@ -1213,7 +1282,9 @@ export default {
         removeHotelImage(idx, isOld = false) {
             if (isOld) {
                 const url = this.newHotel.imageUrls[idx];
-                this.imagesToDelete.push(url);
+                if (!this.imagesToDelete.includes(url)) {
+                    this.imagesToDelete.push(url);
+                }
                 this.newHotel.imageUrls.splice(idx, 1);
             } else {
                 this.hotelImages.splice(idx, 1);
@@ -1240,7 +1311,9 @@ export default {
             if (isOld) {
                 if (!room.deleteRoomImageUrls) room.deleteRoomImageUrls = [];
                 const url = room.imageUrls[imgIdx];
-                room.deleteRoomImageUrls.push(url);
+                if (!room.deleteRoomImageUrls.includes(url)) {
+                    room.deleteRoomImageUrls.push(url);
+                }
                 room.imageUrls.splice(imgIdx, 1);
             } else {
                 room.imageFiles.splice(imgIdx, 1);
@@ -1346,7 +1419,16 @@ export default {
                 this.backToList();
                 await this.fetchHotels();
             } catch (err) {
-                window.$toast('Có lỗi khi lưu khách sạn: ' + (err?.response?.data?.message || err.message), 'error');
+                let msg = 'Có lỗi khi lưu khách sạn!';
+                if (err?.response?.data?.message) {
+                    msg = err.response.data.message;
+                } else if (err?.message) {
+                    msg = err.message;
+                }
+                if (msg && msg.toLowerCase().startsWith('lỗi parse json:')) {
+                    msg = msg.split(':').slice(1).join(':').trim();
+                }
+                window.$toast(msg, 'error');
                 console.error('API error:', err);
             }
         },
@@ -1368,6 +1450,16 @@ export default {
             }
             if (!this.newHotel.email || !this.newHotel.email.trim()) {
                 return { valid: false, message: 'Vui lòng nhập email.' };
+            }
+            for (let i = 0; i < this.newHotel.availableRooms.length; i++) {
+                const room = this.newHotel.availableRooms[i];
+                const selectedAmenities = Object.keys(room.amenities || {}).filter(k => room.amenities[k]);
+                if (!selectedAmenities.length) {
+                    return {
+                        valid: false,
+                        message: `Vui lòng chọn ít nhất 1 tiện ích cho phòng số ${i + 1} (${room.roomType || 'Chưa đặt tên'})`
+                    };
+                }
             }
             return { valid: true };
         },
@@ -1431,6 +1523,8 @@ export default {
                             cancellable: variant.cancellable || false,
                             payAtHotel: variant.payAtHotel || false,
                             taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                            discountType: variant.discountType || '',
+                            discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                         })),
                     })),
                     amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
@@ -1567,6 +1661,8 @@ export default {
                                 cancellable: variant.cancellable || false,
                                 payAtHotel: variant.payAtHotel || false,
                                 taxAndFeeAmount: (variant.taxAndFeeAmount && typeof variant.taxAndFeeAmount === 'object' && variant.taxAndFeeAmount !== null) ? Number(variant.taxAndFeeAmount) : (variant.taxAndFeeAmount || 0),
+                                discountType: variant.discountType || '',
+                                discountValue: (variant.discountValue && typeof variant.discountValue === 'object' && variant.discountValue !== null) ? Number(variant.discountValue) : (variant.discountValue || 0)
                             })),
                         })),
                         amenities: (detail.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
@@ -1642,6 +1738,132 @@ export default {
             }
             breadcrumbStore.setBreadcrumb(items);
         },
+        openHotelImageUrlPopup(e) {
+            this.showHotelImageUrlPopup = true;
+            this.hotelImageUrlInput = '';
+            this.hotelImageUrlError = '';
+            this.$nextTick(() => {
+                const btn = this.$refs.hotelImageUrlBtn;
+                if (btn) {
+                    const rect = btn.getBoundingClientRect();
+                    this.hotelImageUrlPopupStyle = {
+                        position: 'absolute',
+                        top: rect.bottom + window.scrollY + 8 + 'px',
+                        left: rect.left + window.scrollX + 'px',
+                    };
+                }
+            });
+        },
+        closeHotelImageUrlPopup() {
+            this.showHotelImageUrlPopup = false;
+            this.hotelImageUrlInput = '';
+            this.hotelImageUrlError = '';
+        },
+        confirmHotelImageUrl() {
+            const url = this.hotelImageUrlInput.trim();
+            if (!url) {
+                this.hotelImageUrlError = 'Vui lòng nhập URL.';
+                return;
+            }
+            if (!/^https?:\/\//.test(url)) {
+                this.hotelImageUrlError = 'URL không hợp lệ.';
+                return;
+            }
+            if (!this.newHotel.imageUrls.includes(url)) {
+                this.newHotel.imageUrls.push(url);
+            }
+            this.closeHotelImageUrlPopup();
+        },
+        setRoomImageUrlBtnRef(el, idx) {
+            if (!this.roomImageUrlAnchor) this.roomImageUrlAnchor = [];
+            this.roomImageUrlAnchor[idx] = el;
+        },
+        openRoomImageUrlPopup(idx) {
+            this.showRoomImageUrlPopup[idx] = true;
+            this.roomImageUrlInput[idx] = '';
+            this.roomImageUrlError[idx] = '';
+            this.$nextTick(() => {
+                const btn = this.roomImageUrlAnchor[idx];
+                if (btn) {
+                    const rect = btn.getBoundingClientRect();
+                    if (!this.roomImageUrlPopupStyle) this.roomImageUrlPopupStyle = [];
+                    this.roomImageUrlPopupStyle[idx] = {
+                        position: 'absolute',
+                        top: rect.bottom + window.scrollY + 8 + 'px',
+                        left: rect.left + window.scrollX + 'px',
+                    };
+                }
+            });
+        },
+        closeRoomImageUrlPopup(idx) {
+            this.showRoomImageUrlPopup[idx] = false;
+            this.roomImageUrlInput[idx] = '';
+            this.roomImageUrlError[idx] = '';
+        },
+        confirmRoomImageUrl(idx) {
+            const url = (this.roomImageUrlInput[idx] || '').trim();
+            if (!url) {
+                this.roomImageUrlError[idx] = 'Vui lòng nhập URL.';
+                return;
+            }
+            if (!/^https?:\/\//.test(url)) {
+                this.roomImageUrlError[idx] = 'URL không hợp lệ.';
+                return;
+            }
+            const room = this.newHotel.availableRooms[idx];
+            if (!room.imageUrls) room.imageUrls = [];
+            if (!room.imageUrls.includes(url)) {
+                room.imageUrls.push(url);
+            }
+            this.closeRoomImageUrlPopup(idx);
+        },
+        handleClickOutsideRoomUrlPopup(e) {
+            (this.showRoomImageUrlPopup || []).forEach((show, idx) => {
+                if (show) {
+                    const popupEls = this.$refs.roomUrlPopupRefs;
+                    let popupEl = null;
+                    if (Array.isArray(popupEls)) {
+                        popupEl = popupEls.find(el => el && Number(el.dataset.popupIdx) === idx);
+                    } else {
+                        popupEl = popupEls;
+                    }
+                    if (popupEl && !popupEl.contains(e.target)) {
+                        this.closeRoomImageUrlPopup(idx);
+                    }
+                }
+            });
+        },
+        handleClickOutsideHotelImageUrlPopup(e) {
+            if (this.showHotelImageUrlPopup) {
+                const popupEl = this.$refs.hotelImageUrlPopupRef;
+                if (popupEl && !popupEl.contains(e.target)) {
+                    this.closeHotelImageUrlPopup();
+                }
+            }
+        },
+        getDiscountedPrice(v) {
+            if (!v.discountType || !v.discountValue) return v.price;
+            if (v.discountType === 'amount') return Math.max(0, v.price - v.discountValue);
+            if (v.discountType === 'percent') return Math.max(0, v.price * (1 - v.discountValue / 100));
+            return v.price;
+        },
+        getMinDiscountedPrice(room) {
+            if (!room.availableVariants || room.availableVariants.length === 0) return 0;
+            return Math.min(...room.availableVariants.map(v => this.getDiscountedPrice(v)));
+        },
+        getMinDiscountedPriceForHotel(hotel) {
+            if (!hotel.availableRooms) return 0;
+            let min = Infinity;
+            hotel.availableRooms.forEach(room => {
+                if (room.availableVariants) {
+                    room.availableVariants.forEach(variant => {
+                        const price = this.getDiscountedPrice(variant);
+                        if (price < min) min = price;
+                    });
+                }
+            });
+            return min === Infinity ? 0 : min;
+        },
     },
     mounted() {
         this.fetchHotels();
@@ -1666,11 +1888,15 @@ export default {
             items.push({ label: 'Khách Sạn', active: true });
         }
         breadcrumbStore.setBreadcrumb(items);
+        document.addEventListener('mousedown', this.handleClickOutsideRoomUrlPopup);
+        document.addEventListener('mousedown', this.handleClickOutsideHotelImageUrlPopup);
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick, true);
         this.removeDropdownListeners();
         document.removeEventListener('click', this.closeAmenityDropdown, true);
+        document.removeEventListener('mousedown', this.handleClickOutsideRoomUrlPopup);
+        document.removeEventListener('mousedown', this.handleClickOutsideHotelImageUrlPopup);
     }
 };
 </script>
@@ -1730,5 +1956,16 @@ select option[disabled][value=""] {
     right: 0;
     background: white;
     z-index: 10;
+}
+
+.custom-url-popup {
+  position: absolute;
+  z-index: 50;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  padding: 1rem;
+  min-width: 320px;
 }
 </style>

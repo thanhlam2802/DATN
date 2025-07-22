@@ -47,4 +47,11 @@ public interface AdminFlightService {
     void deleteAirport(Integer airportId);
 
     List<ImageDto> updateFlightImages(Integer flightId, List<org.springframework.web.multipart.MultipartFile> files, List<Integer> keepImageIds);
+    
+    List<ImageDto> uploadFlightImages(Integer flightId, List<org.springframework.web.multipart.MultipartFile> files);
+    
+    // Thêm method mới cho xử lý ảnh riêng biệt
+    void deleteFlightImage(Integer flightId, Integer imageId);
+    
+    List<ImageDto> addFlightImages(Integer flightId, List<org.springframework.web.multipart.MultipartFile> files);
 }

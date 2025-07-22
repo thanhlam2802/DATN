@@ -37,7 +37,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/tours")
-@CrossOrigin("*")
 public class TourController {
 
     @Autowired

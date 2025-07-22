@@ -582,7 +582,7 @@
               >
                 <div class="flex items-center space-x-14 overflow-hidden">
                   <img
-                    :src="selectedFlight.image"
+                    :src="selectedFlight.images[0].imageUrl"
                     alt="flight image"
                     class="h-full object-cover rounded-lg overflow-hidden"
                   />
@@ -674,7 +674,15 @@
                 <div class="p-6 relative z-10 flex flex-col space-y-3">
                   <div class="flex items-center space-x-3">
                     <div class="relative flex h-[50px] w-[50px] items-center justify-center p-3 rounded-full border border-indigo-500/30">
-                      <input type="radio" id="radio" name="gender" value="male" class="peer z-10 h-full w-full cursor-pointer opacity-0" />
+                      <input 
+                        type="radio" 
+                        id="economy" 
+                        name="cabinClass" 
+                        value="economy" 
+                        v-model="selectedCabinClass"
+                        @change="selectedSeatType = economySeatType"
+                        class="peer z-10 h-full w-full cursor-pointer opacity-0" 
+                      />
                       <div
                         class="absolute h-full w-full rounded-full  bg-black/40 backdrop-blur-md p-4 shadow-sm shadow-[#00000050] ring-blue-400 duration-300 peer-checked:scale-110 peer-checked:ring-2">
                       </div>
@@ -703,11 +711,23 @@
 
                   <div class="mt-2 flex flex-col gap-1 text-sm text-indigo-300 hover:underline">
                     <label class="inline-flex items-center">
-                      <input type="radio" v-model="economySeatType" value="window" class="form-radio text-indigo-600" />
+                      <input 
+                        type="radio" 
+                        v-model="economySeatType" 
+                        value="window" 
+                        @change="selectedSeatType = 'window'"
+                        class="form-radio text-indigo-600" 
+                      />
                       <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span> <span class="ml-1 text-xs text-gray-500">(Còn {{ economySummary.countWindow ?? 0 }})</span></span>
                     </label>
                     <label class="inline-flex items-center">
-                      <input type="radio" v-model="economySeatType" value="aisle" class="form-radio text-indigo-600" />
+                      <input 
+                        type="radio" 
+                        v-model="economySeatType" 
+                        value="aisle" 
+                        @change="selectedSeatType = 'aisle'"
+                        class="form-radio text-indigo-600" 
+                      />
                       <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{ economySummary.countAisle ?? 0 }})</span></span>
                     </label>
                   </div>
@@ -742,7 +762,15 @@
                 <div class="p-6 relative z-10 flex flex-col space-y-3 overflow-hidden">
                   <div class="flex items-center space-x-3 ">
                     <div class="relative flex h-[50px] w-[50px] items-center justify-center p-3 rounded-full border  border-yellow-400/30">
-                      <input type="radio" id="radio" name="gender" value="male" class="peer z-10 h-full w-full cursor-pointer opacity-0" />
+                      <input 
+                        type="radio" 
+                        id="business" 
+                        name="cabinClass" 
+                        value="business" 
+                        v-model="selectedCabinClass"
+                        @change="selectedSeatType = businessSeatType"
+                        class="peer z-10 h-full w-full cursor-pointer opacity-0" 
+                      />
                       <div
                         class="absolute h-full w-full rounded-full  bg-black/40 backdrop-blur-md p-4 shadow-sm shadow-[#00000050] ring-yellow-400 duration-300 peer-checked:scale-110 peer-checked:ring-2">
                       </div>
@@ -775,11 +803,23 @@
 
                   <div class="mt-2 flex flex-col gap-1 text-sm text-yellow-300 hover:underline">
                     <label class="inline-flex items-center">
-                      <input type="radio" v-model="businessSeatType" value="window" class="form-radio text-yellow-500" />
+                      <input 
+                        type="radio" 
+                        v-model="businessSeatType" 
+                        value="window" 
+                        @change="selectedSeatType = 'window'"
+                        class="form-radio text-yellow-500" 
+                      />
                       <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span> <span class="ml-1 text-xs text-gray-500">(Còn {{ businessSummary.countWindow ?? 0 }})</span></span>
                     </label>
                     <label class="inline-flex items-center">
-                      <input type="radio" v-model="businessSeatType" value="aisle" class="form-radio text-yellow-500" />
+                      <input 
+                        type="radio" 
+                        v-model="businessSeatType" 
+                        value="aisle" 
+                        @change="selectedSeatType = 'aisle'"
+                        class="form-radio text-yellow-500" 
+                      />
                       <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{ businessSummary.countAisle ?? 0 }})</span></span>
                     </label>
                   </div>
@@ -790,12 +830,12 @@
         </div>
 
         <div class="mt-8 flex">
-          <router-link
-            to="/plane/pay"
+          <button
+            @click="createAndLogDto"
             class="w-2/6 block text-center mx-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-md transition-colors"
           >
-            Tiếp tục thanh toán
-          </router-link>
+            Đặt chỗ
+          </button>
         </div>
       </div>
     </div>
@@ -804,8 +844,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { searchFlights, getAvailableSeats } from '@/api/flightApi'
+import { useRouter } from 'vue-router';
+import { searchFlights, getAvailableSeats, findFirstAvailableSlot } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
+import FindAvailableSlotRequestDto from '@/dto/FindAvailableSlotRequestDto'
+
+const router = useRouter();
 
 /** ========== Tab State ========== **/
 const currentTab = ref("one-way");
@@ -913,9 +957,11 @@ function onSearch() {
   })
     .then(res => {
       flights.value = res.data
+      window.$toast('Tìm kiếm thành công!', 'success');
     })
     .catch(() => {
       error.value = 'Không thể tìm chuyến bay.'
+      window.$toast('Không tìm thấy chuyến bay!', 'error');
     })
     .finally(() => {
       loading.value = false
@@ -992,6 +1038,45 @@ function getTicketSummary(slots, isBusiness) {
 
 const economySeatType = ref('window');
 const businessSeatType = ref('window');
+
+// Thêm biến để theo dõi lựa chọn cabin class
+const selectedCabinClass = ref('economy');
+const selectedSeatType = ref('window');
+
+// Function để tạo DTO và router sang PaymentPage
+function createAndLogDto() {
+  if (!selectedFlight.value) {
+    console.error('Không có chuyến bay được chọn');
+    return;
+  }
+
+  // Xác định cabin class và seat type dựa trên lựa chọn
+  let cabinClass = selectedCabinClass.value;
+  let seatType = selectedSeatType.value;
+
+  // Tạo DTO
+  const requestDto = FindAvailableSlotRequestDto.fromFormData(
+    selectedFlight.value.id,
+    seatType,
+    cabinClass
+  );
+
+  // Log DTO
+  requestDto.log();
+
+  // Router sang PaymentPage với DTO
+  router.push({
+    name: 'PayFlight',
+    params: {
+      flightId: selectedFlight.value.id
+    },
+    query: {
+      dto: JSON.stringify(requestDto.toObject())
+    }
+  });
+
+  return requestDto;
+}
 
 
 </script>

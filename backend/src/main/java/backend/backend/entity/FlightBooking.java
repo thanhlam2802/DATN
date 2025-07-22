@@ -18,7 +18,9 @@ public class FlightBooking {
 
     @Column(name = "booking_date", nullable = false)
     private LocalDateTime bookingDate;
-
+    
+    @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalPrice;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flight_slot_id", nullable = false)
     private FlightSlot flightSlot;
@@ -28,6 +30,6 @@ public class FlightBooking {
     private Customer customer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_detail_id")
-    private TicketDetail ticketDetail;
+    @JoinColumn(name = "order_id")
+    private Order order;
 }

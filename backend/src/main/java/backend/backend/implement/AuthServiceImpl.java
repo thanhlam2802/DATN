@@ -1,18 +1,22 @@
 package backend.backend.implement;
 
-import backend.backend.dto.auth.JwtResultDto;
-import backend.backend.dto.auth.LoginRequestDto;
-import backend.backend.dto.auth.RegisterRequestDto;
+import backend.backend.dto.auth.*;
+import backend.backend.entity.Role;
 import backend.backend.entity.User;
 import backend.backend.exception.AuthException;
 import backend.backend.exception.BadRequestException;
 import backend.backend.exception.ErrorCode;
 import backend.backend.mapper.UserMapper;
+import backend.backend.repository.RoleRepository;
 import backend.backend.repository.UserRepository;
+import backend.backend.repository.UserRoleRepository;
 import backend.backend.service.AuthService;
+import backend.backend.service.OTPTransactionService;
 import backend.backend.utils.JwtTokenUtil;
 import backend.backend.utils.RegexUtil;
+import backend.backend.utils.SecurityUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -20,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service("authService")
@@ -32,12 +38,19 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenUtil jwtTokenUtil;
     private final HttpServletRequest httpServletRequest;
     private final UserMapper userMapper;
+    private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final OTPTransactionService otpTransactionService;
 
     @Override
+    @Transactional
     public JwtResultDto register(RegisterRequestDto registerRequestDto) {
         Optional<User> user = userRepository.findByEmail(registerRequestDto.getEmail());
         if (user.isPresent()) {
             throw new BadRequestException("User already exist with give email", ErrorCode.AUTH_001);
+        }
+        if (!UserRoleEnum.registrableUserRoles().contains(registerRequestDto.getRole())) {
+            throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
         }
         User newUser = userMapper.fromRegisterRequestToEntity(registerRequestDto);
         newUser.setPasswordHash(passwordEncoder.encode(registerRequestDto.getPassword()));
@@ -45,8 +58,25 @@ public class AuthServiceImpl implements AuthService {
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
 
-
         newUser = userRepository.save(newUser);
+
+        Optional<Role> role = roleRepository.findByName(registerRequestDto.getRole());
+
+        if (role.isEmpty()) {
+            throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
+        }
+
+//        UserRole userRole = new UserRole();
+//        userRole.setUser(newUser);
+//        userRole.setRole(role.get());
+//        userRole.setId(new UserRoleId(Long.valueOf(newUser.getId()), role.get().getId()));
+//        userRoleRepository.save(userRole);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("toEmail", newUser.getEmail());
+        params.put("userId", newUser.getId().toString());
+        otpTransactionService.sendOtp(params, OtpType.REGISTER_ACCOUNT);
+
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
         return jwtResultDto;
@@ -102,6 +132,18 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("User not found", ErrorCode.AUTH_002);
         }
         return user.get();
+    }
+
+    @Override
+    public void updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
+        String email = SecurityUtil.getCurrentUserEmail();
+        User user = getUserByEmail(email);
+        String oldPassword = updatePasswordRequestDto.getOldPassword();
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new BadRequestException("Password is not match", ErrorCode.AUTH_005);
+        }
+        user.setPasswordHash(passwordEncoder.encode(updatePasswordRequestDto.getNewPassword()));
+        userRepository.save(user);
     }
 
 }

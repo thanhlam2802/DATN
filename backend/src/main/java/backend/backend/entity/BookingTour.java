@@ -4,6 +4,8 @@ package backend.backend.entity;
 
 import lombok.Data;
 import jakarta.persistence.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -18,7 +20,10 @@ public class BookingTour {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "departure_date_id", nullable = false)
     private Departure departure;
-
+    
+    @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalPrice;
+    
     @Column(name = "customer_name", length = 255)
     private String customerName;
 
@@ -37,10 +42,9 @@ public class BookingTour {
     @Lob
     private String notes;
 
-    @OneToMany(mappedBy = "bookingTour")
-    private List<Payment> payments;
+ 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_detail_id")
-    private TicketDetail ticketDetail;
+    @JoinColumn(name = "order_id")
+    private Order order;
 }

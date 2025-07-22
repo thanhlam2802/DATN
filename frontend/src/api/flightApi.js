@@ -8,7 +8,8 @@ const api = axios.create({
 
 // Flights
 export const searchFlights = (params) => api.get('/flights/search', { params });
-export const getFlightDetail = (flightId) => api.get(`/flights/${flightId}`);
+export const getFlightDetail = (flightId) => api.get(`/admin/flights/${flightId}`);
+export const getFlightDetailPublic = (flightId) => api.get(`/flights/${flightId}`);
 export function getAvailableSeats(flightId) {
   return api.get(`/flights/${flightId}/available-seats`);
 }
@@ -31,15 +32,35 @@ export const cancelFlightBooking = (bookingId) =>
 export const getAdminFlights = (params) =>
   api.get('/admin/flights', { params });
 export const createAdminFlight = (data) =>
-  api.post('/admin/flights', data);
+  api.post('/admin/flights', data, {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+export const uploadFlightImages = (flightId, formData) =>
+  api.post(`/admin/flights/${flightId}/images`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 export const updateAdminFlight = (flightId, data) =>
   api.put(`/admin/flights/${flightId}`, data);
 export const deleteAdminFlight = (flightId) =>
   api.delete(`/admin/flights/${flightId}`);
-export const updateAdminFlightImages = (flightId, formData) =>
-  api.put(`/admin/flights/${flightId}/images`, formData, {
+// export const updateAdminFlightImages = (flightId, formData) =>
+//   api.put(`/admin/flights/${flightId}/images`, formData, {
+//     headers: { 'Content-Type': 'multipart/form-data' }
+//   });
+
+// Thêm API mới cho xử lý ảnh riêng biệt
+export const addFlightImages = (flightId, formData) =>
+  api.post(`/admin/flights/${flightId}/imagesAdd`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
+
+export const deleteFlightImage = (flightId, imageId) =>
+  api.delete(`/admin/flights/${flightId}/images/${imageId}`);
 
 // Admin – Seats
 export const getAdminSeats = (flightId) =>
@@ -80,3 +101,15 @@ export const getAllAirports = () => api.get('/flights/airports');
 
 // Flight Categories
 export const getAllFlightCategories = () => api.get('/flights/categories');
+
+// Find Available Slot
+export const findFirstAvailableSlot = (requestDto) => 
+  api.post('/flights/find-available-slot', requestDto);
+
+// Đặt giữ chỗ vé máy bay trực tiếp (mua ngay)
+export const reserveFlightDirect = (dto) =>
+  api.post('/v1/orders/reserve-flight-direct', dto);
+
+// Lấy thông tin tổng hợp giữ chỗ chuyến bay (reservation summary)
+export const getFlightReservationSummary = (orderId) =>
+  api.get(`/bookings/flights/reservation-summary/${orderId}`);

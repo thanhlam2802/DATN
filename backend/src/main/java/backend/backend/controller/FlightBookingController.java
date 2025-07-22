@@ -1,6 +1,7 @@
 package backend.backend.controller;
 
 import backend.backend.dto.*;
+import backend.backend.entity.FlightBooking;
 import backend.backend.service.FlightBookingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,7 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
+import backend.backend.dao.FlightBookingDAO;
+import backend.backend.service.OrderService;
+import backend.backend.service.CustomerService;
 
 @Slf4j
 @RestController
@@ -17,6 +20,15 @@ public class FlightBookingController {
 
     @Autowired
     private FlightBookingService flightBookingService;
+
+    @Autowired
+    private FlightBookingDAO flightBookingDAO;
+
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private CustomerService customerService;
 
     @PostMapping("/bookings/flights")
     public ResponseEntity<FlightBookingDetailDto> bookFlight(@RequestBody FlightBookingDto bookingDto) {
@@ -93,5 +105,13 @@ public class FlightBookingController {
                     requestId, bookingId, e.getMessage(), e);
             throw e;
         }
+    }
+
+    // API tổng hợp: Lấy thông tin giữ chỗ chuyến bay (reservation summary) theo orderId
+    @GetMapping("/bookings/flights/reservation-summary/{orderId}")
+    public ResponseEntity<FlightOrderReservationDto> getFlightReservationSummary(@PathVariable Integer orderId) {
+        FlightOrderReservationDto dto = flightBookingService.getFlightReservationSummary(orderId);
+        if (dto == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(dto);
     }
 }

@@ -2,7 +2,7 @@
     <div class="max-w-full lg:w-[1320px] mx-auto px-6">
         <div class="flex justify-center mt-8 mb-8">
             <div class="flex items-center justify-center w-full">
-                <template v-for="step in 3" :key="step">
+                <template v-for="step in 1" :key="step">
                     <div class="flex items-center">
                         <div :class="[
                             'w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow transition-all duration-300 border-2',
@@ -21,7 +21,7 @@
                             {{ stepLabels[step - 1] }}
                         </span>
                     </div>
-                    <div v-if="step < 3" :class="[
+                    <div v-if="step < 1" :class="[
                         'h-1 mx-2 transition-all duration-300',
                         currentStep > step ? 'bg-green-400 w-16' : 'bg-gray-300 w-12'
                     ]"></div>
@@ -82,12 +82,10 @@
                         <div class="flex justify-between items-end mb-2">
                             <div>
                                 <div class="font-semibold text-gray-700 text-base">Giá phòng</div>
-                                <div class="text-xs text-gray-600 mt-0.5">({{ rooms }}x) {{ variantName }} ({{ nights }}
-                                    đêm)
-                                </div>
+                                <div class="text-xs text-gray-600 mt-0.5">({{ rooms }}x) {{ variantName }} ({{ nights }} đêm)</div>
                             </div>
                             <div class="font-semibold text-gray-700 text-right whitespace-nowrap min-w-[110px]">
-                                {{ formatPrice(variantOriginalPrice * nights * rooms) }}
+                                {{ formatPrice(variantDiscountedPrice * nights * rooms) }}
                             </div>
                         </div>
                         <div class="flex justify-between items-center mb-2">
@@ -95,8 +93,9 @@
                                 <i class="fas fa-info-circle text-gray-400 ml-1"
                                     title="Đã bao gồm thuế/phí theo quy định"></i>
                             </div>
-                            <div class="font-semibold text-gray-700">{{ formatPrice((variantDiscountedPrice -
-                                variantOriginalPrice) * nights * rooms) }}</div>
+                            <div class="font-semibold text-gray-700">
+                                {{ formatPrice((taxAndFeeAmount || 0) * nights * rooms) }}
+                            </div>
                         </div>
                         <hr class="my-2 border-gray-200" />
                         <div class="flex justify-between items-center mb-2">
@@ -117,199 +116,6 @@
                             và <a class="underline text-blue-600" href="#">Quy trình hoàn tiền</a> chỗ ở của chúng tôi.
                         </div>
                     </div>
-                </div>
-                <div v-if="currentStep === 2">
-                    <div class="border border-gray-200 rounded-2xl bg-white p-8 shadow-lg w-full mx-auto">
-                        <div class="mb-8">
-                            <div class="flex items-center gap-2 mb-3">
-                                <i class="fas fa-ticket-alt text-2xl text-amber-400"></i>
-                                <span class="text-lg font-semibold text-indigo-700">Mã khuyến mãi</span>
-                            </div>
-                            <div class="flex items-center justify-between w-full">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-percent text-blue-500 text-xl"></i>
-                                    <span class="font-bold text-lg">Thêm mã giảm</span>
-                                </div>
-                                <button @click="showVoucherPopup = true"
-                                    class="text-blue-600 font-bold text-lg hover:underline focus:outline-none">Thêm
-                                    mã</button>
-                            </div>
-                            <div class="text-gray-500 text-sm mt-1">Enter coupon code or select available coupon(s)
-                            </div>
-                        </div>
-                        <div>
-                            <h2 class="font-semibold mb-4 text-indigo-700 flex items-center gap-2"><i
-                                    class="fas fa-credit-card"></i>Phương thức thanh toán</h2>
-                            <div class="flex flex-col gap-4">
-                                <div v-for="method in paymentMethods" :key="method.value"
-                                    @click="selectPaymentMethod(method.value)" :class="[
-                                        'flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition shadow-sm',
-                                        paymentMethod === method.value ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'
-                                    ]">
-                                    <div
-                                        class="text-2xl text-indigo-500 w-10 flex-shrink-0 flex items-center justify-center">
-                                        <i :class="method.icon"></i>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="font-semibold text-base text-gray-900">{{ method.label }}</span>
-                                        <span class="text-xs text-gray-500">{{ method.desc }}</span>
-                                    </div>
-                                    <div class="ml-auto">
-                                        <span v-if="paymentMethod === method.value"
-                                            class="inline-block w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center"><i
-                                                class="fas fa-check text-xs"></i></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-if="paymentMethod === 'bank'" class="mt-6">
-                                <div class="font-semibold mb-2">Chọn ngân hàng để chuyển khoản:</div>
-                                <div v-if="bankLoading" class="text-gray-500 text-sm">Đang tải danh sách ngân hàng...
-                                </div>
-                                <div v-else-if="bankError" class="text-red-500 text-sm">{{ bankError }}</div>
-                                <div v-else>
-                                    <div class="px-4 py-2 flex items-center cursor-pointer bg-white min-h-[48px] border border-gray-200 rounded-lg"
-                                        @click="showBankModal = true">
-                                        <span v-if="selectedBankObj" class="flex items-center">
-                                            <img :src="selectedBankObj.logo" class="w-26 h-22 mr-4 object-contain" />
-                                            <div class="flex flex-col justify-center">
-                                                <span class="font-bold text-base text-gray-900">{{ selectedBankObj.code
-                                                }}</span>
-                                                <span class="font-semibold text-base text-gray-900">{{
-                                                    selectedBankObj.name
-                                                }}</span>
-                                            </div>
-                                        </span>
-                                        <span v-else class="text-gray-400">Chọn ngân hàng</span>
-                                        <i class="fas fa-chevron-down ml-auto text-gray-400"></i>
-                                    </div>
-
-                                    <div v-if="showBankModal"
-                                        class="fixed inset-0 z-50 flex items-center justify-center bg-white/60"
-                                        style="backdrop-filter: blur(2px); background-color: rgba(0,0,0,0.20);"
-                                        @click.self="showBankModal = false">
-                                        <div class="bg-white shadow-xl w-full max-w-2xl p-0 relative rounded-lg">
-                                            <button
-                                                class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl"
-                                                @click="showBankModal = false">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                            <div class="font-semibold px-6 pt-6 pb-2 text-lg">Chọn ngân hàng để chuyển
-                                                khoản
-                                            </div>
-                                            <div class="px-6 pb-4">
-                                                <input v-model="bankSearch" placeholder="Tìm ngân hàng..."
-                                                    class="w-full px-3 py-2 border border-gray-200 rounded-lg mb-4 outline-none focus:border-blue-400" />
-                                                <div class="max-h-96 overflow-y-auto divide-y divide-gray-100">
-                                                    <div v-for="bank in filteredBanks" :key="bank.code"
-                                                        class="flex items-center gap-4 py-3 px-2 cursor-pointer hover:bg-blue-50 transition"
-                                                        @click="selectBank(bank); showBankModal = false;">
-                                                        <img :src="bank.logo" class="w-26 h-22 object-contain" />
-                                                        <div class="flex flex-col">
-                                                            <span class="font-bold text-base text-gray-900">{{ bank.code
-                                                            }}</span>
-                                                            <span class="font-semibold text-sm text-gray-700">{{
-                                                                bank.name
-                                                            }}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div v-if="filteredBanks.length === 0"
-                                                        class="text-gray-400 px-4 py-2">Không
-                                                        tìm
-                                                        thấy ngân hàng</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-if="!selectedBank && !bankLoading" class="text-xs text-red-500 mt-2">Vui lòng
-                                    chọn ngân
-                                    hàng
-                                    để tiếp tục thanh toán.</div>
-                            </div>
-
-                            <form @submit.prevent class="space-y-4 pt-5">
-                                <div v-if="paymentMethod === 'credit'" class="space-y-4">
-                                    <input type="text" placeholder="Số thẻ"
-                                        class="form-input text-gray-700 w-full border border-gray-300 p-3 text-base rounded-md" />
-                                    <input type="text" placeholder="Tên chủ thẻ"
-                                        class="form-input text-gray-700 w-full border border-gray-300 p-3 text-base rounded-md" />
-                                    <div class="flex flex-col sm:flex-row gap-4">
-                                        <input type="text" placeholder="Ngày hết hạn"
-                                            class="form-input flex-1 text-gray-700 border border-gray-300 p-3 text-base rounded-md" />
-                                        <input type="text" placeholder="CVV"
-                                            class="form-input flex-1 text-gray-700 border border-gray-300 p-3 text-base rounded-md" />
-                                    </div>
-                                    <label class="inline-flex items-center space-x-2 text-sm text-gray-900">
-                                        <input type="checkbox" checked
-                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded" />
-                                        <span>Lưu thẻ cho lần đặt sau</span>
-                                    </label>
-                                </div>
-
-                                <div v-if="paymentMethod === 'paypal'" class="space-y-4 pt-5">
-                                    <p class="text-gray-700">
-                                        Bạn sẽ được chuyển hướng đến trang Paypal để hoàn tất thanh toán.
-                                    </p>
-                                </div>
-
-                                <div v-if="paymentMethod === 'googlepay'" class="space-y-4 pt-5">
-                                    <p class="text-gray-700">
-                                        Bạn sẽ được chuyển hướng đến Google Pay để hoàn tất thanh toán.
-                                    </p>
-                                </div>
-
-                                <div v-if="paymentMethod === 'at_hotel'" class="space-y-4 pt-5">
-                                    <p class="text-gray-700">
-                                        Bạn sẽ thanh toán trực tiếp tại khách sạn khi nhận phòng.
-                                    </p>
-                                </div>
-
-                                <div class="flex justify-between mt-6">
-                                    <button @click="currentStep--"
-                                        class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold border border-gray-300 shadow hover:bg-gray-200 transition">Quay
-                                        lại</button>
-                                    <button @click="goToNextStep"
-                                        class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow hover:bg-indigo-700 transition">Tiếp
-                                        tục</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div v-if="currentStep === 3" class="w-full border border-gray-200 rounded-2xl bg-white p-8 shadow-lg">
-                    <h2 class="text-xl font-bold mb-4">Xác nhận đặt phòng</h2>
-                    <div class="mb-4">
-                        <div class="font-semibold">Thông tin khách hàng:</div>
-                        <div>Họ tên: <span class="font-bold">{{ fullName }}</span></div>
-                        <div>Email: <span class="font-bold">{{ email }}</span></div>
-                        <div>Số điện thoại: <span class="font-bold">{{ phone }}</span></div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="font-semibold">Phương thức thanh toán:</div>
-                        <div>{{ paymentMethodLabel }}</div>
-                        <div v-if="paymentMethod === 'bank' && selectedBankObj">Ngân hàng: <span class="font-bold">{{
-                            selectedBankObj.name }}</span></div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="font-semibold">Voucher:</div>
-                        <div>Chưa áp dụng (demo)</div>
-                    </div>
-                    <div class="flex justify-between mt-6">
-                        <button @click="currentStep--"
-                            class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold border border-gray-300 shadow hover:bg-gray-200 transition">Quay
-                            lại</button>
-                        <button @click="onSubmitPayment"
-                            class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow hover:bg-indigo-700 transition">Xác
-                            nhận & Thanh toán</button>
-                    </div>
-                    <hr class="border-gray-200 my-6" />
-                    <p class="text-xs text-gray-600">
-                        Bằng cách nhấn vào nút bên dưới, tôi đồng ý với
-                        <a class="underline" href="#">Nội quy chỗ nghỉ</a>,
-                        <a class="underline" href="#">Điều khoản &amp; Điều kiện</a>,
-                        <a class="underline" href="#">Chính sách bảo mật</a> và
-                        <a class="underline" href="#">Yêu cầu an toàn COVID-19</a>.
-                    </p>
                 </div>
             </div>
             <aside class="bg-white border border-gray-100 rounded-xl p-6 w-full max-w-md shadow-sm mb-10">
@@ -395,7 +201,7 @@
                             </div>
                         </div>
                         <div class="font-semibold text-gray-700 text-right whitespace-nowrap min-w-[110px]">
-                            {{ formatPrice(variantOriginalPrice * nights * rooms) }}
+                            {{ formatPrice(variantDiscountedPrice * nights * rooms) }}
                         </div>
                     </div>
                     <div class="flex justify-between items-center mb-2">
@@ -404,11 +210,7 @@
                                 title="Đã bao gồm thuế/phí theo quy định"></i>
                         </div>
                         <div class="font-semibold text-gray-700">{{
-                            formatPrice((variantDiscountedPrice - variantOriginalPrice) * nights * rooms) }}</div>
-                    </div>
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="font-semibold text-green-700">Giảm giá khuyến mãi</div>
-                        <div class="font-semibold text-green-700">-{{ formatPrice(discount) }}</div>
+                            formatPrice((taxAndFeeAmount || 0) * nights * rooms) }}</div>
                     </div>
                     <div class="flex justify-between items-center mb-2">
                         <div class="font-semibold text-gray-700 flex items-center gap-1">Phí dịch vụ
@@ -422,7 +224,7 @@
                         <div class="font-bold text-orange-600">{{ formatPrice(subtotal) }}</div>
                     </div>
                 </div>
-                <div v-if="currentStep === 2" class="mt-6">
+                <div v-if="currentStep === 1" class="mt-6">
                     <div class="border border-blue-200 rounded-xl bg-blue-50 p-4 shadow flex flex-col gap-2">
                         <div class="flex items-center mb-2">
                             <i class="fas fa-user-circle text-blue-500 text-2xl mr-2"></i>
@@ -481,6 +283,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getBankList } from '@/api/bankApi'
+import { bookHotel } from '@/api/hotelApi'
+import { getAccessToken } from '@/services/TokenService'
 
 export default {
     name: 'HotelBooking',
@@ -510,13 +314,15 @@ export default {
             ? parseFloat(route.query.variantDiscountedPrice.replace(/\./g, ''))
             : 0
 
+        const taxAndFeeAmount = route.query.taxAndFeeAmount ? parseFloat(route.query.taxAndFeeAmount) : 0;
+        const serviceFee = parseFloat(route.query.serviceFee) || 0;
+
         const nights = parseInt(route.query.nights) || 1
         const rooms = parseInt(route.query.rooms) || 1
 
-        const subtotal = variantDiscountedPrice * nights * rooms
+        const subtotal = (variantDiscountedPrice * nights * rooms) + ((taxAndFeeAmount || 0) * nights * rooms) + serviceFee;
 
         const discount = parseFloat(route.query.discount) || 0
-        const serviceFee = parseFloat(route.query.serviceFee) || 0
 
         const isVoucherVisible = ref(false)
         const toggleVoucher = () => {
@@ -598,27 +404,55 @@ export default {
             return !errors.value.fullName && !errors.value.email && !errors.value.phone;
         };
 
-        const onSubmitPayment = () => {
+        const roomVariantId = route.query.roomVariantId ? parseInt(route.query.roomVariantId) : null;
+
+        const onSubmitPayment = async () => {
             if (!validateForm()) return;
+            if (!roomVariantId) {
+                window.$toast && window.$toast('Không xác định được loại phòng!', 'error');
+                return;
+            }
+            // Kiểm tra đã login: chỉ cần có access token
+            const token = getAccessToken();
+            if (!token) {
+                window.$toast && window.$toast('Bạn cần đăng nhập để đặt phòng!', 'error');
+                return;
+            }
             if (paymentMethod.value === 'bank' && !selectedBank.value) return;
-            router.push({
-                name: 'BookingSuccess',
-                query: {
-                    checkin,
-                    checkout,
-                    guests,
-                    amountPaid: total,
-                    reservationCode,
-                    hotelImage,
-                    hotelTitle,
-                    hotellocation,
-                    hotelDetails,
-                    hotelRating,
-                    hotelReviews,
-                    hotelPricePerNight: variantDiscountedPrice,
-                    hotelAddress: '1234 Higashiasakusa, Taito City, Tokyo, Japan',
-                },
-            })
+            // Gọi API booking khách sạn
+            try {
+                const res = await bookHotel({
+                    fullName: fullName.value,
+                    email: email.value,
+                    phone: phone.value,
+                    roomVariantId: roomVariantId,
+                    checkInDate: checkin,
+                    checkOutDate: checkout,
+                    numAdults: maxAdults,
+                    numChildren: maxChildren,
+                    totalPrice: subtotal,
+                });
+                console.log('Booking response:', res);
+                const order = res.data && res.data.data ? res.data.data : res.data;
+                console.log('Order:', order);
+                if (!order || !order.id) {
+                    window.$toast && window.$toast('Đặt phòng thất bại! (Không lấy được orderId)', 'error');
+                    return;
+                }
+                console.log('Chuyển sang PaymentView với orderId:', order.id);
+                try {
+                    router.push({
+                        name: 'payment',
+                        params: { orderId: order.id },
+                    });
+                } catch (pushErr) {
+                    console.error('Lỗi khi chuyển trang PaymentView:', pushErr);
+                    window.$toast && window.$toast('Chuyển trang PaymentView thất bại!', 'error');
+                }
+            } catch (e) {
+                console.error('Booking error:', e, e?.response);
+                window.$toast && window.$toast('Đặt phòng thất bại!', 'error');
+            }
         }
 
         const getDayOfWeek = (dateStr) => {
@@ -670,9 +504,8 @@ export default {
 
         const currentStep = ref(1);
         const goToNextStep = () => {
-            if (currentStep.value === 1 && !validateForm()) return;
-            if (currentStep.value === 2 && paymentMethod.value === 'bank' && !selectedBank.value) return;
-            currentStep.value++;
+            if (!validateForm()) return;
+            onSubmitPayment();
         };
         const paymentMethodLabel = computed(() => {
             switch (paymentMethod.value) {
@@ -685,7 +518,7 @@ export default {
             }
         });
 
-        const stepLabels = ['Đặt', 'Thanh toán', 'Gửi phiếu xác nhận'];
+        const stepLabels = ['Đặt'];
 
         const paymentMethods = [
             {
@@ -762,6 +595,7 @@ export default {
             subtotal,
             discount,
             serviceFee,
+            taxAndFeeAmount,
             isVoucherVisible,
             toggleVoucher,
             paymentMethod,

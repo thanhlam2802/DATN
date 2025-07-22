@@ -6,8 +6,9 @@
         </div>
         <div class="p-4 space-y-2">
             <h3 class="font-bold text-xl text-gray-800 truncate">{{ flight.name }}</h3>
-            <div class="flex justify-between items-center text-sm">
+            <div class=" text-sm">
                 <span class="text-gray-600">Mã chuyến: <strong>{{ flight.flightNumber }}</strong></span>
+                <br>
                 <span class="text-blue-600 font-bold text-base whitespace-nowrap">
                   {{ priceDisplay }}
                 </span>
@@ -17,10 +18,11 @@
                     <i class="fas fa-plane-departure text-blue-500"></i>
                     <span>{{ formatTime(flight.departureTime) }} - {{ formatTime(flight.arrivalTime) }}</span>
                 </div>
-            </div>
-            <div class="text-gray-600 text-sm mt-2">
+                <div class="flex items-center space-x-1">
                 <span class="block">Số ghế còn: {{ flight.totalAvailableSeats }}</span>
             </div>
+            </div>
+            
         </div>
         <div class="px-4 pb-4 flex justify-end">
         </div>

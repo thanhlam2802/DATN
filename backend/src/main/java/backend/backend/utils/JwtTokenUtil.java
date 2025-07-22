@@ -88,7 +88,7 @@ public class JwtTokenUtil {
      * @param token Chuỗi JWT.
      * @return Đối tượng Claims chứa toàn bộ thông tin.
      */
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         try {
             return Jwts.parserBuilder()
                     .setSigningKey(secretKey)
@@ -122,7 +122,7 @@ public class JwtTokenUtil {
 
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getId());
+        claims.put("userId", user.getId());
         claims.put("name", user.getName());
         claims.put("email", user.getEmail());
         return Jwts.builder()

@@ -21,20 +21,26 @@ import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.v
 import PayFlight from "@/components/Flight/PaymentPage.vue";
 import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
 import GetTicket from "@/components/Flight/TicketReceipt.vue";
+import DetailFlightAdmin from "@/components/FlightAdmin/DetailFlightAdmin.vue";
 
 import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";
 import HotelBooking from "@/views/hotel/HotelBooking.vue";
 import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
 import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
-import HotelForm from "@/views/hotel/admin/HotelForm.vue"
+import HotelForm from "@/views/hotel/admin/HotelForm.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
+import AdminDashboard from "@/views/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
 import Register from "@/views/Register.vue";
 import Login from "@/views/Login.vue";
 
-
+import CheckoutView from "../views/CheckoutView.vue";
+import PaymentView from "../views/PaymentView.vue";
+import MyTripsView from "../views/MyTripsView.vue";
+import SuccessHold from "@/components/Flight/SuccessHold.vue";
+import BankTransferForm from "@/components/Flight/BankTransferForm.vue";
 const routes = [
   {
     path: "/",
@@ -46,6 +52,37 @@ const routes = [
       { path: "tour", name: "Tour", component: Tour },
       { path: "bus", name: "Bus", component: Bus },
       { path: "plane", name: "Plane", component: Plane },
+      {
+        path: "plane/:id",
+        name: "FlightDetail",
+        component: FlightDetail,
+        props: true,
+      },
+      {
+        path: "/orders/:id",
+        name: "order-detail",
+        component: () => import("../views/OrderDetail.vue"),
+      },
+      {
+        path: "/checkout/:id",
+        name: "checkout",
+        component: CheckoutView,
+      },
+      {
+        path: "/flight/successhold/:id",
+        name: "SuccessHold",
+        component: SuccessHold,
+      },
+      {
+        path: "/payment/:orderId",
+        name: "payment",
+        component: PaymentView,
+      },
+      {
+        path: "/my-trips",
+        name: "my-trips",
+        component: MyTripsView,
+      },
       {
         path: "hotel",
         name: "Hotel",
@@ -85,6 +122,16 @@ const routes = [
         component: BookingPage,
       },
       {
+        path: "/plane/pay",
+        name: "PayFlight",
+        component: PayFlight,
+      },
+      {
+        path: "/plane/getticket",
+        name: "GetTicket",
+        component: GetTicket,
+      },
+      {
         path: "/account",
         component: AccountView,
         children: [
@@ -104,16 +151,7 @@ const routes = [
     component: BusManagementLayout,
   },
 
-  {
-    path: "/plane/pay",
-    name: "PayFlight",
-    component: PayFlight,
-  },
-  {
-    path: "/plane/getticket",
-    name: "GetTicket",
-    component: GetTicket,
-  },
+ 
   {
     path: "/plane/admin",
     name: "AdminFight",
@@ -122,9 +160,9 @@ const routes = [
       {
         path: "flights/:id",
         name: "DetailFlightAdmin",
-        component: DetailFlightAdmin
-      }
-    ]
+        component: DetailFlightAdmin,
+      },
+    ],
   },
 
   {
@@ -143,7 +181,16 @@ const routes = [
     ],
   },
 
-
+  {
+    path: "/admin/dashboard",
+    name: "AdminDashboard",
+    component: AdminDashboard,
+  },
+  {
+    path: "/bank-transfer-form",
+    name: "BankTransferForm",
+    component: BankTransferForm,
+  },
 ];
 
 const router = createRouter({

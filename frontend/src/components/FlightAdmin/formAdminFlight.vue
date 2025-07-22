@@ -354,7 +354,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { createAdminFlight, updateAdminFlight, getAdminAirports, getAllAirlines, getAllAirports, getAllFlightCategories } from '@/api/flightApi'
+import { createAdminFlight, updateAdminFlight, getAdminAirports, getAllAirlines, getAllAirports, getAllFlightCategories, uploadFlightImages } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 
 const flight = ref({ ...Flight })
@@ -538,56 +538,62 @@ async function submitFlight() {
   // Sinh mã chuyến bay tự động
   const flightNumber = previewFlightNumber.value;
 
-  // Tạo FormData để gửi file + data
-  const formData = new FormData();
-  
-  // Thông tin cơ bản
-  formData.append('flightNumber', flightNumber);
-  formData.append('name', flight.value.name);
-  formData.append('departureTime', flight.value.departureTime);
-  formData.append('arrivalTime', flight.value.arrivalTime);
-  
-  // ID của các entity quan hệ
-  if (flight.value.airline) formData.append('airlineId', flight.value.airline.id);
-  if (flight.value.category) formData.append('categoryId', flight.value.category.id);
-  if (flight.value.departureAirport) formData.append('departureAirportId', flight.value.departureAirport.id);
-  if (flight.value.arrivalAirport) formData.append('arrivalAirportId', flight.value.arrivalAirport.id);
-  
-  // Thông tin vé và ghế
-  formData.append('ticketInfo.total', ticketForm.value.total);
-  formData.append('ticketInfo.economy', ticketForm.value.economy);
-  formData.append('ticketInfo.business', ticketForm.value.business);
-  formData.append('ticketInfo.economyWindow', ticketForm.value.economyWindow);
-  formData.append('ticketInfo.economyAisle', ticketForm.value.economyAisle);
-  formData.append('ticketInfo.businessWindow', ticketForm.value.businessWindow);
-  formData.append('ticketInfo.businessAisle', ticketForm.value.businessAisle);
-  formData.append('ticketInfo.economyPrice', ticketForm.value.economyPrice);
-  formData.append('ticketInfo.businessPrice', ticketForm.value.businessPrice);
-  formData.append('ticketInfo.economyLuggage', ticketForm.value.economyLuggage);
-  formData.append('ticketInfo.businessLuggage', ticketForm.value.businessLuggage);
-  
-  // Thêm ảnh
-  images.value.forEach((img, index) => {
-    formData.append('images', img.file);
-  });
+  // Tạo object JSON để gửi data
+  const flightData = {
+    flightNumber: flightNumber,
+    name: flight.value.name,
+    departureTime: flight.value.departureTime,
+    arrivalTime: flight.value.arrivalTime,
+    airlineId: flight.value.airline ? flight.value.airline.id : null,
+    categoryId: flight.value.category ? flight.value.category.id : null,
+    departureAirportId: flight.value.departureAirport ? flight.value.departureAirport.id : null,
+    arrivalAirportId: flight.value.arrivalAirport ? flight.value.arrivalAirport.id : null,
+    ticketInfo: {
+      total: ticketForm.value.total,
+      economy: ticketForm.value.economy,
+      business: ticketForm.value.business,
+      economyWindow: ticketForm.value.economyWindow,
+      economyAisle: ticketForm.value.economyAisle,
+      businessWindow: ticketForm.value.businessWindow,
+      businessAisle: ticketForm.value.businessAisle,
+      economyPrice: ticketForm.value.economyPrice,
+      businessPrice: ticketForm.value.businessPrice,
+      economyLuggage: ticketForm.value.economyLuggage,
+      businessLuggage: ticketForm.value.businessLuggage
+    }
+  };
 
   // Log ra console với format đẹp
   console.log('=== FLIGHT DATA TO CREATE ===')
-  console.log('FormData entries:')
-  for (let [key, value] of formData.entries()) {
-    console.log(key, ':', value)
-  }
+  console.log('Flight Data:', flightData)
   console.log('Images count:', images.value.length)
   console.log('=============================')
 
   try {
-    // Gọi API thực sự
-    const response = await createAdminFlight(formData);
-    alert(isEdit.value ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
-    console.log('API Response:', response);
+    // Gọi API tạo flight
+    const response = await createAdminFlight(flightData);
+    // const response = {
+    //   data: {
+    //     id: 7
+    //   }
+    // }
+    console.log('Flight created:', response);
+    
+    // Nếu có ảnh, upload ảnh riêng
+    if (images.value.length > 0) {
+      const formData = new FormData();
+      images.value.forEach((img, index) => {
+        formData.append('files', img.file);
+      });
+      
+      const uploadResponse = await uploadFlightImages(response.data.id, formData);
+      console.log('Images uploaded:', uploadResponse);
+    }
+    
+    window.$toast(isEdit.value ? 'Cập nhật thành công!' : 'Thêm mới thành công!', 'success');
   } catch (error) {
     console.error('Error creating flight:', error);
-    alert('Có lỗi xảy ra khi tạo chuyến bay: ' + (error.response?.data?.message || error.message));
+    window.$toast('Có lỗi xảy ra khi tạo chuyến bay: ' + (error.response?.data?.message || error.message), 'error');
   } finally {
     loading.value = false;
   }

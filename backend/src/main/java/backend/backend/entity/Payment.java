@@ -36,20 +36,10 @@ public class Payment {
 
     @Column(length = 255)
     private String note;
-
+    
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_bus_id")
-    private BusBooking busBooking;
+    private Order order;
+    
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_flight_id")
-    private FlightBooking flightBooking;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_tour_id")
-    private BookingTour bookingTour;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_hotel_id")
-    private HotelBooking hotelBooking;
 }

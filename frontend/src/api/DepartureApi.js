@@ -31,11 +31,17 @@ const apiClient = axios.create({
  * @returns {object} Dữ liệu trong `response.data.data`.
  */
 const handleResponse = (response) => {
+  // Kiểm tra cấu trúc response chuẩn của bạn
   if (
     response.data &&
     (response.data.statusCode === 200 || response.data.statusCode === 201)
   ) {
+    // Trả về phần data chứa dữ liệu chính
     return response.data.data;
+  }
+  // Nếu cấu trúc không khớp, có thể backend trả về dữ liệu trực tiếp
+  if (response.status === 200 || response.status === 201) {
+    return response.data;
   }
   throw new Error(response.data.message || "Có lỗi xảy ra.");
 };
@@ -47,7 +53,8 @@ const handleResponse = (response) => {
 const handleError = (error) => {
   const errorMessage =
     error.response?.data?.message || error.message || "Lỗi không xác định.";
-  console.error("Lỗi API:", errorMessage);
+  console.error("Lỗi API:", errorMessage, error.response);
+  // Ném lỗi để component có thể bắt và xử lý
   throw new Error(errorMessage);
 };
 
@@ -58,29 +65,45 @@ export const departureApi = {
   /**
    * Tạo một ngày khởi hành mới cho một tour.
    * Gửi request: POST /tours/{tourId}/departures
-   * @param {number} tourId - ID của tour.
+   * @param {number|string} tourId - ID của tour.
    * @param {object} departureData - Dữ liệu của ngày khởi hành mới.
    * @returns {Promise<object>} Dữ liệu của ngày khởi hành vừa được tạo.
    */
   createDeparture(tourId, departureData) {
-    console.log(`--- [API] Gọi POST /tours/${tourId}/departures ---`);
+    const url = `/tours/${tourId}/departures`;
+    console.log(`--- [API] Gọi POST ${url} ---`, departureData);
     return apiClient
-      .post(`/tours/${tourId}/departures`, departureData)
+      .post(url, departureData)
       .then(handleResponse)
       .catch(handleError);
   },
 
   /**
+   * MỚI: Tạo hàng loạt ngày khởi hành cho một tour theo chu kỳ.
+   * Gửi request: POST /tours/{tourId}/departures/recurring
+   * @param {number|string} tourId - ID của tour.
+   * @param {object} data - Dữ liệu bao gồm { templateDto, intervalDays, count }.
+   * @returns {Promise<Array<object>>} Mảng các ngày khởi hành vừa được tạo.
+   */
+  createRecurringDepartures(tourId, data) {
+    // URL này phải khớp với endpoint bạn đã định nghĩa trong Controller ở backend
+    const url = `/tours/${tourId}/departures/recurring`;
+    console.log(`--- [API] Gọi POST ${url} ---`, data);
+    return apiClient.post(url, data).then(handleResponse).catch(handleError);
+  },
+
+  /**
    * Cập nhật một ngày khởi hành đã có.
    * Gửi request: PUT /departures/{departureId}
-   * @param {number} departureId - ID của ngày khởi hành cần cập nhật.
+   * @param {number|string} departureId - ID của ngày khởi hành cần cập nhật.
    * @param {object} departureData - Dữ liệu cập nhật.
    * @returns {Promise<object>} Dữ liệu của ngày khởi hành sau khi cập nhật.
    */
   updateDeparture(departureId, departureData) {
-    console.log(`--- [API] Gọi PUT /departures/${departureId} ---`);
+    const url = `/departures/${departureId}`;
+    console.log(`--- [API] Gọi PUT ${url} ---`, departureData);
     return apiClient
-      .put(`/departures/${departureId}`, departureData)
+      .put(url, departureData)
       .then(handleResponse)
       .catch(handleError);
   },
@@ -88,14 +111,12 @@ export const departureApi = {
   /**
    * Xóa một ngày khởi hành.
    * Gửi request: DELETE /departures/{departureId}
-   * @param {number} departureId - ID của ngày khởi hành cần xóa.
+   * @param {number|string} departureId - ID của ngày khởi hành cần xóa.
    * @returns {Promise<any>}
    */
   deleteDeparture(departureId) {
-    console.log(`--- [API] Gọi DELETE /departures/${departureId} ---`);
-    return apiClient
-      .delete(`/departures/${departureId}`)
-      .then(handleResponse)
-      .catch(handleError);
+    const url = `/departures/${departureId}`;
+    console.log(`--- [API] Gọi DELETE ${url} ---`);
+    return apiClient.delete(url).then(handleResponse).catch(handleError);
   },
 };

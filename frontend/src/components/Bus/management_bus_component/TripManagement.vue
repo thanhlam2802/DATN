@@ -5,14 +5,99 @@
       <div>
         <h3 class="text-lg font-medium leading-6 text-gray-900">Quản lý Chuyến xe</h3>
         <p class="mt-1 text-sm text-gray-500">Quản lý và theo dõi tất cả chuyến xe của nhà xe</p>
+        
+      
       </div>
-      <div class="mt-4 sm:mt-0">
+      <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+        <!-- Auto-management controls -->
+        <div class="flex items-center space-x-2">
+          <button
+            @click="toggleAutoManager"
+            :class="[
+              'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors border',
+              autoManagerEnabled 
+                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+            ]"
+            title="Toggle automatic trip status management"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {{ autoManagerEnabled ? '🟢 Auto ON' : '🔴 Auto OFF' }}
+          </button>
+          
+          <button
+            @click="manualTriggerAutoManager"
+            :disabled="syncLoading"
+            :class="[
+              'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors border',
+              syncLoading 
+                ? 'bg-blue-50 text-blue-400 border-blue-200 opacity-70 cursor-not-allowed' 
+                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+            ]"
+            title="Manually trigger auto-management check"
+          >
+            <template v-if="syncLoading">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Đang đồng bộ...
+            </template>
+            <template v-else>
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Sync
+            </template>
+          </button>
+        </div>
+        
         <button @click="showAddModal = true" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           Thêm chuyến xe
         </button>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div v-if="error" class="bg-red-50 border-l-4 border-red-400 p-4 rounded-md shadow-sm">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">Có lỗi xảy ra</h3>
+          <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+          <button @click="error = null" class="mt-2 text-sm text-red-600 hover:text-red-500">
+            Đóng thông báo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warning về xe bus -->
+    <div v-if="!loadingBuses && availableBuses.length === 0" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-yellow-800">Chưa có xe bus</h3>
+          <p class="mt-1 text-sm text-yellow-700">
+            Bạn chưa có xe bus nào. Vui lòng thêm xe bus trước khi tạo chuyến đi.
+          </p>
+          <p class="mt-1 text-xs text-yellow-600">
+            💡 Gợi ý: Đi đến trang "Quản lý Xe buýt" để thêm xe bus mới.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -41,6 +126,7 @@
           <div class="relative">
             <select v-model="filters.status" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
               <option value="">Tất cả trạng thái</option>
+              <option value="scheduled">Đã lên lịch</option>
               <option value="active">Đang hoạt động</option>
               <option value="inactive">Tạm dừng</option>
               <option value="completed">Hoàn thành</option>
@@ -110,16 +196,16 @@
         <div class="p-5">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+              <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z"/>
                 </svg>
               </div>
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Tạm dừng</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.inactiveTrips }}</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Đã lên lịch</dt>
+                <dd class="text-lg font-medium text-gray-900">{{ stats.scheduledTrips }}</dd>
               </dl>
             </div>
           </div>
@@ -158,7 +244,8 @@
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã chuyến</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tuyến đường</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian dự kiến</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian thực tế</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Xe</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã bán</th>
@@ -166,24 +253,153 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="trip in filteredTrips" :key="trip.id">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ trip.code }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.route }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <div>{{ trip.departureTime }}</div>
-                <div class="text-xs text-gray-400">{{ trip.date }}</div>
+            <!-- Loading State -->
+            <tr v-if="loading">
+              <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                <div class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang tải dữ liệu...
+                </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.busNumber }}</td>
+            </tr>
+            
+            <!-- Error State -->
+            <tr v-else-if="error">
+              <td colspan="8" class="px-6 py-8 text-center text-red-500">
+                <div class="flex items-center justify-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  {{ error }}
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Empty State -->
+            <tr v-else-if="filteredTrips.length === 0">
+              <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                <div class="flex flex-col items-center">
+                  <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0M15 17a2 2 0 104 0M9 17h6"></path>
+                  </svg>
+                  <p>Chưa có chuyến xe nào</p>
+                  <button @click="showAddModal = true" class="mt-2 text-blue-600 hover:text-blue-800">
+                    Thêm chuyến xe đầu tiên
+                  </button>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Data Rows -->
+            <tr v-else v-for="busSlot in filteredTrips" :key="busSlot.id">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ busSlot.id }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ getRouteInfo(busSlot) }}</td>
+              
+              <!-- Scheduled Time -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <div>{{ formatTime(busSlot.departureTime) }} - {{ formatTime(busSlot.arrivalTime) }}</div>
+                <div class="text-xs text-gray-400">{{ busSlot.slotDate || 'Hôm nay' }}</div>
+              </td>
+              
+              <!-- Actual Time & Delay Info -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <div v-if="busSlot.actualDepartureTime || busSlot.actualArrivalTime" class="space-y-1">
+                  <div v-if="busSlot.actualDepartureTime" class="text-gray-700">
+                    Đi: {{ getDisplayTime(busSlot.departureTime, busSlot.actualDepartureTime) }}
+                  </div>
+                  <div v-if="busSlot.actualArrivalTime" class="text-gray-700">
+                    Đến: {{ getDisplayTime(busSlot.arrivalTime, busSlot.actualArrivalTime) }}
+                  </div>
+                                     <div v-if="busSlot.delayReason" class="text-xs text-amber-600 flex items-center">
+                     <span class="mr-1">{{ getDelayReasonIcon(busSlot.delayReason) }}</span>
+                     {{ getDelayReasonText(busSlot.delayReason) }}
+                   </div>
+                </div>
+                <div v-else class="text-xs text-gray-400">
+                  Chưa cập nhật
+                </div>
+              </td>
+              
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ getBusInfo(busSlot) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getStatusBadgeClass(trip.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                  {{ getStatusText(trip.status) }}
+                <span :class="getStatusBadgeClass(busSlot.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  {{ getStatusText(busSlot.status) }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.soldSeats }}/{{ trip.totalSeats }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ busSlot.totalSeats - busSlot.availableSeats }}/{{ busSlot.totalSeats }}
+                <div class="text-xs text-green-600">{{ formatPrice(busSlot.price) }}</div>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <button @click="editTrip(trip)" class="text-blue-600 hover:text-blue-900">Sửa</button>
-                  <button @click="deleteTrip(trip.id)" class="text-red-600 hover:text-red-900">Xóa</button>
+                <div class="flex flex-col space-y-1">
+                  <!-- Primary Actions -->
+                  <div class="flex space-x-2">
+                    <button @click="editTrip(busSlot)" class="text-blue-600 hover:text-blue-900">Sửa</button>
+                    <button 
+                      @click="deleteTrip(busSlot.id)" 
+                      :disabled="isTripButtonLoading(busSlot.id, 'delete')"
+                      class="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                      <span v-if="isTripButtonLoading(busSlot.id, 'delete')">
+                        <svg class="animate-spin inline-block h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </span>
+                      <span>Xóa</span>
+                    </button>
+                    <button @click="openStatusUpdateModal(busSlot)" class="text-purple-600 hover:text-purple-900" title="Update thời gian thực tế">
+                      🕐
+                    </button>
+                  </div>
+                  
+                  <!-- Quick Status Actions -->
+                  <div class="flex space-x-1" v-if="busSlot.status === 'SCHEDULED' || busSlot.status === 'IN_PROGRESS'">
+                    <button 
+                      v-if="busSlot.status === 'SCHEDULED'"
+                      @click="quickMarkInProgress(busSlot)" 
+                      :disabled="isTripButtonLoading(busSlot.id, 'start')"
+                      class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
+                      title="Đánh dấu đang chạy"
+                    >
+                      <span v-if="isTripButtonLoading(busSlot.id, 'start')" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Đang...
+                      </span>
+                      <span v-else>🚌 Bắt đầu</span>
+                    </button>
+                    <button 
+                      v-if="busSlot.status === 'IN_PROGRESS'"
+                      @click="quickMarkCompleted(busSlot)" 
+                      :disabled="isTripButtonLoading(busSlot.id, 'complete')"
+                      class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
+                      title="Đánh dấu hoàn thành"
+                    >
+                      <span v-if="isTripButtonLoading(busSlot.id, 'complete')" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Đang...
+                      </span>
+                      <span v-else>✅ Hoàn thành</span>
+                    </button>
+                  </div>
+                  
+                  <!-- Progress Indicator for IN_PROGRESS trips -->
+                  <div v-if="busSlot.status === 'IN_PROGRESS'" class="w-full bg-gray-200 rounded-full h-1">
+                    <div 
+                      class="bg-green-500 h-1 rounded-full transition-all duration-300" 
+                      :style="{ width: calculateProgress(busSlot) + '%' }"
+                    ></div>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -233,21 +449,50 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">
-                      Mã chuyến <span class="text-red-500">*</span>
+                      Xe bus <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
-                      <input 
-                        v-model="tripForm.code" 
-                        type="text" 
+                      <select 
+                        v-model="tripForm.busId" 
                         required 
-                        placeholder="VD: BUS001"
-                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
+                        :disabled="loadingBuses"
+                        class="appearance-none w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        :class="{'border-red-500 ring-red-500': busUnavailableError}"
                       >
+                        <option value="">
+                          {{ loadingBuses ? 'Đang tải xe bus...' : (availableBuses.length === 0 ? 'Không có xe bus nào' : 'Chọn xe bus') }}
+                        </option>
+                        <option v-for="bus in availableBuses" :key="bus.id" :value="bus.id">
+                          {{ bus.name }} ({{ bus.licensePlate }}) - {{ bus.totalSeats }} ghế
+                        </option>
+                      </select>
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10.5V21"/>
                         </svg>
                       </div>
+                      <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    <!-- Bus Availability Checking -->
+                    <div v-if="busAvailabilityChecking" class="text-sm text-blue-600 flex items-center mt-1">
+                      <svg class="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Đang kiểm tra khả dụng của xe...
+                    </div>
+                    
+                    <!-- Bus Unavailable Error -->
+                    <div v-if="busUnavailableError" class="text-sm text-red-600 flex items-center mt-1">
+                      <svg class="h-4 w-4 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{{ busUnavailableError }}</span>
                     </div>
                   </div>
                   
@@ -257,14 +502,17 @@
                     </label>
                     <div class="relative">
                       <select 
-                        v-model="tripForm.route" 
+                        v-model="tripForm.routeId" 
                         required 
-                        class="appearance-none w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 bg-white"
+                        :disabled="loadingRoutes"
+                        class="appearance-none w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
-                        <option value="">Chọn tuyến đường</option>
-                        <option value="Hà Nội - TP.HCM">Hà Nội - TP.HCM</option>
-                        <option value="Hà Nội - Đà Nẵng">Hà Nội - Đà Nẵng</option>
-                        <option value="TP.HCM - Đà Nẵng">TP.HCM - Đà Nẵng</option>
+                        <option value="">
+                          {{ loadingRoutes ? 'Đang tải tuyến đường...' : (availableRoutes.length === 0 ? 'Không có tuyến đường nào' : 'Chọn tuyến đường') }}
+                        </option>
+                        <option v-for="route in availableRoutes" :key="route.id" :value="route.id">
+                          {{ route.name }} ({{ route.distanceKm }}km - {{ Math.round(route.estimatedDurationMinutes / 60) }}h)
+                        </option>
                       </select>
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,7 +535,7 @@
                     </label>
                     <div class="relative">
                       <input 
-                        v-model="tripForm.date" 
+                        v-model="tripForm.slotDate" 
                         type="date" 
                         required 
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
@@ -323,22 +571,25 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">
-                      Số xe <span class="text-red-500">*</span>
+                      Giá vé <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                       <input 
-                        v-model="tripForm.busNumber" 
-                        type="text" 
+                        v-model.number="tripForm.price" 
+                        type="number" 
                         required 
-                        placeholder="VD: BKS-001"
+                        min="10000"
+                        step="10000"
+                        placeholder="500000"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
                       >
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10.5V21"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                         </svg>
                       </div>
                     </div>
+                    <p class="text-xs text-gray-500">Đơn vị: VNĐ</p>
                   </div>
                   
                   <div class="space-y-2">
@@ -347,10 +598,11 @@
                     </label>
                     <div class="relative">
                       <input 
-                        v-model="tripForm.totalSeats" 
+                        v-model.number="tripForm.totalSeats" 
                         type="number" 
                         required 
                         min="1"
+                        max="60"
                         placeholder="40"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
                       >
@@ -387,9 +639,19 @@
               <button 
                 @click="saveTrip" 
                 type="submit" 
-                class="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                :disabled="loading || loadingBuses || loadingRoutes || busAvailabilityChecking || busUnavailableError"
+                class="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {{ editingTrip ? 'Cập nhật chuyến' : 'Tạo chuyến xe' }}
+                <div v-if="loading || busAvailabilityChecking" class="flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {{ busAvailabilityChecking ? 'Đang kiểm tra...' : (editingTrip ? 'Đang cập nhật...' : 'Đang tạo...') }}
+                </div>
+                <span v-else>
+                  {{ editingTrip ? 'Cập nhật chuyến' : 'Tạo chuyến xe' }}
+                </span>
               </button>
             </div>
           </div>
@@ -397,14 +659,159 @@
       </div>
     </transition>
   </div>
+
+  <!-- Manual Status Update Modal -->
+  <transition name="modal" appear>
+    <div v-if="showStatusUpdateModal" @click="closeStatusUpdateModal" class="fixed inset-0 h-full w-full z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+      <div @click.stop class="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 text-white">
+          <h3 class="text-lg font-semibold">⏰ Cập nhật trạng thái thực tế</h3>
+          <p class="text-sm opacity-90">Chuyến: {{ updatingTrip?.id }}</p>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 space-y-4">
+          <!-- Status -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái hiện tại</label>
+            <select v-model="statusUpdateForm.status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="SCHEDULED">📅 Đã lên lịch</option>
+              <option value="IN_PROGRESS">🚌 Đang chạy</option>
+              <option value="COMPLETED">✅ Hoàn thành</option>
+              <option value="CANCELLED">❌ Đã hủy</option>
+            </select>
+          </div>
+          
+          <!-- Actual Times -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ khởi hành thực tế</label>
+              <input 
+                v-model="statusUpdateForm.actualDepartureTime" 
+                type="datetime-local" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ đến thực tế</label>
+              <input 
+                v-model="statusUpdateForm.actualArrivalTime" 
+                type="datetime-local" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+          
+          <!-- Delay Reason -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Lý do delay/sớm (nếu có)</label>
+            <select v-model="statusUpdateForm.delayReason" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="">-- Không có --</option>
+              <option value="TRAFFIC_JAM">🚗 Kẹt xe</option>
+              <option value="WEATHER">🌧️ Thời tiết xấu</option>
+              <option value="VEHICLE_ISSUE">🔧 Sự cố xe</option>
+              <option value="PASSENGER_DELAY">👥 Khách trễ</option>
+              <option value="ROAD_ACCIDENT">⚠️ Tai nạn giao thông</option>
+              <option value="FUEL_STOP">⛽ Dừng đổ xăng</option>
+              <option value="DRIVER_BREAK">☕ Nghỉ giải lao</option>
+              <option value="EARLY_ARRIVAL">🏃‍♂️ Đến sớm</option>
+              <option value="OTHER">❓ Lý do khác</option>
+            </select>
+          </div>
+          
+          <!-- Current Location -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Vị trí hiện tại (optional)</label>
+            <input 
+              v-model="statusUpdateForm.currentLocation" 
+              type="text" 
+              placeholder="VD: Đang ở Hà Nội, sẽ đến Thanh Hóa lúc 15:30"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          
+          <!-- Driver Notes -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú tài xế</label>
+            <textarea 
+              v-model="statusUpdateForm.driverNotes" 
+              rows="2"
+              placeholder="Ghi chú thêm từ tài xế hoặc điều hành..."
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            ></textarea>
+          </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 px-6 py-4 flex space-x-3 justify-end">
+          <button 
+            @click="closeStatusUpdateModal"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Hủy
+          </button>
+          <button 
+            @click="saveStatusUpdate"
+            :disabled="loading"
+            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-lg hover:bg-purple-700 disabled:opacity-50"
+          >
+            <span v-if="loading">Đang lưu...</span>
+            <span v-else>💾 Cập nhật</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </transition>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { BusSlotAPI, BusSlotStatus, DelayReason, RealTimeStatus } from '@/api/busApi/busSlot'
+import { graphqlRequest } from '@/api/graphqlClient'
+import { gql } from '@apollo/client/core'
+
+// DEV MODE: Hardcode user ID
+const DEV_USER_ID = '11'
+
+// Simple GraphQL queries
+const GET_BUSES_BY_OWNER = gql`
+  query GetBusesByOwner($ownerId: ID!) {
+    findBusesByOwnerId(ownerId: $ownerId) {
+      id
+      name
+      licensePlate
+      totalSeats
+      categoryName
+    }
+  }
+`
+
+const GET_ALL_ROUTES = gql`
+  query GetAllRoutes {
+    findAllRoutes {
+      id
+      origin
+      destination
+      distanceKm
+      estimatedDurationMinutes
+    }
+  }
+`
 
 // State
 const showAddModal = ref(false)
 const editingTrip = ref(null)
+const loading = ref(false)
+const error = ref(null)
+
+// Trạng thái loading cho từng nút thao tác
+const loadingTripIds = ref({}) // Map để theo dõi trạng thái loading theo ID chuyến xe
+
+// Thêm biến để theo dõi loading state của auto-sync
+const syncLoading = ref(false)
+
 const filters = ref({
   route: '',
   status: '',
@@ -412,87 +819,302 @@ const filters = ref({
 })
 
 const tripForm = ref({
-  code: '',
-  route: '',
-  date: '',
+  busId: '',
+  routeId: '',
+  slotDate: '',
   departureTime: '',
-  busNumber: '',
+  arrivalTime: '',
+  price: 500000,
   totalSeats: 40,
-  soldSeats: 0,
-  status: 'active'
+  
+  // Auto-management options
+  tripType: 'ONE_TIME',        // ONE_TIME hoặc RECURRING
+  recurringPattern: '',        // DAILY, WEEKLY, WEEKDAYS, WEEKENDS  
+  recurringEndDate: '',        // Ngày kết thúc recurring (optional)
+  autoStatusUpdate: true,      // Tự động update status dựa trên thời gian
+  autoResetSeats: false,       // Tự động reset ghế cho chuyến tiếp theo
+  allowManualOverride: true,   // Cho phép manual override
+  timeToleranceMinutes: 30     // Tolerance time (±30 phút)
 })
 
-const trips = ref([
-  {
-    id: 1,
-    code: 'BUS001',
-    route: 'Hà Nội - TP.HCM',
-    date: '2024-01-15',
-    departureTime: '08:00',
-    busNumber: 'BKS-001',
-    totalSeats: 40,
-    soldSeats: 25,
-    status: 'active'
-  },
-  {
-    id: 2,
-    code: 'BUS002',
-    route: 'Hà Nội - Đà Nẵng',
-    date: '2024-01-15',
-    departureTime: '14:30',
-    busNumber: 'BKS-002',
-    totalSeats: 40,
-    soldSeats: 32,
-    status: 'active'
-  },
-  {
-    id: 3,
-    code: 'BUS003',
-    route: 'TP.HCM - Đà Nẵng',
-    date: '2024-01-14',
-    departureTime: '20:00',
-    busNumber: 'BKS-003',
-    totalSeats: 40,
-    soldSeats: 40,
-    status: 'completed'
+// Thêm state cho việc kiểm tra xe đã được sử dụng chưa
+const busAvailabilityChecking = ref(false)
+const busUnavailableError = ref('')
+
+// Kiểm tra xe bus đã có chuyến đi nào vào thời gian đã chọn chưa - Cách thay thế
+const checkBusAvailability = async () => {
+  const { busId, slotDate, departureTime } = tripForm.value
+  
+  // Nếu chưa chọn đủ thông tin, không kiểm tra
+  if (!busId || !slotDate || !departureTime) {
+    busUnavailableError.value = ''
+    return true
   }
-])
+  
+  try {
+    busAvailabilityChecking.value = true
+    busUnavailableError.value = ''
+    
+    // Nếu đang chỉnh sửa và không thay đổi xe hoặc thời gian, không cần kiểm tra
+    if (editingTrip.value && 
+        editingTrip.value.bus?.id === busId && 
+        editingTrip.value.slotDate === slotDate && 
+        editingTrip.value.departureTime === (departureTime + ':00')) {
+      return true
+    }
+    
+    console.log('🔍 Kiểm tra xe bus đã được sử dụng:', {
+      busId,
+      slotDate,
+      departureTime
+    })
+    
+    // Luôn tải lại dữ liệu mới nhất để đảm bảo chính xác
+    let slotsToCheck = []
+    try {
+      // Tải lại dữ liệu chuyến xe để đảm bảo mới nhất
+      const freshSlots = await BusSlotAPI.findAllBusSlots()
+      slotsToCheck = freshSlots || []
+      console.log(`🔄 Đã tải ${slotsToCheck.length} chuyến xe để kiểm tra`)
+    } catch (err) {
+      console.error('❌ Lỗi khi tải dữ liệu chuyến xe:', err)
+      // Nếu không tải được dữ liệu mới, sử dụng dữ liệu hiện có
+      slotsToCheck = busSlots.value
+      console.log('⚠️ Sử dụng dữ liệu hiện có:', slotsToCheck.length, 'chuyến')
+    }
+    
+    // Lọc ra các chuyến có cùng ngày và xe bus và đang hoạt động
+    const overlappingSlots = slotsToCheck.filter(slot => {
+      // Kiểm tra cùng xe bus
+      if (slot.bus?.id !== busId) return false
+      
+      // Kiểm tra cùng ngày
+      if (slot.slotDate !== slotDate) return false
+      
+      // Kiểm tra nếu chuyến này đã hoàn thành hoặc hủy thì không tính
+      if (slot.status === BusSlotStatus.COMPLETED || 
+          slot.status === BusSlotStatus.CANCELLED) return false
+      
+      // Kiểm tra nếu đang chỉnh sửa và là chuyến đang edit thì không tính
+      if (editingTrip.value && slot.id === editingTrip.value.id) return false
+      
+      // Thêm kiểm tra chi tiết về thời gian để tránh trường hợp trùng xe nhưng khác giờ
+      // Giả sử có buffer 1 tiếng giữa các chuyến xe (có thể điều chỉnh)
+      const slotDepartureHour = parseInt(slot.departureTime.split(':')[0])
+      const slotDepartureMinute = parseInt(slot.departureTime.split(':')[1])
+      const newDepartureHour = parseInt(departureTime.split(':')[0])
+      const newDepartureMinute = parseInt(departureTime.split(':')[1])
+      
+      const slotDepartureMinutes = slotDepartureHour * 60 + slotDepartureMinute
+      const newDepartureMinutes = newDepartureHour * 60 + newDepartureMinute
+      
+      // Nếu chênh lệch dưới 60 phút thì coi là trùng
+      return Math.abs(slotDepartureMinutes - newDepartureMinutes) < 60
+    })
+    
+    console.log('🔔 Số chuyến xe trùng lịch:', overlappingSlots.length)
+    
+    if (overlappingSlots.length > 0) {
+      // Nếu có chuyến đi nào đã sử dụng xe bus này rồi, hiển thị lỗi
+      const selectedBus = availableBuses.value.find(bus => bus.id === busId)
+      const overlapSlot = overlappingSlots[0]
+      
+      busUnavailableError.value = `Xe ${selectedBus?.name || ''} (${selectedBus?.licensePlate || ''}) đã được đặt cho chuyến ${overlapSlot.id} vào ngày ${overlapSlot.slotDate}, giờ ${formatTime(overlapSlot.departureTime)}. Vui lòng chọn xe bus khác hoặc đổi giờ khởi hành.`
+      return false
+    }
+    
+    // Xe bus khả dụng
+    return true
+    
+  } catch (error) {
+    console.error('❌ Lỗi khi kiểm tra khả dụng xe bus:', error)
+    return true // Cho phép lưu nếu gặp lỗi, và để backend xử lý
+  } finally {
+    busAvailabilityChecking.value = false
+  }
+}
+
+// Danh sách BusSlots từ API
+const busSlots = ref([])
+
+// Danh sách dropdown data từ API
+const availableBuses = ref([])
+const availableRoutes = ref([])
+
+// Loading states cho dropdown
+const loadingBuses = ref(false)
+const loadingRoutes = ref(false)
+
+// Auto-management state
+const autoManagerInterval = ref(null)
+const autoManagerEnabled = ref(true)
+
+// Manual override state
+const showStatusUpdateModal = ref(false)
+const updatingTrip = ref(null)
+const statusUpdateForm = ref({
+  status: '',
+  actualDepartureTime: '',
+  actualArrivalTime: '',
+  delayReason: '',
+  currentLocation: '',
+  driverNotes: ''
+})
 
 // Computed
 const stats = computed(() => ({
-  totalTrips: trips.value.length,
-  activeTrips: trips.value.filter(trip => trip.status === 'active').length,
-  inactiveTrips: trips.value.filter(trip => trip.status === 'inactive').length,
-  completedTrips: trips.value.filter(trip => trip.status === 'completed').length
+  totalTrips: busSlots.value.length,
+  activeTrips: busSlots.value.filter(slot => slot.status === BusSlotStatus.IN_PROGRESS).length,
+  inactiveTrips: busSlots.value.filter(slot => slot.status === BusSlotStatus.DELAYED).length,
+  completedTrips: busSlots.value.filter(slot => slot.status === BusSlotStatus.COMPLETED).length,
+  scheduledTrips: busSlots.value.filter(slot => slot.status === BusSlotStatus.SCHEDULED).length
 }))
 
 const filteredTrips = computed(() => {
-  let filtered = trips.value
+  let filtered = busSlots.value
 
   if (filters.value.route) {
-    filtered = filtered.filter(trip => trip.route.includes(filters.value.route))
+    filtered = filtered.filter(slot => 
+      slot.route && `${slot.route.origin} - ${slot.route.destination}`.includes(filters.value.route)
+    )
   }
   
   if (filters.value.status) {
-    filtered = filtered.filter(trip => trip.status === filters.value.status)
+    const statusMap = {
+      'active': BusSlotStatus.IN_PROGRESS,
+      'inactive': BusSlotStatus.DELAYED,
+      'completed': BusSlotStatus.COMPLETED,
+      'scheduled': BusSlotStatus.SCHEDULED
+    }
+    filtered = filtered.filter(slot => slot.status === statusMap[filters.value.status])
   }
   
   if (filters.value.date) {
-    filtered = filtered.filter(trip => trip.date === filters.value.date)
+    filtered = filtered.filter(slot => slot.slotDate === filters.value.date)
   }
 
   return filtered
 })
 
-// Methods
+// API Methods
+const loadBusSlots = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    const slots = await BusSlotAPI.findAllBusSlots()
+    busSlots.value = slots
+  } catch (err) {
+    error.value = 'Không thể tải danh sách chuyến đi'
+    console.error('Error loading bus slots:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadAvailableBuses = async () => {
+  try {
+    loadingBuses.value = true
+    
+    console.log('🔧 [DEV] Loading buses for user ID:', DEV_USER_ID)
+    
+    // Simple GraphQL call to get buses for user 11
+    const response = await graphqlRequest({
+      query: GET_BUSES_BY_OWNER,
+      variables: { ownerId: DEV_USER_ID }
+    })
+    
+    if (!response?.data?.findBusesByOwnerId) {
+      console.error('❌ Dữ liệu xe bus không hợp lệ:', response)
+      throw new Error('Dữ liệu xe bus không hợp lệ')
+    }
+    
+    const buses = response.data.findBusesByOwnerId || []
+    
+    // Kiểm tra nếu không có xe bus nào
+    if (buses.length === 0) {
+      console.warn('⚠️ Không tìm thấy xe bus nào cho người dùng này')
+    }
+    
+    // Transform data cho dropdown - đã có sẵn fields cần thiết
+    availableBuses.value = buses.map(bus => ({
+      id: bus.id,
+      name: bus.name || `Xe bus #${bus.id}`,
+      licensePlate: bus.licensePlate || 'Chưa có biển số',
+      totalSeats: bus.totalSeats || 40, // Mặc định 40 ghế nếu không có thông tin
+      categoryName: bus.categoryName || 'N/A'
+    }))
+    
+    console.log(`✅ [DEV] Loaded ${buses.length} buses for user ${DEV_USER_ID}:`)
+    console.log(availableBuses.value)
+    
+  } catch (err) {
+    console.error('❌ Error loading available buses:', err)
+    error.value = 'Không thể tải danh sách xe bus. Vui lòng tạo xe bus trước khi tạo chuyến.'
+  } finally {
+    loadingBuses.value = false
+  }
+}
+
+const loadAvailableRoutes = async () => {
+  try {
+    loadingRoutes.value = true
+    
+    console.log('🔧 [DEV] Loading all routes')
+    
+    // Simple GraphQL call to get all routes
+    const response = await graphqlRequest({
+      query: GET_ALL_ROUTES
+    })
+    
+    const routes = response.data.findAllRoutes || []
+    
+    // Transform data cho dropdown
+    availableRoutes.value = routes.map(route => ({
+      id: route.id,
+      origin: route.origin,
+      destination: route.destination,
+      name: `${route.origin} - ${route.destination}`,
+      distanceKm: route.distanceKm,
+      estimatedDurationMinutes: route.estimatedDurationMinutes
+    }))
+    
+    console.log(`✅ [DEV] Loaded ${routes.length} routes:`)
+    console.log(availableRoutes.value)
+    
+  } catch (err) {
+    console.error('❌ Error loading available routes:', err)
+    
+    // Fallback to mock data nếu GraphQL fail
+    console.log('🔧 [DEV] Using mock route data')
+    availableRoutes.value = [
+      { id: '1', origin: 'Hà Nội', destination: 'TP.HCM', name: 'Hà Nội - TP.HCM', distanceKm: 1700, estimatedDurationMinutes: 720 },
+      { id: '2', origin: 'Hà Nội', destination: 'Đà Nẵng', name: 'Hà Nội - Đà Nẵng', distanceKm: 800, estimatedDurationMinutes: 480 },
+      { id: '3', origin: 'TP.HCM', destination: 'Đà Nẵng', name: 'TP.HCM - Đà Nẵng', distanceKm: 900, estimatedDurationMinutes: 540 },
+      { id: '4', origin: 'Hà Nội', destination: 'Hải Phòng', name: 'Hà Nội - Hải Phòng', distanceKm: 120, estimatedDurationMinutes: 180 },
+      { id: '5', origin: 'TP.HCM', destination: 'Cần Thơ', name: 'TP.HCM - Cần Thơ', distanceKm: 170, estimatedDurationMinutes: 240 }
+    ]
+    
+    error.value = 'Đang dùng dữ liệu mẫu cho tuyến đường'
+  } finally {
+    loadingRoutes.value = false
+  }
+}
+
+// Helper Methods
 const getStatusBadgeClass = (status) => {
   switch (status) {
-    case 'active':
+    case BusSlotStatus.IN_PROGRESS:
       return 'bg-green-100 text-green-800'
-    case 'inactive':
+    case BusSlotStatus.SCHEDULED:
+      return 'bg-blue-100 text-blue-800'
+    case BusSlotStatus.DELAYED:
       return 'bg-yellow-100 text-yellow-800'
-    case 'completed':
+    case BusSlotStatus.COMPLETED:
       return 'bg-gray-100 text-gray-800'
+    case BusSlotStatus.CANCELLED:
+      return 'bg-red-100 text-red-800'
+    case BusSlotStatus.ARCHIVED:
+      return 'bg-gray-100 text-gray-500'
     default:
       return 'bg-gray-100 text-gray-800'
   }
@@ -500,76 +1122,523 @@ const getStatusBadgeClass = (status) => {
 
 const getStatusText = (status) => {
   switch (status) {
-    case 'active':
+    case BusSlotStatus.IN_PROGRESS:
       return 'Đang hoạt động'
-    case 'inactive':
+    case BusSlotStatus.SCHEDULED:
+      return 'Đã lên lịch'
+    case BusSlotStatus.DELAYED:
       return 'Tạm dừng'
-    case 'completed':
+    case BusSlotStatus.COMPLETED:
       return 'Hoàn thành'
+    case BusSlotStatus.CANCELLED:
+      return 'Đã hủy'
+    case BusSlotStatus.ARCHIVED:
+      return 'Đã lưu trữ'
     default:
       return 'Không xác định'
   }
 }
 
-const applyFilters = () => {
-  // Filters are applied automatically through computed property
-  console.log('Applying filters:', filters.value)
+const getBusInfo = (busSlot) => {
+  return busSlot.bus ? `${busSlot.bus.name} (${busSlot.bus.licensePlate})` : 'N/A'
 }
 
-const editTrip = (trip) => {
-  editingTrip.value = trip
-  tripForm.value = { ...trip }
+const getRouteInfo = (busSlot) => {
+  return busSlot.route ? `${busSlot.route.origin} - ${busSlot.route.destination}` : 'N/A'
+}
+
+const formatTime = (datetime) => {
+  if (!datetime) return 'N/A'
+  try {
+    // If it's already in HH:MM:SS format, just return first 5 chars
+    if (typeof datetime === 'string' && datetime.match(/^\d{2}:\d{2}:\d{2}$/)) {
+      return datetime.substring(0, 5) // HH:MM:SS -> HH:MM
+    }
+    return new Date(datetime).toLocaleTimeString('vi-VN', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })
+  } catch {
+    return datetime || 'N/A'
+  }
+}
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+const applyFilters = () => {
+  // Filters are applied automatically through computed property
+}
+
+const editTrip = (busSlot) => {
+  editingTrip.value = busSlot
+  tripForm.value = {
+    busId: busSlot.bus?.id || '',
+    routeId: busSlot.route?.id || '',
+    slotDate: busSlot.slotDate || '',
+    departureTime: busSlot.departureTime ? formatTime(busSlot.departureTime) : '',
+    arrivalTime: busSlot.arrivalTime ? formatTime(busSlot.arrivalTime) : '',
+    price: busSlot.price || 500000,
+    totalSeats: busSlot.totalSeats || 40
+  }
   showAddModal.value = true
 }
 
-const deleteTrip = (tripId) => {
-  if (confirm('Bạn có chắc chắn muốn xóa chuyến xe này?')) {
-    trips.value = trips.value.filter(trip => trip.id !== tripId)
+// Hàm này cập nhật UI khi xóa một chuyến xe thành công
+const updateUIAfterDelete = (deletedId) => {
+  // Xóa chuyến xe khỏi danh sách
+  busSlots.value = busSlots.value.filter(trip => trip.id !== deletedId)
+  
+  // Cập nhật stats sẽ được tự động tính toán lại thông qua computed property
+}
+
+// Hàm này cập nhật một chuyến xe trong UI khi cập nhật thành công
+const updateTripInUI = (updatedTrip) => {
+  const index = busSlots.value.findIndex(trip => trip.id === updatedTrip.id)
+  if (index !== -1) {
+    // Thay thế chuyến xe cũ bằng chuyến xe đã cập nhật
+    busSlots.value.splice(index, 1, updatedTrip)
   }
 }
 
-const saveTrip = () => {
-  if (editingTrip.value) {
-    // Update existing trip
-    const index = trips.value.findIndex(trip => trip.id === editingTrip.value.id)
-    if (index !== -1) {
-      trips.value[index] = { ...tripForm.value }
-    }
-  } else {
-    // Add new trip
-    const newTrip = {
-      ...tripForm.value,
-      id: Date.now(),
-      soldSeats: 0
-    }
-    trips.value.push(newTrip)
+const deleteTrip = async (busSlotId) => {
+  // Set loading state for specific button
+  loadingTripIds.value[busSlotId] = 'delete'
+  
+  try {
+    // DEV MODE: No auth checks, direct delete
+    console.log('🔧 [DEV] Deleting trip:', busSlotId)
+    await BusSlotAPI.deleteBusSlot(busSlotId)
+    
+    // Cập nhật UI trực tiếp
+    updateUIAfterDelete(busSlotId)
+    console.log('✅ [DEV] Trip deleted successfully')
+  } catch (err) {
+    error.value = 'Không thể xóa chuyến đi'
+    console.error('❌ Error deleting bus slot:', err)
+  } finally {
+    // Clear loading state
+    delete loadingTripIds.value[busSlotId]
   }
-  closeModal()
 }
 
-console.log('TripManagement');
+const saveTrip = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    busUnavailableError.value = ''
+    
+    // Kiểm tra khả dụng của xe bus trước khi lưu
+    const isBusAvailable = await checkBusAvailability()
+    if (!isBusAvailable) {
+      // Nếu xe bus không khả dụng, hiển thị lỗi và không lưu
+      error.value = busUnavailableError.value
+      return
+    }
+    
+    if (!tripForm.value.busId || !tripForm.value.routeId) {
+      error.value = 'Vui lòng chọn xe bus và tuyến đường'
+      return
+    }
+
+    // Tạo arrivalTime dự tính (thêm thời gian dự kiến từ route)
+    const departureDateTime = new Date(`${tripForm.value.slotDate}T${tripForm.value.departureTime}:00`)
+    
+    // Tìm tuyến đường để lấy thời gian ước tính
+    const selectedRoute = availableRoutes.value.find(route => route.id === tripForm.value.routeId)
+    const estimatedDurationMinutes = selectedRoute?.estimatedDurationMinutes || 12 * 60 // Mặc định 12 giờ
+    
+    // Tính toán thời gian đến dự kiến
+    const arrivalDateTime = new Date(departureDateTime.getTime() + (estimatedDurationMinutes * 60 * 1000))
+
+    const busSlotData = {
+      busId: tripForm.value.busId,
+      routeId: tripForm.value.routeId,
+      slotDate: tripForm.value.slotDate,
+      departureTime: tripForm.value.departureTime + ':00', // Convert HH:MM to HH:MM:SS
+      arrivalTime: arrivalDateTime.toTimeString().split(' ')[0], // HH:MM:SS format
+      price: tripForm.value.price,
+      totalSeats: tripForm.value.totalSeats
+    }
+
+    console.log('📝 Dữ liệu chuyến xe sẽ lưu:', busSlotData)
+    
+    let updatedTrip
+    if (editingTrip.value) {
+      // Update existing bus slot
+      updatedTrip = await BusSlotAPI.updateBusSlot(editingTrip.value.id, busSlotData)
+      // Cập nhật UI trực tiếp
+      updateTripInUI(updatedTrip)
+    } else {
+      // Create new bus slot
+      updatedTrip = await BusSlotAPI.createBusSlot(busSlotData)
+      // Thêm chuyến mới vào danh sách
+      busSlots.value.push(updatedTrip)
+    }
+    
+    console.log('✅ Đã lưu chuyến xe thành công:', updatedTrip)
+    
+    closeModal()
+  } catch (err) {
+    error.value = editingTrip.value ? 'Không thể cập nhật chuyến đi' : 'Không thể tạo chuyến đi mới'
+    console.error('Error saving bus slot:', err)
+  } finally {
+    loading.value = false
+  }
+}
 
 const handleBackdropClick = () => {
   closeModal()
+}
+
+// Refresh all data (useful after create/update/delete operations)
+const refreshAllData = async () => {
+  await Promise.all([
+    loadBusSlots(),
+    loadAvailableBuses(),
+    loadAvailableRoutes()
+  ])
 }
 
 const closeModal = () => {
   showAddModal.value = false
   editingTrip.value = null
   tripForm.value = {
-    code: '',
-    route: '',
-    date: '',
+    busId: '',
+    routeId: '',
+    slotDate: '',
     departureTime: '',
-    busNumber: '',
-    totalSeats: 40,
-    soldSeats: 0,
-    status: 'active'
+    arrivalTime: '',
+    price: 500000,
+    totalSeats: 40
   }
 }
 
-onMounted(() => {
-  // Initialize component
+// Watchers
+// Auto-fill totalSeats khi user chọn bus
+watch(() => tripForm.value.busId, async (newBusId) => {
+  if (newBusId) {
+    // Tìm xe bus trong danh sách đã có
+    const selectedBus = availableBuses.value.find(bus => bus.id === newBusId)
+    if (selectedBus && selectedBus.totalSeats) {
+      console.log('Xe bus được chọn:', selectedBus)
+      tripForm.value.totalSeats = selectedBus.totalSeats
+      console.log('Auto-filled totalSeats:', selectedBus.totalSeats)
+    } else {
+      // Nếu không tìm thấy xe trong danh sách, có thể do dữ liệu chưa được tải đầy đủ
+      // Thử lấy thông tin xe từ API
+      try {
+        console.log('Không tìm thấy xe bus trong danh sách có sẵn, đang tải lại dữ liệu...')
+        await loadAvailableBuses()
+        const refreshedBus = availableBuses.value.find(bus => bus.id === newBusId)
+        if (refreshedBus) {
+          tripForm.value.totalSeats = refreshedBus.totalSeats
+          console.log('Auto-filled totalSeats sau khi tải lại:', refreshedBus.totalSeats)
+        } else {
+          console.warn('Không tìm thấy xe bus có ID:', newBusId)
+          tripForm.value.totalSeats = 40 // Giá trị mặc định nếu không tìm thấy xe
+        }
+      } catch (err) {
+        console.error('Lỗi khi tải lại dữ liệu xe bus:', err)
+      }
+    }
+    
+    // Kiểm tra khả dụng của xe bus nếu đã chọn thời gian
+    if (tripForm.value.slotDate && tripForm.value.departureTime) {
+      checkBusAvailability()
+    }
+  }
+})
+
+// Watch thời gian để kiểm tra khả dụng của xe bus
+const watchDepartureTime = () => {
+  if (tripForm.value.busId && tripForm.value.slotDate && tripForm.value.departureTime) {
+    checkBusAvailability()
+  } else {
+    busUnavailableError.value = ''
+  }
+}
+watch(() => tripForm.value.slotDate, watchDepartureTime)
+watch(() => tripForm.value.departureTime, watchDepartureTime)
+
+// Auto-management methods
+const startAutoManager = () => {
+  if (autoManagerInterval.value) {
+    clearInterval(autoManagerInterval.value)
+  }
+  
+  if (autoManagerEnabled.value) {
+    console.log('🚀 [AUTO] Starting trip auto-management')
+    // Tự động kiểm tra và cập nhật trạng thái các chuyến xe
+    autoManagerInterval.value = setInterval(async () => {
+      try {
+        console.log('🔄 [AUTO] Checking trip statuses...')
+        // Lấy danh sách chuyến cần cập nhật
+        const tripsNeedingUpdate = await BusSlotAPI.findTripsNeedingStatusUpdate()
+        
+        if (tripsNeedingUpdate.length > 0) {
+          console.log(`🔔 [AUTO] Found ${tripsNeedingUpdate.length} trips needing update`)
+          await refreshAllData() // Làm mới dữ liệu nếu có cập nhật
+        }
+      } catch (err) {
+        console.error('❌ [AUTO] Error in auto-management:', err)
+      }
+    }, 2 * 60 * 1000) // Kiểm tra mỗi 2 phút
+  }
+}
+
+const stopAutoManager = () => {
+  if (autoManagerInterval.value) {
+    clearInterval(autoManagerInterval.value)
+    autoManagerInterval.value = null
+    console.log('⏹️ [AUTO] Stopped trip auto-management')
+  }
+}
+
+const manualTriggerAutoManager = async () => {
+  console.log('🔧 [MANUAL] Manually triggering auto-management...')
+  try {
+    syncLoading.value = true
+    
+    // Lấy danh sách chuyến cần cập nhật
+    const tripsNeedingUpdate = await BusSlotAPI.findTripsNeedingStatusUpdate()
+    
+    console.log(`🔔 [MANUAL] Found ${tripsNeedingUpdate.length} trips needing update`)
+    await loadBusSlots() // Làm mới dữ liệu chuyến xe
+  } catch (err) {
+    console.error('❌ [MANUAL] Error in manual trigger:', err)
+    error.value = 'Không thể đồng bộ trạng thái chuyến đi'
+  } finally {
+    syncLoading.value = false
+  }
+}
+
+const toggleAutoManager = () => {
+  autoManagerEnabled.value = !autoManagerEnabled.value
+  
+  if (autoManagerEnabled.value) {
+    startAutoManager()
+  } else {
+    stopAutoManager()
+  }
+}
+
+// Status helper methods
+const getDelayReasonIcon = (reason) => {
+  switch (reason) {
+    case DelayReason.TRAFFIC_JAM: return '🚗'
+    case DelayReason.WEATHER: return '🌧️'
+    case DelayReason.VEHICLE_ISSUE: return '🔧'
+    case DelayReason.PASSENGER_DELAY: return '👥'
+    case DelayReason.ROAD_ACCIDENT: return '⚠️'
+    case DelayReason.FUEL_STOP: return '⛽'
+    case DelayReason.DRIVER_BREAK: return '☕'
+    case DelayReason.EARLY_ARRIVAL: return '🏃‍♂️'
+    case DelayReason.OTHER: return '❓'
+    default: return '❓'
+  }
+}
+
+const getDelayReasonText = (reason) => {
+  switch (reason) {
+    case DelayReason.TRAFFIC_JAM: return 'Kẹt xe'
+    case DelayReason.WEATHER: return 'Thời tiết xấu'
+    case DelayReason.VEHICLE_ISSUE: return 'Sự cố xe'
+    case DelayReason.PASSENGER_DELAY: return 'Khách trễ'
+    case DelayReason.ROAD_ACCIDENT: return 'Tai nạn giao thông'
+    case DelayReason.FUEL_STOP: return 'Dừng đổ xăng'
+    case DelayReason.DRIVER_BREAK: return 'Nghỉ giải lao'
+    case DelayReason.EARLY_ARRIVAL: return 'Đến sớm'
+    case DelayReason.OTHER: return 'Lý do khác'
+    default: return 'Không xác định'
+  }
+}
+
+// Manual status update methods
+const openStatusUpdateModal = (trip) => {
+  updatingTrip.value = trip
+  
+  // Pre-fill form với data hiện tại
+  statusUpdateForm.value = {
+    status: trip.status,
+    actualDepartureTime: trip.actualDepartureTime || '',
+    actualArrivalTime: trip.actualArrivalTime || '',
+    delayReason: trip.delayReason || '',
+    currentLocation: trip.currentLocation || '',
+    driverNotes: ''
+  }
+  
+  showStatusUpdateModal.value = true
+}
+
+const closeStatusUpdateModal = () => {
+  showStatusUpdateModal.value = false
+  updatingTrip.value = null
+  statusUpdateForm.value = {
+    status: '',
+    actualDepartureTime: '',
+    actualArrivalTime: '',
+    delayReason: '',
+    currentLocation: '',
+    driverNotes: ''
+  }
+}
+
+const saveStatusUpdate = async () => {
+  if (!updatingTrip.value) return;
+  
+  try {
+    loading.value = true;
+    console.log('🕐 [MANUAL] Updating trip status:', {
+      tripId: updatingTrip.value.id,
+      updates: statusUpdateForm.value
+    });
+    
+    // Cập nhật thời gian thực tế nếu có
+    if (statusUpdateForm.value.actualDepartureTime || statusUpdateForm.value.actualArrivalTime) {
+      const actualTimesInput = {
+        actualDepartureTime: statusUpdateForm.value.actualDepartureTime || null,
+        actualArrivalTime: statusUpdateForm.value.actualArrivalTime || null,
+        delayReason: statusUpdateForm.value.delayReason || null,
+        currentLocation: statusUpdateForm.value.currentLocation || null
+      };
+      
+      const updatedTrip = await BusSlotAPI.updateActualTimes(updatingTrip.value.id, actualTimesInput);
+      // Cập nhật UI
+      updateTripInUI(updatedTrip);
+    }
+    
+    // Cập nhật trạng thái nếu thay đổi
+    if (statusUpdateForm.value.status !== updatingTrip.value.status) {
+      const statusUpdateInput = {
+        status: statusUpdateForm.value.status,
+        delayReason: statusUpdateForm.value.delayReason || null,
+        currentLocation: statusUpdateForm.value.currentLocation || null,
+        driverNotes: statusUpdateForm.value.driverNotes || null
+      };
+      
+      const updatedTrip = await BusSlotAPI.quickStatusUpdate(updatingTrip.value.id, statusUpdateInput);
+      // Cập nhật UI
+      updateTripInUI(updatedTrip);
+    }
+    
+    closeStatusUpdateModal();
+  } catch (err) {
+    console.error('❌ Error updating trip status:', err);
+    error.value = 'Không thể cập nhật trạng thái chuyến đi';
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Quick status buttons with loading state
+const quickMarkInProgress = async (trip) => {
+  // Set loading state for this specific button
+  loadingTripIds.value[trip.id] = 'start';
+  
+  try {
+    // Thay vì dùng markInProgress, sử dụng quickStatusUpdate với params đầy đủ
+    const updatedTrip = await BusSlotAPI.quickStatusUpdate(trip.id, {
+      status: BusSlotStatus.IN_PROGRESS,
+      autoSetActualTime: true
+    });
+    
+    // Cập nhật UI trực tiếp thay vì refresh toàn bộ
+    updateTripInUI(updatedTrip);
+  } catch (err) {
+    console.error('Error marking trip in progress:', err);
+    error.value = 'Không thể cập nhật trạng thái chuyến đi';
+  } finally {
+    // Clear loading state
+    delete loadingTripIds.value[trip.id];
+  }
+}
+
+const quickMarkCompleted = async (trip) => {
+  // Set loading state for this specific button
+  loadingTripIds.value[trip.id] = 'complete';
+  
+  try {
+    // Thay vì dùng markCompleted, sử dụng quickStatusUpdate với params đầy đủ
+    const updatedTrip = await BusSlotAPI.quickStatusUpdate(trip.id, {
+      status: BusSlotStatus.COMPLETED,
+      autoSetActualTime: true
+    });
+    
+    // Cập nhật UI trực tiếp thay vì refresh toàn bộ
+    updateTripInUI(updatedTrip);
+  } catch (err) {
+    console.error('Error marking trip completed:', err);
+    error.value = 'Không thể cập nhật trạng thái chuyến đi';
+  } finally {
+    // Clear loading state
+    delete loadingTripIds.value[trip.id];
+  }
+}
+
+// Helper để kiểm tra trạng thái loading của một nút cụ thể
+const isTripButtonLoading = (tripId, action) => {
+  return loadingTripIds.value[tripId] === action;
+}
+
+// Time display helpers
+const getDisplayTime = (scheduledTime, actualTime) => {
+  if (!scheduledTime) return 'N/A'
+  if (!actualTime) return formatTime(scheduledTime)
+  
+  const scheduled = new Date(scheduledTime)
+  const actual = new Date(actualTime)
+  const diff = Math.round((actual - scheduled) / (60 * 1000)) // diff in minutes
+  
+  const formattedTime = formatTime(actualTime)
+  if (Math.abs(diff) < 5) {
+    return `${formattedTime} (đúng giờ)`
+  } else if (diff < 0) {
+    return `${formattedTime} (sớm ${Math.abs(diff)} phút)`
+  } else {
+    return `${formattedTime} (trễ ${diff} phút)`
+  }
+}
+
+const calculateProgress = (trip) => {
+  if (trip.status !== BusSlotStatus.IN_PROGRESS) return 0
+  
+  const now = new Date()
+  const departure = trip.actualDepartureTime ? new Date(trip.actualDepartureTime) : new Date(trip.departureTime)
+  const arrival = trip.actualArrivalTime ? new Date(trip.actualArrivalTime) : new Date(trip.arrivalTime)
+  
+  const totalDuration = arrival.getTime() - departure.getTime()
+  const elapsedTime = now.getTime() - departure.getTime()
+  
+  let progress = (elapsedTime / totalDuration) * 100
+  
+  // Constrain to 0-100
+  progress = Math.max(0, Math.min(100, progress))
+  
+  return Math.round(progress)
+}
+
+onMounted(async () => {
+  // Load tất cả data cần thiết song song để tăng performance
+  await Promise.all([
+    loadBusSlots(),
+    loadAvailableBuses(),
+    loadAvailableRoutes()
+  ])
+  
+  // Start auto-management
+  if (autoManagerEnabled.value) {
+    startAutoManager()
+  }
+})
+
+onUnmounted(() => {
+  // Clean up interval khi component unmount
+  stopAutoManager()
 })
 </script>
 

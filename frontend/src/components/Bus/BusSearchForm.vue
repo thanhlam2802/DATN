@@ -2,6 +2,8 @@
 import { ref, watch, computed, nextTick } from 'vue'
 import { getOrigins, getDestinations } from '@/data/locationData.js'
 
+// DEV MODE: No auth features
+
 // Props
 const props = defineProps({
   activeTab: {

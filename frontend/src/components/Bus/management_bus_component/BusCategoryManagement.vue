@@ -183,11 +183,11 @@
             <!-- Category Stats -->
             <div class="grid grid-cols-2 gap-4 mt-4">
               <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">{{ getBusCount(category.id) }}</div>
+                <div class="text-2xl font-bold text-gray-900">{{ getBusCount(category) }}</div>
                 <div class="text-xs text-gray-500">Số xe</div>
               </div>
               <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">{{ getRouteCount(category.id) }}</div>
+                <div class="text-2xl font-bold text-gray-900">{{ getRouteCount(category) }}</div>
                 <div class="text-xs text-gray-500">Tuyến hoạt động</div>
               </div>
             </div>
@@ -215,19 +215,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import BusCategoryModal from './BusCategoryModal.vue'
-import { getAllBusCategories, deleteBusCategory } from '@/api/busCategoryApi'
+import { BusCategoryAPI } from '@/api/busApi'
+import type { BusCategory } from '@/api/busApi/bus/types'
 
 // State
-const categories = ref([])
+const categories = ref<BusCategory[]>([])
 const isLoading = ref(false)
-const error = ref(null)
-const activeDropdown = ref(null)
+const error = ref<string | null>(null)
+const activeDropdown = ref<string | null>(null)
 
 // Modal ref
-const categoryModal = ref(null)
+const categoryModal = ref<InstanceType<typeof BusCategoryModal> | null>(null)
 
 // Methods
 const loadCategories = async () => {
@@ -235,88 +236,64 @@ const loadCategories = async () => {
   error.value = null
   
   try {
-    const response = await getAllBusCategories()
-    
-    // Mock data matching backend BusCategory entity
-    categories.value = [
-      { id: 1, name: 'Trung chuyển', busCount: 15, routeCount: 8 },
-      { id: 2, name: 'Giường nằm', busCount: 25, routeCount: 12 },
-      { id: 3, name: 'Limousine', busCount: 10, routeCount: 6 },
-      { id: 4, name: 'VIP', busCount: 8, routeCount: 4 }
-    ]
-    
-    console.log('✅ Loaded bus categories:', categories.value)
+    categories.value = await BusCategoryAPI.getAllBusCategories()
   } catch (err) {
     error.value = 'Không thể tải danh sách loại xe'
-    console.error('❌ Error loading categories:', err)
   } finally {
     isLoading.value = false
   }
 }
 
 const handleAddCategory = () => {
-  console.log('🚀 Opening category creation modal')
   activeDropdown.value = null
-  categoryModal.value?.openModal()
+  categoryModal.value?.openModal(null); // Pass null for creation
 }
 
-const handleEditCategory = (category) => {
-  console.log('✏️ Editing category:', category)
+const handleEditCategory = (category: BusCategory) => {
   activeDropdown.value = null
   categoryModal.value?.openModal(category)
 }
 
-const handleDuplicateCategory = (category) => {
-  console.log('📋 Duplicating category:', category)
+const handleDuplicateCategory = (category: BusCategory) => {
   activeDropdown.value = null
-  const duplicatedCategory = {
-    ...category,
+  // Chỉ truyền tên cho modal, modal sẽ hiểu đây là tạo mới với tên gợi ý
+  const newCategoryData = {
     name: `${category.name} (Bản sao)`,
-    id: null // Will be assigned by backend
-  }
-  categoryModal.value?.openModal(duplicatedCategory)
+  };
+  categoryModal.value?.openModal(newCategoryData);
 }
 
-const handleDeleteCategory = async (categoryId) => {
-  activeDropdown.value = null
-  
-  const category = categories.value.find(c => c.id === categoryId)
-  const busCount = getBusCount(categoryId)
-  
-  if (busCount > 0) {
-    alert(`Không thể xóa loại xe "${category.name}" vì đang có ${busCount} xe sử dụng loại này.`)
+const handleDeleteCategory = async (categoryId: string) => {
+  if (!confirm('Bạn có chắc chắn muốn xóa loại xe này không? Hành động này không thể hoàn tác.')) {
     return
   }
   
-  if (confirm(`Bạn có chắc chắn muốn xóa loại xe "${category.name}"?`)) {
-    try {
-      await deleteBusCategory(categoryId)
-      console.log('🗑️ Deleted category:', categoryId)
-      loadCategories()
-    } catch (err) {
-      console.error('❌ Error deleting category:', err)
-      alert('Không thể xóa loại xe. Vui lòng thử lại.')
-    }
+  try {
+    await BusCategoryAPI.deleteBusCategory(categoryId)
+    // Refresh the list after deletion
+    await loadCategories() 
+  } catch (err) {
+    alert('Không thể xóa loại xe. Vui lòng thử lại.')
+  } finally {
+    activeDropdown.value = null
   }
 }
 
-const handleCategoryCreated = (data) => {
-  console.log('🎉 New category created:', data)
-  loadCategories()
+const handleCategoryCreated = () => {
+  loadCategories() // Refresh the list
 }
 
-const handleCategoryUpdated = (data) => {
-  console.log('🔄 Category updated:', data)
-  loadCategories()
+const handleCategoryUpdated = () => {
+  loadCategories() // Refresh the list
 }
 
-const toggleDropdown = (categoryId) => {
+const toggleDropdown = (categoryId: string) => {
   activeDropdown.value = activeDropdown.value === categoryId ? null : categoryId
 }
 
-// Helper methods
-const getCategoryIconClass = (name) => {
-  const iconClasses = {
+// Helper methods (can be improved with real data)
+const getCategoryIconClass = (name: string): string => {
+  const iconClasses: { [key: string]: string } = {
     'Trung chuyển': 'bg-blue-500',
     'Giường nằm': 'bg-green-500',
     'Limousine': 'bg-purple-500',
@@ -325,8 +302,8 @@ const getCategoryIconClass = (name) => {
   return iconClasses[name] || 'bg-gray-500'
 }
 
-const getCategoryBadgeClass = (name) => {
-  const badgeClasses = {
+const getCategoryBadgeClass = (name: string): string => {
+  const badgeClasses: { [key: string]: string } = {
     'Trung chuyển': 'bg-blue-100 text-blue-800',
     'Giường nằm': 'bg-green-100 text-green-800',
     'Limousine': 'bg-purple-100 text-purple-800',
@@ -335,8 +312,8 @@ const getCategoryBadgeClass = (name) => {
   return badgeClasses[name] || 'bg-gray-100 text-gray-800'
 }
 
-const getCategoryDisplayName = (name) => {
-  const displayNames = {
+const getCategoryDisplayName = (name: string): string => {
+  const displayNames: { [key: string]: string } = {
     'Trung chuyển': 'Standard',
     'Giường nằm': 'Sleeper',
     'Limousine': 'Luxury',
@@ -345,26 +322,25 @@ const getCategoryDisplayName = (name) => {
   return displayNames[name] || name
 }
 
-const getBusCount = (categoryId) => {
-  const category = categories.value.find(c => c.id === categoryId)
-  return category?.busCount || 0
+const getBusCount = (category: BusCategory) => {
+  // TODO: Replace with actual data logic
+  return 0
 }
 
-const getRouteCount = (categoryId) => {
-  const category = categories.value.find(c => c.id === categoryId)
-  return category?.routeCount || 0
+const getRouteCount = (category: BusCategory) => {
+  // TODO: Replace with actual data logic
+  return 0;
 }
 
 const getTotalBusesCount = () => {
-  return categories.value.reduce((total, category) => total + (category.busCount || 0), 0)
+  // This cannot be accurately calculated on the frontend without bus counts.
+  return 'N/A';
 }
 
 const getMostPopularCategory = () => {
   if (categories.value.length === 0) return 'N/A'
-  const mostPopular = categories.value.reduce((prev, current) => 
-    (current.busCount > prev.busCount) ? current : prev
-  )
-  return mostPopular.name
+  // This logic is flawed without bus counts. Returning the first as a placeholder.
+  return categories.value[0].name;
 }
 
 const getRecentlyUpdated = () => {
@@ -372,8 +348,8 @@ const getRecentlyUpdated = () => {
 }
 
 // Click outside to close dropdown
-const handleClickOutside = (event) => {
-  if (activeDropdown.value && !event.target.closest('.relative')) {
+const handleClickOutside = (event: MouseEvent) => {
+  if (activeDropdown.value && !(event.target as HTMLElement).closest('.relative')) {
     activeDropdown.value = null
   }
 }

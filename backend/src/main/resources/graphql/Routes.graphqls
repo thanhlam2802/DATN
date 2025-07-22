@@ -8,7 +8,7 @@ input CreateRouteInput {
 }
 
 input UpdateRouteInput {
-    id: ID!
+    #id: ID!
     origin: String
     destination: String
     distanceKm: Float
@@ -25,10 +25,9 @@ type Route {
     updatedAt: Instant
 }
 
-
 type Mutation {
     createRoute(input: CreateRouteInput!): Route!
-    updateRoute(input: UpdateRouteInput!): Route!
+    updateRoute(id : ID!,input: UpdateRouteInput!): Route!
     deleteRoute(id: ID!): Boolean
 }
 

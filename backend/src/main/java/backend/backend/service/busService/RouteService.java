@@ -1,9 +1,7 @@
 package backend.backend.service.busService;
 
-import backend.backend.dao.Bus.BusDAO;
-import backend.backend.dao.Bus.RouteDAO;
-import backend.backend.dto.BusDTO.CreateRouteDTO;
-import backend.backend.dto.BusDTO.UpdateRouteDTO;
+import backend.backend.dto.BusDTO.CreateRouteRequest;
+import backend.backend.dto.BusDTO.UpdateRouteRequest;
 import backend.backend.entity.Route;
 
 import java.util.List;
@@ -13,8 +11,9 @@ public interface RouteService {
 
     List<Route> findAllRoute();
     Optional<Route> findRouteById(Integer id);
-    Route createRoute(CreateRouteDTO routeDTO);
-    Route updateRoute(UpdateRouteDTO routeDTO);
+    Route createRoute(CreateRouteRequest routeDTO);
+    Route updateRoute(Integer id, UpdateRouteRequest routeDTO);
     void deleteRoute(Integer id);
     Optional<Route> findByOriginAndDestination (String origin, String destination);
+
 }

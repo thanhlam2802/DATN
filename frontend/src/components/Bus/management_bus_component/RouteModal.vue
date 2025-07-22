@@ -1,11 +1,13 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" @click="closeModal">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <!-- Background overlay -->
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-      
+  <Transition name="modal" appear>
+  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto transition-all duration-300" @click="closeModal">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0
+    transition-all duration-300 bg-black-100 bg-opacity-20 backdrop-blur-sm p-4">
+    
       <!-- Modal panel -->
-      <div @click.stop class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <div @click.stop class="relative inline-block align-bottom bg-white 
+      rounded-lg text-left overflow-hidden shadow-xl transform transition-all 
+      sm:my-8 sm:align-middle sm:max-w-lg sm:w-full top-30">
         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
           <div class="sm:flex sm:items-start">
             <div class="w-full mt-3 text-center sm:mt-0 sm:text-left">
@@ -139,11 +141,12 @@
       </div>
     </div>
   </div>
+</transition>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, nextTick } from 'vue'
-import { createRoute, updateRoute } from '@/api/routeApi'
+import { RouteAPI } from '@/api/busApi/route/api';
 
 // Emits
 const emit = defineEmits(['route-created', 'route-updated'])
@@ -180,8 +183,6 @@ const getFormattedDuration = () => {
 
 // Methods
 const openModal = (routeData = null) => {
-  console.log('🚀 Opening RouteModal:', routeData)
-  
   // Reset form
   resetForm()
   
@@ -207,12 +208,11 @@ const openModal = (routeData = null) => {
 }
 
 const closeModal = () => {
-  if (isSubmitting.value) return
-  
   isOpen.value = false
+  isSubmitting.value = false
   resetForm()
   
-  // Wait for animation to complete
+  // Reset editing state
   setTimeout(() => {
     isEditing.value = false
     editingRouteId.value = null
@@ -257,41 +257,32 @@ const validateForm = () => {
 
 const handleSubmit = async () => {
   if (!validateForm()) {
-    console.log('❌ Validation failed:', errors.value)
     return
   }
   
   isSubmitting.value = true
   
   try {
-    // Convert hours + minutes to total minutes
-    const estimatedDurationMinutes = (form.estimatedHours * 60) + (form.estimatedMinutes || 0)
+    const totalMinutes = (form.estimatedHours * 60) + (form.estimatedMinutes || 0)
     
-    const routeData = {
+    const input = {
       origin: form.origin.trim(),
       destination: form.destination.trim(),
       distanceKm: form.distanceKm,
-      estimatedDurationMinutes
+      estimatedDurationMinutes: totalMinutes
     }
     
-    console.log('📤 Submitting route data:', routeData)
-    
+    let response
     if (isEditing.value) {
-      // Update existing route
-      const response = await updateRoute(editingRouteId.value, routeData)
-      console.log('✅ Route updated:', response)
-      emit('route-updated', response.data)
+      response = await RouteAPI.updateRoute({ ...input, id: editingRouteId.value })
+      emit('route-updated', response)
     } else {
-      // Create new route
-      const response = await createRoute(routeData)
-      console.log('✅ Route created:', response)
-      emit('route-created', response.data)
+      response = await RouteAPI.createRoute(input)
+      emit('route-created', response)
     }
-    
-    closeModal()
+    closeModal(); // Đóng modal sau khi thành công
   } catch (error) {
-    console.error('❌ Error saving route:', error)
-    alert('Có lỗi xảy ra khi lưu tuyến đường. Vui lòng thử lại.')
+    // Hiển thị lỗi cho người dùng (có thể qua một toast notification)
   } finally {
     isSubmitting.value = false
   }

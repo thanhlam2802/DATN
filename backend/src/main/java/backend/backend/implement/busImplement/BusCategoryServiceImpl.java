@@ -1,8 +1,8 @@
 package backend.backend.implement.busImplement;
 
 import backend.backend.dao.Bus.BusCategoryDAO;
-import backend.backend.dto.BusDTO.CreateBusCategoryDTO;
-import backend.backend.dto.BusDTO.UpdateBusCategoryDTO;
+import backend.backend.dto.BusDTO.CreateBusCategoryRequest;
+import backend.backend.dto.BusDTO.UpdateBusCategoryRequest;
 import backend.backend.entity.BusCategory;
 import backend.backend.service.busService.BusCategoryService;
 import jakarta.persistence.EntityNotFoundException;
@@ -23,7 +23,7 @@ public class BusCategoryServiceImpl implements BusCategoryService {
 
     @Override
     @Transactional
-    public BusCategory createBusCategory(CreateBusCategoryDTO dto) {
+    public BusCategory createBusCategory(CreateBusCategoryRequest dto) {
         String rawName = dto.name();
         String trimmedName = rawName != null ? rawName.trim() : null;
 
@@ -43,7 +43,7 @@ public class BusCategoryServiceImpl implements BusCategoryService {
 
     @Override
     @Transactional
-    public BusCategory updateBusCategory(Integer id, UpdateBusCategoryDTO dto) {
+    public BusCategory updateBusCategory(Integer id, UpdateBusCategoryRequest dto) {
         BusCategory existingCategory = busCategoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy danh mục xe với ID: " + id));
 

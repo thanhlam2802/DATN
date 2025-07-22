@@ -1,18 +1,25 @@
 package backend.backend.service.busService;
 
-import backend.backend.dto.BusDTO.CreateBusDTO;
-import backend.backend.dto.BusDTO.UpdateBusDTO;
+import backend.backend.dto.BusDTO.BusResponse;
+import backend.backend.dto.BusDTO.BusSlotResponse;
+import backend.backend.dto.BusDTO.CreateBusRequest;
+import backend.backend.dto.BusDTO.UpdateBusRequest;
 import backend.backend.entity.Bus;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface BusService {
-
-    List<Bus> findAllBuses();
-    Optional<Bus> findBusById(Integer id);
-    Bus createBus(CreateBusDTO busDTO);
-    Bus updateBus(Integer busId,UpdateBusDTO busDTO);
-    void deleteBus(Integer id);
-    List<Bus> findBusesByOwner_Id(Integer ownerId);
+    BusResponse createBus(CreateBusRequest dto);
+    BusResponse updateBus(Integer busId, UpdateBusRequest updateBusRequest);
+    void deleteBus(Integer busId);
+    Optional<BusResponse> findBusById(Integer busId);
+    List<BusResponse> findAllBuses();
+    // Đã đổi tên từ findBusesByOwner_Id sang findBusesByOwnerId để nhất quán với schema và triển khai
+    List<BusResponse> findBusesByOwnerId(Integer ownerId); // <-- Đã cập nhật
+    List<BusResponse> findBusesByCategoryId(Integer categoryId); // <-- Thêm vào để đồng bộ với ServiceImpl
+    List<BusResponse> searchBuses(String name, String licensePlate); // <-- Thêm vào để đồng bộ với ServiceImpl
 }

@@ -397,8 +397,6 @@ const showAddModal = ref(false)
 const showBulkUpdate = ref(false)
 const editingPrice = ref(null)
 
-console.log('PriceManagement');
-
 const filters = ref({
   route: '',
   ticketType: '',
@@ -576,8 +574,7 @@ const getStatusText = (status) => {
 }
 
 const applyFilters = () => {
-  // Filters are applied automatically through computed property
-  console.log('Applying filters:', filters.value)
+  // Filters are applied automatically through computed property    
 }
 
 const editPrice = (price) => {

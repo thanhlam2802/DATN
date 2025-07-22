@@ -203,120 +203,80 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import RouteModal from './RouteModal.vue'
-import { getAllRoutes } from '@/api/routeApi'
+import { RouteAPI } from '@/api/busApi/route/api';
+import RouteModal from './RouteModal.vue';
+import type { Route } from '@/api/busApi/types/common.types'
 import { minutesToTimeString } from '@/utils/busHelper'
 
 // State
-const routes = ref([])
-const isLoading = ref(false)
+const routes = ref<Route[]>([])
+const isLoading = ref(true)
 const error = ref(null)
 
 // Modal ref
-const routeModal = ref(null)
+const routeModal = ref<InstanceType<typeof RouteModal> | null>(null);
 
 // Methods
 const loadRoutes = async () => {
-  isLoading.value = true
-  error.value = null
-  
   try {
-    const response = await getAllRoutes()
-    
-    // Mock routes data for now
-    routes.value = [
-      {
-        id: 1,
-        origin: 'Hà Nội',
-        destination: 'TP. Hồ Chí Minh',
-        distanceKm: 1700,
-        estimatedDurationMinutes: 720,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 2,
-        origin: 'Hà Nội',
-        destination: 'Đà Nẵng',
-        distanceKm: 800,
-        estimatedDurationMinutes: 720,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 3,
-        origin: 'TP. Hồ Chí Minh',
-        destination: 'Cần Thơ',
-        distanceKm: 170,
-        estimatedDurationMinutes: 240,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ]
-    
-    console.log('✅ Loaded routes:', routes.value)
-  } catch (err) {
-    error.value = 'Không thể tải danh sách tuyến đường'
-    console.error('❌ Error loading routes:', err)
+    isLoading.value = true;
+    routes.value = await RouteAPI.getAllRoutes();
+  } catch (error) {
+    throw error;
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const handleAddRoute = () => {
-  console.log('🚀 Opening route creation modal')
+  
   routeModal.value?.openModal()
 }
 
-const handleEditRoute = (route) => {
-  console.log('✏️ Editing route:', route)
+const handleEditRoute = (route: Route) => {
   routeModal.value?.openModal(route)
 }
 
-const handleRouteCreated = (data) => {
-  console.log('🎉 New route created:', data)
+const handleRouteCreated = (newRoute: Route) => {
   loadRoutes() // Reload danh sách
 }
 
-const handleRouteUpdated = (data) => {
-  console.log('🔄 Route updated:', data)
+const handleRouteUpdated = (updatedRoute: Route) => {
   loadRoutes() // Reload danh sách
 }
 
-const deleteRoute = async (routeId) => {
-  if (confirm('Bạn có chắc chắn muốn xóa tuyến đường này?')) {
-    try {
-      // TODO: Implement delete API call
-      console.log('🗑️ Deleting route:', routeId)
-      loadRoutes()
-    } catch (err) {
-      console.error('❌ Error deleting route:', err)
-      alert('Không thể xóa tuyến đường')
-    }
+const deleteRoute = async (routeId: string) => {
+  if (!confirm('Bạn có chắc chắn muốn xóa tuyến đường này?')) {
+    return
+  }
+
+  try {
+    await RouteAPI.deleteRoute(routeId)
+    await loadRoutes() // Refresh list
+  } catch (err) {
+    alert('Không thể xóa tuyến đường. Vui lòng thử lại.')
   }
 }
 
 // Helper methods
-const formatDate = (dateString) => {
+const formatDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString('vi-VN')
 }
 
-const getBusRouteCount = (routeId) => {
-  // TODO: Get actual count from BusRoute API
-  return Math.floor(Math.random() * 10) + 1
+const getBusRouteCount = (routeId: string) => {
+  // TODO: This data needs to come from the backend.
+  return 0;
 }
 
 const getMostPopularRoute = () => {
   if (routes.value.length === 0) return 'N/A'
-  const randomRoute = routes.value[Math.floor(Math.random() * routes.value.length)]
-  return `${randomRoute.origin} - ${randomRoute.destination}`
+  // TODO: This logic needs to be based on actual usage data.
+  return `${routes.value[0].origin} → ${routes.value[0].destination}`;
 }
 
 // Lifecycle
-onMounted(() => {
-  loadRoutes()
-})
+onMounted(loadRoutes);
 </script> 

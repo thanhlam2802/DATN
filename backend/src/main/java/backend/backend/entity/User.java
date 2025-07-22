@@ -5,6 +5,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 import jakarta.persistence.*;
+import lombok.ToString;
+
 @Data
 @Entity
 @Table(name = "users")
@@ -53,6 +55,7 @@ public class User {
     private List<Flight> ownedFlights;
 
     @OneToMany(mappedBy = "owner")
+    @ToString.Include
     private List<Bus> ownedBuses;
 
     @OneToMany(mappedBy = "owner")

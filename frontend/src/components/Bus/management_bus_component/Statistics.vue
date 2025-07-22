@@ -308,10 +308,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-
-console.log('Statistics');
-
+import { ref, computed } from 'vue'  
 // State
 const selectedPeriod = ref('30days')
 

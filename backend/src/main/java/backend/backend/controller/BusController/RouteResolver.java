@@ -1,22 +1,22 @@
 package backend.backend.controller.BusController;
 
-import backend.backend.dto.BusDTO.CreateRouteDTO;
-import backend.backend.dto.BusDTO.UpdateRouteDTO;
+import backend.backend.dto.BusDTO.CreateRouteRequest;
+import backend.backend.dto.BusDTO.UpdateRouteRequest;
 import backend.backend.entity.Route;
 import backend.backend.implement.busImplement.RouteServiceImpl;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.sql.Update;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
 @Controller
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class RouteResolver {
 
     private final RouteServiceImpl routeService;
@@ -27,13 +27,13 @@ public class RouteResolver {
     }
 
     @MutationMapping
-    public Route createRoute(@Argument CreateRouteDTO input){
+    public Route createRoute(@Argument CreateRouteRequest input){
         return routeService.createRoute(input);
     }
 
     @MutationMapping
-    public Route updateRoute(@Argument UpdateRouteDTO input) {
-        return routeService.updateRoute(input);
+    public Route updateRoute(@Argument Integer id,@Argument UpdateRouteRequest input) {
+        return routeService.updateRoute(id, input);
     }
 
     @MutationMapping

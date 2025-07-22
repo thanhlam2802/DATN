@@ -21,6 +21,7 @@ import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.v
 import PayFlight from "@/components/Flight/PaymentPage.vue";
 import AdminFight from "@/components/FlightAdmin/formAdminFlight.vue";
 import GetTicket from "@/components/Flight/TicketReceipt.vue";
+import DetailFlightAdmin from "@/components/FlightAdmin/DetailFlightAdmin.vue";
 
 import HotelListingPage from "@/views/hotel/HotelListingPage.vue";
 import HotelDetail from "@/views/hotel/HotelDetail.vue";

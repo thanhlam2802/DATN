@@ -1,11 +1,11 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" @click="closeModal">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <!-- Background overlay -->
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+  <Transition name="modal-fade">
+    <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center" @click="closeModal">
+      <!-- Background overlay with blur -->
+      <div class="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
       
       <!-- Modal panel -->
-      <div @click.stop class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <div @click.stop class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full m-4">
         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
           <div class="sm:flex sm:items-start">
             <div class="w-full mt-3 text-center sm:mt-0 sm:text-left">
@@ -50,23 +50,7 @@
                   <p class="text-xs text-gray-500 mt-1">{{ form.description?.length || 0 }}/500 ký tự</p>
                 </div>
 
-                <!-- Category Features (predefined checkboxes) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Đặc điểm loại xe
-                  </label>
-                  <div class="grid grid-cols-2 gap-3">
-                    <label v-for="feature in availableFeatures" :key="feature.id" class="flex items-center">
-                      <input
-                        v-model="form.features"
-                        :value="feature.id"
-                        type="checkbox"
-                        class="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-300 focus:ring focus:ring-offset-0 focus:ring-purple-200 focus:ring-opacity-50"
-                      />
-                      <span class="ml-2 text-sm text-gray-700">{{ feature.name }}</span>
-                    </label>
-                  </div>
-                </div>
+                <!-- Category Features REMOVED -->
 
                 <!-- Preview Section -->
                 <div v-if="form.name" class="mt-6 p-4 bg-gray-50 rounded-md">
@@ -84,21 +68,10 @@
                         <div class="text-sm text-gray-500">{{ form.description || 'Không có mô tả' }}</div>
                       </div>
                     </div>
-                    <div v-if="form.features.length > 0" class="flex flex-wrap gap-1 mt-2">
-                      <span v-for="featureId in form.features" :key="featureId" 
-                            :class="getPreviewBadgeClass()" 
-                            class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                        {{ getFeatureName(featureId) }}
-                      </span>
-                    </div>
                   </div>
                 </div>
 
-                <!-- GraphQL Schema Preview -->
-                <div v-if="showSchemaPreview" class="mt-6 p-4 bg-blue-50 rounded-md">
-                  <h4 class="text-sm font-medium text-blue-900 mb-2">GraphQL Schema:</h4>
-                  <pre class="text-xs text-blue-800 bg-blue-100 p-3 rounded overflow-x-auto">{{ generateGraphQLSchema() }}</pre>
-                </div>
+             
               </form>
             </div>
           </div>
@@ -126,23 +99,38 @@
           >
             Hủy
           </button>
-          <!-- Schema Preview Toggle -->
-          <button
-            type="button"
-            @click="showSchemaPreview = !showSchemaPreview"
-            class="mt-3 w-full inline-flex justify-center rounded-md border border-blue-300 shadow-sm px-4 py-2 bg-blue-50 text-base font-medium text-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-          >
-            {{ showSchemaPreview ? 'Ẩn' : 'Xem' }} Schema
-          </button>
+       
         </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
-<script setup>
+<style>
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .transform,
+.modal-fade-leave-active .transform {
+  transition: all 0.3s ease;
+}
+
+.modal-fade-enter-from .transform,
+.modal-fade-leave-to .transform {
+  transform: scale(0.95);
+  opacity: 0;
+}
+</style>
+<script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { createBusCategory, updateBusCategory } from '@/api/busCategoryApi'
+import { BusCategoryAPI } from '@/api/busApi'
+import type { BusCategory, CreateBusCategoryInput, UpdateBusCategoryInput } from '@/api/busApi/bus/types'
 
 // Emits
 const emit = defineEmits(['category-created', 'category-updated'])
@@ -151,64 +139,50 @@ const emit = defineEmits(['category-created', 'category-updated'])
 const isOpen = ref(false)
 const isEditing = ref(false)
 const isSubmitting = ref(false)
-const editingCategoryId = ref(null)
-const showSchemaPreview = ref(false)
+const editingCategoryId = ref<string | null>(null)
 
-// Form data - matching BusCategory entity
-const form = reactive({
+
+// Form data
+interface CategoryForm {
+  name: string;
+  description: string;
+}
+const form = reactive<CategoryForm>({
   name: '',
   description: '',
-  features: [] // Additional features for UX
-})
+});
 
 // Form errors
-const errors = ref({})
-
-// Available features for better UX
-const availableFeatures = [
-  { id: 'wifi', name: 'WiFi miễn phí' },
-  { id: 'ac', name: 'Điều hòa' },
-  { id: 'toilet', name: 'Nhà vệ sinh' },
-  { id: 'entertainment', name: 'Giải trí' },
-  { id: 'meal', name: 'Bữa ăn' },
-  { id: 'blanket', name: 'Chăn gối' },
-  { id: 'usb', name: 'Cổng sạc USB' },
-  { id: 'reclining', name: 'Ghế nằm' }
-]
+const errors = ref<{ name?: string; description?: string }>({})
 
 // Computed
 const canSubmit = computed(() => {
-  return form.name.trim().length > 0
+  return form.name.trim().length > 0 && !isSubmitting.value
 })
 
 // Methods
-const openModal = (categoryData = null) => {
-  console.log('🚀 Opening BusCategoryModal:', categoryData)
-  
-  // Reset form
-  resetForm()
-  
-  if (categoryData) {
+const openModal = (data: unknown) => {
+  resetForm();
+
+  const category = data as Partial<BusCategory>;
+
+  if (category?.id) {
     // Edit mode
-    isEditing.value = true
-    editingCategoryId.value = categoryData.id
-    form.name = categoryData.name
-    form.description = categoryData.description || ''
-    form.features = categoryData.features || []
+    isEditing.value = true;
+    editingCategoryId.value = category.id;
+    form.name = category.name || '';
   } else {
-    // Create mode
-    isEditing.value = false
-    editingCategoryId.value = null
+    // Create or Duplicate mode
+    isEditing.value = false;
+    editingCategoryId.value = null;
+    form.name = category?.name || '';
   }
-  
-  isOpen.value = true
-}
+
+  isOpen.value = true;
+};
 
 const closeModal = () => {
-  if (isSubmitting.value) return
-  
   isOpen.value = false
-  showSchemaPreview.value = false
   resetForm()
   
   // Wait for animation to complete
@@ -221,12 +195,11 @@ const closeModal = () => {
 const resetForm = () => {
   form.name = ''
   form.description = ''
-  form.features = []
   errors.value = {}
 }
 
 const validateForm = () => {
-  const newErrors = {}
+  const newErrors: { name?: string; description?: string } = {}
   
   if (!form.name.trim()) {
     newErrors.name = 'Vui lòng nhập tên loại xe'
@@ -236,9 +209,11 @@ const validateForm = () => {
     newErrors.name = 'Tên loại xe không được vượt quá 100 ký tự'
   }
   
-  if (form.description && form.description.length > 500) {
-    newErrors.description = 'Mô tả không được vượt quá 500 ký tự'
-  }
+  // Note: Description is not part of the current backend DTO/GraphQL schema for create/update.
+  // If it were, validation would go here.
+  // if (form.description && form.description.length > 500) {
+  //   newErrors.description = 'Mô tả không được vượt quá 500 ký tự'
+  // }
   
   errors.value = newErrors
   return Object.keys(newErrors).length === 0
@@ -246,109 +221,42 @@ const validateForm = () => {
 
 const handleSubmit = async () => {
   if (!validateForm()) {
-    console.log('❌ Validation failed:', errors.value)
     return
   }
   
   isSubmitting.value = true
   
   try {
-    // Prepare data matching backend BusCategory entity
-    const categoryData = {
+    const input: CreateBusCategoryInput = {
       name: form.name.trim(),
-      description: form.description?.trim() || null,
-      features: form.features // Additional field for frontend only
-    }
+    };
     
-    // Generate GraphQL variables for the API call
-    const graphqlVariables = generateGraphQLVariables(categoryData)
-    
-    console.log('📤 Submitting category data:', categoryData)
-    console.log('🔗 GraphQL Variables:', graphqlVariables)
-    
-    if (isEditing.value) {
-      // Update existing category via GraphQL
-      const response = await updateBusCategory(editingCategoryId.value, graphqlVariables)
-      console.log('✅ Category updated:', response)
-      emit('category-updated', response.data)
+    let response: BusCategory;
+    if (isEditing.value && editingCategoryId.value) {
+      response = await BusCategoryAPI.updateBusCategory(
+        editingCategoryId.value, 
+        input as UpdateBusCategoryInput
+      );
+      emit('category-updated', response);
     } else {
-      // Create new category via GraphQL
-      const response = await createBusCategory(graphqlVariables)
-      console.log('✅ Category created:', response)
-      emit('category-created', response.data)
+      response = await BusCategoryAPI.createBusCategory(input);
+      emit('category-created', response);
     }
+        closeModal(); 
+  } catch (err: unknown) {
     
-    closeModal()
-  } catch (error) {
-    console.error('❌ Error saving category:', error)
-    alert('Có lỗi xảy ra khi lưu loại xe. Vui lòng thử lại.')
+    const error = err as any;
+    const errorMessage = error.graphqlErrors?.[0]?.message || error.message || 'Có lỗi xảy ra khi lưu loại xe. Vui lòng thử lại.';
+    alert(errorMessage);
   } finally {
     isSubmitting.value = false
   }
 }
 
-// GraphQL Schema Generation
-const generateGraphQLSchema = () => {
-  const operation = isEditing.value ? 'updateBusCategory' : 'createBusCategory'
-  const variables = generateGraphQLVariables()
-  
-  return `
-mutation ${operation.charAt(0).toUpperCase() + operation.slice(1)} {
-  ${operation}(
-    ${Object.entries(variables)
-      .map(([key, value]) => {
-        if (typeof value === 'string') return `${key}: "${value}"`
-        if (Array.isArray(value)) return `${key}: [${value.map(v => `"${v}"`).join(', ')}]`
-        return `${key}: ${value}`
-      })
-      .join('\n    ')}
-  ) {
-    id
-    name
-    description
-    createdAt
-    updatedAt
-  }
-}`
-}
 
-const generateGraphQLVariables = (data = null) => {
-  const formData = data || {
-    name: form.name.trim(),
-    description: form.description?.trim() || null,
-    features: form.features
-  }
-  
-  const variables = {
-    name: formData.name
-  }
-  
-  if (formData.description) {
-    variables.description = formData.description
-  }
-  
-  if (isEditing.value) {
-    variables.id = editingCategoryId.value
-  }
-  
-  return variables
-}
 
 // Helper methods
-const getFeatureName = (featureId) => {
-  const feature = availableFeatures.find(f => f.id === featureId)
-  return feature ? feature.name : featureId
-}
-
-const getPreviewIconClass = () => {
-  const colorMap = {
-    'Trung chuyển': 'bg-blue-500',
-    'Giường nằm': 'bg-green-500',
-    'Limousine': 'bg-purple-500',
-    'VIP': 'bg-yellow-500'
-  }
-  
-  // Check if form name contains any keywords
+const getPreviewIconClass = () => {  // Check if form name contains any keywords
   const name = form.name.toLowerCase()
   if (name.includes('limousine') || name.includes('limo')) return 'bg-purple-500'
   if (name.includes('vip') || name.includes('cao cấp')) return 'bg-yellow-500'
@@ -358,13 +266,6 @@ const getPreviewIconClass = () => {
   return 'bg-gray-500'
 }
 
-const getPreviewBadgeClass = () => {
-  const name = form.name.toLowerCase()
-  if (name.includes('limousine')) return 'bg-purple-100 text-purple-800'
-  if (name.includes('vip')) return 'bg-yellow-100 text-yellow-800'
-  if (name.includes('giường')) return 'bg-green-100 text-green-800'
-  return 'bg-blue-100 text-blue-800'
-}
 
 // Expose methods for parent component
 defineExpose({
@@ -374,18 +275,21 @@ defineExpose({
 // Watch for ESC key
 watch(isOpen, (newValue) => {
   if (newValue) {
-    const handleEsc = (e) => {
+    const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         closeModal()
       }
-    }
+    };
     
-    document.addEventListener('keydown', handleEsc)
+    document.addEventListener('keydown', handleEsc);
     
-    // Cleanup
-    return () => {
-      document.removeEventListener('keydown', handleEsc)
-    }
+    // Cleanup listener when the modal closes
+    const unwatch = watch(isOpen, (isNowOpen) => {
+      if (!isNowOpen) {
+        document.removeEventListener('keydown', handleEsc);
+        unwatch(); // Stop watching itself
+      }
+    });
   }
-})
+});
 </script> 

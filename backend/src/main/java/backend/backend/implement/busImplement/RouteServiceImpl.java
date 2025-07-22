@@ -1,13 +1,11 @@
 package backend.backend.implement.busImplement;
 
 import backend.backend.dao.Bus.RouteDAO;
-import backend.backend.dto.BusDTO.CreateRouteDTO;
-import backend.backend.dto.BusDTO.UpdateRouteDTO;
+import backend.backend.dto.BusDTO.CreateRouteRequest;
+import backend.backend.dto.BusDTO.UpdateRouteRequest;
 import backend.backend.entity.Route;
 import backend.backend.service.busService.RouteService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +30,7 @@ public class RouteServiceImpl implements RouteService {
 
     @Override
     @Transactional
-    public Route createRoute(CreateRouteDTO routeDTO) {
+    public Route createRoute(CreateRouteRequest routeDTO) {
         Route route = new Route();
         route.setDestination(routeDTO.destination());
         route.setDistanceKm(routeDTO.distanceKm());
@@ -43,10 +41,10 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public Route updateRoute(UpdateRouteDTO routeDTO) {
+    public Route updateRoute(Integer id, UpdateRouteRequest routeDTO) {
         // Tìm Route hiện có theo ID
-        Route existingRoute = routeDAO.findById(routeDTO.id())
-                .orElseThrow(() -> new RuntimeException("Route with ID " + routeDTO.id() + " not found."));
+        Route existingRoute = routeDAO.findById(id)
+                .orElseThrow(() -> new RuntimeException("Route with ID " + id + " not found."));
 
         if (routeDTO.origin() != null) {
             existingRoute.setOrigin(routeDTO.origin());

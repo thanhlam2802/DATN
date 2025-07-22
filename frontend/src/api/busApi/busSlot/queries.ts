@@ -130,18 +130,19 @@ export const SEARCH_BUS_SLOTS = gql`
 `
 
 // Real-time Management queries
-export const FIND_TRIPS_NEEDING_STATUS_UPDATE = gql`
-  query FindTripsNeedingStatusUpdate {
-    findTripsNeedingStatusUpdate {
+export const FIND_COMPLETED_TRIPS_FOR_ARCHIVE = gql`
+  query FindCompletedTripsForArchive($daysOld: Int) {
+    findCompletedTripsForArchive(daysOld: $daysOld) {
       ...BusSlotDetailFragment
     }
   }
   ${BUS_SLOT_DETAIL_FRAGMENT}
 `
 
-export const FIND_COMPLETED_TRIPS_FOR_ARCHIVE = gql`
-  query FindCompletedTripsForArchive($daysOld: Int) {
-    findCompletedTripsForArchive(daysOld: $daysOld) {
+// Auto-management query - finds trips that need status updates based on time
+export const FIND_TRIPS_NEEDING_STATUS_UPDATE = gql`
+  query FindTripsNeedingStatusUpdate {
+    findTripsNeedingStatusUpdate {
       ...BusSlotDetailFragment
     }
   }

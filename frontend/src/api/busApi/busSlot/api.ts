@@ -82,8 +82,16 @@ export class BusSlotAPI {
   }
 
   static async createBusSlot(input: CreateBusSlotRequest): Promise<BusSlotResponse> {
-    const response = await graphqlMutation({ query: CREATE_BUS_SLOT, variables: { input } })
-    return response.data.createBusSlot
+    try {
+      console.log('📝 [API] Đang gửi yêu cầu tạo chuyến xe mới:', input)
+      const response = await graphqlMutation({ query: CREATE_BUS_SLOT, variables: { input } })
+      console.log('✅ [API] Tạo chuyến xe thành công:', response.data?.createBusSlot)
+      return response.data.createBusSlot
+    } catch (error) {
+      console.error('❌ [API] Lỗi khi tạo chuyến xe:', error)
+      console.error('Chi tiết lỗi:', JSON.stringify(error, null, 2))
+      throw error
+    }
   }
 
   static async updateBusSlot(id: string, input: UpdateBusSlotRequest): Promise<BusSlotResponse> {

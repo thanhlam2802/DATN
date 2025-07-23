@@ -7,8 +7,12 @@ import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.mapper.OrderMapper;
 import backend.backend.service.BookingTourService;
 import backend.backend.service.CartService;
+
+import backend.backend.service.FlightBookingService;
+
 import backend.backend.service.HotelBookingService;
 import backend.backend.dto.Hotel.HotelBookingRequestDto;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +29,7 @@ public class CartServiceImpl implements CartService {
     @Autowired private BusBookingDAO busBookingDAO;
     @Autowired private BookingTourDAO bookingTourDAO;
     @Autowired private  BookingTourService tourBookingService;
+    @Autowired private FlightBookingService flightBookingService;
     @Autowired
     private HotelBookingService hotelBookingService;
     @Autowired
@@ -211,7 +216,7 @@ public class CartServiceImpl implements CartService {
             case TOUR:
                 BookingTourRequestDto tourRequest = mapToTourRequest(order, genericRequest);
                 // tourBookingService sẽ cập nhật trực tiếp vào đối tượng 'order' ở trên
-                tourBookingService.createBookingTour(tourRequest); 
+                tourBookingService.createBookingTour(tourRequest);
                 break;
             case HOTEL: {
                 HotelBookingRequestDto hotelRequest = new HotelBookingRequestDto();
@@ -233,6 +238,7 @@ public class CartServiceImpl implements CartService {
             case BUS:
                  break;
             case FLIGHT:
+                flightBookingService.createFlightBooking(orderId, genericRequest);
                  break;
             
             default:

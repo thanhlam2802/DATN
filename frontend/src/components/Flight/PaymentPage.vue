@@ -221,10 +221,18 @@
                 <!-- 🎯 Phần chọn phương thức thanh toán -->
                 
                 <div class="flex justify-center">
-                    <button @click="confirmAndPay"
-                        class="w-full block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-md">
-                        Confirm and Pay
+                    <div v-if="activeCartId">
+                        <button @click="addFlightToCart"
+                        class="w-full block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-3 rounded-lg transition-colors shadow-md">
+                        Thêm vào đơn hàng hiện tại
                 </button>
+                    </div>
+                    <div v-else>
+                        <button @click="confirmAndPay"
+                        class="w-full block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-3 rounded-lg transition-colors shadow-md">
+                        Đặt chỗ
+                </button>
+                    </div>
                 </div>
                 
             </div>
@@ -237,9 +245,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { payForFlight, getFlightDetailPublic, findFirstAvailableSlot, reserveFlightDirect } from '@/api/flightApi'
 import BankTransferForm from './BankTransferForm.vue'
-
+import { addItemToCart } from '@/api/OrderApi'
+import { createCustomer } from '@/api/CustomerApi'
 const router = useRouter()
 const route = useRoute()
+
+let activeCartId = localStorage.getItem('activeCartId');
+
 
 /** ========== Dữ liệu từ props hoặc route ========== **/
 const flight = ref(null)
@@ -263,7 +275,6 @@ const getDtoFromRoute = () => {
 // Gọi 2 API khi component mount
 onMounted(async () => {
   const dto = getDtoFromRoute()
-  const flightId = route.params.flightId
 
   if (!dto ) {
     console.error('Thiếu thông tin DTO ')
@@ -305,92 +316,7 @@ const customer = ref({
     phone: '',
 })
 
-/** ========== Mã giảm giá ========== **/
-const discountCode = ref('')
-const discountAmount = ref(0) // số tiền giảm (ví dụ từ backend trả về)
-function applyDiscount() {
-    // Giả sử nếu code === "VIETNAM10" thì giảm 10%
-    if (discountCode.value.trim().toUpperCase() === 'VIETNAM10') {
-        const basePrice = availableSlot.value ? availableSlot.value.price : 0
-        discountAmount.value = Math.floor(basePrice * 0.1)
-        window.$toast(`Áp dụng thành công: giảm ${formatCurrency(discountAmount.value)} VND`, 'success')
-    } else {
-        discountAmount.value = 0
-        window.$toast('Mã giảm giá không hợp lệ hoặc đã hết hạn', 'error')
-    }
-}
 
-/** ========== Tính toán subtotal (tổng tiền tạm tính) ========== **/
-const subtotal = computed(() => {
-    if (!availableSlot.value) return 0
-    // Giả định 2 hành khách
-    const base = availableSlot.value.price * 1 // Assuming only one customer for now
-    return base - discountAmount.value * 1
-})
-
-/** ========== Phương thức thanh toán ========== **/
-const paymentMethods = [
-    { key: 'credit', label: 'Credit Card' },
-    { key: 'paypal', label: 'PayPal' },
-    { key: 'googlepay', label: 'Google Pay' },
-]
-const activeMethod = ref('credit')
-
-/** ========== Dữ liệu cho form credit card ========== **/
-const card = reactive({
-    cardNumber: '',
-    cardHolder: '',
-    expiryDate: '',
-    cvv: '',
-    saveCard: false,
-})
-
-/** ========== Dữ liệu cho chuyển khoản ngân hàng ========== **/
-const banks = [
-    { code: 'VCB', name: 'Vietcombank' },
-    { code: 'VIB', name: 'Vietinbank' },
-    { code: 'BIDV', name: 'BIDV' },
-    { code: 'TECH', name: 'Techcombank' },
-    { code: 'ACB', name: 'ACB' },
-    { code: 'SCB', name: 'Sacombank' },
-    { code: 'VPB', name: 'VPBank' },
-    { code: 'MB', name: 'MB Bank' },
-    { code: 'OJB', name: 'OceanBank' },
-    { code: 'DAB', name: 'DongA Bank' },
-    { code: 'IVB', name: 'Indovina Bank' },
-    { code: 'HDB', name: 'HDBank' },
-    { code: 'MSB', name: 'MSB' },
-    { code: 'ABB', name: 'ABBank' },
-    { code: 'BAB', name: 'BacA Bank' },
-    { code: 'PVB', name: 'PVcomBank' },
-    { code: 'SHB', name: 'SHB' },
-    { code: 'TCB', name: 'TPBank' },
-    { code: 'VNM', name: 'Vietnam Bank for Agriculture and Rural Development' },
-    { code: 'ACB', name: 'ACB' },
-    { code: 'SCB', name: 'Sacombank' },
-    { code: 'VPB', name: 'VPBank' },
-    { code: 'MB', name: 'MB Bank' },
-    { code: 'OJB', name: 'OceanBank' },
-    { code: 'DAB', name: 'DongA Bank' },
-    { code: 'IVB', name: 'Indovina Bank' },
-    { code: 'HDB', name: 'HDBank' },
-    { code: 'MSB', name: 'MSB' },
-    { code: 'ABB', name: 'ABBank' },
-    { code: 'BAB', name: 'BacA Bank' },
-    { code: 'PVB', name: 'PVcomBank' },
-    { code: 'SHB', name: 'SHB' },
-    { code: 'TCB', name: 'TPBank' },
-    { code: 'VNM', name: 'Vietnam Bank for Agriculture and Rural Development' },
-]
-const bankTransfer = reactive({
-    bankCode: '',
-    accountNumber: '',
-    accountName: '',
-    availableBalance: 0, // Số dư khả dụng
-    amount: 0, // Số tiền muốn thanh toán
-})
-
-/** ========== Các hàm hành động ========== **/
 function formatCurrency(value) {
     if (!value) return '0'
     // format 5000000 => "5.000.000"
@@ -414,7 +340,20 @@ function formatDate(dateString) {
     })
 }
 
+async function addFlightToCart() {
+    const customerResponse = await createCustomer(customer.value)
+    const customerId = customerResponse.data.data.id;
+    const data = {
+    itemId: flight.value.id,
+    itemType: "FLIGHT",  
+    flightSlotId: availableSlot.value.id,  
+    customerId: customerId
+}
 
+    const response = await addItemToCart(activeCartId, data)
+    console.log(response);
+
+};
 
 async function confirmAndPay() {
     // Validate: chắc chắn điền đúng thông tin hành khách + payment
@@ -447,7 +386,7 @@ async function confirmAndPay() {
         const result = response.data
         if (response.status === 201 && result.statusCode === 201) {
             window.$toast('Giữ chỗ thành công! Vui lòng thanh toán trong thời gian quy định.', 'success')
-            router.push({ name: 'SuccessHold', params: { id: result.data.id } })
+            router.push({ name: 'SuccessHold', params: { id: result.data } })
             console.log(result.data);
             
         } else {
@@ -466,22 +405,8 @@ async function confirmAndPay() {
     }
 }
 
-const bookingId = ref('') // Lấy bookingId từ route hoặc props thực tế
-const paymentMethod = ref('credit_card')
-const paymentStatus = ref(null)
 
-async function handlePayment() {
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await payForFlight({ bookingId: bookingId.value, paymentMethod: paymentMethod.value })
-    paymentStatus.value = res.data
-  } catch (e) {
-    error.value = 'Thanh toán thất bại.'
-  } finally {
-    loading.value = false
-  }
-}
+
 </script>
 
 <style scoped>

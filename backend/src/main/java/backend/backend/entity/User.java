@@ -43,7 +43,11 @@ public class User {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-    @ToString.Exclude 
+
+    @Column(name = "is_verified")
+    private boolean isVerified;
+
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<UserRole> userRoles;
 

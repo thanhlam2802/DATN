@@ -3,6 +3,8 @@ package backend.backend.implement;
 import backend.backend.dto.auth.*;
 import backend.backend.entity.Role;
 import backend.backend.entity.User;
+import backend.backend.entity.UserRole;
+import backend.backend.entity.UserRoleId;
 import backend.backend.exception.AuthException;
 import backend.backend.exception.BadRequestException;
 import backend.backend.exception.ErrorCode;
@@ -58,6 +60,9 @@ public class AuthServiceImpl implements AuthService {
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
 
+        boolean autoVerified = !UserRoleEnum.needVerifyRoles().contains(registerRequestDto.getRole());
+        newUser.setVerified(autoVerified);
+
         newUser = userRepository.save(newUser);
 
         Optional<Role> role = roleRepository.findByName(registerRequestDto.getRole());
@@ -66,11 +71,11 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
         }
 
-//        UserRole userRole = new UserRole();
-//        userRole.setUser(newUser);
-//        userRole.setRole(role.get());
-//        userRole.setId(new UserRoleId(Long.valueOf(newUser.getId()), role.get().getId()));
-//        userRoleRepository.save(userRole);
+        UserRole userRole = new UserRole();
+        userRole.setUser(newUser);
+        userRole.setRole(role.get());
+        userRole.setId(new UserRoleId(Long.valueOf(newUser.getId()), role.get().getId()));
+        userRoleRepository.save(userRole);
 
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", newUser.getEmail());

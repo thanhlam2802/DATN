@@ -47,7 +47,12 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public void forgotPassword(@Valid @RequestBody UpdatePasswordRequestDto requestDto) {
-        authService.updatePassword(requestDto);
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto requestDto) {
+    }
+
+    @PostMapping("/forgot-password/verify-otp")
+    public void forgotPassword(@Valid @RequestBody VerifyOtpRequestDto requestDto) {
+        Long userId = SecurityUtil.getUserId();
+        otpTransactionService.verifyOtp(userId, OtpType.FORGOT_PASSWORD, requestDto.getCode());
     }
 }

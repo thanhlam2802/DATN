@@ -68,10 +68,13 @@
                     <i :class="props.isFavorited ? 'fas fa-heart' : 'far fa-heart'"></i>
                 </button>
                 <div class="text-left sm:text-right w-full">
-                    <span v-if="originalPrice" class="text-sm text-gray-500 line-through">{{
-                        formatCurrency(originalPrice) }}</span>
-                    <p class="font-bold text-xl text-red-500 whitespace-nowrap">{{ formatCurrency(price).replace('₫',
-                        'VND') }}</p>
+                    <template v-if="showDiscount">
+                        <span class="text-sm text-gray-500 line-through">{{ formatCurrency(originalPrice).replace('₫', 'VND') }}</span>
+                        <p class="font-bold text-xl text-red-500 whitespace-nowrap">{{ formatCurrency(price).replace('₫', 'VND') }}</p>
+                    </template>
+                    <template v-else>
+                        <p class="font-bold text-xl text-red-500 whitespace-nowrap">{{ formatCurrency(getDisplayPrice()).replace('₫', 'VND') }}</p>
+                    </template>
                     <p class="text-xs text-gray-400 font-normal mt-1">Chưa bao gồm thuế và phí</p>
                     <button
                         class="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-4 py-2 text-base font-semibold transition">
@@ -123,7 +126,13 @@
         </div>
         <div class="p-4 border-t border-gray-100 flex items-center justify-between">
             <div>
-                <p class="text-red-500 font-bold text-xl">{{ formatCurrency(price).replace('₫', 'VND') }}</p>
+                <template v-if="showDiscount">
+                    <span class="text-sm text-gray-500 line-through">{{ formatCurrency(originalPrice).replace('₫', 'VND') }}</span>
+                    <p class="text-red-500 font-bold text-xl">{{ formatCurrency(price).replace('₫', 'VND') }}</p>
+                </template>
+                <template v-else>
+                    <p class="text-red-500 font-bold text-xl">{{ formatCurrency(getDisplayPrice()).replace('₫', 'VND') }}</p>
+                </template>
                 <p class="text-xs text-gray-400 font-normal">Chưa bao gồm thuế và phí</p>
             </div>
             <button
@@ -224,6 +233,21 @@ const formatCurrency = (value) => {
         style: 'currency',
         currency: 'VND',
     }).format(value);
+};
+
+const showDiscount = computed(() => {
+    return (
+        props.originalPrice != null &&
+        props.price != null &&
+        Number(props.price) < Number(props.originalPrice)
+    );
+});
+
+const getDisplayPrice = () => {
+    if (props.price != null) {
+        return props.price;
+    }
+    return props.originalPrice;
 };
 </script>
 

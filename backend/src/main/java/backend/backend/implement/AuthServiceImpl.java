@@ -13,10 +13,10 @@ import backend.backend.repository.RoleRepository;
 import backend.backend.repository.UserRepository;
 import backend.backend.repository.UserRoleRepository;
 import backend.backend.service.AuthService;
-import backend.backend.service.EmailService;
 import backend.backend.service.OTPTransactionService;
 import backend.backend.utils.JwtTokenUtil;
 import backend.backend.utils.RegexUtil;
+import backend.backend.utils.SecurityUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -68,11 +68,11 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
         }
 
-//        UserRole userRole = new UserRole();
-//        userRole.setUser(newUser);
-//        userRole.setRole(role.get());
-//        userRole.setId(new UserRoleId(Long.valueOf(newUser.getId()), role.get().getId()));
-//        userRoleRepository.save(userRole);
+        UserRole userRole = new UserRole();
+        userRole.setUser(newUser);
+        userRole.setRole(role.get());
+        userRole.setId(new UserRoleId(Long.valueOf(newUser.getId()), role.get().getId()));
+        userRoleRepository.save(userRole);
 
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", newUser.getEmail());
@@ -134,6 +134,18 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("User not found", ErrorCode.AUTH_002);
         }
         return user.get();
+    }
+
+    @Override
+    public void updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
+        String email = SecurityUtil.getCurrentUserEmail();
+        User user = getUserByEmail(email);
+        String oldPassword = updatePasswordRequestDto.getOldPassword();
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new BadRequestException("Password is not match", ErrorCode.AUTH_005);
+        }
+        user.setPasswordHash(passwordEncoder.encode(updatePasswordRequestDto.getNewPassword()));
+        userRepository.save(user);
     }
 
 }

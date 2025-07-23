@@ -81,12 +81,18 @@
           </div>
           <div class="p-6 flex flex-col gap-4">
             <div class="text-gray-700 text-base mb-2">Mã OTP đã được gửi qua email. Vui lòng nhập để xác nhận thanh toán.</div>
-            <input v-model="otp" maxlength="6" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-center tracking-widest text-xl placeholder-gray-400" placeholder="Nhập OTP" />
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-clock text-yellow-400"></i>
+              <span class="font-semibold text-gray-700">Thời gian còn lại:</span>
+              <span class="font-mono text-lg text-indigo-600">{{ otpCountdownDisplay }}</span>
+            </div>
+            <input v-model="otp" maxlength="6" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-center tracking-widest text-xl placeholder-gray-400" placeholder="Nhập OTP" :disabled="otpExpired" />
             <div v-if="otpError" class="text-red-500 text-sm mt-1">{{ otpError }}</div>
             <div v-if="otpSuccess" class="text-green-600 text-sm mt-1">Xác nhận OTP thành công!</div>
+            <div v-if="otpExpired" class="text-red-500 text-sm mt-1">OTP đã hết hạn. Vui lòng thực hiện lại giao dịch.</div>
             <div class="flex justify-end gap-2 mt-2">
               <button @click="showOtpDialog = false" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Hủy</button>
-              <button @click="confirmOtp" :disabled="isConfirming || !otp" class="px-4 py-2 rounded bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 flex items-center transition disabled:opacity-60">
+              <button @click="confirmOtp" :disabled="isConfirming || !otp || otpExpired" class="px-4 py-2 rounded bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 flex items-center transition disabled:opacity-60">
                 <span v-if="isConfirming" class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
                 <i class="fas fa-check mr-2"></i> Xác nhận
               </button>
@@ -100,7 +106,7 @@
 
 <script setup>
 import { servicePaymentMake, servicePaymentConfirm } from '@/api/coreBankingApi'
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, onUnmounted, watch } from 'vue'
 import { defineEmits } from 'vue'
 import { accountLookup } from '@/api/coreBankingApi'
 
@@ -121,6 +127,7 @@ const banks = [
   { code: 'TCB', name: 'TPBank', logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/02/Icon-TPBank.png' },
   { code: 'Agri Bank', name: 'Agribank', logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/01/Icon-Agribank.png' },
 ]
+console.log(banks);
 
 const bankTransfer = reactive({
   bankCode: '',
@@ -142,6 +149,11 @@ const isConfirming = ref(false)
 const otpError = ref('')
 const otpSuccess = ref(false)
 const amountError = ref(false)
+
+const otpCountdown = ref(600) // 10 phút = 600 giây
+const otpCountdownDisplay = ref('10:00')
+const otpExpired = ref(false)
+let otpTimer = null
 
 function resetAccountInfo() {
   bankTransfer.accountName = ''
@@ -172,6 +184,8 @@ onBeforeUnmount(() => {
 })
 
 async function onAccountNumberBlur() {
+
+  
   if (!selectedBank.value || !bankTransfer.accountNumber) {
     resetAccountInfo()
     return
@@ -271,6 +285,41 @@ async function confirmOtp() {
     isConfirming.value = false
   }
 }
+
+function startOtpCountdown() {
+  otpCountdown.value = 600
+  otpExpired.value = false
+  updateOtpCountdownDisplay()
+  if (otpTimer) clearInterval(otpTimer)
+  otpTimer = setInterval(() => {
+    if (otpCountdown.value > 0) {
+      otpCountdown.value--
+      updateOtpCountdownDisplay()
+    } else {
+      otpExpired.value = true
+      updateOtpCountdownDisplay()
+      clearInterval(otpTimer)
+    }
+  }, 1000)
+}
+
+function updateOtpCountdownDisplay() {
+  const m = Math.floor(otpCountdown.value / 60)
+  const s = otpCountdown.value % 60
+  otpCountdownDisplay.value = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+watch(showOtpDialog, (val) => {
+  if (val) {
+    startOtpCountdown()
+  } else {
+    if (otpTimer) clearInterval(otpTimer)
+  }
+})
+
+onUnmounted(() => {
+  if (otpTimer) clearInterval(otpTimer)
+})
 </script>
 
 <style scoped>

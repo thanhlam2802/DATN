@@ -72,6 +72,14 @@
               </button>
             </div>
             <p v-if="passwordNotMatch" class="text-red-500 text-xs mt-1">{{ passwordNotMatch }}</p>
+
+            <div class="mb-6">
+              <label class="block text-xs font-semibold text-gray-900 mb-1" for="role">Select Role</label>
+              <select id="role" v-model="selectedRole"
+                      class="w-full px-3 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <option v-for="role in roles" :key="role.value" :value="role.value">{{ role.label }}</option>
+              </select>
+            </div>
           </div>
 
           <button type="submit"
@@ -134,7 +142,15 @@ export default {
       passwordNotMatch: "",
       emailError: "",
       passwordError: "",
-      nameError: ""
+      nameError: "",
+      roles: [
+        {label: "Customer", value: "USER"},
+        {label: "Hotel Supplier", value: "HOTEL_SUPPLIER"},
+        {label: "Flight Supplier", value: "FLIGHT_SUPPLIER"},
+        {label: "Tour Supplier", value: "TOUR_SUPPLIER"},
+        {label: "Bus Supplier", value: "BUS_SUPPLIER"}
+      ],
+      selectedRole: "USER"
     };
   },
   methods: {
@@ -190,7 +206,8 @@ export default {
       const registerRequest = {
         email: this.email,
         password: this.password,
-        name: this.name
+        name: this.name,
+        role: this.selectedRole
       }
       const res = await AuthApi.register(registerRequest);
 

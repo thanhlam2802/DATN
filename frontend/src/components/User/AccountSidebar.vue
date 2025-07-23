@@ -32,7 +32,7 @@ export default {
         { name: "payment", label: "Payment details", icon: "far fa-credit-card" },
         { name: "security", label: "Security", icon: "fas fa-lock" },
         { name: "preferences", label: "Preferences", icon: "fas fa-sliders-h" },
-        { name: "notifications", label: "Notification settings", icon: "far fa-bell" },
+        { name: "notifications", label: "Cài đặt thông báo", icon: "far fa-bell" },
       ],
     };
   },

@@ -60,6 +60,9 @@ public class AuthServiceImpl implements AuthService {
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
 
+        boolean autoVerified = !UserRoleEnum.needVerifyRoles().contains(registerRequestDto.getRole());
+        newUser.setVerified(autoVerified);
+
         newUser = userRepository.save(newUser);
 
         Optional<Role> role = roleRepository.findByName(registerRequestDto.getRole());

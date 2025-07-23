@@ -6,7 +6,7 @@ import {
   CreateBusCategoryInput,
   UpdateBusCategoryInput
 } from './types';
-import { gql } from '@apollo/client/core';
+import { gql } from '../../graphqlClient';
 import { BusCategory } from '../types/common.types';
 import { BUS_CATEGORY_FRAGMENT } from '../fragments';
 

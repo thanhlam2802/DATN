@@ -13,18 +13,19 @@
       <nav class="mt-6 px-4">
         <ul>
           <li v-for="item in menuItems" :key="item.id">
-            <button
-              @click="selectMenuItem(item.id)"
+            <router-link
+              :to="{ name: item.routeName }"
+              @click="closeSidebarOnMobile"
               :class="[
                 'w-full flex items-center px-4 py-2.5 my-1 rounded-lg transition-colors duration-200',
-                activeTab === item.id
+                $route.name === item.routeName
                   ? 'bg-indigo-50 text-indigo-600 font-semibold'
                   : 'text-gray-600 hover:bg-gray-50',
               ]"
             >
               <component :is="item.icon" class="h-5 w-5 mr-3" />
               <span>{{ item.name }}</span>
-            </button>
+            </router-link>
           </li>
         </ul>
       </nav>
@@ -46,7 +47,7 @@
             </div>
           </button>
           <h2 class="text-lg font-semibold text-gray-800">
-            {{ menuItems.find(i => i.id === activeTab)?.name || 'Dashboard' }}
+            {{ currentPageTitle }}
           </h2>
         </div>
         <div class="flex items-center space-x-4">
@@ -56,9 +57,10 @@
       
       <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
         <div class="container mx-auto">
-          <keep-alive>
-            <component :is="activeComponent" />
-          </keep-alive>
+          <!-- Router view để hiển thị nested routes -->
+          <router-view v-slot="{ Component }" :key="$route.path">
+            <component :is="Component" />
+          </router-view>
         </div>
       </main>
     </div>
@@ -66,7 +68,8 @@
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   MapIcon,
   TicketIcon,
@@ -76,42 +79,32 @@ import {
   BusIcon
 } from 'lucide-vue-next'
 
-// Lazy load components
-const RouteManagement = defineAsyncComponent(() => import('./RouteManagement.vue'))
-const BusCategoryManagement = defineAsyncComponent(() => import('./BusCategoryManagement.vue'))
-const BusManagement = defineAsyncComponent(() => import('./BusManagement.vue'))
-const TripManagement = defineAsyncComponent(() => import('./TripManagement.vue'))
-const PriceManagement = defineAsyncComponent(() => import('./PriceManagement.vue'))
-const Statistics = defineAsyncComponent(() => import('./Statistics.vue'))
+// Router
+const route = useRoute()
 
 // State
-const isSidebarOpen = ref(false);
-const activeTab = ref('routes')
+const isSidebarOpen = ref(false)
 
-const tabs = {
-  routes: RouteManagement,
-  categories: BusCategoryManagement,
-  buses: BusManagement,
-  trips: TripManagement,
-  prices: PriceManagement,
-  stats: Statistics
-}
-
+// Menu items with corresponding route names
 const menuItems = ref([
-  { id: 'routes', name: 'Tuyến đường', icon: MapIcon },
-  { id: 'categories', name: 'Loại xe', icon: LayoutGridIcon },
-  { id: 'buses', name: 'Xe buýt', icon: BusIcon },
-  { id: 'trips', name: 'Chuyến đi', icon: TicketIcon },
-  { id: 'prices', name: 'Giá vé', icon: CircleDollarSignIcon },
-  { id: 'stats', name: 'Thống kê', icon: BarChart3Icon }
+  { id: 'route', name: 'Tuyến đường', icon: MapIcon, routeName: 'RouteManagement' },
+  { id: 'category', name: 'Loại xe', icon: LayoutGridIcon, routeName: 'BusCategoryManagement' },
+  { id: 'bus', name: 'Xe buýt', icon: BusIcon, routeName: 'BusManagement' },
+  { id: 'trip', name: 'Chuyến đi', icon: TicketIcon, routeName: 'TripManagement' },
+  { id: 'price', name: 'Giá vé', icon: CircleDollarSignIcon, routeName: 'PriceManagement' },
+  { id: 'statistics', name: 'Thống kê', icon: BarChart3Icon, routeName: 'Statistics' }
 ])
 
-const activeComponent = computed(() => tabs[activeTab.value])
+// Computed properties
+const currentPageTitle = computed(() => {
+  const currentItem = menuItems.value.find(item => item.routeName === route.name)
+  return currentItem?.name || 'Dashboard'
+})
 
-const selectMenuItem = (id) => {
-  activeTab.value = id;
+// Methods
+const closeSidebarOnMobile = () => {
   if (window.innerWidth < 1024) { // lg breakpoint
-    isSidebarOpen.value = false;
+    isSidebarOpen.value = false
   }
 }
 </script>

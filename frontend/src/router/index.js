@@ -8,6 +8,12 @@ import Plane from "@/components/Flight/FlightHome.vue";
 import TourDetail from "@/views/TourDetail.vue";
 
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
+import BusManagement from "@/components/Bus/management_bus_component/BusManagement.vue";
+import BusCategoryManagement from "@/components/Bus/management_bus_component/BusCategoryManagement.vue";
+import RouteManagement from "@/components/Bus/management_bus_component/RouteManagement.vue";
+import TripManagement from "@/components/Bus/management_bus_component/TripManagement.vue";
+import PriceManagement from "@/components/Bus/management_bus_component/PriceManagement.vue";
+import Statistics from "@/components/Bus/management_bus_component/Statistics.vue";
 import MainLayout from "@/layouts/Main.vue";
 
 import AccountView from "@/views/AccountView.vue";
@@ -101,8 +107,16 @@ const routes = [
   },
   {
     path: "/bus-management",
-    name: "BusManagement",
     component: BusManagementLayout,
+    children: [
+      { path: "", redirect: "bus" },
+      { path: "bus", name: "BusManagement", component: BusManagement },
+      { path: "category", name: "BusCategoryManagement", component: BusCategoryManagement },
+      { path: "route", name: "RouteManagement", component: RouteManagement },
+      { path: "trip", name: "TripManagement", component: TripManagement },
+      { path: "price", name: "PriceManagement", component: PriceManagement },
+      { path: "statistics", name: "Statistics", component: Statistics },
+    ],
   },
 
   {

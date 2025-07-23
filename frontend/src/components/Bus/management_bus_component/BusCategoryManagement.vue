@@ -220,6 +220,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import BusCategoryModal from './BusCategoryModal.vue'
 import { BusCategoryAPI } from '@/api/busApi'
 import type { BusCategory } from '@/api/busApi/bus/types'
+// @ts-ignore
+import { toast, confirm, handleError } from '@/utils/notifications'
 
 // State
 const categories = ref<BusCategory[]>([])
@@ -264,7 +266,11 @@ const handleDuplicateCategory = (category: BusCategory) => {
 }
 
 const handleDeleteCategory = async (categoryId: string) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa loại xe này không? Hành động này không thể hoàn tác.')) {
+  const confirmed = await confirm.delete('loại xe này', {
+    details: 'Hành động này sẽ xóa loại xe và có thể ảnh hưởng đến các xe buýt đang sử dụng loại này.'
+  })
+  
+  if (!confirmed) {
     return
   }
   
@@ -272,8 +278,10 @@ const handleDeleteCategory = async (categoryId: string) => {
     await BusCategoryAPI.deleteBusCategory(categoryId)
     // Refresh the list after deletion
     await loadCategories() 
+    toast.deleted('loại xe')
   } catch (err) {
-    alert('Không thể xóa loại xe. Vui lòng thử lại.')
+    console.error('Error deleting category:', err)
+    handleError.api(err, 'xóa loại xe')
   } finally {
     activeDropdown.value = null
   }

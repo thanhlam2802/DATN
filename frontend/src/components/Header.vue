@@ -75,6 +75,12 @@ onBeforeUnmount(() => {
           >Bus</router-link
         >
         <router-link
+          to="/bus-management"
+          class="select-none hover:text-gray-900"
+          :class="{ 'text-blue-700 font-bold': $route.path.startsWith('/bus-management') }"
+          >Bus Admin</router-link
+        >
+        <router-link
           to="/plane"
           class="select-none hover:text-gray-900"
           :class="{ 'text-blue-700 font-bold': $route.path === '/plane' }"
@@ -130,6 +136,13 @@ onBeforeUnmount(() => {
           :class="{ 'text-blue-700 font-bold': $route.path === '/bus' }"
           @click="isMobileMenuOpen = false"
           >Bus</router-link
+        >
+        <router-link
+          to="/bus-management"
+          class="block py-1"
+          :class="{ 'text-blue-700 font-bold': $route.path.startsWith('/bus-management') }"
+          @click="isMobileMenuOpen = false"
+          >Bus Admin</router-link
         >
         <router-link
           to="/plane"

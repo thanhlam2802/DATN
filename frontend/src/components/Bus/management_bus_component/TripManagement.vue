@@ -540,6 +540,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useTripManagement } from '@/composables/useTripManagement'
 import TripFormModal from './TripFormModal.vue'
 import { BusSlotStatus, DelayReason } from '@/api/busApi/busSlot'
+// @ts-ignore
+import { toast, confirm, handleError } from '@/utils/notifications'
 
 // Initialize trip management composable
 const tripManager = useTripManagement()
@@ -667,34 +669,33 @@ const handleSaveTrip = async (tripData) => {
 }
 
 const handleDeleteTrip = async (tripId) => {
-  if (confirm('Bạn có chắc chắn muốn xóa chuyến xe này?')) {
+  const confirmed = await confirm.delete('chuyến xe này')
+  
+  if (confirmed) {
     try {
       await tripManager.deleteTrip(tripId)
+      toast.deleted('chuyến xe')
     } catch (error) {
       console.error('Error deleting trip:', error)
+      handleError.api(error, 'xóa chuyến xe')
     }
   }
 }
 
 const handleQuickMarkInProgress = async (trip) => {
   try {
-    console.log('🚀 [UI] Starting trip:', trip.id)
     await tripManager.quickMarkInProgress(trip)
-    console.log('✅ [UI] Trip started successfully')
-    showSuccessMessage('🚌 Chuyến xe đã bắt đầu!')
+    toast.success('🚌 Chuyến xe đã bắt đầu!')
   } catch (error) {
-    console.error('❌ [UI] Error marking trip in progress:', error)
-    
-    // Show user-friendly error message
-    alert(`Không thể bắt đầu chuyến xe: ${error.message || 'Lỗi không xác định'}`)
+    console.error('Error marking trip in progress:', error)
+    handleError.api(error, 'bắt đầu chuyến xe')
     
     // Auto-fallback: refresh data after 2 seconds
     setTimeout(async () => {
-      console.log('🔄 [UI] Auto-refreshing data due to error...')
       try {
         await tripManager.loadBusSlots()
       } catch (refreshError) {
-        console.error('❌ [UI] Error refreshing data:', refreshError)
+        console.error('Error refreshing data:', refreshError)
       }
     }, 2000)
   }
@@ -702,23 +703,18 @@ const handleQuickMarkInProgress = async (trip) => {
 
 const handleQuickMarkCompleted = async (trip) => {
   try {
-    console.log('🏁 [UI] Completing trip:', trip.id)
     await tripManager.quickMarkCompleted(trip)
-    console.log('✅ [UI] Trip completed successfully')
-    showSuccessMessage('✅ Chuyến xe đã hoàn thành!')
+    toast.success('✅ Chuyến xe đã hoàn thành!')
   } catch (error) {
-    console.error('❌ [UI] Error marking trip completed:', error)
-    
-    // Show user-friendly error message
-    alert(`Không thể hoàn thành chuyến xe: ${error.message || 'Lỗi không xác định'}`)
+    console.error('Error marking trip completed:', error)
+    handleError.api(error, 'hoàn thành chuyến xe')
     
     // Auto-fallback: refresh data after 2 seconds
     setTimeout(async () => {
-      console.log('🔄 [UI] Auto-refreshing data due to error...')
       try {
         await tripManager.loadBusSlots()
       } catch (refreshError) {
-        console.error('❌ [UI] Error refreshing data:', refreshError)
+        console.error('Error refreshing data:', refreshError)
       }
     }, 2000)
   }
@@ -732,7 +728,7 @@ const handleSaveStatusUpdate = async () => {
     closeStatusUpdateModal()
     showSuccessMessage('Cập nhật trạng thái thực tế thành công!')
   } catch (error) {
-    console.error('Error updating trip status:', error)
+    throw error;
   }
 }
 
@@ -740,7 +736,7 @@ const handleManualSync = async () => {
   try {
     await tripManager.manualTriggerAutoManager()
   } catch (error) {
-    console.error('Error in manual sync:', error)
+    throw error;
   }
 }
 
@@ -883,15 +879,11 @@ const calculateProgress = (trip) => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('🚀 [UI] TripManagement component mounted')
   await tripManager.initialize()
-  console.log('✅ [UI] TripManager initialized')
-  console.log('🔍 [UI] Auto-management enabled:', tripManager.autoManagerEnabled.value)
-  console.log('🔍 [UI] Current trips count:', tripManager.busSlots.value.length)
+
 })
 
 onUnmounted(() => {
-  console.log('🛑 [UI] TripManagement component unmounting')
   tripManager.cleanup()
 })
 </script>

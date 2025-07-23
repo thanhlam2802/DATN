@@ -28,7 +28,7 @@
     </div>
 
     <!-- Loading and Error States -->
-    <div v-if="isLoading" class="flex justify-center items-center py-20">
+    <div v-if="loading" class="flex justify-center items-center py-20">
       <div class="text-center">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <p class="mt-4 text-gray-600">Đang tải dữ liệu...</p>
@@ -50,7 +50,7 @@
     </div>
 
     <!-- View Toggle -->
-    <div v-if="!isLoading && !error" class="mb-6">
+    <div v-if="!loading && !error" class="mb-6">
       <div class="bg-white rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
@@ -104,7 +104,7 @@
     </div>
 
     <!-- Card View -->
-    <div v-if="!isLoading && !error && viewMode === 'card'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-if="!loading && !error && viewMode === 'card'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div 
         v-for="bus in filteredBuses" 
         :key="bus.id"
@@ -172,12 +172,11 @@
               Chỉnh sửa
             </button>
             <button 
-              @click.stop="openDeleteConfirm(bus.id)"
-              class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-200"
+              @click.stop="confirmDelete(bus)"
+              class="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors"
+              title="Xóa xe buýt"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-              </svg>
+              <Trash2 class="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -185,7 +184,7 @@
     </div>
 
     <!-- Table View -->
-    <div v-if="!isLoading && !error && viewMode === 'table'" class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div v-if="!loading && !error && viewMode === 'table'" class="bg-white rounded-xl shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
@@ -251,7 +250,7 @@
                     </svg>
                   </button>
                   <button 
-                    @click.stop="openDeleteConfirm(bus.id)" 
+                    @click.stop="confirmDelete(bus)" 
                     class="text-red-600 hover:text-red-800 transition-colors duration-200"
                     title="Xóa"
                   >
@@ -268,7 +267,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="!isLoading && !error && filteredBuses.length === 0" class="text-center py-20">
+    <div v-if="!loading && !error && filteredBuses.length === 0" class="text-center py-20">
       <div class="bg-white rounded-xl shadow-sm p-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -451,7 +450,7 @@
               Chỉnh sửa
             </button>
             <button 
-              @click.stop="openDeleteConfirm(selectedBus!.id)"
+              @click.stop="confirmDelete(selectedBus!)"
               type="button" 
               class="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors duration-200"
             >
@@ -471,28 +470,44 @@
 
     <!-- Modals -->
     <BusCreationModal ref="creationModal" @bus-created="handleModalSubmit" @bus-updated="handleModalSubmit" />
-    <ConfirmDialog
+    
+    <!-- Remove old ConfirmDialog since we're using notification service -->
+    <!-- <ConfirmDialog
       v-if="isConfirmDialogOpen"
       :message="'Bạn có chắc chắn muốn xóa xe buýt này không? Hành động này không thể hoàn tác.'"
       @confirm="handleDelete"
       @cancel="isConfirmDialogOpen = false; busToDelete = null"
-    />
+    /> -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { BusAPI } from '@/api/busApi/bus/api';
+import { ref, onMounted, computed, watchEffect } from 'vue'
+import { BusAPI } from '@/api/busApi'
 import type { Bus } from '@/api/busApi/types/common.types';
-import BusCreationModal from './BusCreationModal.vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import BusCreationModal from './BusCreationModal.vue'
+// @ts-ignore - Type definitions will be added later
+import { toast, confirm, handleError } from '@/utils/notifications'
+import { Trash2 } from 'lucide-vue-next'
 
 const buses = ref<Bus[]>([]);
-const isLoading = ref(true);
+const busCategories = ref([]);
 const error = ref<string | null>(null);
-const creationModal = ref<{ openModal: (bus?: Bus | null) => void } | null>(null);
-const busToDelete = ref<string | null>(null);
-const isConfirmDialogOpen = ref(false);
+const loading = ref(false);
+const creationModal = ref<any>(null); // Use any for now to avoid type issues
+
+// Remove old confirmation dialog state - using notification service now
+// const isConfirmDialogOpen = ref(false);
+// const busToDelete = ref<string | null>(null);
+
+// Current page
+const currentPage = ref(1);
+const pageSize = 20;
+
+// Search and filters
+const searchTerm = ref('');
+const selectedCategory = ref('');
+const selectedStatus = ref('');
 
 // New reactive variables for enhanced UI
 const viewMode = ref<'card' | 'table'>('card');
@@ -572,7 +587,7 @@ const nextImage = () => {
 };
 
 const loadBuses = async () => {
-  isLoading.value = true;
+  loading.value = true;
   error.value = null;
   try {
     // Thay đổi duy nhất ở đây: Gọi hàm mới với ownerId cố định
@@ -583,7 +598,7 @@ const loadBuses = async () => {
     
   } catch (err) {
     error.value = "Không thể tải danh sách xe buýt.";  } finally {
-    isLoading.value = false;
+    loading.value = false;
   }
 };
 
@@ -597,29 +612,53 @@ const openCreationModal = (bus: Bus | null = null) => {
   }
 };
 
-const handleModalSubmit = () => {
-  loadBuses();
-};
-
-const openDeleteConfirm = (id: string) => {
-  busToDelete.value = id;
-  isConfirmDialogOpen.value = true;
-  // Đóng detail modal nếu đang mở
-  if (isDetailModalOpen.value) {
-    closeDetailModal();
+const handleModalSubmit = async (bus: any) => {
+  try {
+    // Reload buses to get latest data
+    await loadBuses();
+    
+    // Show appropriate success message
+    if (bus?.isNew) {
+      toast.created(`xe buýt ${bus?.name || bus?.id || 'mới'}`);
+    } else {
+      toast.updated(`xe buýt ${bus?.name || bus?.id || ''}`);
+    }
+    
+  } catch (err) {
+    console.error('Error reloading buses:', err);
+    handleError.api(err, 'tải lại danh sách xe buýt');
   }
 };
 
-const handleDelete = async () => {
-  if (!busToDelete.value) return;
-  try {
-    await BusAPI.deleteBus(busToDelete.value);
-    loadBuses();
-  } catch (err) {
-    error.value = "Xóa xe buýt thất bại.";
-  } finally {
-    isConfirmDialogOpen.value = false;
-    busToDelete.value = null;
+const confirmDelete = async (bus: Bus) => {
+  const confirmed = await confirm.delete(
+    `xe buýt ${(bus as any)?.name || bus.id}`,
+    {
+      details: 'Thao tác này sẽ xóa xe buýt và có thể ảnh hưởng đến các chuyến đi đã lên lịch.'
+    }
+  );
+  
+  if (confirmed) {
+    try {
+      await BusAPI.deleteBus(bus.id);
+      
+      // Remove from local state
+      buses.value = buses.value.filter(b => b.id !== bus.id);
+      
+      // Show success toast
+      toast.deleted('xe buýt');
+      
+    } catch (err) {
+      console.error('Error deleting bus:', err);
+      
+      // Handle specific error types
+      const errorMessage = (err as any)?.message || '';
+      if (errorMessage.includes('foreign key') || errorMessage.includes('constraint')) {
+        toast.foreignKeyError('xe buýt', 'chuyến đi hoặc đặt chỗ');
+      } else {
+        handleError.api(err, 'xóa xe buýt');
+      }
+    }
   }
 };
 

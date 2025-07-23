@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client/core'
+import { gql } from '../../graphqlClient'
 
 // Fragment for complete BusSlot data with real-time fields
 export const BUS_SLOT_DETAIL_FRAGMENT = gql`

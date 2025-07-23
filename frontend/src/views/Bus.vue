@@ -33,14 +33,14 @@ const popularDestinations = [
     id: 'vung-tau',
     name: 'Vũng Tàu',
     title: 'Vé Xe Khách Đến Vũng Tàu',
-    image: 'https://image.vietnam.travel/sites/default/files/styles/top_banner/public/2023-03/shutterstock_1773239276_0.jpg?itok=rMyM3vKD',
+    image: 'https://bariavungtautourism.com.vn/wp-content/uploads/2023/12/kinh-nghiem-du-lich-vung-tau-1.jpg',
     alt: 'Bãi biển Vũng Tàu'
   },
   {
     id: 'da-lat',
     name: 'Đà Lạt',
     title: 'Vé Xe Khách Đến Đà Lạt',
-    image: 'https://picsum.photos/400/200?random=2',
+    image: 'https://www.dulichdalat.city/media/upload/images/kinh-nghiem-du-lich-da-lat/pasted%20image%200.png',
     alt: 'Thành phố Đà Lạt'
   },
   {
@@ -107,7 +107,6 @@ const whyChooseUsData = [
 
 // Handle search from BusSearchForm
 const handleBusSearch = (searchData) => {
-  console.log('Tìm kiếm xe bus:', searchData)
   isRoundtrip.value = searchData.roundtrip
   
   // Store search params and show modal
@@ -128,7 +127,6 @@ const handleRoundtripChange = (roundtripState) => {
 
 // Handle destination click
 const handleDestinationClick = (destinationName) => {
-  console.log('Chọn điểm đến:', destinationName)
   // Có thể điều hướng đến trang tìm kiếm hoặc tự động điền form
   // router.push({ name: 'BusSearch', query: { destination: destinationName } })
 }
@@ -140,13 +138,22 @@ const handleModalClose = () => {
 
 // Handle image events
 const handleImageError = (event) => {
-  console.log('Lỗi tải hình ảnh:', event.target.src)
-  // Fallback to a default image
-  event.target.src = 'https://via.placeholder.com/400x200?text=No+Image'
+  
+  // Tránh infinite loop bằng cách check nếu đã fallback rồi
+  if (event.target.dataset.errorHandled === 'true') {
+    return
+  }
+  
+  // Đánh dấu đã handle error
+  event.target.dataset.errorHandled = 'true'
+  
+  // Sử dụng một default image đơn giản (data URL) thay vì external URL
+  event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkhpbmggw6Juemg8L3RleHQ+Cjwvc3ZnPg=='
 }
 
 const handleImageLoad = (event) => {
-  console.log('Hình ảnh đã tải thành công:', event.target.src)
+  // Reset error flag khi load thành công
+  event.target.dataset.errorHandled = 'false'
 }
 </script>
 

@@ -171,10 +171,10 @@
         </div>
         <div class="p-6">
           <div class="space-y-4">
-            <div v-for="route in topRoutes" :key="route.name" class="flex items-center justify-between">
+            <div v-for="route in topRoutes" :key="route.id" class="flex items-center justify-between">
               <div class="flex items-center">
                 <div class="w-4 h-4 rounded bg-blue-500 mr-3"></div>
-                <span class="text-sm font-medium text-gray-900">{{ route.name }}</span>
+                <span class="text-sm font-medium text-gray-900">{{ route.origin }} → {{ route.destination }}</span>
               </div>
               <div class="flex items-center space-x-4">
                 <span class="text-sm text-gray-500">{{ route.revenue.toLocaleString() }}đ</span>

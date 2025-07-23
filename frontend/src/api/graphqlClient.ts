@@ -1,139 +1,158 @@
-import { ApolloClient, InMemoryCache, createHttpLink, gql } from '@apollo/client/core'
-import { setContext } from '@apollo/client/link/context'
-import { print } from 'graphql'
+import axios from 'axios'
 
 interface GraphQLRequestPayload {
-  query: any; // Có thể là string hoặc DocumentNode từ gql
+  query: string | any;
   variables?: Record<string, any>;
 }
 
-// Chỉ định rõ địa chỉ gốc của server backend
+interface GraphQLResponse<T = any> {
+  data?: T;
+  errors?: Array<{
+    message: string;
+    locations?: Array<{ line: number; column: number }>;
+    path?: Array<string | number>;
+  }>;
+}
+
+// API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const GRAPHQL_ENDPOINT = `${API_BASE_URL}/graphql`;
 
-// Create HTTP link
-const httpLink = createHttpLink({
-  uri: GRAPHQL_ENDPOINT,
-});
-
-// Create auth link for handling authentication
-const authLink = setContext((_, { headers }) => {
-  // Get auth token from localStorage (if needed)
-  const token = localStorage.getItem('authToken');
-  
-  return {
-    headers: {
-      ...headers,
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    }
-  };
-});
-
-// Create Apollo Client instance
-export const apolloClient = new ApolloClient({
-  link: authLink.concat(httpLink),
-  cache: new InMemoryCache({
-    // Configure cache policies if needed
-    typePolicies: {
-      Query: {
-        fields: {
-          // Example: Configure how to merge arrays
-                     findAllBuses: {
-             merge(_existing = [], incoming) {
-               return incoming;
-             },
-           },
-          findAllBusSlots: {
-            merge(_existing = [], incoming) {
-              return incoming;
-            },
-          },
-        },
-      },
-    },
-  }),
-  defaultOptions: {
-    watchQuery: {
-      errorPolicy: 'all',
-    },
-    query: {
-      errorPolicy: 'all',
-    },
+// Create axios instance with default config
+const graphqlAxios = axios.create({
+  baseURL: GRAPHQL_ENDPOINT,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
   },
 });
 
-// DEV MODE: Enhanced logging
-console.log('🔧 [DEV] Apollo Client initialized for Vue.js:', GRAPHQL_ENDPOINT);
+// Request interceptor for auth token
+graphqlAxios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-// Legacy graphqlRequest function for backward compatibility
-export const graphqlRequest = async ({ query, variables }: GraphQLRequestPayload) => {
+// Response interceptor for error handling
+graphqlAxios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('❌ [GraphQL] Request failed:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Helper function to convert DocumentNode to string
+const getQueryString = (query: string | any): string => {
+  if (typeof query === 'string') {
+    return query;
+  }
+  
+  // If it's a DocumentNode (from gql``), extract the query string
+  if (query && query.loc && query.loc.source && query.loc.source.body) {
+    return query.loc.source.body;
+  }
+  
+  // If it has definitions (GraphQL AST)
+  if (query && query.definitions) {
+    // Simple conversion - in production you might want to use print() from graphql
+    return query.definitions[0]?.loc?.source?.body || String(query);
+  }
+  
+  return String(query);
+};
+
+// Main GraphQL request function
+export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPayload) => {
   try {
-    // Convert DocumentNode to string if needed
-    const queryString = typeof query === 'string' ? query : print(query);
+    const queryString = getQueryString(query);
     
-    console.log('🔧 [DEV] GraphQL Request:', {
+    console.log('🔧 [GraphQL] Query Request:', {
       query: queryString.substring(0, 100) + '...',
       variables
     });
 
-    const result = await apolloClient.query({
-      query: typeof query === 'string' ? gql(query) : query,
-      variables,
-      fetchPolicy: 'network-only', // Always fetch fresh data
+    const response = await graphqlAxios.post('', {
+      query: queryString,
+      variables
     });
+
+    const result: GraphQLResponse = response.data;
+
+    // Check for GraphQL errors
+    if (result.errors && result.errors.length > 0) {
+      console.error('❌ [GraphQL] GraphQL Errors:', result.errors);
+      throw new Error(result.errors[0].message);
+    }
+
+    console.log('✅ [GraphQL] Query Response received');
     
-    console.log('✅ [DEV] GraphQL Response received:', result.data);
-    return result; // Return full result object with { data, loading, error }
+    // Return in consistent format 
+    return {
+      data: result.data,
+      loading: false,
+      error: null
+    };
     
   } catch (error: any) {
-    console.error('❌ [DEV] GraphQL Error:', error);
+    console.error('❌ [GraphQL] Query Error:', error);
     
-    // Enhanced error handling
-    if (error.graphQLErrors) {
-      console.error('GraphQL errors:', error.graphQLErrors);
-    }
-    if (error.networkError) {
-      console.error('Network error:', error.networkError);
+    // Handle network errors
+    if (error.response) {
+      const status = error.response.status;
+      const message = error.response.data?.message || error.message;
+      throw new Error(`GraphQL Error (${status}): ${message}`);
     }
     
-    // Re-throw the error for handling by components
     throw new Error(error.message || 'GraphQL request failed');
   }
 };
 
-// Function for mutation operations
-export const graphqlMutation = async ({ query, variables }: GraphQLRequestPayload) => {
+// GraphQL mutation function  
+export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestPayload) => {
   try {
-    // Convert DocumentNode to string if needed
-    const queryString = typeof query === 'string' ? query : print(query);
+    const queryString = getQueryString(query);
     
-    console.log('🔧 [DEV] GraphQL Mutation:', {
+    console.log('🔧 [GraphQL] Mutation Request:', {
       mutation: queryString.substring(0, 100) + '...',
       variables
     });
 
-    const result = await apolloClient.mutate({
-      mutation: typeof query === 'string' ? gql(query) : query,
-      variables,
-      fetchPolicy: 'no-cache', // Don't cache mutations
+    const response = await graphqlAxios.post('', {
+      query: queryString,
+      variables
     });
+
+    const result: GraphQLResponse = response.data;
+
+    // Check for GraphQL errors
+    if (result.errors && result.errors.length > 0) {
+      console.error('❌ [GraphQL] GraphQL Errors:', result.errors);
+      throw new Error(result.errors[0].message);
+    }
+
+    console.log('✅ [GraphQL] Mutation Response received');
     
-    console.log('✅ [DEV] GraphQL Mutation completed:', result.data);
-    return result; // Return full result object
+    // Return in consistent format
+    return {
+      data: result.data,
+      loading: false,
+      error: null
+    };
     
   } catch (error: any) {
-    console.error('❌ [DEV] GraphQL Mutation Error:', error);
+    console.error('❌ [GraphQL] Mutation Error:', error);
     
-    // Enhanced error handling
-    if (error.graphQLErrors) {
-      console.error('GraphQL errors:', error.graphQLErrors);
-    }
-    if (error.networkError) {
-      console.error('Network error:', error.networkError);
+    // Handle network errors
+    if (error.response) {
+      const status = error.response.status;
+      const message = error.response.data?.message || error.message;
+      throw new Error(`GraphQL Error (${status}): ${message}`);
     }
     
-    // Re-throw the error for handling by components
     throw new Error(error.message || 'GraphQL mutation failed');
   }
 };
@@ -141,14 +160,30 @@ export const graphqlMutation = async ({ query, variables }: GraphQLRequestPayloa
 // Helper function to set authorization token
 export const setAuthToken = (token: string) => {
   localStorage.setItem('authToken', token);
-  console.log('🔧 [DEV] Auth token set');
+  console.log('🔧 [GraphQL] Auth token set');
 };
 
 // Helper function to remove authorization token
 export const clearAuthToken = () => {
   localStorage.removeItem('authToken');
-  console.log('🔧 [DEV] Auth token cleared');
+  console.log('🔧 [GraphQL] Auth token cleared');
 };
 
-// Export client for Vue plugin setup
-export default apolloClient;
+// Simple gql template literal tag (for compatibility)
+export const gql = (strings: TemplateStringsArray, ...values: any[]) => {
+  let result = strings[0];
+  for (let i = 1; i < strings.length; i++) {
+    result += values[i - 1] + strings[i];
+  }
+  return result;
+};
+
+console.log('🔧 [GraphQL] Simple GraphQL Client initialized:', GRAPHQL_ENDPOINT);
+
+// Default export for compatibility
+export default {
+  request: graphqlRequest,
+  mutate: graphqlMutation,
+  setAuthToken,
+  clearAuthToken
+};

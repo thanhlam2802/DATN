@@ -47,8 +47,24 @@ export async function uploadImage(file: File, onProgress?: (progress: number) =>
         }
       },
     });
-    return (response.data as any).data;
+    
+    // Debug log để xem response structure
+    console.log('Upload response:', response.data);
+    
+    // Kiểm tra và return đúng structure
+    const data = (response.data as any).data || response.data;
+    
+    if (!data || !data.url || !data.publicId) {
+      console.error('Invalid upload response structure:', data);
+      throw new Error('Upload response missing required fields (url, publicId)');
+    }
+    
+    return {
+      url: data.url,
+      publicId: data.publicId
+    };
   } catch (error) {
+    console.error('Upload error:', error);
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(error.response.data?.error || 'Upload failed');
     }
@@ -64,12 +80,22 @@ export async function uploadImage(file: File, onProgress?: (progress: number) =>
  */
 export async function createImageRecord(input: { url: string; publicId: string; altText?: string }): Promise<{ id: string; url: string }> {
   try {
+    // Validation
+    if (!input || !input.url || !input.publicId) {
+      console.error('Invalid input for createImageRecord:', input);
+      throw new Error('Input must have url and publicId fields');
+    }
+    
+    console.log('Creating image record with:', input);
+    
     const response = await graphqlRequest({
       query: CREATE_IMAGE_MUTATION,
       variables: { input }
     });
+    
     return response.data.createImage;
   } catch (error) {
+    console.error('createImageRecord error:', error);
     throw new Error('Could not save image record to database.');
   }
 }

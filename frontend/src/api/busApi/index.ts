@@ -25,6 +25,10 @@ export { BusSlotAPI } from './busSlot'
 // Route Management APIs
 export { RouteAPI } from './route'
 
+// Price Management APIs
+export { PriceAPI } from './priceApi'
+export { PriceStatus } from './priceApi'
+
 // Types and Enums
 export * from './types'
 

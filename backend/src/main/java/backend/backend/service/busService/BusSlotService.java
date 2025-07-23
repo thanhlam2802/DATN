@@ -1,17 +1,9 @@
 package backend.backend.service.busService;
 
-import backend.backend.dto.BusDTO.BusSlotResponse;
-import backend.backend.entity.Bus;
+import backend.backend.dto.BusDTO.*;
 import backend.backend.entity.enumBus.BusSlotStatus;
-import backend.backend.dto.BusDTO.CreateBusSlotRequest;
-import backend.backend.dto.BusDTO.UpdateBusSlotRequest;
-import backend.backend.dto.BusDTO.UpdateActualTimesRequest;
-import backend.backend.dto.BusDTO.QuickStatusUpdateRequest;
-import org.springframework.data.repository.query.Param;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 

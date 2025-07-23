@@ -22,4 +22,6 @@ public interface BusService {
     List<BusResponse> findBusesByOwnerId(Integer ownerId); // <-- Đã cập nhật
     List<BusResponse> findBusesByCategoryId(Integer categoryId); // <-- Thêm vào để đồng bộ với ServiceImpl
     List<BusResponse> searchBuses(String name, String licensePlate); // <-- Thêm vào để đồng bộ với ServiceImpl
+
 }
+

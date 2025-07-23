@@ -2,7 +2,7 @@
  * GraphQL mutations for Route operations
  */
 
-import { gql } from '@apollo/client/core';
+import { gql } from '../../graphqlClient';
 import { ROUTE_FRAGMENT } from '../fragments';
 
 export const CREATE_ROUTE = gql`

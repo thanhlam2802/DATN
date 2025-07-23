@@ -18,10 +18,6 @@ export interface Image {
 export interface BusCategory {
   id: string;
   name: string;
-  createdAt?: string;
-  updatedAt?: string;
-  createdBy?: User;
-  updatedBy?: User;
 }
 
 export interface Bus {

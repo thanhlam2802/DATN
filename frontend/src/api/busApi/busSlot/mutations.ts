@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client/core'
+import { gql } from '../../graphqlClient'
 
 // Basic CRUD mutations
 export const CREATE_BUS_SLOT = gql`

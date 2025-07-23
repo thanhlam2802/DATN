@@ -208,7 +208,10 @@ import { ref, onMounted } from 'vue'
 import { RouteAPI } from '@/api/busApi/route/api';
 import RouteModal from './RouteModal.vue';
 import type { Route } from '@/api/busApi/types/common.types'
+// @ts-ignore
 import { minutesToTimeString } from '@/utils/busHelper'
+// @ts-ignore
+import { toast, confirm, handleError } from '@/utils/notifications'
 
 // State
 const routes = ref<Route[]>([])
@@ -248,15 +251,21 @@ const handleRouteUpdated = (updatedRoute: Route) => {
 }
 
 const deleteRoute = async (routeId: string) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa tuyến đường này?')) {
+  const confirmed = await confirm.delete('tuyến đường này', {
+    details: 'Hành động này sẽ xóa tuyến đường và có thể ảnh hưởng đến các chuyến đi đã lên lịch.'
+  })
+
+  if (!confirmed) {
     return
   }
 
   try {
     await RouteAPI.deleteRoute(routeId)
     await loadRoutes() // Refresh list
+    toast.deleted('tuyến đường')
   } catch (err) {
-    alert('Không thể xóa tuyến đường. Vui lòng thử lại.')
+    console.error('Error deleting route:', err)
+    handleError.api(err, 'xóa tuyến đường')
   }
 }
 

@@ -1,16 +1,11 @@
 package backend.backend.implement.busImplement;
 
-import backend.backend.dao.Bus.BusDAO;
-import backend.backend.dao.Bus.BusCategoryDAO;
-import backend.backend.dao.Bus.BusSlotDAO;
-import backend.backend.dao.Bus.RouteDAO;
+import backend.backend.dao.Bus.*;
 
 import backend.backend.dto.BusDTO.*; // Giữ các DTO imports
 
 // <-- ĐÃ SỬA: Import các enum từ entity package -->
-import backend.backend.entity.Bus;
-import backend.backend.entity.BusSlot;
-import backend.backend.entity.Route;
+import backend.backend.entity.*;
 
 // <------------------------------------------------>
 
@@ -40,7 +35,7 @@ public class BusSlotServiceImpl implements BusSlotService {
     private final BusDAO busDAO;
     private final RouteDAO routeDAO;
     private final BusCategoryDAO busCategoryDAO;
-
+    private final RouteBusCategoryPriceDAO routeBusCategoryPriceDAO;
     // --- Helper Methods to Convert Entities to DTOs ---
 
     private BusResponse convertToBusResponse(Bus bus) {
@@ -95,6 +90,9 @@ public class BusSlotServiceImpl implements BusSlotService {
                         .orElse(null))
                 .build();
     }
+
+
+
 
     // --- CRUD Operations ---
 
@@ -267,6 +265,9 @@ public class BusSlotServiceImpl implements BusSlotService {
                 status
         ).stream().map(this::convertToBusSlotResponse).collect(Collectors.toList());
     }
+
+    // --- QUẢN LÝ QUY TẮC GIÁ MỚI (IMPLEMENTATION) ---
+
 
 
     // --- Status Update Mutations ---

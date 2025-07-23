@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client/core';
+import { gql } from '../../graphqlClient';
 import { BUS_FRAGMENT } from '../fragments';
 
 export const CREATE_BUS = gql`

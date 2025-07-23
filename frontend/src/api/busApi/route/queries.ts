@@ -2,7 +2,7 @@
  * GraphQL queries for Route operations
  */
 
-import { gql } from '@apollo/client/core';
+import { gql } from '../../graphqlClient';
 import { ROUTE_FRAGMENT } from '../fragments';
 
 export const FIND_ALL_ROUTES = gql`

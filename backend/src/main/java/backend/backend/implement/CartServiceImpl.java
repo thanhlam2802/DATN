@@ -205,10 +205,12 @@ public class CartServiceImpl implements CartService {
                 tourBookingService.createBookingTour(tourRequest); 
                 break;
             case HOTEL:
+            	
                  break;
             case BUS:
                  break;
             case FLIGHT:
+            	
                  break;
             
             default:

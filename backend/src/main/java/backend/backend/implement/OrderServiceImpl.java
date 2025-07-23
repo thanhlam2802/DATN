@@ -136,104 +136,67 @@ public class OrderServiceImpl implements OrderService {
 
     return toOrderDTO(savedOrder);
   }
-
   @Override
   @Transactional
   public OrderDto createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
-    User user = userDAO.findById(1).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+      // 1. Lấy user từ context (chuẩn):
+      // String username = SecurityContextHolder.getContext().getAuthentication().getName();
+      // User user = userDAO.findByUsername(username).orElseThrow(...);
+      // Tạm thời hardcode:
+      User user = userDAO.findById(1)
+          .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
 
-    FlightSlot slot =
-        flightSlotDAO
-            .findById(directRequest.getFlightSlotId())
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy slot ghế."));
+      // 2. Lấy slot và flight
+      FlightSlot slot = flightSlotDAO.findById(directRequest.getFlightSlotId())
+          .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy slot ghế."));
+      Flight flight = slot.getFlight();
 
-        Flight flight = slot.getFlight();
+      // 3. Kiểm tra slot đã được đặt chưa
+      boolean slotBooked = flightBookingDAO.findByFlightSlotId(slot.getId()).size() > 0;
+      if (slotBooked) {
+          throw new IllegalStateException("Vé này đã có người khác đặt. Bạn đã thao tác chậm, vui lòng chọn vé khác!");
+      }
 
-        // 3. Kiểm tra slot đã được đặt chưa
-        boolean slotBooked = flightBookingDAO.findByFlightSlotId(slot.getId()).size() > 0;
-        if (slotBooked) {
-            throw new IllegalStateException("Vé này đã có người khác đặt. Bạn đã thao tác chậm, vui lòng chọn vé khác!");
-        }
+      // 4. Tính tổng tiền
+      BigDecimal totalPrice = slot.getPrice();
 
-        // 4. Tính tổng tiền
-        BigDecimal totalPrice = slot.getPrice();
+      // 5. Tính expiresAt
+      LocalDateTime now = LocalDateTime.now();
+      LocalDateTime departureTime = flight.getDepartureTime();
+      LocalDateTime expiresAt = now.plusMinutes(30);
+      // 6. Tạo order
+      Order order = new Order();
+      order.setUser(user);
+      order.setAmount(totalPrice);
+      order.setStatus("PENDING_PAYMENT");
+      order.setExpiresAt(expiresAt);
+      order.setCreatedAt(now);
+      Order savedOrder = orderDAO.save(order);
 
-        // 5. Tính expiresAt
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime departureTime = flight.getDepartureTime();
-        LocalDateTime expiresAt = now.plusMinutes(30);
-        // 6. Tạo order
-        Order order = new Order();
-        order.setUser(user);
-        order.setAmount(totalPrice);
-        order.setStatus("PENDING_PAYMENT");
-        order.setExpiresAt(expiresAt);
-        order.setCreatedAt(now);
-        Order savedOrder = orderDAO.save(order);
+      // 7. Lưu thông tin khách hàng
+      Customer customer = new Customer();
+      customer.setFullName(directRequest.getCustomerName());
+      customer.setPhone(directRequest.getPhone());
+      customer.setEmail(directRequest.getEmail());
+      customer.setPassport(directRequest.getPassport());
+      customer.setGender("male".equalsIgnoreCase(directRequest.getGender()));
+      if (directRequest.getDob() != null && !directRequest.getDob().isEmpty()) {
+          customer.setDob(java.time.LocalDate.parse(directRequest.getDob()));
+      }
+      Customer savedCustomer = customerDAO.save(customer);
 
-        // 7. Lưu thông tin khách hàng
-        Customer customer = new Customer();
-        customer.setFullName(directRequest.getCustomerName());
-        customer.setPhone(directRequest.getPhone());
-        customer.setEmail(directRequest.getEmail());
-        customer.setPassport(directRequest.getPassport());
-        customer.setGender("male".equalsIgnoreCase(directRequest.getGender()));
-        if (directRequest.getDob() != null && !directRequest.getDob().isEmpty()) {
-            customer.setDob(java.time.LocalDate.parse(directRequest.getDob()));
-        }
-        Customer savedCustomer = customerDAO.save(customer);
+      // 8. Tạo booking flight
+      FlightBooking booking = new FlightBooking();
+      booking.setFlightSlot(slot);
+      booking.setOrder(savedOrder);
+      booking.setBookingDate(now);
+      booking.setTotalPrice(totalPrice);
+      booking.setCustomer(savedCustomer);
+      flightBookingDAO.save(booking);
 
-        // 8. Tạo booking flight
-        FlightBooking booking = new FlightBooking();
-        booking.setFlightSlot(slot);
-        booking.setOrder(savedOrder);
-        booking.setBookingDate(now);
-        booking.setTotalPrice(totalPrice);
-        booking.setCustomer(savedCustomer);
-        flightBookingDAO.save(booking);
-
-        return toOrderDTO(savedOrder);
-
-    }
-
-    BigDecimal totalPrice = slot.getPrice();
-
-    LocalDateTime now = LocalDateTime.now();
-    LocalDateTime departureTime = flight.getDepartureTime();
-    LocalDateTime expiresAt = now.plusMinutes(30);
-    if (departureTime.isBefore(now.plusMinutes(30))) {
-      expiresAt = departureTime;
-    }
-
-    Order order = new Order();
-    order.setUser(user);
-    order.setAmount(totalPrice);
-    order.setStatus("PENDING_PAYMENT");
-    order.setExpiresAt(expiresAt);
-    order.setCreatedAt(now);
-    Order savedOrder = orderDAO.save(order);
-
-    Customer customer = new Customer();
-    customer.setFullName(directRequest.getCustomerName());
-    customer.setPhone(directRequest.getPhone());
-    customer.setEmail(directRequest.getEmail());
-    customer.setPassport(directRequest.getPassport());
-    customer.setGender("male".equalsIgnoreCase(directRequest.getGender()));
-    if (directRequest.getDob() != null && !directRequest.getDob().isEmpty()) {
-      customer.setDob(java.time.LocalDate.parse(directRequest.getDob()));
-    }
-    Customer savedCustomer = customerDAO.save(customer);
-
-    FlightBooking booking = new FlightBooking();
-    booking.setFlightSlot(slot);
-    booking.setOrder(savedOrder);
-    booking.setBookingDate(now);
-    booking.setTotalPrice(totalPrice);
-    booking.setCustomer(savedCustomer);
-    flightBookingDAO.save(booking);
-
-    return toOrderDTO(savedOrder);
+      return toOrderDTO(savedOrder);
   }
+
 
   @Override
   @Transactional(readOnly = true)
@@ -251,14 +214,14 @@ public class OrderServiceImpl implements OrderService {
     List<BookingTour> tourBookings = bookingTourDAO.findByOrderId(entity.getId());
     List<FlightBooking> flightBookings = flightBookingDAO.findByOrderId(entity.getId());
     
-    int totalItems = tourBookings.size() + flightBookings.size();
+    int totalItems = tourBookings.size() + flightBookings.size() ;
 
     if (totalItems == 1) {
       if (!tourBookings.isEmpty()) {
         mainProductName = tourBookings.get(0).getDeparture().getTour().getName();
       } else if (!flightBookings.isEmpty()) {
         mainProductName = flightBookings.get(0).getFlightSlot().getFlight().getName();
-      }
+      } 
     }
 
     if (mainProductName != null) {
@@ -361,4 +324,6 @@ private FlightBookingDto toFlightBookingDto(FlightBooking flightBooking) {
    }
 
    return dto;
-}}
+}
+
+}

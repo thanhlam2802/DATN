@@ -3,7 +3,10 @@ package backend.backend.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import lombok.Data;
+import java.util.List;
 
+@Data
 public class HotelBookingDto {
     private Integer id;
     private Integer userId;
@@ -15,5 +18,9 @@ public class HotelBookingDto {
     private BigDecimal totalPrice;
     private LocalDateTime createdAt;
     private Integer orderId;
-    // Thêm các trường khác nếu cần
+    private String hotelName;
+    private String roomType;
+    private String variantName;
+    private String imageUrl;
+    private List<String> imageUrls;
 }

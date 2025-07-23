@@ -397,6 +397,10 @@
                     @click="goToBooking(room, variant)">
                     Chọn
                   </button>
+                  <div v-if="room.roomQuantity !== undefined && room.roomQuantity !== null && room.roomQuantity <= 3 && room.roomQuantity > 0"
+                      class="mt-2 text-base font-semibold text-red-600">
+                    Chỉ còn {{ room.roomQuantity }} phòng
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -698,6 +702,10 @@ const reviewSuccess = ref('');
 const canSubmitReview = computed(() => newReview.value.rating > 0 && newReview.value.content.trim().length > 0);
 
 const goToBooking = (room, variant) => {
+  if (room.roomQuantity !== undefined && room.roomQuantity !== null && searchParams.value.rooms > room.roomQuantity) {
+    if (window.$toast) window.$toast(`Hiện tại không đủ phòng`, 'error');
+    return;
+  }
   router.push({
     name: 'HotelBooking',
     query: {
@@ -718,6 +726,8 @@ const goToBooking = (room, variant) => {
       checkout: searchParams.value.checkout,
       maxAdults: room.maxAdults,
       maxChildren: room.maxChildren,
+      adults: searchParams.value.adults,
+      children: searchParams.value.children,
       discount: 0,
       serviceFee: 0,
       rooms: searchParams.value.rooms,
@@ -826,7 +836,7 @@ const visibleAmenities = computed(() => {
 const filteredRoomTypes = computed(() => {
   if (!hotel.value?.availableRooms) return [];
 
-  const roomsCopy = JSON.parse(JSON.stringify(hotel.value.availableRooms));
+  const roomsCopy = JSON.parse(JSON.stringify(hotel.value.availableRooms)).filter(room => room.roomQuantity > 0);
 
   if (selectedAmenities.value.length === 0) {
     return roomsCopy;

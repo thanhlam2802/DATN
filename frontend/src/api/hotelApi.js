@@ -40,6 +40,10 @@ export const bookHotel = (data) => {
     return axios.post(`${API_BASE_URL}/book`, data, { headers });
 };
 
+export const addItemToCart = (orderId, data) => {
+    return axios.post(`/api/v1/cart/${orderId}/items`, data);
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -48,5 +52,6 @@ export default {
     updateHotel,
     deleteHotel,
     createHotelReview,
-    bookHotel
+    bookHotel,
+    addItemToCart
 };

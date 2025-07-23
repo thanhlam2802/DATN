@@ -1,33 +1,5 @@
 <template>
     <div class="max-w-full lg:w-[1320px] mx-auto px-6">
-        <div class="flex justify-center mt-8 mb-8">
-            <div class="flex items-center justify-center w-full">
-                <template v-for="step in 1" :key="step">
-                    <div class="flex items-center">
-                        <div :class="[
-                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow transition-all duration-300 border-2',
-                            currentStep === step
-                                ? 'bg-gradient-to-tr from-indigo-500 to-blue-400 text-white border-indigo-500 scale-110'
-                                : (currentStep > step
-                                    ? 'bg-green-500 text-white border-green-500'
-                                    : 'bg-gray-200 text-gray-400 border-gray-300')
-                        ]">
-                            <span v-if="currentStep > step"><i class='fas fa-check'></i></span>
-                            <span v-else>{{ step }}</span>
-                        </div>
-                        <span class="ml-3 mr-8 text-base font-semibold transition-all duration-300" :class="currentStep === step
-                            ? 'text-indigo-600'
-                            : (currentStep > step ? 'text-green-600' : 'text-gray-500')">
-                            {{ stepLabels[step - 1] }}
-                        </span>
-                    </div>
-                    <div v-if="step < 1" :class="[
-                        'h-1 mx-2 transition-all duration-300',
-                        currentStep > step ? 'bg-green-400 w-16' : 'bg-gray-300 w-12'
-                    ]"></div>
-                </template>
-            </div>
-        </div>
         <main class="max-w-full flex flex-col lg:flex-row gap-10 items-start pt-10">
             <div class="w-full">
                 <div v-if="currentStep === 1" class="w-full">
@@ -106,6 +78,10 @@
                             <i class="far fa-clock"></i>
                             Bạn chưa bị trừ tiền!
                         </div>
+                        <button v-if="activeCartId" @click="addRoomToOrder"
+                            class="w-full mt-2 mb-2 px-6 py-3 bg-green-600 text-white rounded-lg font-bold text-lg shadow hover:bg-green-700 transition">
+                            <i class="fa-solid fa-plus mr-2"></i> Thêm phòng vào chuyến đi
+                        </button>
                         <button @click="goToNextStep"
                             class="w-full mt-2 mb-2 px-6 py-3 bg-orange-500 text-white rounded-lg font-bold text-lg shadow hover:bg-orange-600 transition">Tiếp
                             tục thanh toán</button>
@@ -283,7 +259,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getBankList } from '@/api/bankApi'
-import { bookHotel } from '@/api/hotelApi'
+import { bookHotel, addItemToCart } from '@/api/hotelApi'
 import { getAccessToken } from '@/services/TokenService'
 
 export default {
@@ -406,20 +382,21 @@ export default {
 
         const roomVariantId = route.query.roomVariantId ? parseInt(route.query.roomVariantId) : null;
 
+        const adults = parseInt(route.query.adults) || 1;
+        const children = parseInt(route.query.children) || 0;
+
         const onSubmitPayment = async () => {
             if (!validateForm()) return;
             if (!roomVariantId) {
                 window.$toast && window.$toast('Không xác định được loại phòng!', 'error');
                 return;
             }
-            // Kiểm tra đã login: chỉ cần có access token
             const token = getAccessToken();
             if (!token) {
                 window.$toast && window.$toast('Bạn cần đăng nhập để đặt phòng!', 'error');
                 return;
             }
             if (paymentMethod.value === 'bank' && !selectedBank.value) return;
-            // Gọi API booking khách sạn
             try {
                 const res = await bookHotel({
                     fullName: fullName.value,
@@ -428,9 +405,10 @@ export default {
                     roomVariantId: roomVariantId,
                     checkInDate: checkin,
                     checkOutDate: checkout,
-                    numAdults: maxAdults,
-                    numChildren: maxChildren,
+                    numAdults: adults,
+                    numChildren: children,
                     totalPrice: subtotal,
+                    rooms: rooms,
                 });
                 console.log('Booking response:', res);
                 const order = res.data && res.data.data ? res.data.data : res.data;
@@ -564,6 +542,41 @@ export default {
             showVoucherPopup.value = false;
         };
 
+        const activeCartId = localStorage.getItem('activeCartId');
+
+        const addRoomToOrder = async () => {
+            if (!validateForm()) return;
+            if (!roomVariantId) {
+                window.$toast && window.$toast('Không xác định được loại phòng!', 'error');
+                return;
+            }
+            if (!activeCartId) {
+                window.$toast && window.$toast('Không tìm thấy đơn hàng!', 'error');
+                return;
+            }
+            try {
+                await addItemToCart(activeCartId, {
+                    itemId: roomVariantId,
+                    itemType: 'HOTEL',
+                    numberOfAdults: adults,
+                    numberOfChildren: children,
+                    roomId: roomVariantId,
+                    checkInDate: checkin,
+                    checkOutDate: checkout,
+                    totalPrice: Number(subtotal),
+                    numberOfRooms: rooms,
+                    fullName: fullName.value,
+                    email: email.value,
+                    phone: phone.value
+                });
+                window.$toast && window.$toast('Đã thêm phòng vào chuyến đi!', 'success');
+                localStorage.removeItem('activeCartId');
+                router.push(`/orders/${activeCartId}`);
+            } catch (e) {
+                window.$toast && window.$toast('Có lỗi khi thêm phòng vào chuyến đi!', 'error');
+            }
+        };
+
         onMounted(async () => {
             bankLoading.value = true;
             try {
@@ -637,6 +650,8 @@ export default {
             voucherInput,
             suggestedVouchers,
             applyVoucher,
+            addRoomToOrder,
+            activeCartId,
         }
     },
 }

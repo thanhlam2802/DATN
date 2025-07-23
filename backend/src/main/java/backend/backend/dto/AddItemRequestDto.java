@@ -24,7 +24,12 @@ public class AddItemRequestDto {
     private Integer roomId;
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
+
     private Integer customerId;
+
+    private java.math.BigDecimal totalPrice;
+    private Integer numberOfRooms;
+
     // Dành cho Flight
     private Integer flightSlotId;
 

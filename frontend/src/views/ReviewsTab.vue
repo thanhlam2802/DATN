@@ -116,7 +116,7 @@ const filterRating = ref("all");
 const filterStatus = ref("all");
 
 // --- API & Data Fetching ---
-const ownerId = 1; // Trong ứng dụng thực tế, ID này sẽ lấy từ store hoặc session
+const ownerId = 1;
 
 async function fetchReviews() {
   isLoading.value = true;

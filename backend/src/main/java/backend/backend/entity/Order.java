@@ -34,7 +34,9 @@ public class Order {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    // Trạng thái của hóa đơn: "PENDING", "PAID", "FAILED"
+    @Column(name = "original_amount", precision = 12, scale = 2)
+    private BigDecimal originalAmount;
+    
     @Column(nullable = false, length = 50)
     private String status;
 

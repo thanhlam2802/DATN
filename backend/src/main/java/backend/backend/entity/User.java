@@ -45,7 +45,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     @Column(name = "is_verified")
-    private boolean isVerified;
+    private Boolean isVerified;
 
     @ToString.Exclude
     @OneToMany(mappedBy = "user")

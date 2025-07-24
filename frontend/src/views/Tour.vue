@@ -29,15 +29,12 @@ onMounted(() => {
   fetchTours();
 });
 
-// Methods
 const fetchTours = async () => {
   try {
-    // 2. Xây dựng URL với tham số sortBy động
     const params = new URLSearchParams({
       sortBy: sortBy.value,
     });
 
-    // URL API này cần khớp với backend của bạn
     const response = await fetch(
       `http://localhost:8080/api/v1/tours?${params.toString()}`
     );
@@ -67,7 +64,6 @@ const fetchTours = async () => {
   }
 };
 
-// 3. Theo dõi sự thay đổi của 'sortBy' và gọi lại API
 watch(sortBy, () => {
   fetchTours();
 });

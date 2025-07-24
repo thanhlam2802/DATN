@@ -16,7 +16,7 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @GetMapping("/tours/owner/{ownerId}")
-    public ResponseEntity<List<ReviewDto>> getTourReviewsByOwner(@PathVariable Long ownerId) { // Sửa kiểu trả về
+    public ResponseEntity<List<ReviewDto>> getTourReviewsByOwner(@PathVariable Long ownerId) { 
         List<ReviewDto> reviewDtos = reviewService.getTourReviewsByOwner(ownerId);
         return ResponseEntity.ok(reviewDtos);
     }

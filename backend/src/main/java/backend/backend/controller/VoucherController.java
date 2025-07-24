@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -57,5 +58,11 @@ public class VoucherController {
     public ResponseEntity<Void> deleteVoucher(@PathVariable Integer id) {
         voucherService.deleteVoucher(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/suggested")
+    public ResponseEntity<List<VoucherDTO>> getSuggestedVouchers(@RequestParam BigDecimal orderAmount) {
+        List<VoucherDTO> suggestedVouchers = voucherService.getSuggestedVouchers(orderAmount);
+        return ResponseEntity.ok(suggestedVouchers);
     }
 }

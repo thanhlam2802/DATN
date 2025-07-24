@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface OTPTransactionRepository extends JpaRepository<OTPTransaction, Long> {
+public interface OTPTransactionRepository extends JpaRepository<OTPTransaction, Integer> {
 
-    Optional<OTPTransaction> findFirstByUserIdAndTypeOrderByCreatedAtDesc(Long userId, OtpType type);
+    Optional<OTPTransaction> findFirstByUserIdAndTypeOrderByCreatedAtDesc(Integer userId, OtpType type);
 }

@@ -70,11 +70,7 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
   try {
     const queryString = getQueryString(query);
     
-    console.log('🔧 [GraphQL] Query Request:', {
-      query: queryString.substring(0, 100) + '...',
-      variables
-    });
-
+    
     const response = await graphqlAxios.post('', {
       query: queryString,
       variables
@@ -84,14 +80,11 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
-      console.error('❌ [GraphQL] GraphQL Errors Details:', result.errors);
-      console.error('❌ [GraphQL] First Error:', result.errors[0]);
-      console.error('❌ [GraphQL] Query was:', query);
-      console.error('❌ [GraphQL] Variables were:', variables);
+      
       throw new Error(result.errors[0].message);
     }
 
-    console.log('✅ [GraphQL] Query Response received');
+    
     
     // Return in consistent format 
     return {
@@ -101,23 +94,18 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
     };
     
   } catch (error: any) {
-    console.error('❌ [GraphQL] Query Error:', error);
-    console.error('❌ [GraphQL] Error Type:', typeof error);
-    console.error('❌ [GraphQL] Error Keys:', Object.keys(error));
+    
     
     // Log response details if available
     if (error.response) {
-      console.error('❌ [GraphQL] Response Status:', error.response.status);
-      console.error('❌ [GraphQL] Response Data:', error.response.data);
-      console.error('❌ [GraphQL] Response Headers:', error.response.headers);
+      
       const status = error.response.status;
       const message = error.response.data?.message || error.message;
       throw new Error(`GraphQL Error (${status}): ${message}`);
     }
     
     // Log request details for debugging
-    console.error('❌ [GraphQL] Failed Query:', query);
-    console.error('❌ [GraphQL] Failed Variables:', variables);
+    
     
     throw new Error(error.message || 'GraphQL request failed');
   }
@@ -128,10 +116,7 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
   try {
     const queryString = getQueryString(query);
     
-    console.log('🔧 [GraphQL] Mutation Request:', {
-      mutation: queryString.substring(0, 100) + '...',
-      variables
-    });
+    
 
     const response = await graphqlAxios.post('', {
       query: queryString,
@@ -142,11 +127,11 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
-      console.error('❌ [GraphQL] GraphQL Errors:', result.errors);
+      
       throw new Error(result.errors[0].message);
     }
 
-    console.log('✅ [GraphQL] Mutation Response received');
+    
     
     // Return in consistent format
     return {
@@ -156,7 +141,7 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
     };
     
   } catch (error: any) {
-    console.error('❌ [GraphQL] Mutation Error:', error);
+    
     
     // Handle network errors
     if (error.response) {
@@ -172,13 +157,13 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
 // Helper function to set authorization token
 export const setAuthToken = (token: string) => {
   localStorage.setItem('authToken', token);
-  console.log('🔧 [GraphQL] Auth token set');
+
 };
 
 // Helper function to remove authorization token
 export const clearAuthToken = () => {
   localStorage.removeItem('authToken');
-  console.log('🔧 [GraphQL] Auth token cleared');
+  
 };
 
 // Simple gql template literal tag (for compatibility)
@@ -190,7 +175,7 @@ export const gql = (strings: TemplateStringsArray, ...values: any[]) => {
   return result;
 };
 
-console.log('🔧 [GraphQL] Simple GraphQL Client initialized:', GRAPHQL_ENDPOINT);
+
 
 // Default export for compatibility
 export default {

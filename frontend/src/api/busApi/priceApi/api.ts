@@ -27,13 +27,11 @@ export class PriceAPI {
    */
   static async findAllPrices(): Promise<RouteBusCategoryPrice[]> {
     try {
-      console.log('🔍 [PriceAPI] Fetching all route bus category prices...')
       const response = await graphqlRequest({ 
         query: FIND_ALL_ROUTE_BUS_CATEGORY_PRICES,
         variables: {} 
       })
       const prices = response.data?.findAllRouteBusCategoryPrices || []
-      console.log(`✅ [PriceAPI] Found ${prices.length} price rules`)
       return prices
     } catch (error) {
       console.error('❌ [PriceAPI] Error fetching all prices:', error)
@@ -46,7 +44,6 @@ export class PriceAPI {
    */
   static async findPriceById(id: string): Promise<RouteBusCategoryPrice | null> {
     try {
-      console.log(`🔍 [PriceAPI] Fetching price rule by ID: ${id}`)
       const response = await graphqlRequest({ 
         query: FIND_ROUTE_BUS_CATEGORY_PRICE_BY_ID, 
         variables: { id } 
@@ -54,12 +51,10 @@ export class PriceAPI {
       const price = response.data?.findRouteBusCategoryPriceById
       
       if (price) {
-        console.log(`✅ [PriceAPI] Found price rule: ${price.id}`)
+        return price
       } else {
-        console.log(`⚠️ [PriceAPI] Price rule not found: ${id}`)
+        return null
       }
-      
-      return price || null
     } catch (error) {
       console.error(`❌ [PriceAPI] Error fetching price by ID ${id}:`, error)
       throw error
@@ -71,11 +66,6 @@ export class PriceAPI {
    */
   static async createPrice(input: CreateRouteBusCategoryPriceInput): Promise<RouteBusCategoryPrice> {
     try {
-      console.log('➕ [PriceAPI] Creating new price rule:', input)
-      
-      // Validate input
-      this.validatePriceInput(input)
-      
       const response = await graphqlMutation({ 
         query: CREATE_ROUTE_BUS_CATEGORY_PRICE, 
         variables: { input } 
@@ -86,7 +76,6 @@ export class PriceAPI {
           throw new Error('Failed to create price rule - no data returned')
         }
         
-        console.log(`✅ [PriceAPI] Created price rule: ${createdPrice.id}`)
         return createdPrice
     } catch (error) {
       console.error('❌ [PriceAPI] Error creating price:', error)
@@ -99,8 +88,6 @@ export class PriceAPI {
    */
   static async updatePrice(id: string, input: UpdateRouteBusCategoryPriceInput): Promise<RouteBusCategoryPrice> {
     try {
-      console.log(`🔄 [PriceAPI] Updating price rule ${id}:`, input)
-      
       const response = await graphqlMutation({ 
         query: UPDATE_ROUTE_BUS_CATEGORY_PRICE, 
         variables: { id, input } 
@@ -111,7 +98,6 @@ export class PriceAPI {
           throw new Error('Failed to update price rule - no data returned')
         }
         
-        console.log(`✅ [PriceAPI] Updated price rule: ${updatedPrice.id}`)
         return updatedPrice
     } catch (error) {
       console.error(`❌ [PriceAPI] Error updating price ${id}:`, error)
@@ -124,8 +110,6 @@ export class PriceAPI {
    */
   static async deletePrice(id: string): Promise<boolean> {
     try {
-      console.log(`🗑️ [PriceAPI] Deleting price rule: ${id}`)
-      
       const response = await graphqlMutation({ 
         query: DELETE_ROUTE_BUS_CATEGORY_PRICE, 
         variables: { id } 
@@ -133,12 +117,10 @@ export class PriceAPI {
       const success = response.data?.deleteRouteBusCategoryPrice
         
         if (success) {
-          console.log(`✅ [PriceAPI] Deleted price rule: ${id}`)
+          return true
         } else {
-          console.log(`⚠️ [PriceAPI] Failed to delete price rule: ${id}`)
+          return false
         }
-        
-        return !!success
     } catch (error) {
       console.error(`❌ [PriceAPI] Error deleting price ${id}:`, error)
       throw error
@@ -153,8 +135,6 @@ export class PriceAPI {
    */
   static async findActivePrice(request: PriceCalculationRequest): Promise<PriceCalculationResult> {
     try {
-      console.log('💰 [PriceAPI] Finding active price for:', request)
-      
       const response = await graphqlRequest({
         query: FIND_ACTIVE_ROUTE_BUS_CATEGORY_PRICE,
         variables: {
@@ -167,7 +147,6 @@ export class PriceAPI {
       const price = response.data?.findActiveRouteBusCategoryPrice
       
       if (!price) {
-        console.log('⚠️ [PriceAPI] No active price rule found for:', request)
         return {
           found: false,
           effectivePrice: 0,
@@ -179,8 +158,6 @@ export class PriceAPI {
       // Determine effective price (promotion price has priority)
       const hasValidPromotion = price.promotionPrice && price.promotionPrice > 0
       const effectivePrice = hasValidPromotion ? price.promotionPrice! : price.basePrice
-      
-      console.log(`✅ [PriceAPI] Found active price: ${effectivePrice} (${hasValidPromotion ? 'promotion' : 'base'})`)
       
       return {
         found: true,
@@ -288,8 +265,6 @@ export class PriceAPI {
     value: number
   ): Promise<RouteBusCategoryPrice[]> {
     try {
-      console.log(`🔄 [PriceAPI] Bulk updating ${priceIds.length} prices with ${updateType}: ${value}`)
-      
       const updatedPrices: RouteBusCategoryPrice[] = []
       
       for (const priceId of priceIds) {
@@ -313,7 +288,6 @@ export class PriceAPI {
         updatedPrices.push(updatedPrice)
       }
       
-      console.log(`✅ [PriceAPI] Bulk updated ${updatedPrices.length} prices`)
       return updatedPrices
     } catch (error) {
       console.error('❌ [PriceAPI] Error in bulk update:', error)

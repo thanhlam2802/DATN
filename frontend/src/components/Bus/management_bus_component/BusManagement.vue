@@ -940,7 +940,7 @@ const loadBusCategories = async () => {
       const allCategories = await getAllBusCategories();
       allCategories.forEach(cat => uniqueCategories.add(cat.name));
     } catch (err) {
-      console.log('Could not load all categories from API:', err);
+      // Error loading categories from API is not critical
     }
     
     busCategories.value = Array.from(uniqueCategories).sort();

@@ -305,15 +305,12 @@ const currentPageTitle = computed(() => {
 // Load real stats data
 const loadStatsData = async () => {
   try {
-    console.log('📊 Loading stats data...')
-    
     // Use BusAPI for better error handling and debugging
          const { BusAPI } = await import('@/api/busApi/bus/api')
      const ownerId = "11" // DEV_USER_ID
      const buses = await BusAPI.getBusesByOwnerId(ownerId)
      
      statsData.value.totalBuses = buses.length
-     console.log(`📊 Stats loaded: ${buses.length} buses`)
      
      // Load today's trips data
      // TODO: Implement trip counting API when available
@@ -333,10 +330,8 @@ const loadStatsData = async () => {
 
 // Debug function để test GraphQL manually
 const debugGraphQL = async () => {
-  console.log('🔧 Manual GraphQL Debug Started...');
   try {
     const result = await BusAPI.testSimpleQuery();
-    console.log('✅ Manual test success:', result);
     alert('GraphQL test successful! Check console for details.');
   } catch (error) {
     console.error('❌ Manual test failed:', error);

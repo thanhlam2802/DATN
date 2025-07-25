@@ -222,7 +222,6 @@ export function useBusRouteModal() {
 
   const saveDraft = () => {
     // Implement save draft logic
-    console.log('Saving draft:', formData)
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({ success: true, message: 'Đã lưu nháp thành công' })
@@ -238,7 +237,6 @@ export function useBusRouteModal() {
     isLoading.value = true
     
     try {
-      console.log('🚀 Bắt đầu tạo Bus Route với dữ liệu:', formData)
       
       // **BƯỚC 1: TÌM HOẶC TẠO ROUTE**
       let route = null
@@ -252,10 +250,8 @@ export function useBusRouteModal() {
         
         if (existingRouteResponse.data && existingRouteResponse.data.length > 0) {
           route = existingRouteResponse.data[0]
-          console.log('✅ Sử dụng Route đã tồn tại:', route)
         }
       } catch (error) {
-        console.log('ℹ️ Không tìm thấy Route đã tồn tại, sẽ tạo mới')
       }
       
       // Tạo Route mới nếu chưa tồn tại
@@ -267,10 +263,8 @@ export function useBusRouteModal() {
           estimatedDurationMinutes: parseTimeToMinutes(formData.travelTime)
         }
         
-        console.log('🛣️ Tạo Route mới:', routeData)
         const routeResponse = await createRoute(routeData)
         route = routeResponse.data
-        console.log('✅ Route được tạo thành công:', route)
       }
 
       // **BƯỚC 2: TẠO BUS**
@@ -283,11 +277,9 @@ export function useBusRouteModal() {
         arrivalTime: combineDateTime(formData.arrival.time),
         ownerId: 1 // Mock current user ID - sẽ lấy từ auth context
       }
-      
-      console.log('🚌 Tạo Bus:', busData)
+        
       const busResponse = await createBus(busData)
       const bus = busResponse.data
-      console.log('✅ Bus được tạo thành công:', bus)
 
       // **BƯỚC 3: TẠO BUSROUTE**
       const busRouteData = {
@@ -298,10 +290,8 @@ export function useBusRouteModal() {
         status: 'active'
       }
       
-      console.log('🔗 Tạo BusRoute:', busRouteData)
       const busRouteResponse = await createBusRoute(busRouteData)
       const busRoute = busRouteResponse.data
-      console.log('✅ BusRoute được tạo thành công:', busRoute)
 
       // **THÀNH CÔNG**
       isLoading.value = false
@@ -310,12 +300,7 @@ export function useBusRouteModal() {
         ? 'Cập nhật tuyến xe thành công!' 
         : 'Thêm tuyến xe mới thành công!'
       
-      console.log('🎉 Hoàn thành tạo Bus Route:', {
-        bus,
-        route,
-        busRoute
-      })
-      
+     
       return Promise.resolve({ 
         success: true, 
         message: successMessage,
@@ -328,7 +313,6 @@ export function useBusRouteModal() {
       
     } catch (error) {
       isLoading.value = false
-      console.error('❌ Lỗi khi tạo Bus Route:', error)
       
       return Promise.reject({ 
         success: false, 

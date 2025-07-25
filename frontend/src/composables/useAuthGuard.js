@@ -172,7 +172,6 @@ export const usePublicAuth = () => {
     // Methods
     promptLogin: () => {
       // Show login modal or redirect
-      console.log('💡 Please login to access this feature')
     }
   }
 }

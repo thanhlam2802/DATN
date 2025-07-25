@@ -35,14 +35,7 @@ export function useBusAvailability() {
       conflictError.value = ''
       conflictDetails.value = null
       
-      console.log('🔍 Checking bus availability:', {
-        busId,
-        slotDate,
-        departureTime,
-        arrivalTime,
-        excludeTripId,
-        bufferMinutes
-      })
+   
       
       // Lấy tất cả chuyến xe của bus này
       const existingSlots = await BusSlotAPI.findBusSlotsByBusId(busId)
@@ -62,7 +55,6 @@ export function useBusAvailability() {
         return true
       })
       
-      console.log(`🔍 Found ${potentialConflicts.length} potential conflicts to check`)
       
       // Kiểm tra conflict về thời gian
       const conflicts = []
@@ -112,7 +104,6 @@ export function useBusAvailability() {
         }
       }
       
-      console.log('✅ Bus is available for the requested time slot')
       return { available: true }
       
     } catch (error) {

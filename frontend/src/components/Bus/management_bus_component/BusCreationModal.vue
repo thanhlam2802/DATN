@@ -341,13 +341,11 @@ const openModal = (bus: Bus | null = null) => {
       ? bus.amenities.map(a => a.name) 
       : [];
     
-    console.log('🔧 Edit mode - Loaded amenities:', selectedAmenities.value);
   } else {
     // Create mode
     isEditMode.value = false;
     editingBusId.value = null;
     selectedAmenities.value = [];
-    console.log('🆕 Create mode - Reset amenities');
   }
   isOpen.value = true;
 };
@@ -398,13 +396,10 @@ const handleSubmit = async () => {
     // 1. Upload images and get their IDs (if any new images)
     let imageIds: string[] = [];
     if (imageFiles.value.length > 0) {
-      console.log('Uploading', imageFiles.value.length, 'images...');
       
       const uploadPromises = imageFiles.value.map(async (file, index) => {
         try {
-          console.log(`Uploading image ${index + 1}:`, file.name);
           const uploadResult = await ImageAPI.uploadImage(file);
-          console.log(`Upload result ${index + 1}:`, uploadResult);
           
           if (!uploadResult || !uploadResult.url || !uploadResult.publicId) {
             console.error(`Invalid upload result for file ${file.name}:`, uploadResult);
@@ -412,7 +407,6 @@ const handleSubmit = async () => {
           }
           
           const imageRecord = await ImageAPI.createImageRecord(uploadResult);
-          console.log(`Created image record ${index + 1}:`, imageRecord);
           return imageRecord;
         } catch (error) {
           console.error(`Error processing image ${file.name}:`, error);
@@ -427,7 +421,6 @@ const handleSubmit = async () => {
         .filter(record => record && record.id)
         .map(record => record.id);
       
-      console.log('Final image IDs:', imageIds);
     }
 
     // 2. Create or Update bus

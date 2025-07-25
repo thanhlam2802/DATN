@@ -118,14 +118,12 @@ export function usePriceManagement() {
   async function loadAllPrices() {
     try {
       loading.value = true
-      console.log('🔄 [PriceManagement] Loading all prices...')
       
       const fetchedPrices = await PriceAPI.findAllPrices()
       prices.value = fetchedPrices
       
-      console.log(`✅ [PriceManagement] Loaded ${fetchedPrices.length} prices`)
     } catch (err) {
-      console.error('❌ [PriceManagement] Error loading prices:', err)
+      
       error.value = err.message || 'Lỗi tải danh sách giá vé'
       throw err
     } finally {
@@ -135,24 +133,24 @@ export function usePriceManagement() {
 
   async function loadAllRoutes() {
     try {
-      console.log('🔄 [PriceManagement] Loading all routes...')
+      
       const fetchedRoutes = await RouteAPI.getAllRoutes()
       allRoutes.value = fetchedRoutes
-      console.log(`✅ [PriceManagement] Loaded ${fetchedRoutes.length} routes`)
+      
     } catch (err) {
-      console.error('❌ [PriceManagement] Error loading routes:', err)
+      
       // Don't throw - routes are supplementary data
     }
   }
 
   async function loadAllBusCategories() {
     try {
-      console.log('🔄 [PriceManagement] Loading all bus categories...')
+      
       const fetchedCategories = await BusCategoryAPI.getAllBusCategories()
       allBusCategories.value = fetchedCategories
-      console.log(`✅ [PriceManagement] Loaded ${fetchedCategories.length} bus categories`)
+      
     } catch (err) {
-      console.error('❌ [PriceManagement] Error loading bus categories:', err)
+      
       // Don't throw - categories are supplementary data
     }
   }
@@ -162,7 +160,7 @@ export function usePriceManagement() {
   async function createPrice() {
     try {
       loading.value = true
-      console.log('➕ [PriceManagement] Creating new price:', priceForm.value)
+
       
       // Validate form
       validatePriceForm()
@@ -189,10 +187,10 @@ export function usePriceManagement() {
       prices.value.push(createdPrice)
       
       resetForm()
-      console.log('✅ [PriceManagement] Price created successfully')
+      
       return createdPrice
     } catch (err) {
-      console.error('❌ [PriceManagement] Error creating price:', err)
+      
       error.value = err.message || 'Lỗi tạo quy tắc giá'
       throw err
     } finally {
@@ -207,7 +205,7 @@ export function usePriceManagement() {
     }
     
       loading.value = true
-      console.log(`🔄 [PriceManagement] Updating price ${editingPriceId.value}:`, priceForm.value)
+      
       
       // Validate form
       validatePriceForm()
@@ -240,10 +238,10 @@ export function usePriceManagement() {
       }
       
       resetForm()
-      console.log('✅ [PriceManagement] Price updated successfully')
+      
       return updatedPrice
     } catch (err) {
-      console.error('❌ [PriceManagement] Error updating price:', err)
+      
       error.value = err.message || 'Lỗi cập nhật quy tắc giá'
       throw err
     } finally {
@@ -254,21 +252,21 @@ export function usePriceManagement() {
   async function deletePrice(priceId) {
     try {
       loading.value = true
-      console.log(`🗑️ [PriceManagement] Deleting price: ${priceId}`)
+      
       
       const success = await PriceAPI.deletePrice(priceId)
       
       if (success) {
         // Remove from local state
         prices.value = prices.value.filter(price => price.id !== priceId)
-        console.log('✅ [PriceManagement] Price deleted successfully')
+        
       } else {
         throw new Error('Không thể xóa quy tắc giá')
       }
       
       return success
     } catch (err) {
-      console.error('❌ [PriceManagement] Error deleting price:', err)
+      
       error.value = err.message || 'Lỗi xóa quy tắc giá'
       throw err
     } finally {
@@ -281,7 +279,7 @@ export function usePriceManagement() {
   async function applyBulkUpdate() {
     try {
       loading.value = true
-      console.log('🔄 [PriceManagement] Applying bulk update:', bulkUpdate.value)
+      
       
       const targetPrices = getBulkUpdateTargets.value
       
@@ -305,10 +303,10 @@ export function usePriceManagement() {
       })
       
       resetBulkUpdate()
-      console.log(`✅ [PriceManagement] Bulk updated ${updatedPrices.length} prices`)
+      
       return updatedPrices
     } catch (err) {
-      console.error('❌ [PriceManagement] Error in bulk update:', err)
+      
       error.value = err.message || 'Lỗi cập nhật hàng loạt'
       throw err
     } finally {
@@ -320,7 +318,7 @@ export function usePriceManagement() {
   
   async function findActivePriceForTrip(routeId, busCategoryId, date) {
     try {
-      console.log(`💰 [PriceManagement] Finding active price for route ${routeId}, category ${busCategoryId}, date ${date}`)
+      
       
       const result = await PriceAPI.findActivePrice({
         routeId,
@@ -328,10 +326,10 @@ export function usePriceManagement() {
         date
       })
       
-      console.log('💰 [PriceManagement] Price calculation result:', result)
+      
       return result
     } catch (err) {
-      console.error('❌ [PriceManagement] Error finding active price:', err)
+      
       throw err
     }
   }
@@ -349,7 +347,7 @@ export function usePriceManagement() {
       validTo: price.validTo,
       notes: price.notes || ''
     }
-    console.log('✏️ [PriceManagement] Set editing price:', price.id)
+
   }
 
   function resetForm() {
@@ -363,7 +361,7 @@ export function usePriceManagement() {
       validTo: '',
       notes: ''
     }
-    console.log('🔄 [PriceManagement] Form reset')
+    
   }
 
   function resetBulkUpdate() {
@@ -374,11 +372,11 @@ export function usePriceManagement() {
       routeId: '',
       busCategoryId: ''
     }
-    console.log('🔄 [PriceManagement] Bulk update reset')
+    
   }
   
   function applyFilters() {
-    console.log('🔍 [PriceManagement] Applying filters:', filters.value)
+    
     // Filters are applied automatically via computed property
   }
 
@@ -389,7 +387,7 @@ export function usePriceManagement() {
       status: '',
       dateRange: null
     }
-    console.log('🧹 [PriceManagement] Filters cleared')
+    
   }
   
   // === VALIDATION ===
@@ -426,7 +424,7 @@ export function usePriceManagement() {
   
   async function initialize() {
     try {
-      console.log('🚀 [PriceManagement] Initializing...')
+      
       loading.value = true
       
       await Promise.all([
@@ -436,9 +434,9 @@ export function usePriceManagement() {
       ])
       
       isInitialized.value = true
-      console.log('✅ [PriceManagement] Initialization completed')
+      
     } catch (err) {
-      console.error('❌ [PriceManagement] Initialization failed:', err)
+      
       error.value = err.message || 'Lỗi khởi tạo module quản lý giá'
       throw err
     } finally {
@@ -447,7 +445,7 @@ export function usePriceManagement() {
   }
   
   function cleanup() {
-    console.log('🧹 [PriceManagement] Cleaning up...')
+    
     // Reset all state
     prices.value = []
     allRoutes.value = []

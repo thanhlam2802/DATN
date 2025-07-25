@@ -154,16 +154,13 @@ export function useTripManagement() {
     try {
       loading.value = true
       error.value = null
-      console.log('🔄 Loading bus slots...')
       
       const slots = await BusSlotAPI.findAllBusSlots()
       busSlots.value = slots || []
       
-      console.log(`✅ Loaded ${busSlots.value.length} bus slots`)
     } catch (err) {
       error.value = 'Không thể tải danh sách chuyến đi'
-      console.error('❌ Error loading bus slots:', err)
-    } finally {
+      } finally {
       loading.value = false
     }
   }
@@ -171,7 +168,6 @@ export function useTripManagement() {
   async function loadAllBuses() {
     try {
       loadingBuses.value = true
-      console.log('🔄 Loading all buses for user ID:', DEV_USER_ID)
       
       const response = await graphqlRequest({
         query: GET_BUSES_BY_OWNER,
@@ -191,9 +187,7 @@ export function useTripManagement() {
         categoryName: bus.categoryName || 'N/A'
       }))
       
-      console.log(`✅ Loaded ${buses.length} buses`)
     } catch (err) {
-      console.error('❌ Error loading buses:', err)
       error.value = 'Không thể tải danh sách xe bus. Vui lòng tạo xe bus trước.'
     } finally {
       loadingBuses.value = false
@@ -203,7 +197,6 @@ export function useTripManagement() {
   async function loadAllRoutes() {
     try {
       loadingRoutes.value = true
-      console.log('🔄 Loading all routes...')
       
       const response = await graphqlRequest({
         query: GET_ALL_ROUTES
@@ -219,9 +212,7 @@ export function useTripManagement() {
         estimatedDurationMinutes: route.estimatedDurationMinutes
       }))
       
-      console.log(`✅ Loaded ${routes.length} routes`)
     } catch (err) {
-      console.error('❌ Error loading routes:', err)
       // Fallback to mock data
       allRoutes.value = [
         { id: '1', origin: 'Hà Nội', destination: 'TP.HCM', name: 'Hà Nội - TP.HCM', distanceKm: 1700, estimatedDurationMinutes: 720 },
@@ -239,17 +230,14 @@ export function useTripManagement() {
   async function createTrip(tripData) {
     try {
       loading.value = true
-      console.log('➕ Creating new trip:', tripData)
       
       // Validate and format data before sending to backend
       const formattedData = validateAndFormatTripData(tripData)
       const newTrip = await BusSlotAPI.createBusSlot(formattedData)
       busSlots.value = [...busSlots.value, newTrip]
       
-      console.log('✅ Trip created successfully:', newTrip)
       return newTrip
     } catch (err) {
-      console.error('❌ Error creating trip:', err)
       error.value = err.message || 'Không thể tạo chuyến đi mới'
       throw err
     } finally {
@@ -260,17 +248,14 @@ export function useTripManagement() {
   async function updateTrip(tripId, tripData) {
     try {
       loading.value = true
-      console.log('🔄 Updating trip:', tripId, tripData)
       
       // Validate and format data before sending to backend
       const formattedData = validateAndFormatTripData(tripData)
       const updatedTrip = await BusSlotAPI.updateBusSlot(tripId, formattedData)
       updateTripInUI(updatedTrip)
       
-      console.log('✅ Trip updated successfully:', updatedTrip)
       return updatedTrip
     } catch (err) {
-      console.error('❌ Error updating trip:', err)
       error.value = err.message || 'Không thể cập nhật chuyến đi'
       throw err
     } finally {
@@ -281,15 +266,12 @@ export function useTripManagement() {
   async function deleteTrip(tripId) {
     try {
       setTripLoading(tripId, 'delete')
-      console.log('🗑️ Deleting trip:', tripId)
       
       await BusSlotAPI.deleteBusSlot(tripId)
       busSlots.value = busSlots.value.filter(trip => trip.id !== tripId)
       
-      console.log('✅ Trip deleted successfully')
       return true
     } catch (err) {
-      console.error('❌ Error deleting trip:', err)
       error.value = err.message || 'Không thể xóa chuyến đi'
       throw err
     } finally {
@@ -301,25 +283,17 @@ export function useTripManagement() {
   
   async function quickMarkInProgress(trip) {
     try {
-      setTripLoading(trip.id, 'start')
-      console.log('🚀 Starting trip:', trip.id, 'Current status:', trip.status)
+      setTripLoading(trip.id, 'start')      
       
       const updatedTrip = await BusSlotAPI.quickStatusUpdate(trip.id, {
         status: BusSlotStatus.IN_PROGRESS,
         autoSetActualTime: true
       })
       
-      console.log('📡 API Response - Updated trip:', updatedTrip)
-      console.log('📊 Before UI update - busSlots count:', busSlots.value.length)
-      
       updateTripInUI(updatedTrip)
-      
-      console.log('📊 After UI update - busSlots count:', busSlots.value.length)
-      console.log('🔍 Updated trip in array:', busSlots.value.find(t => t.id === trip.id))
       
       return updatedTrip
     } catch (err) {
-      console.error('❌ Error marking trip in progress:', err)
       error.value = err.message || 'Không thể cập nhật trạng thái chuyến đi'
       throw err
     } finally {
@@ -330,19 +304,16 @@ export function useTripManagement() {
   async function quickMarkCompleted(trip) {
     try {
       setTripLoading(trip.id, 'complete')
-      console.log('🏁 Completing trip:', trip.id, 'Current status:', trip.status)
       
       const updatedTrip = await BusSlotAPI.quickStatusUpdate(trip.id, {
         status: BusSlotStatus.COMPLETED,
         autoSetActualTime: true
       })
       
-      console.log('📡 API Response - Completed trip:', updatedTrip)
       updateTripInUI(updatedTrip)
       
       return updatedTrip
     } catch (err) {
-      console.error('❌ Error marking trip completed:', err)
       error.value = err.message || 'Không thể cập nhật trạng thái chuyến đi'
       throw err
     } finally {
@@ -353,23 +324,18 @@ export function useTripManagement() {
   async function updateTripStatus(tripId, statusData) {
     try {
       loading.value = true
-      console.log('⚙️ Updating trip status:', tripId, statusData)
       
       let updatedTrip
       if (statusData.actualDepartureTime || statusData.actualArrivalTime) {
-        console.log('🕐 Updating actual times...')
         updatedTrip = await BusSlotAPI.updateActualTimes(tripId, statusData)
       } else {
-        console.log('🔄 Quick status update...')
         updatedTrip = await BusSlotAPI.quickStatusUpdate(tripId, statusData)
       }
       
-      console.log('📡 API Response - Status updated:', updatedTrip)
       updateTripInUI(updatedTrip)
       
       return updatedTrip
     } catch (err) {
-      console.error('❌ Error updating trip status:', err)
       error.value = err.message || 'Không thể cập nhật trạng thái chuyến đi'
       throw err
     } finally {
@@ -382,14 +348,11 @@ export function useTripManagement() {
   async function manualTriggerAutoManager() {
     try {
       syncLoading.value = true
-      console.log('🔧 Manual trigger auto-management...')
       
       const tripsNeedingUpdate = await BusSlotAPI.findTripsNeedingStatusUpdate()
-      console.log(`🔔 Found ${tripsNeedingUpdate.length} trips needing update`)
       
       await loadBusSlots() // Refresh data
-    } catch (err) {
-      console.error('❌ Error in manual trigger:', err)
+    } catch (err) {     
       error.value = err.message || 'Không thể đồng bộ trạng thái chuyến đi'
       throw err
     } finally {
@@ -403,15 +366,12 @@ export function useTripManagement() {
       const now = new Date()
       let updatesCount = 0
       
-      console.log(`🕐 [Auto-Check] Current time: ${now.toLocaleString()} (${now.toISOString()})`)
-      
       for (const trip of busSlots.value) {
         const tripDate = trip.slotDate
         const departureTime = trip.departureTime
         const arrivalTime = trip.arrivalTime
         
         if (!tripDate || !departureTime || !arrivalTime) {
-          console.log(`⚠️ [Auto-Check] Trip ${trip.id} missing time data:`, { tripDate, departureTime, arrivalTime })
           continue
         }
         
@@ -430,7 +390,6 @@ export function useTripManagement() {
             scheduledArrival = new Date(`${tripDate}T${arrivalTime}`)
           }
         } catch (timeError) {
-          console.error(`❌ [Auto-Check] Invalid time format for trip ${trip.id}:`, { departureTime, arrivalTime })
           continue
         }
         
@@ -438,63 +397,44 @@ export function useTripManagement() {
         const departureWithBuffer = new Date(scheduledDeparture.getTime() + 5 * 60 * 1000)
         const arrivalWithBuffer = new Date(scheduledArrival.getTime() + 5 * 60 * 1000)
         
-        console.log(`🔍 [Auto-Check] Trip ${trip.id} (${trip.status}):`, {
-          scheduledDeparture: scheduledDeparture.toLocaleString(),
-          scheduledArrival: scheduledArrival.toLocaleString(),
-          departureWithBuffer: departureWithBuffer.toLocaleString(),
-          arrivalWithBuffer: arrivalWithBuffer.toLocaleString(),
-          shouldStart: trip.status === BusSlotStatus.SCHEDULED && now >= departureWithBuffer,
-          shouldComplete: trip.status === BusSlotStatus.IN_PROGRESS && now >= arrivalWithBuffer
-        })
+        
         
         try {
           // Check if trip should start (SCHEDULED -> IN_PROGRESS)
           if (trip.status === BusSlotStatus.SCHEDULED && now >= departureWithBuffer) {
-            console.log(`🚌 [Auto-Starting] Trip ${trip.id}:`)
-            console.log(`   Scheduled: ${scheduledDeparture.toLocaleString()}`)
-            console.log(`   With Buffer: ${departureWithBuffer.toLocaleString()}`)
-            console.log(`   Current: ${now.toLocaleString()}`)
+            
             
             const updatedTrip = await BusSlotAPI.quickStatusUpdate(trip.id, {
               status: BusSlotStatus.IN_PROGRESS,
               autoSetActualTime: true
             })
             
-            console.log(`✅ [Auto-Started] Trip ${trip.id} updated:`, updatedTrip)
             updateTripInUI(updatedTrip)
             updatesCount++
           }
           
           // Check if trip should complete (IN_PROGRESS -> COMPLETED)
           else if (trip.status === BusSlotStatus.IN_PROGRESS && now >= arrivalWithBuffer) {
-            console.log(`🏁 [Auto-Completing] Trip ${trip.id}:`)
-            console.log(`   Scheduled: ${scheduledArrival.toLocaleString()}`)
-            console.log(`   With Buffer: ${arrivalWithBuffer.toLocaleString()}`)
-            console.log(`   Current: ${now.toLocaleString()}`)
+            
             
             const updatedTrip = await BusSlotAPI.quickStatusUpdate(trip.id, {
               status: BusSlotStatus.COMPLETED,
               autoSetActualTime: true
             })
             
-            console.log(`✅ [Auto-Completed] Trip ${trip.id} updated:`, updatedTrip)
             updateTripInUI(updatedTrip)
             updatesCount++
           }
         } catch (updateError) {
-          console.error(`❌ [Auto-Check] Error updating trip ${trip.id}:`, updateError)
         }
       }
       
       if (updatesCount > 0) {
-        console.log(`🎉 [Auto-Management] Successfully updated ${updatesCount} trips`)
       } else {
-        console.log(`ℹ️ [Auto-Management] No trips need updates at ${now.toLocaleTimeString()}`)
       }
       
       return updatesCount
-    } catch (err) {
-      console.error('❌ [Auto-Management] Error in auto status check:', err)
+    } catch (err) {     
       throw err
     }
   }
@@ -502,7 +442,6 @@ export function useTripManagement() {
   async function forceRefreshAllData() {
     try {
       loading.value = true
-      console.log('🔄 Force refreshing all data...')
       
       // Clear current data
       busSlots.value = []
@@ -516,12 +455,9 @@ export function useTripManagement() {
         loadAllRoutes()
       ])
       
-      console.log('✅ Force refresh completed')
-      
       // Clear any existing errors
       error.value = null
-    } catch (err) {
-      console.error('❌ Error in force refresh:', err)
+    } catch (err) {     
       error.value = err.message || 'Không thể tải lại dữ liệu'
       throw err
     } finally {
@@ -535,13 +471,11 @@ export function useTripManagement() {
     }
     
     if (autoManagerEnabled.value) {
-      console.log('🚀 Auto-management started - checking every 30 seconds')
       autoManagerInterval.value = setInterval(async () => {
         try {
           // Try backend auto-management first
           const tripsNeedingUpdate = await BusSlotAPI.findTripsNeedingStatusUpdate()
           if (tripsNeedingUpdate.length > 0) {
-            console.log(`🔔 Backend found ${tripsNeedingUpdate.length} trips needing update`)
             await loadBusSlots()
           } else {
             // Fallback to client-side check
@@ -552,7 +486,6 @@ export function useTripManagement() {
           try {
             await checkAndUpdateTripStatuses()
           } catch (clientErr) {
-            console.error('❌ Auto-management failed:', clientErr)
           }
         }
       }, 30 * 1000) // 30 seconds interval for responsive auto-management
@@ -563,14 +496,11 @@ export function useTripManagement() {
     if (autoManagerInterval.value) {
       clearInterval(autoManagerInterval.value)
       autoManagerInterval.value = null
-      console.log('⏹️ [Auto-Management] Stopped auto-management')
     } else {
-      console.log('ℹ️ [Auto-Management] Auto-management was not running')
     }
   }
 
   function toggleAutoManager() {
-    console.log(`🔄 [Auto-Management] Toggling auto-management from ${autoManagerEnabled.value} to ${!autoManagerEnabled.value}`)
     autoManagerEnabled.value = !autoManagerEnabled.value
     if (autoManagerEnabled.value) {
       startAutoManager()
@@ -582,26 +512,15 @@ export function useTripManagement() {
   // Debug function to manually trigger auto-management with detailed logging
   async function debugAutoManager() {
     try {
-      console.log('🔍 [DEBUG] Manual auto-management trigger started...')
-      console.log('🔍 [DEBUG] Auto-management enabled:', autoManagerEnabled.value)
-      console.log('🔍 [DEBUG] Current trips count:', busSlots.value.length)
       
       if (busSlots.value.length === 0) {
-        console.log('⚠️ [DEBUG] No trips found. Please create some trips first.')
         return
       }
       
-      console.log('🔍 [DEBUG] Current trips:', busSlots.value.map(trip => ({
-        id: trip.id,
-        status: trip.status,
-        slotDate: trip.slotDate,
-        departureTime: trip.departureTime,
-        arrivalTime: trip.arrivalTime
-      })))
+      
       
       await checkAndUpdateTripStatuses()
     } catch (err) {
-      console.error('❌ [DEBUG] Error in debug auto-management:', err)
     }
   }
 
@@ -645,22 +564,20 @@ export function useTripManagement() {
     if (hasDuplicateTrip(formatted.busId, formatted.routeId, formatted.slotDate)) {
       throw new Error('Chuyến xe này đã tồn tại! Xe bus đã có lịch trình trên tuyến đường này vào ngày đã chọn.')
     }
-    
-    console.log('📋 Formatted trip data for backend:', formatted)
+
     return formatted
   }
 
   function updateTripInUI(updatedTrip) {
     try {
-      console.log('🔄 Updating trip in UI:', updatedTrip.id, 'New status:', updatedTrip.status)
-      console.log('📋 Current busSlots IDs:', busSlots.value.map(t => ({ id: t.id, status: t.status })))
+      
       
       const index = busSlots.value.findIndex(trip => {
         // Handle both string and number IDs
         return String(trip.id) === String(updatedTrip.id)
       })
       
-      console.log('🎯 Found trip at index:', index)
+      
       
       if (index !== -1) {
         // Create new array with updated trip
@@ -679,28 +596,26 @@ export function useTripManagement() {
         
         busSlots.value = newBusSlots
         
-        console.log('✅ Successfully updated trip in UI:', updatedTrip.id)
-        console.log('🔍 Updated trip data:', newBusSlots[index])
+        
       } else {
-        console.warn('⚠️ Trip not found in UI array:', updatedTrip.id)
-        console.log('🔄 Refreshing all bus slots to ensure consistency...')
+        
         
         // Fallback: reload all data if we can't find the trip
         setTimeout(async () => {
-          console.log('🔄 [Fallback] Reloading bus slots...')
+          
           await loadBusSlots()
-          console.log('✅ [Fallback] Data reloaded successfully')
+          
         }, 1000)
       }
     } catch (err) {
-      console.error('❌ Error updating UI:', err)
+      
       
       // Fallback: reload all data
-      console.log('🔄 [Error Fallback] Reloading all bus slots...')
+      
       setTimeout(async () => {
-        console.log('🔄 [Error Fallback] Starting data reload...')
+        
         await loadBusSlots()
-        console.log('✅ [Error Fallback] Data reloaded successfully')
+        
       }, 1500)
     }
   }
@@ -750,7 +665,7 @@ export function useTripManagement() {
       const selectedBus = allBuses.value.find(bus => bus.id === newBusId)
       if (selectedBus && selectedBus.totalSeats) {
         tripForm.value.totalSeats = selectedBus.totalSeats
-        console.log('Auto-filled totalSeats:', selectedBus.totalSeats)
+        
       }
     }
   })
@@ -768,7 +683,7 @@ export function useTripManagement() {
         const arrivalMins = arrivalMinutes % 60
         
         tripForm.value.arrivalTime = `${arrivalHours.toString().padStart(2, '0')}:${arrivalMins.toString().padStart(2, '0')}`
-        console.log('Auto-calculated arrival time:', tripForm.value.arrivalTime)
+        
       }
     }
   })
@@ -776,8 +691,8 @@ export function useTripManagement() {
   // Initialize
   async function initialize() {
     try {
-      console.log('🚀 [Initialize] Starting trip management initialization...')
-      console.log('🔍 [Initialize] Auto-management enabled at start:', autoManagerEnabled.value)
+      
+      
       
       await Promise.all([
         loadBusSlots(),
@@ -785,24 +700,24 @@ export function useTripManagement() {
         loadAllRoutes()
       ])
       
-      console.log('✅ [Initialize] Data loaded successfully')
-      console.log(`🔍 [Initialize] Loaded: ${busSlots.value.length} trips, ${allBuses.value.length} buses, ${allRoutes.value.length} routes`)
+
+      
       
       if (autoManagerEnabled.value) {
-        console.log('🚀 [Initialize] Starting auto-management...')
+        
         startAutoManager()
       } else {
-        console.log('⚠️ [Initialize] Auto-management is disabled')
+        
       }
     } catch (err) {
-      console.error('❌ [Initialize] Error initializing trip management:', err)
+      
     }
   }
 
   function cleanup() {
-    console.log('🧹 [Cleanup] Cleaning up trip management...')
+      
     stopAutoManager()
-    console.log('✅ [Cleanup] Trip management cleaned up')
+    
   }
 
   return {

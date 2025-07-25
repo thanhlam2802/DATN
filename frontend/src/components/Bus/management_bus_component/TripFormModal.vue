@@ -369,17 +369,7 @@ const isDuplicateTrip = computed(() => {
     return false
   }
   
-  // Debug logging
-  console.log('🔍 Checking duplicate for:', {
-    busId: form.value.busId,
-    routeId: form.value.routeId,
-    slotDate: form.value.slotDate,
-    isEditing: isEditing.value,
-    totalBusSlots: tripManager.busSlots.value?.length || 0
-  })
-  
   const isDuplicate = tripManager.hasDuplicateTrip(form.value.busId, form.value.routeId, form.value.slotDate)
-  console.log('🔍 Duplicate result:', isDuplicate)
   
   return isDuplicate
 })
@@ -487,11 +477,8 @@ const checkAndFillPriceForRoute = async () => {
     const selectedRoute = props.availableRoutes.find(route => route.id === form.value.routeId)
     
     if (!selectedRoute) {
-      console.log('❌ Route not found in availableRoutes')
-      return
+      return // Need routeId
     }
-
-    console.log('🔍 Getting default price for route:', selectedRoute.origin, '→', selectedRoute.destination)
 
     let defaultPrice = 500000 // Base fallback
     let priceSource = 'mặc định hệ thống'
@@ -538,10 +525,6 @@ const checkAndFillPriceForRoute = async () => {
     form.value.price = defaultPrice
     priceAutoFilled.value = true
     priceAutoFillMessage.value = `Giá ${priceSource}: ${defaultPrice.toLocaleString('vi-VN')} VND - có thể điều chỉnh`
-    
-    // Show user notification
-    console.log(`✅ Auto-filled price: ${defaultPrice.toLocaleString('vi-VN')} VND`)
-    console.log(`📋 Nguồn giá: ${priceSource}`)
     
   } catch (error) {
     console.error('❌ Error fetching route default price:', error)

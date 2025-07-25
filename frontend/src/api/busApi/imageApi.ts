@@ -48,9 +48,6 @@ export async function uploadImage(file: File, onProgress?: (progress: number) =>
       },
     });
     
-    // Debug log để xem response structure
-    console.log('Upload response:', response.data);
-    
     // Kiểm tra và return đúng structure
     const data = (response.data as any).data || response.data;
     
@@ -85,8 +82,6 @@ export async function createImageRecord(input: { url: string; publicId: string; 
       console.error('Invalid input for createImageRecord:', input);
       throw new Error('Input must have url and publicId fields');
     }
-    
-    console.log('Creating image record with:', input);
     
     const response = await graphqlRequest({
       query: CREATE_IMAGE_MUTATION,

@@ -329,66 +329,45 @@ const getFormattedPrice = () => {
 // Methods
 const loadBusCategories = async () => {
   try {
-    const { getAllBusCategories } = await import('@/api/busApi/bus/categoryApi')
-    busCategories.value = await getAllBusCategories()
-    console.log('📋 Loaded bus categories:', busCategories.value.length)
+    const categories = await BusCategoryAPI.getAllBusCategories()
+    busCategories.value = categories
   } catch (error) {
     console.error('❌ Error loading bus categories:', error)
   }
 }
 
+// Load existing price rules when editing a route
 const loadExistingPriceRules = async (routeId) => {
+  if (!routeId) return
+  
   try {
-    console.log('🔍 Loading existing price rules for route:', routeId)
-    const { PriceAPI } = await import('@/api/busApi/priceApi/index')
+    const allPrices = await PriceAPI.getAllRouteBusCategoryPrices()
     
-    // Get all price rules and filter by route
-    const allPrices = await PriceAPI.findAllPrices()
-    const routePrices = allPrices.filter(price => price.route.id === routeId)
-    
-    // Store existing categories for comparison later
-    existingCategoryIds.value = routePrices.map(price => price.busCategory.id)
+    // Filter prices for this specific route
+    const routePrices = allPrices.filter(price => price.route?.id === routeId)
     
     if (routePrices.length > 0) {
-      // Use the first price rule as template (assuming all have same settings)
-      const firstPrice = routePrices[0]
+      // Extract category IDs and price data
+      const existingCategoryIds = routePrices.map(price => price.busCategory?.id).filter(Boolean)
+      const firstPrice = routePrices[0] // Use first price as template for common fields
       
-      // Pre-fill price form with existing data
-      form.basePrice = firstPrice.basePrice
+      // Update form with existing data
+      form.selectedCategories = existingCategoryIds
+      form.basePrice = firstPrice.basePrice || 500000
       form.promotionPrice = firstPrice.promotionPrice || null
-      form.validFrom = firstPrice.validFrom
-      form.validTo = firstPrice.validTo
+      form.promotionStartDate = firstPrice.promotionStartDate ? firstPrice.promotionStartDate.split('T')[0] : ''
+      form.promotionEndDate = firstPrice.promotionEndDate ? firstPrice.promotionEndDate.split('T')[0] : ''
       form.notes = firstPrice.notes || ''
       
-      // Pre-select categories that have price rules
-      form.selectedCategories = routePrices.map(price => price.busCategory.id)
-      
-      console.log('✅ Loaded existing price data:', {
-        categories: form.selectedCategories,
-        basePrice: form.basePrice,
-        dateRange: `${form.validFrom} - ${form.validTo}`
-      })
+      // Store existing category IDs for comparison
+      existingCategoryIds.value = existingCategoryIds
     } else {
-      console.log('⚠️ No existing price rules found for route:', routeId)
-      existingCategoryIds.value = []
-      // Reset price fields for edit mode
+      // Reset to defaults
       form.selectedCategories = []
-      form.basePrice = null
-      form.promotionPrice = null
-      form.validFrom = today
-      form.validTo = null
-      form.notes = ''
+      existingCategoryIds.value = []
     }
   } catch (error) {
     console.error('❌ Error loading existing price rules:', error)
-    existingCategoryIds.value = []
-    // Reset on error
-    form.selectedCategories = []
-    form.basePrice = null
-    form.promotionPrice = null
-    form.validFrom = today
-    form.validTo = null
-    form.notes = ''
   }
 }
 
@@ -523,60 +502,30 @@ const handleSubmit = async () => {
       emit('route-created', routeResponse)
     }
 
-    // Handle price rules creation/update
-    if (form.selectedCategories.length > 0 && form.basePrice) {
-      try {
-        const { PriceAPI } = await import('@/api/busApi/priceApi/index')
-        
-        let categoriesToCreatePrices = []
-        
-        if (isEditing.value) {
-          // Edit mode: only create price rules for new categories
-          categoriesToCreatePrices = form.selectedCategories.filter(
-            categoryId => !existingCategoryIds.value.includes(categoryId)
-          )
-          
-          if (categoriesToCreatePrices.length > 0) {
-            console.log(`💰 Creating price rules for ${categoriesToCreatePrices.length} new categories:`, categoriesToCreatePrices)
-          } else {
-            console.log('ℹ️ No new categories to create price rules for')
+    // Create price rules after route is created/updated
+    if (form.selectedCategories.length > 0) {
+      // For editing: only create prices for NEW categories (not existing ones)
+      const categoriesToCreatePrices = isEditing.value 
+        ? form.selectedCategories.filter(categoryId => !existingCategoryIds.value.includes(categoryId))
+        : form.selectedCategories
+
+      if (categoriesToCreatePrices.length > 0) {
+        // Create price rules for each selected category
+        const pricePromises = categoriesToCreatePrices.map(async (categoryId) => {
+          const priceData = {
+            routeId: routeResponse.id,
+            busCategoryId: categoryId,
+            basePrice: form.basePrice,
+            promotionPrice: form.promotionPrice || undefined,
+            promotionStartDate: form.promotionStartDate || undefined,
+            promotionEndDate: form.promotionEndDate || undefined,
+            notes: form.notes || undefined
           }
-        } else {
-          // Create mode: create price rules for all selected categories
-          categoriesToCreatePrices = form.selectedCategories
-          console.log(`💰 Creating price rules for ${categoriesToCreatePrices.length} categories:`, categoriesToCreatePrices)
-        }
-        
-        if (categoriesToCreatePrices.length > 0) {
-          const pricePromises = categoriesToCreatePrices.map(categoryId => {
-            const priceInput = {
-              routeId: routeResponse.id,
-              busCategoryId: categoryId,
-              basePrice: form.basePrice,
-              promotionPrice: form.promotionPrice || null,
-              validFrom: form.validFrom,
-              validTo: form.validTo,
-              notes: form.notes || null
-            }
-            
-            return PriceAPI.createPrice(priceInput)
-          })
           
-          const priceResults = await Promise.all(pricePromises)
-          console.log(`✅ Created ${priceResults.length} new price rules`)
-          
-          if (isEditing.value) {
-            toast.info(`Đã thêm quy tắc giá cho ${priceResults.length} loại xe mới`)
-          }
-        }
-        
-      } catch (priceError) {
-        console.error('❌ Error creating price rules:', priceError)
-        const action = isEditing.value ? 'cập nhật' : 'tạo'
-        toast.warning(
-          `Tuyến đường đã được ${action} thành công, nhưng có lỗi khi tạo quy tắc giá`,
-          'Lưu ý'
-        )
+          return await PriceAPI.createRouteBusCategoryPrice(priceData)
+        })
+
+        const priceResults = await Promise.all(pricePromises)
       }
     }
     
@@ -600,7 +549,6 @@ watch(() => form.distanceKm, (newDistance) => {
   if (newDistance && newDistance > 0 && !form.basePrice) {
     // Auto-suggest price based on distance (300 VND per km)
     form.basePrice = Math.round(newDistance * 300)
-    console.log(`💡 Auto-suggested price based on ${newDistance}km: ${form.basePrice} VND`)
   }
 })
 

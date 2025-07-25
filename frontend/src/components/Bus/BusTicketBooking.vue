@@ -86,9 +86,7 @@ const currentLayout = computed(() => {
     busType = props.selectedTrip.activeTab
   }
   
-  console.log('Current bus type for layout:', busType, 'from trip:', props.selectedTrip)
-  console.log('Available layouts:', Object.keys(seatLayouts))
-  console.log('Selected layout:', seatLayouts[busType])
+  
   
   return seatLayouts[busType] || seatLayouts['shuttle-bus']
 })
@@ -113,7 +111,6 @@ const getSeatStatus = (seatNumber) => {
   const busType = currentLayout.value.layout === 'single' ? 'shuttle-bus' : 'sleeping-bus'
   const availability = seatAvailability.value[busType]
   
-  console.log('getSeatStatus - busType:', busType, 'seatNumber:', seatNumber, 'availability:', availability)
   
   if (bookingData.value.selectedSeats.includes(seatNumber)) return 'selected'
   if (availability.available.includes(seatNumber)) return 'available'
@@ -170,10 +167,8 @@ const applyVoucher = () => {
   if (vouchers[code]) {
     bookingData.value.discount = vouchers[code]
     updateTotalAmount()
-    console.log(`Áp dụng mã giảm giá ${code}: ${vouchers[code]}%`)
   } else {
     bookingData.value.discount = 0
-    console.log('Mã voucher không hợp lệ')
   }
 }
 
@@ -232,7 +227,6 @@ const completeBooking = () => {
     bookingTime: new Date().toISOString()
   }
   
-  console.log('Booking completed:', booking)
   emit('booking-complete', booking)
 }
 

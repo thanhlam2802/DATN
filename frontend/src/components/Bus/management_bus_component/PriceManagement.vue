@@ -212,7 +212,7 @@
                 <div class="flex items-center justify-center">
                   <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Đang tải dữ liệu...
                 </div>
@@ -461,8 +461,6 @@ import { usePriceManagement } from '@/composables/usePriceManagement'
 import { toast, confirm, handleError } from '@/utils/notifications'
 import { PriceStatus } from '@/api/busApi'
 
-console.log('🚀 [PriceManagement] Component loading with new GraphQL client...')
-
 // Composable
 const priceManager = usePriceManagement()
 
@@ -585,19 +583,14 @@ const closeBulkUpdateModal = () => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('🚀 [PriceManagement] Component mounted, initializing...')
   try {
     await priceManager.initialize()
-    console.log('✅ [PriceManagement] Initialization completed')
   } catch (error) {
-    console.error('❌ [PriceManagement] Initialization failed:', error)
+    throw error
   }
 })
 
 onUnmounted(() => {
-  console.log('🛑 [PriceManagement] Component unmounting, cleaning up...')
   priceManager.cleanup()
 })
-
-console.log('✅ [PriceManagement] Component setup completed!')
 </script> 

@@ -84,7 +84,10 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
-      console.error('❌ [GraphQL] GraphQL Errors:', result.errors);
+      console.error('❌ [GraphQL] GraphQL Errors Details:', result.errors);
+      console.error('❌ [GraphQL] First Error:', result.errors[0]);
+      console.error('❌ [GraphQL] Query was:', query);
+      console.error('❌ [GraphQL] Variables were:', variables);
       throw new Error(result.errors[0].message);
     }
 
@@ -99,13 +102,22 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
     
   } catch (error: any) {
     console.error('❌ [GraphQL] Query Error:', error);
+    console.error('❌ [GraphQL] Error Type:', typeof error);
+    console.error('❌ [GraphQL] Error Keys:', Object.keys(error));
     
-    // Handle network errors
+    // Log response details if available
     if (error.response) {
+      console.error('❌ [GraphQL] Response Status:', error.response.status);
+      console.error('❌ [GraphQL] Response Data:', error.response.data);
+      console.error('❌ [GraphQL] Response Headers:', error.response.headers);
       const status = error.response.status;
       const message = error.response.data?.message || error.message;
       throw new Error(`GraphQL Error (${status}): ${message}`);
     }
+    
+    // Log request details for debugging
+    console.error('❌ [GraphQL] Failed Query:', query);
+    console.error('❌ [GraphQL] Failed Variables:', variables);
     
     throw new Error(error.message || 'GraphQL request failed');
   }

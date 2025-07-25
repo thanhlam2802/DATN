@@ -3,12 +3,17 @@ package backend.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
+import java.time.OffsetDateTime; // Đã bỏ LocalDateTime vì chỉ dùng OffsetDateTime
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+// ĐẢM BẢO CHỈ IMPORT "BusAmenity" VÀ KHÔNG CÓ "Amenity" CŨ
+import backend.backend.entity.BusAmenity; // <-- RẤT QUAN TRỌNG: Đảm bảo dòng này tồn tại
 
 @Data
 @Entity
@@ -56,8 +61,21 @@ public class Bus {
     @ToString.Include
     private List<BusRoute> busRoutes; // Các tuyến đường mà chiếc xe này được phép chạy
 
+    // --- CẬP NHẬT TÊN BẢNG TRUNG GIAN ---
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "bus_amenity", // <-- ĐÃ SỬA LẠI TÊN BẢNG TRUNG GIAN Ở ĐÂY (số ít)
+            joinColumns = @JoinColumn(name = "bus_id"),
+            inverseJoinColumns = @JoinColumn(name = "amenity_id")
+    )
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private Set<BusAmenity> amenities = new HashSet<>();
+
+
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = OffsetDateTime.now().now();
+        // Đảm bảo chỉ gọi OffsetDateTime.now() một lần
+        updatedAt = OffsetDateTime.now();
     }
 }

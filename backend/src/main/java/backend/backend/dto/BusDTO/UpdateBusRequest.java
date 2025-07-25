@@ -18,5 +18,7 @@ public record UpdateBusRequest(
 
         String ownerId,
 
-        List<String> imageIds // Danh sách ID của các ảnh để cập nhật (có thể thay thế hoặc thêm bớt)
+        List<String> imageIds, // Danh sách ID của các ảnh để cập nhật (có thể thay thế hoặc thêm bớt)
+
+        List<String> amenityNames
 ) {}

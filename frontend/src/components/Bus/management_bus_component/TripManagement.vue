@@ -54,7 +54,7 @@
           
         </div>
         
-        <button @click="showAddModal = true" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <button @click="openCreateModal" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
@@ -64,7 +64,7 @@
     </div>
 
     <!-- Error Message -->
-    <div v-if="tripManager.error.value" class="bg-red-50 border-l-4 border-red-400 p-4 rounded-md shadow-sm">
+    <!-- <div v-if="tripManager.error.value" class="bg-red-50 border-l-4 border-red-400 p-4 rounded-md shadow-sm">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -79,7 +79,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Warning về xe bus -->
     <div v-if="!tripManager.loadingBuses.value && tripManager.availableBuses.value.length === 0" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
@@ -103,16 +103,47 @@
 
     <!-- Filters Section -->
     <div class="bg-white shadow rounded-lg p-6">
-      <h4 class="text-sm font-medium text-gray-900 mb-4">Lọc chuyến xe</h4>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="text-sm font-medium text-gray-900">Lọc chuyến xe</h4>
+        <div class="flex items-center space-x-3">
+          <!-- Advanced Filter Toggle -->
+          <button
+            @click="showAdvancedFilters = !showAdvancedFilters"
+            :class="[
+              'inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium transition-all duration-200',
+              showAdvancedFilters ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 hover:bg-gray-50'
+            ]"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 110-4m6 2a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 110-4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 110-4"></path>
+            </svg>
+            Bộ lọc nâng cao
+            <span v-if="activeFiltersCount > 0" class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {{ activeFiltersCount }}
+            </span>
+          </button>
+          
+          <!-- Clear Filters -->
+          <button 
+            @click="clearAllFilters"
+            class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            v-if="activeFiltersCount > 0"
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
+      </div>
+      
+      <!-- Basic Filters -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Tuyến đường</label>
           <div class="relative">
             <select v-model="filters.route" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
               <option value="">Tất cả tuyến</option>
-              <option value="hanoi-hochiminh">Hà Nội - TP.HCM</option>
-              <option value="hanoi-danang">Hà Nội - Đà Nẵng</option>
-              <option value="hochiminh-danang">TP.HCM - Đà Nẵng</option>
+              <option v-for="route in availableRoutes" :key="route.id" :value="route.id">
+                {{ route.name || `${route.origin} - ${route.destination}` }}
+              </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,15 +152,15 @@
             </div>
           </div>
         </div>
+        
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
           <div class="relative">
             <select v-model="filters.status" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
               <option value="">Tất cả trạng thái</option>
-              <option value="scheduled">Đã lên lịch</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="delayed">Tạm dừng</option>
-              <option value="completed">Hoàn thành</option>
+              <option v-for="status in availableStatuses" :key="status.value" :value="status.value">
+                {{ status.label }} ({{ status.count }})
+              </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,16 +169,131 @@
             </div>
           </div>
         </div>
+        
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Ngày khởi hành</label>
           <input v-model="filters.date" type="date" class="w-full bg-white border border-gray-300 rounded-lg shadow-sm px-3 py-2 text-sm text-gray-700 placeholder-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
         </div>
-        <div class="flex items-end">
-          <button @click="applyFilters" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
-            Áp dụng lọc
-          </button>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Xe buýt</label>
+          <div class="relative">
+            <select v-model="filters.busId" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+              <option value="">Tất cả xe</option>
+              <option v-for="bus in availableBuses" :key="bus.id" :value="bus.id">
+                {{ bus.name }} ({{ bus.licensePlate }})
+              </option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- Advanced Filters -->
+      <transition name="filter-slide">
+        <div v-if="showAdvancedFilters" class="border-t border-gray-200 pt-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Price Range Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Khoảng giá vé</label>
+              <div class="space-y-3">
+                <div class="flex items-center space-x-2">
+                  <input 
+                    v-model.number="filters.priceRange.min"
+                    type="number" 
+                    :min="priceRange.min"
+                    :max="filters.priceRange.max"
+                    placeholder="Từ"
+                    class="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <span class="text-gray-500">-</span>
+                  <input 
+                    v-model.number="filters.priceRange.max"
+                    type="number" 
+                    :min="filters.priceRange.min"
+                    :max="priceRange.max"
+                    placeholder="Đến"
+                    class="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <span class="text-xs text-gray-500">VNĐ</span>
+                </div>
+                <div class="text-xs text-gray-500">
+                  Phạm vi: {{ formatPrice(priceRange.min) }} - {{ formatPrice(priceRange.max) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Occupancy Level Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Mức độ lấp đầy</label>
+              <div class="relative">
+                <select v-model="filters.occupancyLevel" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                  <option value="">Tất cả mức độ</option>
+                  <option value="low">🟢 Thấp (&lt; 30%)</option>
+                  <option value="medium">🟡 Trung bình (30-70%)</option>
+                  <option value="high">🔴 Cao (&gt; 70%)</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Time Range Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ khởi hành</label>
+              <div class="space-y-2">
+                <input 
+                  v-model="filters.timeRange.departureFrom"
+                  type="time" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Từ giờ"
+                />
+                <input 
+                  v-model="filters.timeRange.departureTo"
+                  type="time" 
+                  :min="filters.timeRange.departureFrom"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Đến giờ"
+                />
+              </div>
+            </div>
+
+          </div>
+          
+          <!-- Filter Summary -->
+          <div class="mt-4 p-3 bg-gray-50 rounded-md">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-600">Kết quả lọc:</span>
+              <span class="font-medium text-blue-600">{{ filteredTrips.length }} / {{ tripManager.busSlots.value.length }} chuyến xe</span>
+            </div>
+            <div v-if="activeFiltersCount > 0" class="mt-2 flex flex-wrap gap-1">
+              <span v-if="filters.route" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Tuyến: {{ availableRoutes.find(r => r.id === filters.route)?.name || 'N/A' }}
+              </span>
+              <span v-if="filters.status" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {{ availableStatuses.find(s => s.value === filters.status)?.label || 'N/A' }}
+              </span>
+              <span v-if="filters.busId" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                Xe: {{ availableBuses.find(b => b.id === filters.busId)?.name || 'N/A' }}
+              </span>
+              <span v-if="filters.occupancyLevel" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                Lấp đầy: {{ filters.occupancyLevel === 'low' ? 'Thấp' : filters.occupancyLevel === 'medium' ? 'TB' : 'Cao' }}
+              </span>
+              <span v-if="filters.priceRange.min > priceRange.min || filters.priceRange.max < priceRange.max" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                Giá: {{ formatPrice(filters.priceRange.min) }} - {{ formatPrice(filters.priceRange.max) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
 
 
@@ -268,17 +414,6 @@
               </td>
             </tr>
             
-            <!-- Error State -->
-            <tr v-else-if="tripManager.error.value">
-              <td colspan="8" class="px-6 py-8 text-center text-red-500">
-                <div class="flex items-center justify-center">
-                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  {{ tripManager.error.value }}
-                </div>
-              </td>
-            </tr>
             
             <!-- Empty State -->
             <tr v-else-if="filteredTrips.length === 0">
@@ -289,7 +424,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0M15 17a2 2 0 104 0M9 17h6"></path>
                   </svg>
                   <p>Chưa có chuyến xe nào</p>
-                  <button @click="showAddModal = true" class="mt-2 text-blue-600 hover:text-blue-800">
+                  <button @click="openCreateModal" class="mt-2 text-blue-600 hover:text-blue-800">
                     Thêm chuyến xe đầu tiên
                   </button>
                 </div>
@@ -333,7 +468,9 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ busSlot.totalSeats - busSlot.availableSeats }}/{{ busSlot.totalSeats }}
+                <span :class="'inline-flex px-2 py-1 text-xs font-medium rounded-full ' + getOccupancyBadgeClass(busSlot.totalSeats, busSlot.availableSeats)">
+                  {{ busSlot.totalSeats - busSlot.availableSeats }}/{{ busSlot.totalSeats }}
+                </span>
                 <div class="text-xs text-green-600">{{ formatPrice(busSlot.price) }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -554,19 +691,102 @@ const updatingTrip = ref(null)
 const successMessage = ref('')
 const debuggingAuto = ref(false)
 
-// Show success message temporarily
-const showSuccessMessage = (message) => {
-  successMessage.value = message
-  setTimeout(() => {
-    successMessage.value = ''
-  }, 3000)
-}
-
-// Filters
+// Enhanced Filter State
+const showAdvancedFilters = ref(false)
 const filters = ref({
   route: '',
   status: '',
-  date: ''
+  date: '',
+  busId: '',
+  priceRange: {
+    min: 0,
+    max: 1000000
+  },
+  occupancyLevel: '', // 'low', 'medium', 'high'
+  timeRange: {
+    departureFrom: '',
+    departureTo: ''
+  }
+})
+
+// Computed filter data
+const availableRoutes = computed(() => {
+  // Get unique routes from trips and available routes
+  const routesFromTrips = tripManager.busSlots.value
+    .filter(slot => slot.route)
+    .map(slot => ({
+      id: slot.route.id,
+      name: `${slot.route.origin} - ${slot.route.destination}`,
+      origin: slot.route.origin,
+      destination: slot.route.destination
+    }))
+
+  const routesFromApi = tripManager.availableRoutes.value || []
+  
+  // Combine and deduplicate
+  const combinedRoutes = [...routesFromApi, ...routesFromTrips]
+  const uniqueRoutes = combinedRoutes.filter((route, index, self) => 
+    index === self.findIndex(r => r.id === route.id || r.name === route.name)
+  )
+  
+  return uniqueRoutes.sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const availableBuses = computed(() => {
+  // Get unique buses from trips
+  const busesFromTrips = tripManager.busSlots.value
+    .filter(slot => slot.bus)
+    .map(slot => ({
+      id: slot.bus.id,
+      name: slot.bus.name,
+      licensePlate: slot.bus.licensePlate
+    }))
+    
+  const busesFromApi = tripManager.availableBuses.value || []
+  
+  // Combine and deduplicate
+  const combinedBuses = [...busesFromApi, ...busesFromTrips]
+  const uniqueBuses = combinedBuses.filter((bus, index, self) => 
+    index === self.findIndex(b => b.id === bus.id)
+  )
+  
+  return uniqueBuses.sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const availableStatuses = computed(() => {
+  return [
+    { value: 'SCHEDULED', label: '📅 Đã lên lịch', count: 0 },
+    { value: 'IN_PROGRESS', label: '🚌 Đang hoạt động', count: 0 },
+    { value: 'DELAYED', label: '⏰ Tạm dừng', count: 0 },
+    { value: 'COMPLETED', label: '✅ Hoàn thành', count: 0 },
+    { value: 'CANCELLED', label: '❌ Đã hủy', count: 0 }
+  ].map(status => ({
+    ...status,
+    count: tripManager.busSlots.value.filter(slot => slot.status === status.value).length
+  }))
+})
+
+const priceRange = computed(() => {
+  if (tripManager.busSlots.value.length === 0) return { min: 0, max: 1000000 }
+  
+  const prices = tripManager.busSlots.value.map(slot => slot.price || 0)
+  return {
+    min: Math.min(...prices),
+    max: Math.max(...prices)
+  }
+})
+
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (filters.value.route) count++
+  if (filters.value.status) count++
+  if (filters.value.date) count++
+  if (filters.value.busId) count++
+  if (filters.value.occupancyLevel) count++
+  if (filters.value.priceRange.min > priceRange.value.min || 
+      filters.value.priceRange.max < priceRange.value.max) count++
+  if (filters.value.timeRange.departureFrom || filters.value.timeRange.departureTo) count++
+  return count
 })
 
 // Status update form
@@ -583,32 +803,133 @@ const statusUpdateForm = ref({
 const filteredTrips = computed(() => {
   let filtered = tripManager.busSlots.value
 
+  // Route filter
   if (filters.value.route) {
-    filtered = filtered.filter(slot => 
-      slot.route && `${slot.route.origin} - ${slot.route.destination}`.includes(filters.value.route)
-    )
+    filtered = filtered.filter(slot => {
+      if (!slot.route) return false
+      const routeName = `${slot.route.origin} - ${slot.route.destination}`
+      return slot.route.id === filters.value.route || routeName.includes(filters.value.route)
+    })
   }
   
+  // Status filter
   if (filters.value.status) {
-    const statusMap = {
-      'active': BusSlotStatus.IN_PROGRESS,
-      'delayed': BusSlotStatus.DELAYED,
-      'completed': BusSlotStatus.COMPLETED,
-      'scheduled': BusSlotStatus.SCHEDULED
-    }
-    filtered = filtered.filter(slot => slot.status === statusMap[filters.value.status])
+    filtered = filtered.filter(slot => slot.status === filters.value.status)
   }
   
+  // Date filter
   if (filters.value.date) {
     filtered = filtered.filter(slot => slot.slotDate === filters.value.date)
+  }
+
+  // Bus filter
+  if (filters.value.busId) {
+    filtered = filtered.filter(slot => slot.bus && slot.bus.id === filters.value.busId)
+  }
+
+  // Price range filter
+  filtered = filtered.filter(slot => {
+    const price = slot.price || 0
+    return price >= filters.value.priceRange.min && price <= filters.value.priceRange.max
+  })
+
+  // Occupancy level filter
+  if (filters.value.occupancyLevel) {
+    filtered = filtered.filter(slot => {
+      const occupancyRate = ((slot.totalSeats - slot.availableSeats) / slot.totalSeats) * 100
+      switch (filters.value.occupancyLevel) {
+        case 'low': return occupancyRate < 30
+        case 'medium': return occupancyRate >= 30 && occupancyRate < 70
+        case 'high': return occupancyRate >= 70
+        default: return true
+      }
+    })
+  }
+
+  // Time range filter
+  if (filters.value.timeRange.departureFrom) {
+    filtered = filtered.filter(slot => {
+      if (!slot.departureTime) return false
+      const departureTime = formatTimeForComparison(slot.departureTime)
+      return departureTime >= filters.value.timeRange.departureFrom
+    })
+  }
+
+  if (filters.value.timeRange.departureTo) {
+    filtered = filtered.filter(slot => {
+      if (!slot.departureTime) return false
+      const departureTime = formatTimeForComparison(slot.departureTime)
+      return departureTime <= filters.value.timeRange.departureTo
+    })
   }
 
   return filtered
 })
 
+// Show success message temporarily
+const showSuccessMessage = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
+}
+
+// Filter helper methods
+const formatTimeForComparison = (time) => {
+  if (!time) return ''
+  try {
+    if (typeof time === 'string' && time.match(/^\d{2}:\d{2}:\d{2}$/)) {
+      return time.substring(0, 5) // HH:MM:SS -> HH:MM
+    }
+    return new Date(time).toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false
+    })
+  } catch {
+    return ''
+  }
+}
+
+const clearAllFilters = () => {
+  filters.value = {
+    route: '',
+    status: '',
+    date: '',
+    busId: '',
+    priceRange: {
+      min: priceRange.value.min,
+      max: priceRange.value.max
+    },
+    occupancyLevel: '',
+    timeRange: {
+      departureFrom: '',
+      departureTo: ''
+    }
+  }
+}
+
+const initializeFilters = () => {
+  // Initialize price range when data loads
+  if (priceRange.value) {
+    filters.value.priceRange.min = priceRange.value.min
+    filters.value.priceRange.max = priceRange.value.max
+  }
+}
+
+const getOccupancyLevel = (trip) => {
+  const occupancyRate = ((trip.totalSeats - trip.availableSeats) / trip.totalSeats) * 100
+  if (occupancyRate < 30) return { level: 'low', label: 'Thấp', color: 'green' }
+  if (occupancyRate < 70) return { level: 'medium', label: 'Trung bình', color: 'yellow' }
+  return { level: 'high', label: 'Cao', color: 'red' }
+}
+
 // Methods
-const applyFilters = () => {
-  // Filters are applied automatically through computed property
+const openCreateModal = () => {
+  editingTrip.value = null
+  tripManager.setEditingTrip(null) // Clear editing trip ID for new trip
+  tripManager.resetForm()
+  showAddModal.value = true
 }
 
 const editTrip = (busSlot) => {
@@ -658,13 +979,21 @@ const handleSaveTrip = async (tripData) => {
   try {
     if (editingTrip.value) {
       await tripManager.updateTrip(editingTrip.value.id, tripData)
+      toast.updated('chuyến xe')
     } else {
       await tripManager.createTrip(tripData)
+      toast.created('chuyến xe')
     }
+    
+    // 🔄 Refresh data để get complete data từ server
+    await tripManager.loadBusSlots()
+    
+    // ✅ Chỉ đóng modal khi thành công
     closeModal()
   } catch (error) {
     console.error('Error saving trip:', error)
-    // Error is handled in composable and displayed in UI
+    handleError.api(error, editingTrip.value ? 'cập nhật chuyến xe' : 'tạo chuyến xe')
+    // ❌ Không đóng modal khi có lỗi - để user có thể sửa và thử lại
   }
 }
 
@@ -675,6 +1004,9 @@ const handleDeleteTrip = async (tripId) => {
     try {
       await tripManager.deleteTrip(tripId)
       toast.deleted('chuyến xe')
+      
+      // 🔄 Refresh data để cập nhật UI
+      await tripManager.loadBusSlots()
     } catch (error) {
       console.error('Error deleting trip:', error)
       handleError.api(error, 'xóa chuyến xe')
@@ -686,11 +1018,14 @@ const handleQuickMarkInProgress = async (trip) => {
   try {
     await tripManager.quickMarkInProgress(trip)
     toast.success('🚌 Chuyến xe đã bắt đầu!')
+    
+    // 🔄 Refresh data để cập nhật status và related data
+    await tripManager.loadBusSlots()
   } catch (error) {
     console.error('Error marking trip in progress:', error)
     handleError.api(error, 'bắt đầu chuyến xe')
     
-    // Auto-fallback: refresh data after 2 seconds
+    // Auto-fallback: refresh data after error
     setTimeout(async () => {
       try {
         await tripManager.loadBusSlots()
@@ -705,11 +1040,14 @@ const handleQuickMarkCompleted = async (trip) => {
   try {
     await tripManager.quickMarkCompleted(trip)
     toast.success('✅ Chuyến xe đã hoàn thành!')
+    
+    // 🔄 Refresh data để cập nhật status và related data
+    await tripManager.loadBusSlots()
   } catch (error) {
     console.error('Error marking trip completed:', error)
     handleError.api(error, 'hoàn thành chuyến xe')
     
-    // Auto-fallback: refresh data after 2 seconds
+    // Auto-fallback: refresh data after error
     setTimeout(async () => {
       try {
         await tripManager.loadBusSlots()
@@ -725,9 +1063,14 @@ const handleSaveStatusUpdate = async () => {
   
   try {
     await tripManager.updateTripStatus(updatingTrip.value.id, statusUpdateForm.value)
+    toast.updated('trạng thái chuyến xe')
+    
+    // 🔄 Refresh data để cập nhật status mới
+    await tripManager.loadBusSlots()
+    
     closeStatusUpdateModal()
-    showSuccessMessage('Cập nhật trạng thái thực tế thành công!')
   } catch (error) {
+    handleError.api(error, 'cập nhật trạng thái chuyến xe')
     throw error;
   }
 }
@@ -735,7 +1078,12 @@ const handleSaveStatusUpdate = async () => {
 const handleManualSync = async () => {
   try {
     await tripManager.manualTriggerAutoManager()
+    toast.success('✅ Đồng bộ thành công!')
+    
+    // 🔄 Refresh data sau khi sync
+    await tripManager.loadBusSlots()
   } catch (error) {
+    handleError.api(error, 'đồng bộ dữ liệu')
     throw error;
   }
 }
@@ -877,10 +1225,17 @@ const calculateProgress = (trip) => {
   return Math.round(progress)
 }
 
+const getOccupancyBadgeClass = (totalSeats, availableSeats) => {
+  const occupancyRate = ((totalSeats - availableSeats) / totalSeats) * 100
+  if (occupancyRate < 30) return 'bg-green-100 text-green-800' // Thấp
+  if (occupancyRate < 70) return 'bg-yellow-100 text-yellow-800' // Trung bình
+  return 'bg-red-100 text-red-800' // Cao
+}
+
 // Lifecycle
 onMounted(async () => {
   await tripManager.initialize()
-
+  initializeFilters() // Call initializeFilters after data is loaded
 })
 
 onUnmounted(() => {
@@ -941,5 +1296,34 @@ onUnmounted(() => {
 .modal-leave-to .transform {
   opacity: 0;
   transform: scale(0.95) translateY(-10px);
+}
+
+/* Filter Slide Transition */
+.filter-slide-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.filter-slide-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.filter-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.filter-slide-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.filter-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.filter-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

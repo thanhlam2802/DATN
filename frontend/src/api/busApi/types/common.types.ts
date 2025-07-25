@@ -20,6 +20,14 @@ export interface BusCategory {
   name: string;
 }
 
+export interface BusAmenity {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Bus {
   id: string;
   name: string;
@@ -29,6 +37,7 @@ export interface Bus {
   categoryName?: string; // Thêm lại categoryName
   owner: User;
   busImages: Image[];
+  amenities?: BusAmenity[]; // Thêm amenities field
   createdAt?: string | null;
   updatedAt?: string | null;
 }

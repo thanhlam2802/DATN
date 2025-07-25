@@ -1,7 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import { BusSlotAPI, BusSlotStatus, DelayReason } from '@/api/busApi/busSlot'
-import { graphqlRequest } from '@/api/graphqlClient'
-import { gql } from '@apollo/client/core'
+import { graphqlRequest, gql } from '@/api/graphqlClient'
 
 // GraphQL queries cho buses và routes
 const GET_BUSES_BY_OWNER = gql`
@@ -107,6 +106,28 @@ export function useTripManagement() {
     return conflictingSlots.length > 0
   }
   
+  // Helper function để check duplicate bus-route-date combination
+  function hasDuplicateTrip(busId, routeId, slotDate) {
+    if (!busId || !routeId || !slotDate) return false
+    
+    return busSlots.value.some(slot => {
+      // Skip completed/cancelled trips
+      if (slot.status === BusSlotStatus.COMPLETED || slot.status === BusSlotStatus.CANCELLED) {
+        return false
+      }
+      
+      // Skip current editing trip
+      if (editingTripId.value && String(slot.id) === String(editingTripId.value)) {
+        return false
+      }
+      
+      // Check exact match
+      return String(slot.bus?.id) === String(busId) && 
+             String(slot.route?.id) === String(routeId) && 
+             slot.slotDate === slotDate
+    })
+  }
+
   function timeToMinutes(timeString) {
     if (!timeString) return 0
     const timeParts = timeString.split(':')
@@ -619,6 +640,11 @@ export function useTripManagement() {
     if (!formatted.busId || !formatted.routeId || !formatted.slotDate) {
       throw new Error('Thiếu thông tin bắt buộc: xe bus, tuyến đường, hoặc ngày khởi hành')
     }
+
+    // Check for duplicate trip (final validation before sending to backend)
+    if (hasDuplicateTrip(formatted.busId, formatted.routeId, formatted.slotDate)) {
+      throw new Error('Chuyến xe này đã tồn tại! Xe bus đã có lịch trình trên tuyến đường này vào ngày đã chọn.')
+    }
     
     console.log('📋 Formatted trip data for backend:', formatted)
     return formatted
@@ -825,6 +851,7 @@ export function useTripManagement() {
     resetForm,
     clearError,
     setEditingTrip,
+    hasDuplicateTrip,
     
     // Lifecycle
     initialize,

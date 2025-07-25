@@ -23,5 +23,6 @@ public record CreateBusRequest(
         @NotBlank(message = "Mã chủ sở hữu không được để trống") // <-- THAY ĐỔI TỪ Integer SANG String
         String ownerId,
 
-        List<String> imageIds // <-- THAY ĐỔI TỪ List<Integer> SANG List<String>
+        List<String> imageIds, // <-- THAY ĐỔI TỪ List<Integer> SANG List<String>
+        List<String> amenityNames
 ) {}

@@ -8,7 +8,7 @@ type ImageResponse {
     id: ID!
     url: String!
     altText: String # Cho phép null
-    uploadedAt: String # Phản ánh việc chuyển đổi OffsetDateTime sang String trong DTO
+    uploadedAt: String # Phản ánh việc chuyển đổi OffsetDateTime sang String trong DTO (GIỮ NGUYÊN NHƯ YÊU CẦU CỦA BẠN)
     publicId: String!
 }
 
@@ -17,6 +17,16 @@ type BusImageResponse {
     busId: ID!
     imageId: ID!
     image: ImageResponse! # Sử dụng ImageResponse DTO
+}
+
+# --- Kiểu dữ liệu cho BusAmenity ---
+# BỔ SUNG: Định nghĩa kiểu BusAmenity để có thể sử dụng
+type BusAmenity {
+    id: ID!
+    name: String!
+    description: String
+    createdAt: DateTime
+    updatedAt: DateTime
 }
 
 # --- Kiểu dữ liệu Bus (Phản ánh cấu trúc BusResponse DTO) ---
@@ -30,11 +40,12 @@ type Bus { # Có thể đổi tên thành BusResponse nếu bạn muốn rõ rà
     ownerId: ID!
     ownerName: String
     busImages: [BusImageResponse!]
+    amenities: [BusAmenity!] # <-- BỔ SUNG: Thêm trường amenities
     createdAt: DateTime
     updatedAt: DateTime
 }
 
-# --- Kiểu đầu vào cho Create Bus (Không thay đổi) ---
+# --- Kiểu đầu vào cho Create Bus ---
 input CreateBusInput {
     name: String!
     licensePlate: String!
@@ -42,9 +53,10 @@ input CreateBusInput {
     categoryId: ID!
     ownerId: ID!
     imageIds: [ID!]
+    amenityNames: [String!] # <-- BỔ SUNG: Thêm trường amenityNames để gửi từ client
 }
 
-# --- Kiểu đầu vào cho Update Bus (Không thay đổi) ---
+# --- Kiểu đầu vào cho Update Bus ---
 input UpdateBusInput {
     name: String
     licensePlate: String
@@ -52,6 +64,7 @@ input UpdateBusInput {
     categoryId: ID
     ownerId: ID
     imageIds: [ID!]
+    amenityNames: [String!] # <-- BỔ SUNG: Thêm trường amenityNames để gửi từ client
 }
 
 # --- Định nghĩa các Query (đọc dữ liệu) ---

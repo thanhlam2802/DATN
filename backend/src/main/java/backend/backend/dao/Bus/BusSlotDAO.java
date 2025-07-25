@@ -1,6 +1,7 @@
 package backend.backend.dao.Bus;
 
 import backend.backend.entity.Bus;
+import backend.backend.entity.Route;
 import backend.backend.entity.enumBus.BusSlotStatus;
 import backend.backend.entity.BusSlot;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -56,5 +57,7 @@ public interface BusSlotDAO extends JpaRepository<BusSlot, Integer> {
             @Param("minAvailableSeats") Integer minAvailableSeats,
             @Param("status") BusSlotStatus status
     );
+    Optional<BusSlot> findByBusAndRouteAndSlotDateAndDepartureTime(Bus bus, Route route, LocalDate slotDate, LocalTime departureTime);
+
 
 }

@@ -1,23 +1,17 @@
-package backend.backend.dto.BusDTO;
 
+package backend.backend.dto.BusDTO;
 import backend.backend.entity.Bus;
-// Không cần import BusCategory, User trực tiếp ở đây nếu chỉ dùng ID/Name
-// import backend.backend.entity.BusCategory;
-// import backend.backend.entity.User;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
 import java.time.OffsetDateTime;
-import java.util.ArrayList; // Thêm import này cho ArrayList
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
 @NoArgsConstructor
-// @AllArgsConstructor // Tạm thời bỏ @AllArgsConstructor để tránh xung đột với constructor tùy chỉnh
+// Nếu bạn muốn Lombok tự động tạo constructor với TẤT CẢ các trường, hãy bỏ comment dòng dưới và XÓA constructor tùy chỉnh
+// @AllArgsConstructor
 public class BusResponse {
     private Integer id;
     private String name;
@@ -30,11 +24,14 @@ public class BusResponse {
     private List<BusImageResponse> busImages; // Danh sách BusImageResponse DTO
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private List<BusAmenityResponse> amenities; // <-- BỔ SUNG: Danh sách tiện ích
 
     // CONSTRUCTOR MỚI ĐỂ ĐẢM BẢO TẤT CẢ CÁC TRƯỜNG ĐƯỢC KHỞI TẠO TỪ convertToBusResponse
+    // Constructor này phải khớp với các tham số mà BusServiceImpl.convertToBusResponse truyền vào
     public BusResponse(Integer id, String name, String licensePlate, Integer totalSeats,
                        Integer categoryId, String categoryName, Integer ownerId, String ownerName,
-                       List<BusImageResponse> busImages, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                       List<BusImageResponse> busImages, OffsetDateTime createdAt, OffsetDateTime updatedAt,
+                       List<BusAmenityResponse> amenities) { // <-- THÊM THAM SỐ amenities
         this.id = id;
         this.name = name;
         this.licensePlate = licensePlate;
@@ -46,10 +43,12 @@ public class BusResponse {
         this.busImages = busImages;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.amenities = amenities; // <-- GÁN GIÁ TRỊ CHO TRƯỜNG amenities
     }
 
+    // Constructor public BusResponse(Bus bus) cũ đã được XÓA bỏ.
+    // Logic chuyển đổi từ Bus Entity sang BusResponse DTO nằm hoàn toàn trong BusServiceImpl.
 
-    // Constructor hiện tại của bạn nhận Bus entity, cần được sửa để chuyển đổi BusImage
     public BusResponse(Bus bus) {
         this.id = bus.getId();
         this.name = bus.getName();
@@ -60,7 +59,7 @@ public class BusResponse {
             this.categoryId = bus.getCategory().getId();
             this.categoryName = bus.getCategory().getName();
         } else {
-            this.categoryId = null; // Gán null nếu không có category
+            this.categoryId = null;
             this.categoryName = null;
         }
 
@@ -68,22 +67,31 @@ public class BusResponse {
             this.ownerId = bus.getOwner().getId();
             this.ownerName = bus.getOwner().getName();
         } else {
-            this.ownerId = null; // Gán null nếu không có owner
+            this.ownerId = null;
             this.ownerName = null;
+        }
+
+        // Chuyển đổi BusImage entities sang BusImageResponse DTOs
+        // Đảm bảo BusImageResponse có constructor public BusImageResponse(BusImage img)
+        if (bus.getBusImages() != null) {
+            this.busImages = bus.getBusImages().stream()
+                    .map(backend.backend.dto.BusDTO.BusImageResponse::new) // Gọi constructor BusImageResponse(BusImage)
+                    .collect(java.util.stream.Collectors.toList());
+        } else {
+            this.busImages = new java.util.ArrayList<>();
+        }
+
+        // Chuyển đổi BusAmenity entities sang BusAmenityResponse DTOs
+        // Đảm bảo BusAmenityResponse có constructor public BusAmenityResponse(BusAmenity amenity)
+        if (bus.getAmenities() != null) {
+            this.amenities = bus.getAmenities().stream()
+                    .map(backend.backend.dto.BusDTO.BusAmenityResponse::new) // Gọi constructor BusAmenityResponse(BusAmenity)
+                    .collect(java.util.stream.Collectors.toList());
+        } else {
+            this.amenities = new java.util.ArrayList<>();
         }
 
         this.createdAt = bus.getCreatedAt();
         this.updatedAt = bus.getUpdatedAt();
-
-        if (bus.getBusImages() != null && !bus.getBusImages().isEmpty()) {
-            this.busImages = bus.getBusImages().stream()
-                    // Dòng này cần được sửa! BusImageResponse::new không đủ nếu nó không có constructor nhận BusImage
-                    // Bạn cần một constructor trong BusImageResponse nhận BusImage entity.
-                    // Hoặc bạn phải truyền các thành phần riêng lẻ (imageId, busId, ImageResponse)
-                    .map(BusImageResponse::new) // <-- Dòng này giả định BusImageResponse có constructor (BusImage entity)
-                    .collect(Collectors.toList());
-        } else {
-            this.busImages = new ArrayList<>(); // Khởi tạo danh sách rỗng nếu không có ảnh
-        }
     }
 }

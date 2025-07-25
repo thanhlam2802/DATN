@@ -1,5 +1,14 @@
 import { User, BusCategory, Bus } from '../types/common.types';
 
+// === BusAmenity Types ===
+export interface BusAmenity {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // === BusCategory Types ===
 
 // Input types for BusCategory mutations - Khớp với DTO backend
@@ -30,6 +39,7 @@ export interface CreateBusInput {
   categoryId: string;
   ownerId: number; // Changed to number
   imageIds?: string[]; // Optional, as images can be added later
+  amenityNames?: string[]; // Thêm field amenityNames
 }
 
 export interface UpdateBusInput {
@@ -40,6 +50,7 @@ export interface UpdateBusInput {
   ownerId?: number; // Changed to number
   imageIds?: string[];
   imagesToDelete?: string[]; // IDs of images to delete
+  amenityNames?: string[]; // Thêm field amenityNames
 }
 
 // === Re-export Common Types ===

@@ -17,6 +17,16 @@ export const BUS_CATEGORY_FRAGMENT = gql`
   }
 `;
 
+export const BUS_AMENITY_FRAGMENT = gql`
+  fragment BusAmenityFragment on BusAmenity {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+`;
+
 export const ROUTE_FRAGMENT = gql`
   fragment RouteFragment on Route {
     id
@@ -31,6 +41,50 @@ export const ROUTE_FRAGMENT = gql`
 
 export const BUS_FRAGMENT = gql`
   fragment BusFragment on Bus {
+    id
+    name
+    licensePlate
+    totalSeats
+    categoryId
+    categoryName
+    ownerId
+    ownerName
+    busImages {
+      busId
+      imageId
+      image {
+        ...ImageFragment
+      }
+    }
+    amenities {
+      ...BusAmenityFragment
+    }
+    createdAt
+    updatedAt
+  }
+  ${IMAGE_FRAGMENT}
+  ${BUS_AMENITY_FRAGMENT}
+`;
+
+// Simple fragment without complex nested fields for debugging
+export const BUS_FRAGMENT_SIMPLE = gql`
+  fragment BusFragmentSimple on Bus {
+    id
+    name
+    licensePlate
+    totalSeats
+    categoryId
+    categoryName
+    ownerId
+    ownerName
+    createdAt
+    updatedAt
+  }
+`;
+
+// Fragment with images but no amenities
+export const BUS_FRAGMENT_WITH_IMAGES = gql`
+  fragment BusFragmentWithImages on Bus {
     id
     name
     licensePlate

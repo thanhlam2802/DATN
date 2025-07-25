@@ -42,14 +42,17 @@
                     <!-- Bus Selection -->
                     <div class="space-y-2">
                       <label class="block text-sm font-medium text-gray-700">
-                        Xe bus <span class="text-red-500">*</span>
+                        Xe buýt <span class="text-red-500">*</span>
                       </label>
                       <div class="relative">
                         <select 
                           v-model="form.busId" 
                           required 
                           :disabled="loadingBuses"
-                          class="appearance-none w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          :class="[
+                            'w-full pl-10 pr-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 transition-all duration-200 hover:border-gray-400',
+                            isDuplicateTrip && !isEditing ? 'border-orange-300 bg-orange-50' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                          ]"
                         >
                           <option value="">
                             {{ loadingBuses ? 'Đang tải xe bus...' : (availableBuses.length === 0 ? 'Không có xe bus nào' : 'Chọn xe bus') }}
@@ -81,7 +84,10 @@
                           v-model="form.routeId" 
                           required 
                           :disabled="loadingRoutes"
-                          class="appearance-none w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          :class="[
+                            'appearance-none w-full pl-10 pr-10 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 transition-all duration-200 hover:border-gray-400 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed',
+                            isDuplicateTrip && !isEditing ? 'border-orange-300 bg-orange-50' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                          ]"
                         >
                           <option value="">
                             {{ loadingRoutes ? 'Đang tải tuyến đường...' : (availableRoutes.length === 0 ? 'Không có tuyến đường nào' : 'Chọn tuyến đường') }}
@@ -116,7 +122,10 @@
                           type="date" 
                           required 
                           :min="minDate"
-                          class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
+                          :class="[
+                            'w-full pl-10 pr-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 transition-all duration-200 hover:border-gray-400',
+                            isDuplicateTrip && !isEditing ? 'border-orange-300 bg-orange-50' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                          ]"
                         >
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +171,7 @@
                           step="10000"
                           placeholder="500000"
                           :class="[
-                            'w-full pl-10 pr-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400',
+                            'w-full pl-10 pr-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 transition-all duration-200 hover:border-gray-400',
                             priceAutoFilled ? 'border-green-300 bg-green-50' : 'border-gray-300'
                           ]"
                           @input="priceAutoFilled = false; priceAutoFillMessage = ''"
@@ -217,6 +226,35 @@
               </form>
             </div>
 
+            <!-- Duplicate Warning -->
+            <div v-if="isDuplicateTrip" class="px-6 py-4 bg-orange-50 border-t border-l-4 border-orange-400">
+              <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h4 class="text-sm font-semibold text-orange-800 mb-1">Chuyến xe đã tồn tại</h4>
+                  <p class="text-sm text-orange-700 mb-2">{{ duplicateWarningMessage }}</p>
+                  <div class="text-xs text-orange-600 space-y-1">
+                    <p class="flex items-center">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 12h12"/>
+                      </svg>
+                      Chọn xe khác hoặc ngày khác để tạo chuyến mới
+                    </p>
+                    <p class="flex items-center">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 12h12"/>
+                      </svg>
+                      Hoặc chỉnh sửa chuyến xe hiện có thay vì tạo mới
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Modal Footer -->
             <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
               <div class="text-sm text-gray-500">
@@ -238,7 +276,7 @@
                 <button 
                   @click="handleSubmit" 
                   type="submit" 
-                  :disabled="loading || loadingBuses || loadingRoutes"
+                  :disabled="loading || loadingBuses || loadingRoutes || (isDuplicateTrip && !isEditing)"
                   class="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   <div v-if="loading" class="flex items-center">
@@ -248,6 +286,9 @@
                     </svg>
                     {{ isEditing ? 'Đang cập nhật...' : 'Đang tạo...' }}
                   </div>
+                  <span v-else-if="isDuplicateTrip && !isEditing">
+                    ⚠️ Trùng lặp chuyến xe
+                  </span>
                   <span v-else>
                     {{ isEditing ? 'Cập nhật chuyến' : 'Tạo chuyến xe' }}
                   </span>
@@ -265,6 +306,7 @@
 import { ref, computed, watch, defineProps, defineEmits } from 'vue'
 // @ts-ignore
 import { toast } from '@/utils/notifications'
+import { useTripManagement } from '@/composables/useTripManagement'
 
 const props = defineProps({
   visible: {
@@ -299,6 +341,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
+// Initialize trip management for validation
+const tripManager = useTripManagement()
+
 // Form state
 const form = ref({
   busId: '',
@@ -317,6 +362,40 @@ const priceAutoFillMessage = ref('')
 // Computed properties
 const isEditing = computed(() => !!props.editingTrip)
 const minDate = computed(() => new Date().toISOString().split('T')[0])
+
+// Duplicate validation
+const isDuplicateTrip = computed(() => {
+  if (!form.value.busId || !form.value.routeId || !form.value.slotDate) {
+    return false
+  }
+  
+  // Debug logging
+  console.log('🔍 Checking duplicate for:', {
+    busId: form.value.busId,
+    routeId: form.value.routeId,
+    slotDate: form.value.slotDate,
+    isEditing: isEditing.value,
+    totalBusSlots: tripManager.busSlots.value?.length || 0
+  })
+  
+  const isDuplicate = tripManager.hasDuplicateTrip(form.value.busId, form.value.routeId, form.value.slotDate)
+  console.log('🔍 Duplicate result:', isDuplicate)
+  
+  return isDuplicate
+})
+
+const duplicateWarningMessage = computed(() => {
+  if (!isDuplicateTrip.value) return ''
+  
+  const selectedBus = props.availableBuses.find(bus => bus.id === form.value.busId)
+  const selectedRoute = props.availableRoutes.find(route => route.id === form.value.routeId)
+  
+  const busName = selectedBus?.name || 'xe này'
+  const routeName = selectedRoute ? `${selectedRoute.origin} - ${selectedRoute.destination}` : 'tuyến đường này'
+  const formattedDate = new Date(form.value.slotDate).toLocaleDateString('vi-VN')
+  
+  return `${busName} đã có chuyến đi trên tuyến ${routeName} vào ngày ${formattedDate}`
+})
 
 // Initialize form when editing
 watch(() => props.editingTrip, (newTrip) => {
@@ -520,6 +599,12 @@ async function handleSubmit() {
   
   if (!form.value.slotDate || !form.value.departureTime) {
     toast.warning('Vui lòng nhập đầy đủ thời gian', 'Thiếu thông tin')
+    return
+  }
+
+  // Check duplicate trip (only for new trips, not editing)
+  if (!isEditing.value && isDuplicateTrip.value) {
+    // Don't proceed - let the UI warning handle user feedback
     return
   }
   

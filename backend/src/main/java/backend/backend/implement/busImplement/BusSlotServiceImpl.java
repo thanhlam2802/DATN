@@ -104,6 +104,22 @@ public class BusSlotServiceImpl implements BusSlotService {
         Route route = routeDAO.findById(request.getRouteId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tuyến đường với ID: " + request.getRouteId()));
 
+        // Lấy các giá trị cần kiểm tra từ request
+        LocalDate slotDate = request.getSlotDate();
+        LocalTime departureTime = LocalTime.parse(request.getDepartureTime()); // Parse thời gian khởi hành để kiểm tra
+
+        // THÊM ĐOẠN MÃ KIỂM TRA TẠI ĐÂY:
+        Optional<BusSlot> existingBusSlot = busSlotDAO.findByBusAndRouteAndSlotDateAndDepartureTime(bus, route, slotDate, departureTime);
+
+        if (existingBusSlot.isPresent()) {
+            // Nếu BusSlot đã tồn tại, ném ra ngoại lệ
+            throw new IllegalArgumentException(
+                    String.format("Chuyến xe với xe bus '%s', tuyến đường '%s', ngày '%s' và thời gian khởi hành '%s' đã tồn tại.",
+                            bus.getName(), route.getOrigin() +"-"+ route.getDestination(), slotDate, departureTime)
+            );
+
+        }
+
         BusSlot newBusSlot = new BusSlot();
         newBusSlot.setBus(bus);
         newBusSlot.setRoute(route);

@@ -21,14 +21,14 @@
                 <i class="fas fa-building w-5 text-center"></i>
                 <span>Hotels</span>
             </router-link>
-            <router-link to="/hotel/admin/bookings"
+            <router-link to="/hotel/admin/booking"
                 class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/bookings')
                     ? 'text-blue-600 bg-slate-100 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
                 <i class="fas fa-calendar-alt w-5 text-center"></i>
                 <span>Bookings</span>
             </router-link>
-            <router-link to="/hotel/admin/customers"
+            <router-link to="/hotel/admin/customer"
                 class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/customers')
                     ? 'text-blue-600 bg-slate-100 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">

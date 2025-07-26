@@ -12,9 +12,9 @@ public class SecurityUtil {
         return auth.getName();
     }
 
-    public static Long getUserId() {
+    public static Integer getUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> credentials = (Map<String, Object>) auth.getCredentials();
-        return Long.valueOf(String.valueOf(credentials.get("userId")));
+        return Integer.valueOf(String.valueOf(credentials.get("userId")));
     }
 }

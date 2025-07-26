@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 public class OTPTransaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "otp_code")
     private String otpCode;
 
     @Column(name = "user_id")
-    private Long userId;
+    private Integer userId;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

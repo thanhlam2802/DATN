@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import {createRouter, createWebHistory} from "vue-router";
 
 import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
@@ -42,161 +42,166 @@ import PaymentView from "../views/PaymentView.vue";
 import MyTripsView from "../views/MyTripsView.vue";
 import SuccessHold from "@/components/Flight/SuccessHold.vue";
 import BankTransferForm from "@/components/Flight/BankTransferForm.vue";
+import ForgotPassword from "@/views/ForgotPassword.vue";
+import ResetPassword from "@/views/ResetPassword.vue";
+
 const routes = [
-  {
-    path: "/",
-    component: MainLayout,
-    children: [
-      { path: "", name: "Home", component: Home },
-      { path: "register", name: "Register", component: Register },
-      { path: "login", name: "Login", component: Login },
-      { path: "tour", name: "Tour", component: Tour },
-      { path: "bus", name: "Bus", component: Bus },
-      { path: "plane", name: "Plane", component: Plane },
-      {
-        path: "plane/:id",
-        name: "FlightDetail",
-        component: FlightDetail,
-        props: true,
-      },
-      {
-        path: "/orders/:id",
-        name: "order-detail",
-        component: () => import("../views/OrderDetail.vue"),
-      },
-      {
-        path: "/checkout/:id",
-        name: "checkout",
-        component: CheckoutView,
-      },
-      {
-        path: "/flight/successhold/:id",
-        name: "SuccessHold",
-        component: SuccessHold,
-      },
-      {
-        path: "/payment/:orderId",
-        name: "payment",
-        component: PaymentView,
-      },
-      {
-        path: "/my-trips",
-        name: "my-trips",
-        component: MyTripsView,
-      },
-      {
-        path: "hotel",
-        name: "Hotel",
-        component: Hotel,
-      },
-      {
-        path: "hotel/listing",
-        name: "HotelListing",
-        component: HotelListingPage,
-      },
-      {
-        path: "hotel/:id",
-        name: "HotelDetail",
-        component: HotelDetail,
-        props: true,
-      },
-      {
-        path: "hotel/:id/booking",
-        name: "HotelBooking",
-        component: HotelBooking,
-        props: true,
-      },
-      {
-        path: "hotel/:id/booking/success",
-        name: "BookingSuccess",
-        component: BookingSuccess,
-      },
-      {
-        path: "tours/:id",
-        name: "TourDetail",
-        component: TourDetail,
-        props: true,
-      },
-      {
-        path: "booking",
-        name: "BookingPage",
-        component: BookingPage,
-      },
-      {
-        path: "/plane/pay",
-        name: "PayFlight",
-        component: PayFlight,
-      },
-      {
-        path: "/plane/getticket",
-        name: "GetTicket",
-        component: GetTicket,
-      },
-      {
-        path: "/account",
-        component: AccountView,
+    {
+        path: "/",
+        component: MainLayout,
         children: [
-          { path: "", redirect: "personal" },
-          { path: "personal", component: AccountDetails },
-          { path: "bookings", component: BookingHistory },
-          { path: "payment", component: PaymentDetails },
-          { path: "security", component: AccountSecurity },
-          { path: "notifications", component: NotificationSetting },
+            {path: "", name: "Home", component: Home},
+            {path: "register", name: "Register", component: Register},
+            {path: "login", name: "Login", component: Login},
+            {path: "forgot-password", name: "ForgotPassword", component: ForgotPassword},
+            {path: "reset-password", name: "ResetPassword", component: ResetPassword},
+            {path: "tour", name: "Tour", component: Tour},
+            {path: "bus", name: "Bus", component: Bus},
+            {path: "plane", name: "Plane", component: Plane},
+            {
+                path: "plane/:id",
+                name: "FlightDetail",
+                component: FlightDetail,
+                props: true,
+            },
+            {
+                path: "/orders/:id",
+                name: "order-detail",
+                component: () => import("../views/OrderDetail.vue"),
+            },
+            {
+                path: "/checkout/:id",
+                name: "checkout",
+                component: CheckoutView,
+            },
+            {
+                path: "/flight/successhold/:id",
+                name: "SuccessHold",
+                component: SuccessHold,
+            },
+            {
+                path: "/payment/:orderId",
+                name: "payment",
+                component: PaymentView,
+            },
+            {
+                path: "/my-trips",
+                name: "my-trips",
+                component: MyTripsView,
+            },
+            {
+                path: "hotel",
+                name: "Hotel",
+                component: Hotel,
+            },
+            {
+                path: "hotel/listing",
+                name: "HotelListing",
+                component: HotelListingPage,
+            },
+            {
+                path: "hotel/:id",
+                name: "HotelDetail",
+                component: HotelDetail,
+                props: true,
+            },
+            {
+                path: "hotel/:id/booking",
+                name: "HotelBooking",
+                component: HotelBooking,
+                props: true,
+            },
+            {
+                path: "hotel/:id/booking/success",
+                name: "BookingSuccess",
+                component: BookingSuccess,
+            },
+            {
+                path: "tours/:id",
+                name: "TourDetail",
+                component: TourDetail,
+                props: true,
+            },
+            {
+                path: "booking",
+                name: "BookingPage",
+                component: BookingPage,
+            },
+            {
+                path: "/plane/pay",
+                name: "PayFlight",
+                component: PayFlight,
+            },
+            {
+                path: "/plane/getticket",
+                name: "GetTicket",
+                component: GetTicket,
+            },
+            {
+                path: "/account",
+                component: AccountView,
+                children: [
+                    {path: "", redirect: "personal"},
+                    {path: "personal", component: AccountDetails},
+                    {path: "bookings", component: BookingHistory},
+                    {path: "payment", component: PaymentDetails},
+                    {path: "security", component: AccountSecurity},
+                    {path: "notifications", component: NotificationSetting},
+                ],
+            },
         ],
-      },
-    ],
-  },
-  {
-    path: "/bus-management",
-    name: "BusManagement",
-    component: BusManagementLayout,
-  },
+    },
+    {
+        path: "/bus-management",
+        name: "BusManagement",
+        component: BusManagementLayout,
+    },
 
- 
-  {
-    path: "/plane/admin",
-    name: "AdminFight",
-    component: AdminFight,
-    children: [
-      {
-        path: "flights/:id",
-        name: "DetailFlightAdmin",
-        component: DetailFlightAdmin,
-      },
-    ],
-  },
 
-  {
-    path: "/tour/admin",
-    name: "TourManager",
-    component: TourManager,
-  },
+    {
+        path: "/plane/admin",
+        name: "AdminFight",
+        component: AdminFight,
+        children: [
+            {
+                path: "flights/:id",
+                name: "DetailFlightAdmin",
+                component: DetailFlightAdmin,
+            },
+        ],
+    },
 
-  {
-    path: "/hotel/admin",
-    component: AdminLayout,
-    children: [
-      { path: "dashboard", component: Dashboard },
-      { path: "hotelform", component: HotelForm },
-      { path: "", redirect: "dashboard" },
-    ],
-  },
+    {
+        path: "/tour/admin",
+        name: "TourManager",
+        component: TourManager,
+    },
 
-  {
-    path: "/admin/dashboard",
-    name: "AdminDashboard",
-    component: AdminDashboard,
-  },
-  {
-    path: "/bank-transfer-form",
-    name: "BankTransferForm",
-    component: BankTransferForm,
-  },
+    {
+        path: "/hotel/admin",
+        component: AdminLayout,
+        children: [
+            {path: "dashboard", component: Dashboard},
+            {path: "hotelform", component: HotelForm},
+            {path: "", redirect: "dashboard"},
+        ],
+    },
+
+    {
+        path: "/admin/dashboard",
+        name: "AdminDashboard",
+        component: AdminDashboard,
+    },
+    {
+        path: "/bank-transfer-form",
+        name: "BankTransferForm",
+        component: BankTransferForm,
+    },
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes,
+    history: createWebHistory(),
+    routes,
 });
 
 export default router;

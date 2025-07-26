@@ -1,39 +1,66 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import SearchBar from "../components/Tours/SearchBar.vue";
 import SideBar from "../components/Tours/Sidebar.vue";
 import TourGrid from "../components/Tours/TourGrid.vue";
 import { useGeolocation } from "../composables/useGeolocation";
-
-// Constants
-const BANNER_IMAGE =
-  "https://ik.imagekit.io/tvlk/xpe-asset/AyJ40ZAo1DOyPyKLZ9c3RGQHTP2oT4ZXW+QmPVVkFQiXFSv42UaHGzSmaSzQ8DO5QIbWPZuF+VkYVRk6gh-Vg4ECbfuQRQ4pHjWJ5Rmbtkk=/5255025890550/Phong-Nha-Ke-Bang-National-Park-Tour-from-Hue-158e7222-35b7-4296-95bb-690972765d35.jpeg?_src=imagekit&tr=dpr-2,c-at_max,h-400,q-100,w-1280";
-const TOUR_ICON =
-  "https://ik.imagekit.io/tvlk/image/imageResource/2024/05/14/1715657640546-0e1140f44cf4a39fe69f33f236c6a564.png?tr=q-75";
-
-const isOpen = ref(false);
-const sortBy = ref("popular");
-const tourList = ref([]);
-
 import { FilterIcon, XIcon } from "lucide-vue-next";
 
-const isFilterOpen = ref(false);
+// --- CÁC HẰNG SỐ VÀ TRẠNG THÁI GIAO DIỆN ---
+const BANNER_IMAGE =
+  "https://ik.imagekit.io/tvlk/xpe-asset/AyJ40ZAo1DOyPyKLZ9c3RGQHTP2oT4ZXW+QmPVVkFQiXFSv42UaHGzSmaSzQ8DO5QIbWPZuF+VkYVRk6gh-Vg4ECbfuQRQ4pHjWJ5Rmbtkk=/5255025890550/Phong-Nha-Ke-Bang-National-Park-Tour-from-Hue-158e7222-35b7-4296-95bb-690972765d35.jpeg?_src=imagekit&tr=dpr-2,c-at_max,h-400,q-100,w-1280";
+const isOpen = ref(false); // State cho modal chọn điểm đến
+const isFilterOpen = ref(false); // State cho sidebar mobile
 
-const { getCurrentLocation } = useGeolocation();
+// --- TRẠNG THÁI DỮ LIỆU ---
+const tourList = ref([]);
+const tourCount = ref(0);
 
-const destinations = [
-  /* ... */
-];
-
-onMounted(() => {
-  fetchTours();
+// --- QUẢN LÝ TRẠNG THÁI BỘ LỌC TẬP TRUNG ---
+// Tất cả các bộ lọc từ sidebar và dropdown sắp xếp sẽ được quản lý tại đây.
+const filters = reactive({
+  destination: "",
+  minPrice: 0,
+  maxPrice: 5000000,
+  minRating: 0,
+  tags: [],
+  sortBy: "popular", // `sortBy` từ state cũ giờ là một phần của filters
+  page: 0,
+  size: 12,
 });
 
+// --- CÁC HÀM XỬ LÝ ---
+
+// 1. Hàm nhận dữ liệu bộ lọc từ Sidebar
+const handleUpdateFilters = (sidebarFilters) => {
+  // Cập nhật các giá trị từ Sidebar
+  filters.destination = sidebarFilters.destination;
+  filters.minPrice = sidebarFilters.minPrice;
+  filters.maxPrice = sidebarFilters.maxPrice;
+  filters.minRating = sidebarFilters.minRating;
+  filters.tags = sidebarFilters.tags;
+  // Reset về trang đầu tiên mỗi khi có bộ lọc mới
+  filters.page = 0;
+};
+
+// 2. Hàm gọi API đã được nâng cấp để sử dụng tất cả bộ lọc
 const fetchTours = async () => {
   try {
-    const params = new URLSearchParams({
-      sortBy: sortBy.value,
-    });
+    const params = new URLSearchParams();
+
+    // Chỉ thêm các tham số có giá trị vào URL
+    if (filters.destination) params.append("destination", filters.destination);
+    if (filters.minPrice > 0) params.append("minPrice", filters.minPrice);
+    if (filters.maxPrice < 5000000) params.append("maxPrice", filters.maxPrice);
+    if (filters.minRating > 0) params.append("minRating", filters.minRating);
+    if (filters.tags && filters.tags.length > 0) {
+      filters.tags.forEach((tag) => params.append("tags", tag));
+    }
+
+    // Luôn thêm các tham số sắp xếp và phân trang
+    params.append("sortBy", filters.sortBy);
+    params.append("page", filters.page);
+    params.append("size", filters.size);
 
     const response = await fetch(
       `http://localhost:8080/api/v1/tours?${params.toString()}`
@@ -41,13 +68,14 @@ const fetchTours = async () => {
     const responseData = await response.json();
 
     if (responseData.statusCode === 200 && responseData.data.content) {
+      tourCount.value = responseData.data.totalElements;
       const mappedTours = responseData.data.content.map((tour) => ({
         id: tour.id,
         title: tour.name,
         imageUrl: tour.imageUrl,
         price: tour.price.toLocaleString("vi-VN"),
         location: tour.location,
-        locationDetail: "",
+
         rating:
           tour.reviewCount > 0
             ? {
@@ -55,19 +83,37 @@ const fetchTours = async () => {
                 reviews: tour.reviewCount.toString(),
               }
             : null,
-        originalPrice: "",
       }));
       tourList.value = mappedTours;
+    } else {
+      tourList.value = [];
+      tourCount.value = 0;
     }
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu tour:", error);
+    tourList.value = [];
+    tourCount.value = 0;
   }
 };
 
-watch(sortBy, () => {
-  fetchTours();
-});
+// 3. Watcher theo dõi toàn bộ đối tượng filters
+// Bất kỳ thay đổi nào trong `filters` (từ sidebar hoặc dropdown) đều sẽ kích hoạt lại `fetchTours`
+watch(
+  filters,
+  () => {
+    fetchTours();
+  },
+  { deep: true }
+);
 
+// Tải dữ liệu lần đầu khi component được tạo
+onMounted(fetchTours);
+
+// Các hàm còn lại không thay đổi
+const { getCurrentLocation } = useGeolocation();
+const destinations = [
+  /* ... */
+];
 const handleLocationClick = async () => {
   /* ... */
 };
@@ -80,7 +126,7 @@ const openModal = () => {
 </script>
 
 <template>
-  <div class="mt-4 px-2 sm:px-0">
+  <div class="mt-4 w-full">
     <section
       class="relative w-full h-40 xs:h-48 sm:h-36 md:h-44 lg:h-52 xl:h-80 overflow-hidden mb-6"
     >
@@ -192,9 +238,9 @@ const openModal = () => {
       </div>
     </section>
 
-    <section class="pt-8 pb-6 text-center md:text-left">
+    <section class="pt-8 pb-6 text-center md:text-left flex w-full">
       <h2
-        class="font-extrabold text-2xl sm:text-3xl text-black leading-tight mb-2"
+        class="font-extrabold text-2xl sm:text-3xl text-black leading-tight mr-5"
       >
         Tour
       </h2>
@@ -208,16 +254,20 @@ const openModal = () => {
 
     <section class="max-w-7xl mx-auto px-4 py-6 mt-4">
       <div class="flex flex-col md:flex-row gap-6">
-        <SideBar class="hidden md:block md:w-1/4" />
+        <SideBar
+          class="hidden md:block md:w-1/4"
+          @update-filters="handleUpdateFilters"
+        />
+
         <main class="flex-1">
           <div
             class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4"
           >
-            <h2 class="text-lg sm:text-xl text-gray-600">Về 44 kết quả</h2>
-            <button
-              @click="isFilterOpen = true"
-              class="md:hidden flex items-center justify-center gap-2 w-full bg-white border border-gray-300 rounded-lg py-2 px-4 shadow-sm font-medium"
-            >
+            <h2 class="text-lg sm:text-xl text-gray-600">
+              Về {{ tourCount }} kết quả
+            </h2>
+
+            <button @click="isFilterOpen = true" class="md:hidden ...">
               <FilterIcon class="w-4 h-4" />
               <span>Lọc kết quả</span>
             </button>
@@ -225,31 +275,15 @@ const openModal = () => {
               <span class="text-gray-600">Xếp theo:</span>
               <div class="relative">
                 <select
-                  v-model="sortBy"
-                  class="appearance-none bg-white border rounded-lg px-4 py-2 pr-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+                  v-model="filters.sortBy"
+                  class="appearance-none bg-white border rounded-lg px-4 py-2 pr-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="popular">Phổ biến nhất</option>
                   <option value="price-asc">Giá tăng dần</option>
                   <option value="price-desc">Giá giảm dần</option>
                   <option value="rating">Đánh giá cao</option>
                 </select>
-                <div
-                  class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
-                >
-                  <svg
-                    class="w-4 h-4 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 9l-7 7-7-7"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                    />
-                  </svg>
-                </div>
+                <div class="absolute right-3 top-1/2 ..."></div>
               </div>
             </div>
           </div>
@@ -275,13 +309,17 @@ const openModal = () => {
               <XIcon class="w-6 h-6 text-gray-600" />
             </button>
           </div>
-          <SideBar />
+
+          <SideBar @update-filters="handleUpdateFilters" />
         </div>
       </div>
     </Transition>
   </div>
 </template>
 
+<style scoped>
+/* CSS không đổi */
+</style>
 <style scoped>
 .modal-enter-active,
 .modal-leave-active {

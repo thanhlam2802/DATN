@@ -10,7 +10,6 @@ import backend.backend.service.OrderService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -284,6 +283,7 @@ public class OrderServiceImpl implements OrderService {
     private HotelBookingDto toHotelBookingDto(HotelBooking hotelBooking) {
         HotelBookingDto dto = new HotelBookingDto();
         dto.setId(hotelBooking.getId());
+        dto.setRoomVariantId(hotelBooking.getRoomVariant().getId());
         dto.setCheckInDate(hotelBooking.getCheckInDate());
         dto.setCheckOutDate(hotelBooking.getCheckOutDate());
         dto.setNumAdults(hotelBooking.getNumAdults());
@@ -291,33 +291,33 @@ public class OrderServiceImpl implements OrderService {
         dto.setTotalPrice(hotelBooking.getTotalPrice());
         dto.setCreatedAt(hotelBooking.getCreatedAt());
         dto.setOrderId(hotelBooking.getOrder() != null ? hotelBooking.getOrder().getId() : null);
-
         if (hotelBooking.getOrder() != null && hotelBooking.getOrder().getUser() != null) {
             dto.setUserId(hotelBooking.getOrder().getUser().getId());
         }
         if (hotelBooking.getRoomVariant() != null) {
-            dto.setRoomVariantId(hotelBooking.getRoomVariant().getId());
             dto.setVariantName(hotelBooking.getRoomVariant().getVariantName());
             if (hotelBooking.getRoomVariant().getRoom() != null) {
-                Room room = hotelBooking.getRoomVariant().getRoom();
-                dto.setRoomType(room.getRoomType());
-                if (room.getHotel() != null) {
-                    dto.setHotelName(room.getHotel().getName());
+                dto.setRoomType(hotelBooking.getRoomVariant().getRoom().getRoomType());
+                if (hotelBooking.getRoomVariant().getRoom().getHotel() != null) {
+                    dto.setHotelName(hotelBooking.getRoomVariant().getRoom().getHotel().getName());
                 }
-                if (room.getRoomImages() != null && !room.getRoomImages().isEmpty()) {
-                    List<String> urls = new ArrayList<>();
-                    for (RoomImage ri : room.getRoomImages()) {
+                if (hotelBooking.getRoomVariant().getRoom().getRoomImages() != null && !hotelBooking.getRoomVariant().getRoom().getRoomImages().isEmpty()) {
+                    var roomImages = hotelBooking.getRoomVariant().getRoom().getRoomImages();
+                    var img = roomImages.get(0);
+                    if (img.getImage() != null) {
+                        dto.setImageUrl(img.getImage().getUrl());
+                    }
+                    java.util.List<String> urls = new java.util.ArrayList<>();
+                    for (var ri : roomImages) {
                         if (ri.getImage() != null && ri.getImage().getUrl() != null) {
                             urls.add(ri.getImage().getUrl());
                         }
                     }
                     dto.setImageUrls(urls);
-                    if(!urls.isEmpty()) {
-                        dto.setImageUrl(urls.get(0));
-                    }
                 }
             }
         }
+        dto.setRooms(hotelBooking.getRooms());
         return dto;
     }
 }

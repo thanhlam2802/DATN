@@ -31,4 +31,54 @@ public interface ReviewDAO extends JpaRepository<Review, Integer> {
     List<Review> findByEntityTypeAndEntityId(String entityType, Integer entityId);
 
     List<Review> findByUserId(Integer userId);
+
+    @Query("SELECT COUNT(r.id) FROM Review r WHERE r.entityType = 'Hotel'")
+    Long countTotalHotelReviews();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)", nativeQuery = true)
+    Long countTotalHotelReviewsToday();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND CAST(created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE)", nativeQuery = true)
+    Long countTotalHotelReviewsYesterday();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND CAST(created_at AS DATE) >= CAST(DATEADD(DAY, -7, GETDATE()) AS DATE)", nativeQuery = true)
+    Long countTotalHotelReviewsLast7Days();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND YEAR(created_at) = YEAR(GETDATE()) AND MONTH(created_at) = MONTH(GETDATE())", nativeQuery = true)
+    Long countTotalHotelReviewsThisMonth();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND YEAR(created_at) = YEAR(DATEADD(MONTH, -1, GETDATE())) AND MONTH(created_at) = MONTH(DATEADD(MONTH, -1, GETDATE()))", nativeQuery = true)
+    Long countTotalHotelReviewsLastMonth();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND CAST(created_at AS DATE) = CAST(DATEADD(DAY, -2, GETDATE()) AS DATE)", nativeQuery = true)
+    Long countTotalHotelReviews2DaysAgo();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND CAST(created_at AS DATE) >= CAST(DATEADD(DAY, -14, GETDATE()) AS DATE) AND CAST(created_at AS DATE) < CAST(DATEADD(DAY, -7, GETDATE()) AS DATE)", nativeQuery = true)
+    Long countTotalHotelReviewsPrevious7Days();
+
+    @Query(value = "SELECT COUNT(*) FROM reviews WHERE entity_type = 'Hotel' AND YEAR(created_at) = YEAR(DATEADD(MONTH, -2, GETDATE())) AND MONTH(created_at) = MONTH(DATEADD(MONTH, -2, GETDATE()))", nativeQuery = true)
+    Long countTotalHotelReviews2MonthsAgo();
+
+    default Long countTotalHotelReviewsByPeriod(String period) {
+        switch (period) {
+            case "today":
+                return countTotalHotelReviewsToday();
+            case "yesterday":
+                return countTotalHotelReviewsYesterday();
+            case "last_7_days":
+                return countTotalHotelReviewsLast7Days();
+            case "this_month":
+                return countTotalHotelReviewsThisMonth();
+            case "last_month":
+                return countTotalHotelReviewsLastMonth();
+            case "2_days_ago":
+                return countTotalHotelReviews2DaysAgo();
+            case "previous_7_days":
+                return countTotalHotelReviewsPrevious7Days();
+            case "2_months_ago":
+                return countTotalHotelReviews2MonthsAgo();
+            default:
+                return countTotalHotelReviewsThisMonth();
+        }
+    }
 }

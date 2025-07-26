@@ -71,7 +71,8 @@ public class PaymentServiceImpl implements PaymentService {
         if (system == null) {
             throw new AccountNotFoundException("Không tìm thấy tài khoản nguồn hệ thống");
         }
-        String recipient = "phanhuynhphuckhang12c8@gmail.com";
+
+        String recipient = customer.getEmail();
         String recipientName = customer.getAccountHolderName();
         // 1. Tạo OTP
         String otp = String.format("%06d", new Random().nextInt(1000000));
@@ -144,7 +145,11 @@ public class PaymentServiceImpl implements PaymentService {
             throw new InsufficientFundsException("Số dư tài khoản khách hàng không đủ");
         }
         // Trừ tiền khách hàng
+        logger.info("22572: {}",amount);
+        logger.info("tien truoc khi tru: {}",customer.getAvailableBalance());
+        logger.info("tien thanh toan: {}",amount);
         customer.setAvailableBalance(customer.getAvailableBalance().subtract(amount));
+        logger.info("tien sau khi tru: {}",customer.getAvailableBalance());
         customer.setCurrentBalance(customer.getCurrentBalance().subtract(amount));
         // Cộng tiền hệ thống
         system.setAvailableBalance(system.getAvailableBalance().add(amount));

@@ -660,7 +660,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .flightSlots(slots)
                 .minPrice(Double.isNaN(minPrice) ? null : minPrice)
                 .maxPrice(Double.isNaN(maxPrice) ? null : maxPrice)
-                .totalAvailableSeats(slots.size())
+                .totalAvailableSeats(flightDAO.countByBookingId(flight.getId()))
                 .build();
         log.info("MAPPING_FLIGHT_TO_DTO_DONE  - flightId: {}", flight.getId());
 

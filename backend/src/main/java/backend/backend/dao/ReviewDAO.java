@@ -81,4 +81,11 @@ public interface ReviewDAO extends JpaRepository<Review, Integer> {
                 return countTotalHotelReviewsThisMonth();
         }
     }
+  
+   @Query("SELECT r FROM Review r WHERE r.entityType = :entityType AND r.entityId IN " +
+          "(SELECT t.id FROM Tour t WHERE t.owner.id = :ownerId)")
+   List<Review> findReviewsForToursByOwner(
+           @Param("ownerId") Long ownerId,
+           @Param("entityType") String entityType
+   );
 }

@@ -14,6 +14,8 @@ import java.io.Serializable;
 @EqualsAndHashCode
 @Embeddable
 public class UserRoleId implements Serializable {
-    private Long userId;
+
+	private Integer userId;
     private Long roleId;
+
 }

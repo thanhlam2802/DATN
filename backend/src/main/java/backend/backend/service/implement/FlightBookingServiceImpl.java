@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
 import java.math.BigDecimal; // BỔ SUNG
 import java.time.LocalDateTime;
 import java.util.*;
@@ -58,17 +59,18 @@ public class FlightBookingServiceImpl implements FlightBookingService {
 
             // 3. Tính toán giá và cập nhật tổng tiền của Order
             BigDecimal newBookingPrice = slot.getPrice();
+           System.out.print(newBookingPrice);
             BigDecimal currentOrderAmount = order.getAmount() != null ? order.getAmount() : BigDecimal.ZERO;
             order.setAmount(currentOrderAmount.add(newBookingPrice));
             orderDAO.save(order);
+            
 
             // 4. Tạo booking flight
             FlightBooking booking = new FlightBooking();
             booking.setFlightSlot(slot);
             booking.setBookingDate(LocalDateTime.now());
             booking.setOrder(order); // Gán đối tượng Order đã được quản lý
-            booking.setTotalPrice(newBookingPrice); // Lưu giá của riêng booking này
-
+            booking.setTotalPrice(newBookingPrice); 
             if (bookingDto.getCustomerId() != null) {
                 Customer c = new Customer(); c.setId(bookingDto.getCustomerId());
                 booking.setCustomer(c);

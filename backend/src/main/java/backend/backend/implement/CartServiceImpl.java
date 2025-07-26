@@ -7,6 +7,7 @@ import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.mapper.OrderMapper;
 import backend.backend.service.BookingTourService;
 import backend.backend.service.CartService;
+import backend.backend.entity.VoucherType; 
 
 import backend.backend.service.FlightBookingService;
 
@@ -215,9 +216,12 @@ public class CartServiceImpl implements CartService {
         switch (genericRequest.getItemType()) {
             case TOUR:
                 BookingTourRequestDto tourRequest = mapToTourRequest(order, genericRequest);
-                // tourBookingService sẽ cập nhật trực tiếp vào đối tượng 'order' ở trên
+               
                 tourBookingService.createBookingTour(tourRequest);
                 break;
+            case BUS:
+                 break;
+      
             case HOTEL: {
                 HotelBookingRequestDto hotelRequest = new HotelBookingRequestDto();
                 User user = order.getUser();
@@ -235,10 +239,10 @@ public class CartServiceImpl implements CartService {
                 hotelBookingService.bookHotel(hotelRequest, null);
                 break;
             }
-            case BUS:
-                 break;
+        
             case FLIGHT:
                 flightBookingService.createFlightBooking(orderId, genericRequest);
+
                  break;
             
             default:

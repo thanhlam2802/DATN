@@ -37,7 +37,7 @@
                 <i :class="showPassword ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
               </button>
             </div>
-            <p v-if="passwordError" class="text-red-500 text-xs mt-1">{{ passwordError }}</p>
+            <p v-if="passwordError" class="text-red-500 text-xs mt-1">{{ passwordError }}</p>ff
           </div>
 
           <div class="flex items-center justify-between mb-6 text-sm">
@@ -46,7 +46,7 @@
                      checked/>
               <span>Remember me</span>
             </label>
-            <a href="#" class="text-purple-700 hover:underline">Forgot password?</a>
+            <a href="/forgot-password" class="text-purple-700 hover:underline">Forgot password?</a>
           </div>
 
           <button type="submit"
@@ -93,6 +93,7 @@ import {AuthApi} from "@/api/AuthApi.js";
 import {saveAccessToken} from "@/services/TokenService.js";
 import {useUserStore} from "@/store/UserStore.js";
 import {useRouter} from "vue-router";
+import {ErrorCodes} from "@/data/ErrorCode.js";
 
 const router = useRouter();
 
@@ -123,7 +124,7 @@ export default {
     },
     validatePassword() {
       if (this.password.trim().length < 4) {
-        this.passwordError = "Password must contain at least 4 characters!";
+        this.passwordError = "Password must be at least 4 characters.";
         return false;
       }
       this.passwordError = "";
@@ -144,6 +145,12 @@ export default {
       }
 
       const res = await AuthApi.login(loginRequest);
+
+      if (res["errorCode"] && res["errorCode"] === ErrorCodes.userNotVerified) {
+        console.log("Not verified")
+        this.$router.push("/verify-email")
+        return;
+      }
 
       saveAccessToken(res.accessToken)
 

@@ -32,6 +32,7 @@ public class AddItemRequestDto {
 
     // Dành cho Flight
     private Integer flightSlotId;
+    
 
     // Dành cho Bus
     private Integer busSlotId;

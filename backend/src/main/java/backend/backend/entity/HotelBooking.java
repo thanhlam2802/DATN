@@ -16,8 +16,6 @@ public class HotelBooking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_variant_id", nullable = false)
     private HotelRoomVariant roomVariant;
@@ -37,9 +35,16 @@ public class HotelBooking {
     @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalPrice;
 
+    @Column(name = "rooms")
+    private Short rooms;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
 }

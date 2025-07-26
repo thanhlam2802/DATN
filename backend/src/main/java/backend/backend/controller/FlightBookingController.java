@@ -108,9 +108,9 @@ public class FlightBookingController {
     }
 
     // API tổng hợp: Lấy thông tin giữ chỗ chuyến bay (reservation summary) theo orderId
-    @GetMapping("/bookings/flights/reservation-summary/{orderId}")
-    public ResponseEntity<FlightOrderReservationDto> getFlightReservationSummary(@PathVariable Integer orderId) {
-        FlightOrderReservationDto dto = flightBookingService.getFlightReservationSummary(orderId);
+    @GetMapping("/bookings/flights/reservation-summary/{bookingId}")
+    public ResponseEntity<FlightOrderReservationDto> getFlightReservationSummary(@PathVariable Integer bookingId) {
+        FlightOrderReservationDto dto = flightBookingService.getFlightReservationSummary(bookingId);
         if (dto == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(dto);
     }

@@ -1,6 +1,7 @@
 package backend.backend.controller;
 
 import backend.backend.dao.UserDAO;
+import backend.backend.dto.ApplyVoucherRequest;
 import backend.backend.dto.CheckoutDto;
 import backend.backend.dto.DirectTourReservationRequestDto;
 import backend.backend.dto.OrderDto; 
@@ -8,9 +9,12 @@ import backend.backend.entity.ApiResponse;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
 import backend.backend.utils.ResponseFactory;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,8 @@ import backend.backend.dto.DirectFlightReservationRequestDto;
 @RestController
 @RequestMapping("/api/v1/orders")
 public class OrderController {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
     @Autowired
     private OrderService orderService;
@@ -79,8 +85,41 @@ public class OrderController {
      * Endpoint xử lý giữ chỗ (mua ngay) cho flight slot.
      */
     @PostMapping("/reserve-flight-direct")
-    public ResponseEntity<ApiResponse<OrderDto>> createDirectFlightReservation(@RequestBody DirectFlightReservationRequestDto directRequest) {
-        OrderDto temporaryOrder = orderService.createDirectFlightReservation(directRequest);
-        return ResponseFactory.created(temporaryOrder, "Giữ chỗ thành công. Vui lòng hoàn tất thanh toán trong thời gian quy định.");
+    public ResponseEntity<ApiResponse<Integer>> createDirectFlightReservation(@RequestBody DirectFlightReservationRequestDto directRequest) {
+        Integer idBooing = orderService.createDirectFlightReservation(directRequest);
+        return ResponseFactory.created(idBooing, "Giữ chỗ thành công. Vui lòng hoàn tất thanh toán trong thời gian quy định.");
+    }
+    @PutMapping("/success-order/{id}")
+    public ResponseEntity<ApiResponse<OrderDto>> successOrder(@PathVariable String id, @RequestBody String transactionId) {
+        logger.info("Bắt đầu xử lý thanh toán thành công cho Order ID: {} với Transaction ID: {}", id, transactionId);
+        try {
+            OrderDto temporaryOrder = orderService.paidOrder(Integer.valueOf(id),transactionId);
+            logger.info("Thanh toán thành công cho Order ID: {} được ghi nhận.", id);
+            return ResponseFactory.created(temporaryOrder, "Thanh toán thành công.");
+        } catch (Exception e) {
+            logger.error("Lỗi khi xử lý thanh toán cho Order ID: {}. Chi tiết lỗi: {}", id, e.getMessage());
+          
+            throw e; 
+        }
+        
+       
+        
+    }
+    
+ 
+    /**
+     * API để áp dụng một mã giảm giá vào đơn hàng đang chờ thanh toán.
+     * @param id ID của đơn hàng cần áp dụng.
+     * @param request Chứa voucherCode người dùng nhập.
+     * @return OrderDto đã được cập nhật với giá mới.
+     */
+    @PostMapping("/{id}/apply-voucher")
+    public ResponseEntity<ApiResponse<OrderDto>> applyVoucher(
+            @PathVariable Integer id,
+            @Valid @RequestBody ApplyVoucherRequest request) {
+        
+        // Giả sử OrderService có phương thức applyVoucherToOrder
+        OrderDto updatedOrder = orderService.applyVoucherToOrder(id, request.getVoucherCode());
+        return ResponseFactory.success(updatedOrder, "Áp dụng mã giảm giá thành công.");
     }
 }

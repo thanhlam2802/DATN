@@ -26,6 +26,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    private String transactionId;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -33,7 +34,9 @@ public class Order {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    // Trạng thái của hóa đơn: "PENDING", "PAID", "FAILED"
+    @Column(name = "original_amount", precision = 12, scale = 2)
+    private BigDecimal originalAmount;
+    
     @Column(nullable = false, length = 50)
     private String status;
 

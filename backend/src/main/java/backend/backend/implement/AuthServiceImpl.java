@@ -53,41 +53,49 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public JwtResultDto register(RegisterRequestDto registerRequestDto) {
-        Optional<User> user = userRepository.findByEmail(registerRequestDto.getEmail());
-        if (user.isPresent()) {
-            throw new BadRequestException("User already exist with give email", ErrorCode.AUTH_001);
-        }
+       
+        userRepository.findByEmail(registerRequestDto.getEmail()).ifPresent(user -> {
+            throw new BadRequestException("User already exists with the given email", ErrorCode.AUTH_001);
+        });
         if (!UserRoleEnum.registrableUserRoles().contains(registerRequestDto.getRole())) {
-            throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
+            throw new BadRequestException("Invalid role provided", ErrorCode.AUTH_005);
         }
+        
+        Role roleEntity = roleRepository.findByName(registerRequestDto.getRole())
+                .orElseThrow(() -> new BadRequestException("Role not found in database", ErrorCode.AUTH_005));
+
         User newUser = userMapper.fromRegisterRequestToEntity(registerRequestDto);
         newUser.setPasswordHash(passwordEncoder.encode(registerRequestDto.getPassword()));
-
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
+
         newUser.setVerified(false);
 
-        newUser = userRepository.save(newUser);
 
-        Optional<Role> role = roleRepository.findByName(registerRequestDto.getRole());
+      
+        User savedUser = userRepository.save(newUser);
+      
 
-        if (role.isEmpty()) {
-            throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
-        }
 
         UserRole userRole = new UserRole();
+
         userRole.setUser(newUser);
         userRole.setRole(role.get());
         userRole.setId(new UserRoleId(newUser.getId(), role.get().getId()));
+
         userRoleRepository.save(userRole);
 
-        Map<String, String> params = new HashMap<>();
-        params.put("toEmail", newUser.getEmail());
-        params.put("userId", newUser.getId().toString());
-        otpTransactionService.sendOtp(params, OtpType.REGISTER_ACCOUNT);
+        
+        if (!autoVerified) {
+            Map<String, String> params = new HashMap<>();
+            params.put("toEmail", savedUser.getEmail());
+            params.put("userId", savedUser.getId().toString());
+            otpTransactionService.sendOtp(params, OtpType.REGISTER_ACCOUNT);
+        }
 
+       
         JwtResultDto jwtResultDto = new JwtResultDto();
-        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
+        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(savedUser));
         return jwtResultDto;
     }
 

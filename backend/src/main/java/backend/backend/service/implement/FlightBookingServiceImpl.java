@@ -1,11 +1,7 @@
 package backend.backend.service.implement;
 
-import backend.backend.dao.FlightBookingDAO;
-import backend.backend.dao.FlightDAO;
-import backend.backend.dao.FlightSlotDAO;
+import backend.backend.dao.*;
 
-
-import backend.backend.dao.OrderDAO;
 
 import backend.backend.dto.*;
 import backend.backend.entity.*;
@@ -15,6 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 import java.math.BigDecimal; // BỔ SUNG
 import java.time.LocalDateTime;
@@ -32,6 +29,8 @@ public class FlightBookingServiceImpl implements FlightBookingService {
     private FlightDAO flightDAO;
     @Autowired
     private FlightSlotDAO flightSlotDAO;
+    @Autowired
+    private CustomerDAO customerDAO;
     @Autowired
     private OrderDAO orderDAO;
 
@@ -60,17 +59,18 @@ public class FlightBookingServiceImpl implements FlightBookingService {
 
             // 3. Tính toán giá và cập nhật tổng tiền của Order
             BigDecimal newBookingPrice = slot.getPrice();
+           System.out.print(newBookingPrice);
             BigDecimal currentOrderAmount = order.getAmount() != null ? order.getAmount() : BigDecimal.ZERO;
             order.setAmount(currentOrderAmount.add(newBookingPrice));
             orderDAO.save(order);
+            
 
             // 4. Tạo booking flight
             FlightBooking booking = new FlightBooking();
             booking.setFlightSlot(slot);
             booking.setBookingDate(LocalDateTime.now());
             booking.setOrder(order); // Gán đối tượng Order đã được quản lý
-            booking.setTotalPrice(newBookingPrice); // Lưu giá của riêng booking này
-
+            booking.setTotalPrice(newBookingPrice); 
             if (bookingDto.getCustomerId() != null) {
                 Customer c = new Customer(); c.setId(bookingDto.getCustomerId());
                 booking.setCustomer(c);
@@ -161,8 +161,8 @@ public class FlightBookingServiceImpl implements FlightBookingService {
     }
     @Transactional
     @Override
-    public FlightOrderReservationDto getFlightReservationSummary(Integer orderId) {
-        FlightBooking booking = flightBookingDAO.findByOrderId(orderId).stream().findFirst().orElse(null);
+    public FlightOrderReservationDto getFlightReservationSummary(Integer bookingId) {
+        FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
         if (booking == null) return null;
         FlightOrderReservationDto dto = new FlightOrderReservationDto();
         dto.setOrder(toOrderDto(booking.getOrder()));
@@ -170,6 +170,20 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         dto.setCustomer(toCustomerDto(booking.getCustomer()));
         dto.setFlightSlot(toFlightSlotDto(booking.getFlightSlot()));
         return dto;
+    }
+
+    @Override
+    public FlightBooking createFlightBooking(Integer orderId,AddItemRequestDto genericRequest) {
+        Customer customer = customerDAO.findById(genericRequest.getCustomerId()).orElse(null);
+        FlightSlot flightSlot = flightSlotDAO.findById(genericRequest.getFlightSlotId()).orElse(null);
+        FlightBooking booking = new FlightBooking();
+        booking.setCustomer(customer);
+        booking.setFlightSlot(flightSlot);
+        booking.setTotalPrice(flightSlot.getPrice());
+        booking.setOrder(orderDAO.findById(orderId).orElse(null));
+        booking.setBookingDate(LocalDateTime.now());
+
+        return flightBookingDAO.save(booking);
     }
 
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking booking, Flight flight) {

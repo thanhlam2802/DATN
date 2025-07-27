@@ -130,12 +130,12 @@ public class AdminFlightController {
 
     @PutMapping("/flights/{flightId}/seats")
     public ResponseEntity<List<FlightSlotDto>> updateSeats(
-            @PathVariable Integer flightId,
+            @PathVariable String flightId,
             @RequestBody List<FlightSlotDto> seats) {
         String requestId = UUID.randomUUID().toString();
         log.info("UPDATE_SEATS_REQUEST - RequestId: {}, flightId: {}, PayloadCount: {}", requestId, flightId, seats.size());
         try {
-            List<FlightSlotDto> updated = adminFlightService.updateSeats(flightId, seats);
+            List<FlightSlotDto> updated = adminFlightService.updateSeats(Integer.parseInt(flightId), seats);
             log.info("UPDATE_SEATS_SUCCESS - RequestId: {}, flightId: {}, UpdatedCount: {}", requestId, flightId, updated.size());
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
@@ -144,19 +144,18 @@ public class AdminFlightController {
         }
     }
 
-    @PutMapping("/flights/{flightId}/seats/{slotId}")
+    @PutMapping("/flights/seats/{slotId}")
     public ResponseEntity<FlightSlotDto> updateSeat(
-            @PathVariable Integer flightId,
             @PathVariable Integer slotId,
             @RequestBody FlightSlotDto slotDto) {
         String requestId = UUID.randomUUID().toString();
-        log.info("UPDATE_SEAT_REQUEST - RequestId: {}, flightId: {}, slotId: {}, Payload: {}", requestId, flightId, slotId, slotDto);
+        log.info("UPDATE_SEAT_REQUEST - RequestId: {},  slotId: {}, Payload: {}", requestId, slotId, slotDto);
         try {
             FlightSlotDto updated = adminFlightService.updateSeat(slotId, slotDto);
-            log.info("UPDATE_SEAT_SUCCESS - RequestId: {}, flightId: {}, slotId: {}", requestId, flightId, slotId);
+            log.info("UPDATE_SEAT_SUCCESS - RequestId: {}, slotId: {}", requestId, slotId);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
-            log.error("UPDATE_SEAT_FAILED - RequestId: {}, flightId: {}, slotId: {}, Error: {}", requestId, flightId, slotId, e.getMessage(), e);
+            log.error("UPDATE_SEAT_FAILED - RequestId: {}, slotId: {}, Error: {}", requestId, slotId, e.getMessage(), e);
             throw e;
         }
     }
@@ -205,6 +204,19 @@ public class AdminFlightController {
             throw e;
         }
     }
+    @GetMapping("/flight-booked/{fligtId}")
+    public ResponseEntity<List<FlightSlotDto>> flightBooked(@PathVariable Integer fligtId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_BOOKING_DETAIL_REQUEST - RequestId: {}, bookingId: {}", requestId, fligtId);
+        try {
+            List<FlightSlotDto>  detail = adminFlightService.getSeatsBooked(fligtId);
+            log.info("GET_BOOKING_DETAIL_SUCCESS - RequestId: {}, bookingId: {}", requestId, fligtId);
+            return ResponseEntity.ok(detail);
+        } catch (Exception e) {
+            log.error("GET_BOOKING_DETAIL_FAILED - RequestId: {}, bookingId: {}, Error: {}", requestId, fligtId, e.getMessage(), e);
+            throw e;
+        }
+    }
 
     @PutMapping("/flight-bookings/{bookingId}")
     public ResponseEntity<FlightBookingDetailDto> updateFlightBookingStatus(
@@ -220,6 +232,21 @@ public class AdminFlightController {
             log.error("UPDATE_BOOKING_STATUS_FAILED - RequestId: {}, bookingId: {}, Error: {}", requestId, bookingId, e.getMessage(), e);
             throw e;
         }
+    }
+    @PutMapping("/updateGroupSeat/{flightId}")
+    public ResponseEntity<Void> updateGroupSeat(
+            @PathVariable Integer flightId,
+            @RequestBody FlightSeatGroupDto dto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_BOOKING_STATUS_REQUEST - RequestId: {}, bookingId: {}, status: {}", requestId, flightId, dto);
+        try {
+            adminFlightService.updateGroupSeat(flightId,dto);
+            log.info("UPDATE_BOOKING_STATUS_SUCCESS - RequestId: {}, bookingId: {}, status: {}", requestId, flightId, dto);
+        } catch (Exception e) {
+            log.error("UPDATE_BOOKING_STATUS_FAILED - RequestId: {}, bookingId: {}, Error: {}", requestId, flightId, e.getMessage(), e);
+            throw e;
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/flights/statistics")

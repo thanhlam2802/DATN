@@ -127,7 +127,7 @@ public class FlightServiceImpl implements FlightService {
             result.put("business",          flightSlotDAO.countAvailableBusinessSlotsByFlightId(flightId));
             result.put("economyWindow",     flightSlotDAO.countAvailableEconomyWindowSlotsByFlightId(flightId));
             result.put("economyAisle",      flightSlotDAO.countAvailableEconomyAisleSlotsByFlightId(flightId));
-            result.put("busine  ssWindow",    flightSlotDAO.countAvailableBusinessWindowSlotsByFlightId(flightId));
+            result.put("businessWindow",    flightSlotDAO.countAvailableBusinessWindowSlotsByFlightId(flightId));
             result.put("businessAisle",     flightSlotDAO.countAvailableBusinessAisleSlotsByFlightId(flightId));
             log.info("GET_SEATS_DETAIL_SUCCESS  - RequestId: {}, flightId: {}, details: {}", requestId, flightId, result);
             return result;

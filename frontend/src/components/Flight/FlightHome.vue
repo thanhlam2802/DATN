@@ -9,22 +9,6 @@
         </p>
         <i class="fa-solid fa-plane-departure absolute top-8 right-64 text-5xl text-[#4f39f6]"></i>
       </div>
-      <div class="mb-10 flex justify-center">
-        <div class="inline-flex space-x-2 bg-white rounded-full shadow-md p-1">
-          <button @click="currentTab = 'one-way'" :class="currentTab === 'one-way' ? tabActiveClass : tabInactiveClass
-            " class="px-4 py-2 rounded-full text-sm font-medium transition-colors">
-            Một chiều
-          </button>
-          <button @click="currentTab = 'round-trip'" :class="currentTab === 'round-trip' ? tabActiveClass : tabInactiveClass
-            " class="px-4 py-2 rounded-full text-sm font-medium transition-colors">
-            Khứ hồi
-          </button>
-          <button @click="currentTab = 'multi-city'" :class="currentTab === 'multi-city' ? tabActiveClass : tabInactiveClass
-            " class="px-4 py-2 rounded-full text-sm font-medium transition-colors">
-            Nhiều thành phố
-          </button>
-        </div>
-      </div>
       <form @submit.prevent="onSearch"
         class="rounded-xl shadow-lg p-8 mb-10 border-t border-l border-gray-200 overflow-hidden relative before:absolute before:w-96 before:h-96 before:bg-sky-300 before:-z-10 before:rounded-full before:-top-70 before:-right-72 before:blur-xl before:[box-shadow:-100px_50px_30px_100px_#7dd3fc] after:absolute after:w-96 after:h-96 after:bg-sky-300 after:-z-10 after:rounded-full after:top-70 after:-left-72 after:blur-xl after:[box-shadow:-100px_50px_30px_100px_#7dd3fc]">
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -35,7 +19,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
               </svg>
-
 
               Sân bay khởi hành
             </label>
@@ -138,9 +121,10 @@
                 <input type="range" v-model="filters.priceMax" min="0" max="10000000" step="50000" class="w-full" />
               </div>
             </div>
-            <div class="flex justify-between text-xs text-gray-500">
-              <span class="text-center">{{ formatCurrency(filters.priceMin) }}</span>
-              <span class="text-center">{{  formatCurrency(filters.priceMax )}}</span>
+            <div class="text-xs text-gray-500 flex">
+              <span class="text-center block w-1/2">{{ filters.priceMin <= 0 ? "0 ₫" :formatCurrency(filters.priceMin)
+                  }}</span>
+                  <span class="text-center block w-1/2 ">{{ formatCurrency(filters.priceMax )}}</span>
             </div>
           </div>
           <div>
@@ -210,15 +194,16 @@
 
 
           </div>
+          <div class="my-auto flex justify-center items-center self-start">
+            <button type="submit"
+              class=" bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
+              Search
+            </button>
+          </div>
 
         </div>
 
-        <div class="mt-8 flex justify-end">
-          <button type="submit"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
-            Search
-          </button>
-        </div>
+
       </form>
 
       <h2 class="text-2xl font-semibold text-gray-800 mb-4">Flight options</h2>
@@ -354,7 +339,9 @@
             Chọn loại vé của bạn
           </h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="group cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1">
+            <div class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
+                 :class="{'scale-105 -rotate-1 ring-2 ring-indigo-500/60 shadow-indigo-500/20': selectedCabinClass==='economy'}"
+                 @click="() => { selectedCabinClass = 'economy'; if (!economySeatType) economySeatType = 'window'; selectedSeatType = economySeatType; }">
               <div
                 class="relative w-full rounded-3xl border border-indigo-500/20 bg-gradient-to-tr from-[#0F0F0F] to-[#1B1B1B] shadow-2xl overflow-hidden backdrop-blur-xl hover:border-indigo-500/40 hover:shadow-indigo-500/10 hover:shadow-3xl">
                 <div class="absolute inset-0 z-0 overflow-hidden">
@@ -400,8 +387,6 @@
                   </p>
 
                   <ul class="text-sm text-gray-300 list-disc list-inside space-y-1">
-                    <li>Giá từ: <span class="font-bold text-indigo-400">{{ economySummary?.price ?
-                        formatCurrency(economySummary.price) : 'N/A' }}</span></li>
                     <li>Hành lý xách tay: <span class="font-bold text-indigo-400">{{ economySummary?.carryOnLuggage ?
                         economySummary.carryOnLuggage + ' kg' : 'N/A' }}</span></li>
                     <li>Số lượng vé: <span class="font-bold text-indigo-400">{{ economySummary?.total ?? 0 }}</span>
@@ -412,14 +397,15 @@
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="economySeatType" value="window" @change="selectedSeatType = 'window'"
                         class="form-radio text-indigo-600" />
-                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span>
+                        <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+{{ economySummary.priceWindow }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{ economySummary.countWindow ?? 0
                           }})</span></span>
                     </label>
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="economySeatType" value="aisle" @change="selectedSeatType = 'aisle'"
                         class="form-radio text-indigo-600" />
-                      <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{
+                      <span class="ml-2 font-bold">Ngồi lối đi <span class="text-xs text-gray-400">(+{{ economySummary.priceAisle }} VND)</span>
+                        <span class="ml-1 text-xs text-gray-500">(Còn {{
                           economySummary.countAisle ?? 0 }})</span></span>
                     </label>
                   </div>
@@ -427,7 +413,9 @@
               </div>
             </div>
 
-            <div class="group cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1">
+            <div class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
+                 :class="{'scale-105 -rotate-1 ring-2 ring-yellow-400/60 shadow-yellow-400/20': selectedCabinClass==='business'}"
+                 @click="() => { selectedCabinClass = 'business'; if (!businessSeatType) businessSeatType = 'window'; selectedSeatType = businessSeatType; }">
               <div
                 class="relative w-full rounded-3xl border border-yellow-400/20 bg-gradient-to-tr from-[#1A1400] to-[#2B1F00] shadow-2xl overflow-hidden backdrop-blur-xl hover:border-yellow-400/40 hover:shadow-yellow-400/10 hover:shadow-3xl">
                 <div class="absolute inset-0 z-0 overflow-hidden">
@@ -476,8 +464,6 @@
                   </p>
 
                   <ul class="text-sm text-gray-300 list-disc list-inside space-y-1">
-                    <li>Giá từ: <span class="font-bold text-indigo-400">{{ businessSummary?.price ?
-                        formatCurrency(businessSummary.price) : 'N/A' }}</span></li>
                     <li>Hành lý xách tay: <span class="font-bold text-indigo-400">{{ businessSummary?.carryOnLuggage ?
                         businessSummary.carryOnLuggage + ' kg' : 'N/A' }}</span></li>
                     <li>Số lượng vé: <span class="font-bold text-indigo-400">{{ businessSummary?.total ?? 0 }}</span>
@@ -488,14 +474,15 @@
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="businessSeatType" value="window"
                         @change="selectedSeatType = 'window'" class="form-radio text-yellow-500" />
-                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span>
+                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+{{ businessSummary.priceWindow }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{ businessSummary.countWindow ?? 0
                           }})</span></span>
                     </label>
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="businessSeatType" value="aisle" @change="selectedSeatType = 'aisle'"
                         class="form-radio text-yellow-500" />
-                      <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{
+                      <span class="ml-2 font-bold">Ngồi lối đi <span class="text-xs text-gray-400">(+{{ businessSummary.priceAisle }} VND)</span>
+                        <span class="ml-1 text-xs text-gray-500">(Còn {{
                           businessSummary.countAisle ?? 0 }})</span></span>
                     </label>
                   </div>
@@ -519,7 +506,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router';
-import { searchFlights, getAvailableSeats, findFirstAvailableSlot } from '@/api/flightApi'
+import { searchFlights, getAvailableSeats, getAllAirlines,getAllAirports } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import FindAvailableSlotRequestDto from '@/dto/FindAvailableSlotRequestDto'
 
@@ -557,65 +544,42 @@ function openBooking(flight) {
 
 
 }
+const airports =ref([]);
+const airlines =ref([]);
 const economySummary = ref({
   price: 0,
   carryOnLuggage: 0,
   total: 0,
   countWindow: 0,
-  countAisle: 0
+  countAisle: 0,
+  priceWindow: 0,
+  priceAisle: 0
 });
 const businessSummary = ref({
   price: 0,
   carryOnLuggage: 0,
   total: 0,
   countWindow: 0,
-  countAisle: 0
+  countAisle: 0,
+  priceWindow: 0,
+  priceAisle: 0
 });
 function closeBooking() {
   showBookingModal.value = false;
   selectedFlight.value = null;
 }
 
-/** ========== Filter State ========== **/
+
 const filters = ref({
   departureAirportId: null,
   arrivalAirportId: null,
   departureDate: '',
-  returnDate: '',
-  passengers: 1,
-  cabinClass: "economy",
-  airlines: [], // array of selected airline keys
-  stops: [], // array of selected stop types
-  timeWindow: "all",
+  flightType:null,  
+  airlineId: null,
+  timeWindow:null,  
   priceMin: 0,
-  priceMax: 1000,
-  multiCities: "",
+  priceMax: 10000000,
 });
-
-
-
-
-
-// Tùy chọn stop types
-const stopsOptions = {
-  direct: "Bay thẳng",
-  "1stop": "1 điểm dừng",
-  "2plus": "2+ điểm dừng",
-};
-
-// Hàm toggle chọn airlines (đa lựa)
-function toggleAirline(key) {
-  const idx = filters.value.airlines.indexOf(key);
-  if (idx === -1) filters.value.airlines.push(key);
-  else filters.value.airlines.splice(idx, 1);
-}
-
-// Hàm toggle chọn stops
-function toggleStop(key) {
-  const idx = filters.value.stops.indexOf(key);
-  if (idx === -1) filters.value.stops.push(key);
-  else filters.value.stops.splice(idx, 1);
-}
 
 const flights = ref([])
 const loading = ref(false)
@@ -623,12 +587,7 @@ const error = ref('')
 
 function onSearch() {
   loading.value = true
-  searchFlights({
-    departureAirportId: filters.value.departureAirportId,
-    arrivalAirportId: filters.value.arrivalAirportId,
-    departureDate: filters.value.departureDate,
-    airlineId: filters.value.airlines.length === 1 ? filters.value.airlines[0] : undefined
-  })
+  searchFlights()
     .then(res => {
       flights.value = res.data
       window.$toast('Tìm kiếm thành công!', 'success');
@@ -641,8 +600,16 @@ function onSearch() {
       loading.value = false
     })
 }
-
+function fillAirPorts(){
+  getAllAirlines().then(res =>{
+    airports.value = res.data;
+    console.log(airports.value);
+    
+  })
+  
+}
 onMounted(() => {
+  fillAirPorts();
   onSearch()
 })
 
@@ -703,9 +670,21 @@ function getTicketSummary(slots, isBusiness) {
     if (slot.isBusiness === isBusiness) {
       businessSummary.value.price = slot.price;
       businessSummary.value.carryOnLuggage = slot.carryOnLuggage;
+      if(slot.isWindow){
+        businessSummary.value.priceWindow = slot.price;
+      }
+      if(slot.isAisle){
+        businessSummary.value.priceAisle = slot.price;
+      }
     } else {
       economySummary.value.price = slot.price;
       economySummary.value.carryOnLuggage = slot.carryOnLuggage;
+      if(slot.isWindow){
+        economySummary.value.priceWindow = slot.price;
+      }
+      if(slot.isAisle){
+        economySummary.value.priceAisle = slot.price;
+      }
     }
   }
 }

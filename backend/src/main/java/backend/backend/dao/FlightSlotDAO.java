@@ -2,9 +2,12 @@ package backend.backend.dao;
 
 import backend.backend.entity.FlightSlot;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.List;
 
@@ -49,4 +52,18 @@ public interface FlightSlotDAO extends JpaRepository<FlightSlot, Integer> {
             @Param("isWindow")   Boolean isWindow,
             @Param("isBusiness") Boolean isBusiness
     );
+
+    @Modifying
+    @Query("UPDATE FlightSlot fs SET fs.price = :price, fs.carryOnLuggage = :luggage " +
+            "WHERE fs.isAisle = :isAisle AND fs.isWindow = :isWindow AND fs.isBusiness = :isBusiness AND fs.flight.id = :flightId")
+    void updateFlightSlotsByConditions(
+            @Param("price") BigDecimal price,
+            @Param("luggage") int luggage,
+            @Param("isAisle") boolean isAisle,
+            @Param("isWindow") boolean isWindow,
+            @Param("isBusiness") boolean isBusiness,
+            @Param("flightId") Integer flightId
+    );
+
+    boolean existsBySeatNumber( String seatNumber);
 } 

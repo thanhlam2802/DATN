@@ -77,7 +77,13 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="flight in filteredFlights" :key="flight.id" class="hover:bg-gray-50">
+          <tr v-if="loading">
+            <td colspan="6" class="py-8 text-center text-indigo-600">
+              <span class="animate-spin w-6 h-6 border-4 border-indigo-200 border-t-indigo-600 rounded-full inline-block mr-2"></span>
+              Đang tải danh sách chuyến bay...
+            </td>
+          </tr>
+          <tr v-else v-for="flight in filteredFlights" :key="flight.id" class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
               {{ flight.flightNumber }}
             </td>
@@ -110,9 +116,11 @@
                 </button>
                 <button
                   @click="deleteFlight(flight)"
-                  class="text-red-600 hover:text-red-900"
+                  :disabled="loadingDelete[flight.id]"
+                  class="text-red-600 hover:text-red-900 flex items-center"
                 >
-                  <i class="fas fa-trash"></i>
+                  <i v-if="!loadingDelete[flight.id]" class="fas fa-trash"></i>
+                  <span v-else class="fa fa-spinner fa-spin"></span>
                 </button>
               </div>
             </td>
@@ -149,7 +157,7 @@
 
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
-import { getAdminFlights } from '@/api/flightApi'
+import { getAdminFlights, deleteAdminFlight } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import { useRouter } from 'vue-router'
 
@@ -163,6 +171,7 @@ const pageSize = 10
 const flights = ref([])
 const loading = ref(false)
 const error = ref('')
+const loadingDelete = ref({})
 
 onMounted(async () => {
   loading.value = true
@@ -247,9 +256,18 @@ function editFlight(flight) {
   console.log('Edit flight:', flight)
 }
 
-function deleteFlight(flight) {
-  // Implement delete functionality
-  console.log('Delete flight:', flight)
+async function deleteFlight(flight) {
+  if (!confirm('Bạn có chắc chắn muốn xóa chuyến bay này?')) return;
+  loadingDelete.value[flight.id] = true;
+  try {
+    await deleteAdminFlight(flight.id);
+    flights.value = flights.value.filter(f => f.id !== flight.id);
+    window.$toast('Xóa chuyến bay thành công!', 'success');
+  } catch (e) {
+    window.$toast('Xóa chuyến bay thất bại!', 'error');
+  } finally {
+    loadingDelete.value[flight.id] = false;
+  }
 }
 
 const router = useRouter()

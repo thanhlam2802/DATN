@@ -1,7 +1,12 @@
 <script setup>
-import { ref, onMounted, computed, reactive } from "vue";
+import { ref, onMounted, computed, reactive, onUnmounted } from "vue"; // Import thêm onUnmounted
 import { useRoute, useRouter } from "vue-router";
-import { getBearerToken } from "@/services/TokenService"; // Import getBearerToken
+import { getBearerToken } from "@/services/TokenService";
+
+// --- START: Thư viện WebSocket ---
+import SockJS from "sockjs-client/dist/sockjs.min.js";
+import Stomp from "stompjs";
+// --- END: Thư viện WebSocket ---
 
 const route = useRoute();
 const router = useRouter();
@@ -11,13 +16,18 @@ const order = ref(null);
 const flightBookingDetails = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
-const processingItemId = ref(null); // State loading cho từng item
+const processingItemId = ref(null);
 
 // --- STATE CHO VOUCHER ---
 const voucherCode = ref("");
 const isApplyingVoucher = ref(false);
 const suggestedVouchers = ref([]);
 const isLoadingVouchers = ref(false);
+
+// --- START: STATE CHO WEBSOCKET ---
+const stompClient = ref(null);
+const isSocketConnected = ref(false);
+// --- END: STATE CHO WEBSOCKET ---
 
 // Reactive state for hotel image sliders
 const hotelImageIndices = reactive({});
@@ -87,6 +97,74 @@ const getVoucherDiscountText = (voucher) => {
   return "";
 };
 
+const connectWebSocket = () => {
+  const orderId = route.params.id;
+  if (!orderId || (stompClient.value && isSocketConnected.value)) return;
+
+  const socket = new SockJS("http://localhost:8080/ws");
+  stompClient.value = Stomp.over(socket);
+  stompClient.value.debug = null; // Tắt log không cần thiết
+
+  stompClient.value.connect({}, (frame) => {
+    console.log("WebSocket Connected:", frame);
+    isSocketConnected.value = true;
+
+    // Kênh riêng cho đơn hàng này (giữ nguyên)
+    stompClient.value.subscribe(`/topic/orders/${orderId}`, (response) => {
+      handleVoucherResponse(JSON.parse(response.body));
+    });
+
+    // MỚI: Lắng nghe trên kênh cập nhật voucher công khai
+    stompClient.value.subscribe(`/topic/vouchers/updates`, (response) => {
+      const update = JSON.parse(response.body);
+      if (update.status === "UNAVAILABLE") {
+        console.log(`Voucher ${update.voucherCode} đã hết! Cập nhật UI.`);
+        // Tìm voucher trong danh sách gợi ý và vô hiệu hóa nó
+        const usedVoucher = suggestedVouchers.value.find(
+          (v) => v.code === update.voucherCode
+        );
+        if (usedVoucher) {
+          // Bạn có thể thêm một thuộc tính 'disabled' hoặc xóa nó khỏi danh sách
+          usedVoucher.disabled = true;
+        }
+      }
+    });
+  });
+};
+
+/**
+ * Xử lý phản hồi voucher từ server qua WebSocket.
+ */
+const handleVoucherResponse = (response) => {
+  isApplyingVoucher.value = false; // Tắt loading
+  if (response.statusCode === 200 && response.data) {
+    // Thành công
+    order.value = response.data;
+    window.$toast &&
+      window.$toast(
+        response.message || "Áp dụng voucher thành công!",
+        "success"
+      );
+    voucherCode.value = "";
+  } else {
+    // Thất bại
+    window.$toast &&
+      window.$toast(
+        response.message || "Có lỗi xảy ra, vui lòng thử lại.",
+        "error"
+      );
+  }
+};
+
+onUnmounted(() => {
+  if (stompClient.value && isSocketConnected.value) {
+    stompClient.value.disconnect();
+    console.log("WebSocket Disconnected.");
+  }
+});
+
+// --- END: Logic WebSocket ---
+
 // --- API CALLS ---
 const fetchOrderDetails = async () => {
   isLoading.value = true;
@@ -102,7 +180,9 @@ const fetchOrderDetails = async () => {
     const data = await orderResponse.json();
     order.value = data.data;
 
+    // THAY ĐỔI: Nếu đơn hàng có thể sửa, kết nối WebSocket và tải voucher
     if (order.value && isEditable.value) {
+      connectWebSocket();
       await fetchSuggestedVouchers();
     }
 
@@ -152,38 +232,32 @@ const fetchSuggestedVouchers = async () => {
 onMounted(fetchOrderDetails);
 
 // --- EVENT HANDLERS ---
-const handleApplyVoucher = async () => {
-  if (!voucherCode.value.trim()) {
-    return (
-      window.$toast && window.$toast("Vui lòng nhập mã giảm giá.", "success")
-    );
-  }
-  isApplyingVoucher.value = true;
-  try {
-    const response = await fetch(
-      `http://localhost:8080/api/v1/orders/${order.value.id}/apply-voucher`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: getBearerToken(),
-        },
-        body: JSON.stringify({ voucherCode: voucherCode.value }),
-      }
-    );
-    const result = await response.json();
-    if (!response.ok)
-      throw new Error(result.message || "Mã giảm giá không hợp lệ.");
 
-    order.value = result.data;
-    window.$toast &&
-      window.$toast("Áp dụng mã giảm giá thành công!", "success");
-    voucherCode.value = "";
-  } catch (e) {
-    window.$toast && window.$toast(e.message, "error");
-  } finally {
-    isApplyingVoucher.value = false;
+/**
+ * THAY ĐỔI: Gửi yêu cầu áp dụng voucher qua WebSocket thay vì HTTP fetch.
+ */
+const handleApplyVoucher = () => {
+  const code = voucherCode.value.trim();
+  if (!code) {
+    window.$toast && window.$toast("Vui lòng nhập mã giảm giá.", "info");
+    return;
   }
+
+  if (!stompClient.value || !isSocketConnected.value) {
+    window.$toast &&
+      window.$toast("Lỗi kết nối real-time. Đang thử kết nối lại...", "error");
+    connectWebSocket(); // Thử kết nối lại
+    return;
+  }
+
+  isApplyingVoucher.value = true;
+  const payload = { voucherCode: code };
+
+  stompClient.value.send(
+    `/app/orders/${order.value.id}/apply-voucher`,
+    {},
+    JSON.stringify(payload)
+  );
 };
 
 const selectVoucher = (code) => {
@@ -550,13 +624,30 @@ function prevHotelImage(hotel) {
                         v-for="voucher in suggestedVouchers"
                         :key="voucher.id"
                         @click="selectVoucher(voucher.code)"
-                        class="w-full text-left p-2 border-l-4 border-green-500 bg-green-50 rounded-md hover:bg-green-100 transition"
+                        :disabled="voucher.disabled"
+                        class="w-full text-left p-2 border-l-4 rounded-md transition"
+                        :class="{
+                          'border-green-500 bg-green-50 hover:bg-green-100':
+                            !voucher.disabled,
+                          'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed':
+                            voucher.disabled,
+                        }"
                       >
-                        <strong class="text-green-700">{{
-                          voucher.code
-                        }}</strong>
-                        <p class="text-xs text-gray-600">
+                        <strong
+                          :class="{ 'text-green-700': !voucher.disabled }"
+                          >{{ voucher.code }}</strong
+                        >
+                        <p
+                          class="text-xs"
+                          :class="{ 'text-gray-600': !voucher.disabled }"
+                        >
                           {{ getVoucherDiscountText(voucher) }}
+                        </p>
+                        <p
+                          v-if="voucher.disabled"
+                          class="text-xs font-bold text-red-500"
+                        >
+                          Đã hết lượt sử dụng
                         </p>
                       </button>
                     </div>

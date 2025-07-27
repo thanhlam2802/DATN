@@ -58,7 +58,7 @@ public class OTPTransactionServiceImpl implements OTPTransactionService {
     }
 
     @Override
-    public JwtResultDto verifyOtp(Integer userId, OtpType type, String code) {
+    public void verifyOtp(Integer userId, OtpType type, String code) {
         Optional<OTPTransaction> otpTransaction = otpTransactionRepository
                 .findFirstByUserIdAndTypeOrderByCreatedAtDesc(userId, type);
         if (otpTransaction.isEmpty()) {
@@ -74,13 +74,6 @@ public class OTPTransactionServiceImpl implements OTPTransactionService {
         if (now.isAfter(createdAt.plusMinutes(otpTransaction.get().getExpiredInMinute()))) {
             throw new BadRequestException("Expired OTP transaction", ErrorCode.OTP_003);
         }
-        User user = userRepository.findById(userId).orElseThrow();
-        user.setVerified(true);
-        userRepository.save(user);
-        String accessToken = jwtTokenUtil.generateToken(user);
-        JwtResultDto jwtResultDto = new JwtResultDto();
-        jwtResultDto.setAccessToken(accessToken);
-        return jwtResultDto;
     }
 
 

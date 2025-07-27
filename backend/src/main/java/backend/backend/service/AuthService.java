@@ -2,7 +2,6 @@ package backend.backend.service;
 
 import backend.backend.dto.auth.*;
 import backend.backend.entity.User;
-import backend.backend.utils.JwtTokenUtil;
 
 public interface AuthService {
     JwtResultDto register(RegisterRequestDto registerRequestDto);
@@ -22,4 +21,6 @@ public interface AuthService {
     void resetPasswordVerifyLink(ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto);
 
     void requestResetPassword(RequestResetPasswordRequestDto requestDto);
+
+    JwtResultDto verifyAccount(VerifyAccountRequestDto verifyAccountRequestDto);
 }

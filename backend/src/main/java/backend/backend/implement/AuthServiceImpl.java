@@ -131,6 +131,10 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Wrong password", ErrorCode.AUTH_004);
         }
         if (!user.isVerified()) {
+            Map<String, String> params = new HashMap<>();
+            params.put("toEmail", user.getEmail());
+            params.put("userId", user.getId().toString());
+            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
             throw new BadRequestException("User is not verified", ErrorCode.AUTH_007);
         }
         JwtResultDto jwtResultDto = new JwtResultDto();
@@ -216,6 +220,17 @@ public class AuthServiceImpl implements AuthService {
 
         emailRequestDto.setBody(TemplateUtil.process("templates/reset_password.html", params));
         emailService.sendEmail(emailRequestDto);
+    }
+
+    @Override
+    public JwtResultDto verifyAccount(VerifyAccountRequestDto verifyAccountRequestDto) {
+        User user = getUserByEmail(verifyAccountRequestDto.getEmail());
+        otpTransactionService.verifyOtp(user.getId(), OtpType.VERIFY_ACCOUNT, verifyAccountRequestDto.getCode());
+        JwtResultDto jwtResultDto = new JwtResultDto();
+        user.setVerified(true);
+        user = userRepository.save(user);
+        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
+        return jwtResultDto;
     }
 
 }

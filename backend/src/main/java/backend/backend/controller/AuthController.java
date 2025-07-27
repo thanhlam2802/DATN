@@ -19,7 +19,6 @@ public class AuthController {
 
     private final AuthService authService;
     private final OTPTransactionService otpTransactionService;
-    private final UserRepository userRepository;
 
     @PostMapping("/register")
     public JwtResultDto register(@Valid @RequestBody RegisterRequestDto requestDto) {
@@ -31,11 +30,10 @@ public class AuthController {
         return authService.login(requestDto);
     }
 
-    @PreAuthorize("@authService.isAuthenticated()")
-    @PostMapping("/register/verify-otp")
-    public JwtResultDto verifyOtp(@Valid @RequestBody VerifyOtpRequestDto requestDto) {
-        Integer userId = SecurityUtil.getUserId();
-        return otpTransactionService.verifyOtp(userId, OtpType.VERIFY_ACCOUNT, requestDto.getCode());
+
+    @PostMapping("/verify-account")
+    public JwtResultDto verifyAccount(@Valid @RequestBody VerifyAccountRequestDto requestDto) {
+        return authService.verifyAccount(requestDto);
     }
 
 

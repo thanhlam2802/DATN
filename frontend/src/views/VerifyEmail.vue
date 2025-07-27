@@ -10,7 +10,7 @@
       <div class="absolute inset-0 flex items-center justify-center px-6 py-8">
         <form @submit.prevent="submitCode" class="bg-white rounded-md shadow-lg max-w-md w-full p-8">
           <div class="flex items-center justify-center mb-6 relative">
-            <button @click="goBack" class="absolute left-0 text-purple-700 text-xl">
+            <button @click="goBack" class="absolute left-0 text-purple-700 text-xl" type="button">
               <i class="fas fa-arrow-left"></i>
             </button>
             <h2 class="text-center font-extrabold text-xl">Enter confirmation code</h2>
@@ -31,9 +31,14 @@
                 v-model="code[index]"
                 @input="onInput(index)"
                 @keydown.backspace="onBackspace(index, $event)"
-                ref="inputRefs"
+                :ref="el => inputRefs[index] = el"
             />
           </div>
+          <div class="mb-5 flex justify-center">
+            <p v-if="otpError" class="text-red-500 text-xs mt-1">{{ otpError }}</p>
+
+          </div>
+
 
           <button
               type="submit"
@@ -68,59 +73,114 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "VerifyCode",
-  data() {
-    return {
-      email: "you@example.com", // Replace this with your actual email value
-      code: ["", "", "", "", "", ""],
-      timer: 60,
-    };
-  },
-  mounted() {
-    this.startTimer();
-    this.$nextTick(() => {
-      this.$refs.inputRefs[0].focus();
-    });
-  },
-  methods: {
-    goBack() {
-      this.$router.back();
-    },
-    onInput(index) {
-      const value = this.code[index];
-      if (/^\d$/.test(value) && index < this.code.length - 1) {
-        this.$refs.inputRefs[index + 1].focus();
-      }
-    },
-    onBackspace(index, event) {
-      if (!this.code[index] && index > 0) {
-        this.$refs.inputRefs[index - 1].focus();
-      }
-    },
-    submitCode() {
-      const fullCode = this.code.join("");
-      console.log("Submitted Code:", fullCode);
-      // Call API to verify code here
-    },
-    resendCode() {
-      // Trigger resend logic
-      this.timer = 60;
-      this.startTimer();
-    },
-    startTimer() {
-      const countdown = setInterval(() => {
-        if (this.timer > 0) {
-          this.timer--;
-        } else {
-          clearInterval(countdown);
-        }
-      }, 1000);
-    },
-  },
+<script setup>
+import {ref, onMounted, nextTick} from 'vue';
+import {useRouter} from 'vue-router';
+import {AuthApi} from "@/api/AuthApi.js";
+import {useLoadingStore} from "@/store/GlobalStore.js";
+import {useUserStore} from "@/store/UserStore.js";
+import {ErrorCodes} from "@/data/ErrorCode.js";
+import {saveAccessToken} from "@/services/TokenService.js";
+
+const router = useRouter();
+const email = ref("");
+const code = ref(["", "", "", "", "", ""]);
+const timer = ref(60);
+const otpError = ref("");
+const inputRefs = ref([]);
+const loadingStore = useLoadingStore();
+const userStore = useUserStore();
+
+const goBack = () => {
+  router.back();
 };
+
+const onInput = (index) => {
+  let value = code.value[index];
+
+  // Only allow a single digit (0-9)
+  if (!/^\d$/.test(value)) {
+    code.value[index] = "";
+    return;
+  }
+
+  // Move to next input if valid and not last
+  if (index < code.value.length - 1) {
+    inputRefs.value[index + 1]?.focus();
+  }
+};
+
+const onBackspace = (index, event) => {
+  if (!code.value[index] && index > 0) {
+    inputRefs.value[index - 1]?.focus();
+  }
+};
+
+const submitCode = async () => {
+  const fullCode = code.value.join("");
+
+  // Check if all digits are filled
+  if (fullCode.length !== 6 || code.value.some(d => !/^\d$/.test(d))) {
+    otpError.value = "Please enter all 6 digits of the verification code.";
+    return;
+  }
+
+  loadingStore.startLoading();
+  console.log("Submitted Code:", fullCode);
+  const request = {
+    code: fullCode,
+    email: email.value
+  }
+  const res = await AuthApi.verifyAccount(request);
+  if (res["errorCode"] === ErrorCodes.otpNotMatch) {
+    otpError.value = "Invalid OTP!!!"
+    loadingStore.stopLoading();
+    return;
+  }
+  if (res["errorCode"] === ErrorCodes.otpExpired) {
+    otpError.value = "OTP expired!!!"
+    loadingStore.stopLoading();
+    return;
+  }
+  if (res["errorCode"]) {
+    otpError.value = "An error occurred!!!"
+    loadingStore.stopLoading();
+    return;
+  }
+  otpError.value = "";
+  saveAccessToken(res.accessToken);
+  userStore.login();
+  await router.push("/");
+  loadingStore.stopLoading();
+};
+
+const resendCode = () => {
+  timer.value = 60;
+  startTimer();
+  // Add logic to resend code via API
+};
+
+const startTimer = () => {
+  const countdown = setInterval(() => {
+    if (timer.value > 0) {
+      timer.value--;
+    } else {
+      clearInterval(countdown);
+    }
+  }, 1000);
+};
+
+onMounted(() => {
+  startTimer();
+  nextTick(() => {
+    inputRefs.value[0]?.focus();
+  });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  email.value = urlParams.get("email");
+});
 </script>
+
 
 <style scoped>
 input::-webkit-outer-spin-button,

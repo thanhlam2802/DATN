@@ -53,49 +53,41 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public JwtResultDto register(RegisterRequestDto registerRequestDto) {
-       
-        userRepository.findByEmail(registerRequestDto.getEmail()).ifPresent(user -> {
-            throw new BadRequestException("User already exists with the given email", ErrorCode.AUTH_001);
-        });
-        if (!UserRoleEnum.registrableUserRoles().contains(registerRequestDto.getRole())) {
-            throw new BadRequestException("Invalid role provided", ErrorCode.AUTH_005);
+        Optional<User> user = userRepository.findByEmail(registerRequestDto.getEmail());
+        if (user.isPresent()) {
+            throw new BadRequestException("User already exist with give email", ErrorCode.AUTH_001);
         }
-        
-        Role roleEntity = roleRepository.findByName(registerRequestDto.getRole())
-                .orElseThrow(() -> new BadRequestException("Role not found in database", ErrorCode.AUTH_005));
-
+        if (!UserRoleEnum.registrableUserRoles().contains(registerRequestDto.getRole())) {
+            throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
+        }
         User newUser = userMapper.fromRegisterRequestToEntity(registerRequestDto);
         newUser.setPasswordHash(passwordEncoder.encode(registerRequestDto.getPassword()));
+
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
+        newUser.setIsVerified(false);
 
-        newUser.setVerified(false);
+        newUser = userRepository.save(newUser);
 
+        Optional<Role> role = roleRepository.findByName(registerRequestDto.getRole());
 
-      
-        User savedUser = userRepository.save(newUser);
-      
-
+        if (role.isEmpty()) {
+            throw new BadRequestException("Invalid role", ErrorCode.AUTH_005);
+        }
 
         UserRole userRole = new UserRole();
-
         userRole.setUser(newUser);
         userRole.setRole(role.get());
         userRole.setId(new UserRoleId(newUser.getId(), role.get().getId()));
-
         userRoleRepository.save(userRole);
 
-        
-        if (!autoVerified) {
-            Map<String, String> params = new HashMap<>();
-            params.put("toEmail", savedUser.getEmail());
-            params.put("userId", savedUser.getId().toString());
-            otpTransactionService.sendOtp(params, OtpType.REGISTER_ACCOUNT);
-        }
+        Map<String, String> params = new HashMap<>();
+        params.put("toEmail", newUser.getEmail());
+        params.put("userId", newUser.getId().toString());
+        otpTransactionService.sendOtp(params, OtpType.REGISTER_ACCOUNT);
 
-       
         JwtResultDto jwtResultDto = new JwtResultDto();
-        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(savedUser));
+        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
         return jwtResultDto;
     }
 
@@ -132,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(password, storedPassword)) {
             throw new BadRequestException("Wrong password", ErrorCode.AUTH_004);
         }
-        if (!user.isVerified()) {
+        if (!user.getIsVerified()) {
             throw new BadRequestException("User is not verified", ErrorCode.AUTH_007);
         }
         JwtResultDto jwtResultDto = new JwtResultDto();
@@ -182,12 +174,22 @@ public class AuthServiceImpl implements AuthService {
         if (user.isEmpty()) {
             throw new BadRequestException("User not found", ErrorCode.AUTH_002);
         }
+        ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto = new ResetPasswordVerifyLinkDto();
+        resetPasswordVerifyLinkDto.setResetToken(resetPasswordRequestDto.getResetToken());
+        resetPasswordVerifyLinkDto.setOtpCode(resetPasswordRequestDto.getOtpCode());
+        resetPasswordVerifyLink(resetPasswordVerifyLinkDto);
         User userUpdated = user.get();
         userUpdated.setPasswordHash(passwordEncoder.encode(resetPasswordRequestDto.getNewPassword()));
         userUpdated = userRepository.save(userUpdated);
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(userUpdated));
         return jwtResultDto;
+    }
+
+    @Override
+    public void resetPasswordVerifyLink(ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto) {
+        Integer userId = jwtTokenUtil.extractUserId(resetPasswordVerifyLinkDto.getResetToken());
+        otpTransactionService.verifyAcquiredOtp(userId, OtpType.RESET_PASSWORD, resetPasswordVerifyLinkDto.getOtpCode());
     }
 
     @Override

@@ -78,7 +78,7 @@ public class OTPTransactionServiceImpl implements OTPTransactionService {
             throw new BadRequestException("Expired OTP transaction", ErrorCode.OTP_003);
         }
         User user = userRepository.findById(userId).orElseThrow();
-        user.setVerified(true);
+        user.setIsVerified(true);
         userRepository.save(user);
         String accessToken = jwtTokenUtil.generateToken(user);
         JwtResultDto jwtResultDto = new JwtResultDto();

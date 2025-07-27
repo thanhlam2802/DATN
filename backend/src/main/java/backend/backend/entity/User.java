@@ -1,6 +1,8 @@
 package backend.backend.entity;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
@@ -10,6 +12,8 @@ import java.util.List;
 import jakarta.persistence.*;
 
 @Data
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
 public class User {

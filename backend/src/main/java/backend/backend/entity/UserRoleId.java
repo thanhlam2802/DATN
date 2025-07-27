@@ -16,6 +16,6 @@ import java.io.Serializable;
 public class UserRoleId implements Serializable {
 
 	private Integer userId;
-    private Long roleId;
+    private Integer roleId;
 
 }

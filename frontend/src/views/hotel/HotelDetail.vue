@@ -294,7 +294,7 @@
         <p class="text-xl text-gray-700">Không tìm thấy phòng nào phù hợp với lựa chọn của bạn.</p>
       </div>
       <div v-else v-for="room in filteredRoomTypes" :key="room.id"
-        class="flex flex-col md:flex-row gap-6 border border-gray-200 rounded-lg p-5 mb-6">
+        class="flex flex-col md:flex-row gap-6 border border-gray-200 rounded-lg p-4 mb-6 pt-4">
         <div class="relative flex flex-col gap-4 md:w-1/3">
           <h3 class="text-lg font-bold text-black">{{ room.roomType }}</h3>
           <div class="relative w-full h-48 overflow-hidden rounded-lg shadow-md">
@@ -325,7 +325,7 @@
             class="font-bold text-sm flex items-center gap-1 hover:underline mt-2 text-blue-600"><i
               class="fas fa-info-circle"></i> Xem chi tiết phòng</button>
         </div>
-        <div class="md:w-2/3 border border-gray-100 rounded-lg shadow-sm">
+        <div class="md:w-2/3 border border-gray-100 rounded-lg shadow-sm mt-10">
           <table class="w-full text-sm text-gray-700 border-collapse">
             <thead class="bg-gray-50 text-gray-800 font-bold">
               <tr>
@@ -365,11 +365,11 @@
                 <td class="text-center align-middle py-4 px-4">
                   <div class="relative inline-block">
                     <template v-if="showVariantDiscount(variant)">
-                      <span class="text-gray-400 font-bold text-base line-through block">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
-                      <span class="text-orange-500 font-bold text-xl block peer">{{ formatPrice(getDiscountedPrice(variant)) }}</span>
+                      <span class="text-gray-400 font-semibold text-xs line-through block">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
+                      <span class="text-orange-500 font-bold text-lg block peer">{{ formatPrice(getDiscountedPrice(variant)) }}</span>
                     </template>
                     <template v-else>
-                      <span class="text-orange-500 font-bold text-xl block peer">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
+                      <span class="text-orange-500 font-bold text-lg block peer">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
                     </template>
                     <p class="text-xs text-gray-400 font-normal mt-1">
                       {{ priceDisplayMode === 'totalPrice' ? 'Đã bao gồm thuế và phí' : 'Chưa bao gồm thuế và phí' }}
@@ -397,9 +397,11 @@
                     @click="goToBooking(room, variant)">
                     Chọn
                   </button>
-                  <div v-if="room.roomQuantity !== undefined && room.roomQuantity !== null && room.roomQuantity <= 3 && room.roomQuantity > 0"
-                      class="mt-2 text-base font-semibold text-red-600">
-                    Chỉ còn {{ room.roomQuantity }} phòng
+                  <div v-if="room.roomQuantity !== undefined && room.roomQuantity !== null && room.roomQuantity <= 5 && room.roomQuantity > 0"
+                      class="mt-2 flex justify-center items-center">
+                    <span class="inline-block px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold text-xs whitespace-nowrap border border-red-200">
+                      Chỉ còn {{ room.roomQuantity }} phòng
+                    </span>
                   </div>
                 </td>
               </tr>

@@ -1,18 +1,56 @@
 <template>
     <div class="w-full p-6">
+        <div v-if="mode === 'list'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="text-slate-600 font-semibold">Tổng số khách sạn</div>
+                    <div class="bg-blue-50 p-3 rounded-full">
+                        <i class="fas fa-hotel text-blue-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold text-slate-900">{{ hotels.length }}</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="text-slate-600 font-semibold">Tổng số phòng</div>
+                    <div class="bg-green-50 p-3 rounded-full">
+                        <i class="fas fa-door-open text-green-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold text-slate-900">{{ totalRooms }}</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="text-slate-600 font-semibold">Tổng phòng còn trống</div>
+                    <div class="bg-purple-50 p-3 rounded-full">
+                        <i class="fas fa-bed text-purple-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold text-slate-900">{{ totalAvailableRooms }}</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="text-slate-600 font-semibold">Tổng lượt đặt phòng</div>
+                    <div class="bg-yellow-50 p-3 rounded-full">
+                        <i class="fas fa-calendar-check text-yellow-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold text-slate-900">{{ totalBookings }}</div>
+            </div>
+        </div>
         <div v-if="mode === 'list'">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold text-slate-800 mb-4">Danh sách khách sạn</h1>
                 <div class="flex flex-col sm:flex-row items-center gap-2">
                     <div class="flex flex-1 flex-col sm:flex-row items-center gap-2 w-full">
                         <div class="relative w-full sm:w-[300px]">
-                            <input type="text" v-model="searchQuery" placeholder="Tìm kiếm khách sạn theo tên hoặc thành phố..."
-                                class="w-full sm:w-[300px] pl-10 pr-4 py-2 h-12 text-base border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
+                            <input type="text" v-model="searchQuery" placeholder="Tìm theo tên khách sạn hoặc thành phố"
+                                class="w-full sm:w-[350px] pl-10 pr-4 py-2 h-12 text-base border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
                             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                         </div>
                         <div ref="filterDropdownContainer" class="relative sm:w-[140px]">
                             <button @click="toggleFilterDropdown"
-                                class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center flex-nowrap justify-center sm:w-[140px] h-12 text-base">
+                                class="bg-white ml-15 border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center flex-nowrap justify-center sm:w-[140px] h-12 text-base">
                                 <i class="fas fa-filter mr-2"></i>
                                 <span>Bộ lọc</span>
                                 <i class="fas ml-2"
@@ -20,7 +58,7 @@
                             </button>
 
                             <div v-if="showFilterDropdown"
-                                class="origin-top-right absolute right-0 mt-2 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
+                                class="origin-top-right absolute mt-2 ml-15 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
                                 style="max-height: calc(100vh - 12rem);">
 
                                 <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
@@ -65,12 +103,29 @@
                                                 {{ preset.label }}
                                             </button>
                                         </div>
-                                        <div v-if="tempFilterCreatedAtPreset === 'custom'" class="flex gap-2 items-center">
-                                            <input type="date" v-model="tempFilterCreatedAtFrom"
-                                                class="border border-slate-300 rounded px-2 py-1 text-sm" />
-                                            <span>-</span>
-                                            <input type="date" v-model="tempFilterCreatedAtTo"
-                                                class="border border-slate-300 rounded px-2 py-1 text-sm" />
+                                        <div class="flex flex-col gap-3">
+                                          <div>
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1">Từ ngày</label>
+                                            <div class="relative">
+                                              <input
+                                                type="date"
+                                                v-model="tempFilterCreatedAtFrom"
+                                                class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="dd/mm/yyyy"
+                                              />
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1">Đến ngày</label>
+                                            <div class="relative">
+                                              <input
+                                                type="date"
+                                                v-model="tempFilterCreatedAtTo"
+                                                class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="dd/mm/yyyy"
+                                              />
+                                            </div>
+                                          </div>
                                         </div>
                                     </div>
                                 </div>
@@ -97,19 +152,21 @@
             </div>
 
             <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
-                <table class="min-w-full w-full divide-y divide-slate-200">
-                    <thead class="bg-gradient-to-r from-slate-100 to-slate-200">
+                <div class="overflow-x-auto">
+                  <div class="overflow-y-auto h-[453px]">
+                    <table class="min-w-[1100px] w-full divide-y divide-slate-200">
+                      <thead class="bg-slate-100">
                         <tr>
-                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
-                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hạng sao</th>
-                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
-                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Giá từ (VND)</th>
-                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày tạo</th>
-                            <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày sửa</th>
-                            <th class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Hành động</th>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hạng sao</th>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Giá từ (VND)</th>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày tạo</th>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày sửa</th>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider z-9999">Hành động</th>
                         </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-slate-100">
+                      </thead>
+                      <tbody class="bg-white divide-y divide-slate-100">
                         <tr v-if="paginatedHotels.length === 0" class="hover:bg-slate-50">
                             <td colspan="6" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center space-y-3">
@@ -157,7 +214,7 @@
                                 <span class="text-xs text-slate-700">{{ formatDateTime(h.updatedAt) }}</span>
                             </td>
                             <td
-                                class="px-3 py-5 whitespace-nowrap text-right sticky right-0 bg-white z-10 align-middle">
+                                class="px-3 py-5 whitespace-nowrap text-right align-middle">
                                 <div class="relative inline-block text-left flex items-center justify-end h-full">
                                     <button :ref="el => setDropdownBtnRef(el, h.id)"
                                         @click.stop="toggleDropdown(h.id)" type="button"
@@ -184,8 +241,10 @@
                                 </div>
                             </td>
                         </tr>
-                    </tbody>
-                </table>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
                 <div class="flex items-center justify-end gap-4 px-4 py-3 bg-white border-t border-slate-200 rounded-b-xl">
                   <div class="flex items-center gap-2">
                     <span class="text-sm text-gray-700 whitespace-nowrap">Số dòng</span>
@@ -717,7 +776,7 @@ export default {
             amenityLabels: { wifi: 'WiFi miễn phí', parking: 'Bãi đỗ xe', pool: 'Hồ bơi', restaurant: 'Nhà hàng', spa: 'Spa', gym: 'Phòng tập gym', ac: 'Điều hòa', breakfast: 'Bữa sáng', elevator: 'Thang máy' },
             currentPage: 1,
             itemsPerPageStr: '5',
-            itemsPerPageOptions: [5, 10, 15, 20, 50, 'Tất cả'],
+            itemsPerPageOptions: [5, 10, 20, 50, 'Tất cả'],
             dropdownBtnRefMap: {},
             dropdownStyle: {},
             dropdownHotel: null,
@@ -740,8 +799,7 @@ export default {
                 { label: 'Tuần này', value: 'thisweek' },
                 { label: 'Tuần trước', value: 'lastweek' },
                 { label: 'Tháng này', value: 'thismonth' },
-                { label: 'Tháng trước', value: 'lastmonth' },
-                { label: 'Tùy chọn', value: 'custom' }
+                { label: 'Tháng trước', value: 'lastmonth' }
             ],
             tempFilterStar: '',
             tempFilterPriceMax: 20000000,
@@ -801,7 +859,20 @@ export default {
                 result.push(total);
             }
             return result;
-        }
+        },
+        totalRooms() {
+            // Tổng số phòng (cộng roomQuantity của tất cả các phòng trong tất cả khách sạn)
+            return this.hotels.reduce((sum, h) => sum + (h.availableRooms ? h.availableRooms.reduce((s, r) => s + (r.roomQuantity || 0), 0) : 0), 0);
+        },
+        totalAvailableRooms() {
+            // Tổng số phòng còn trống (giả lập: bằng tổng roomQuantity, thực tế có thể lấy trường riêng nếu backend trả về)
+            return this.totalRooms;
+        },
+        totalBookings() {
+            // Tổng lượt đặt phòng (giả lập: random hoặc lấy từ trường bookings nếu có)
+            // Nếu không có dữ liệu thực, có thể để 0 hoặc random
+            return this.hotels.reduce((sum, h) => sum + (h.totalBookings || 0), 0);
+        },
     },
     watch: {
         searchQuery() { this.currentPage = 1; this.fetchHotels(); },

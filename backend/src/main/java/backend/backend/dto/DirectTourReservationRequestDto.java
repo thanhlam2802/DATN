@@ -9,14 +9,14 @@ import lombok.Data;
 @Data
 public class DirectTourReservationRequestDto {
     
-    // Thông tin để xác thực người dùng
+  
     private Integer userId;
 
-    // Thông tin về tour và ngày khởi hành đã chọn
+   
     private Long tourId;
     private Long departureId;
 
-    // Thông tin về số lượng khách
+ 
     private int numberOfAdults;
     private int numberOfChildren;
 

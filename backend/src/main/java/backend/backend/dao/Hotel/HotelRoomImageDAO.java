@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface HotelRoomImageDAO extends JpaRepository<HotelRoomImage, HotelRoomImageId> {
     List<HotelRoomImage> findByIdImageId(Integer imageId);
+    long countByIdImageId(Integer imageId);
 } 

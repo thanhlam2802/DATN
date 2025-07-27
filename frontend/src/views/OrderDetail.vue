@@ -1,28 +1,44 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { getBearerToken } from "@/services/TokenService"; // Import getBearerToken
 
 const route = useRoute();
 const router = useRouter();
 
+// --- STATE MANAGEMENT ---
 const order = ref(null);
+const flightBookingDetails = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
+const processingItemId = ref(null); // State loading cho từng item
 
-// BIẾN MỚI: Dùng để kiểm tra xem đơn hàng có thể chỉnh sửa không
+// --- STATE CHO VOUCHER ---
+const voucherCode = ref("");
+const isApplyingVoucher = ref(false);
+const suggestedVouchers = ref([]);
+const isLoadingVouchers = ref(false);
+
+// Reactive state for hotel image sliders
+const hotelImageIndices = reactive({});
+const slideDirectionMap = reactive({});
+
+// --- COMPUTED PROPERTIES ---
 const isEditable = computed(() => order.value?.status === "PENDING_PAYMENT");
 
-// Helper functions for formatting
+// --- HELPER FUNCTIONS ---
 const formatPrice = (price) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
     price || 0
   );
+
 const formatDate = (dateString) =>
   new Date(dateString).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
+
 const formatDateTime = (dateString) =>
   new Date(dateString).toLocaleString("vi-VN", {
     day: "2-digit",
@@ -31,6 +47,7 @@ const formatDateTime = (dateString) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
 const getStatusInfo = (status) => {
   switch (status) {
     case "PAID":
@@ -56,21 +73,55 @@ const getStatusInfo = (status) => {
   }
 };
 
-// TÁCH LOGIC GỌI API RA HÀM RIÊNG ĐỂ TÁI SỬ DỤNG
+const getVoucherDiscountText = (voucher) => {
+  if (voucher.type === "FIXED_AMOUNT") {
+    return `Giảm ${formatPrice(voucher.discountAmount)}`;
+  }
+  if (voucher.type === "PERCENTAGE") {
+    let text = `Giảm ${voucher.discountPercentage}%`;
+    if (voucher.maxDiscountAmount) {
+      text += ` (tối đa ${formatPrice(voucher.maxDiscountAmount)})`;
+    }
+    return text;
+  }
+  return "";
+};
+
+// --- API CALLS ---
 const fetchOrderDetails = async () => {
   isLoading.value = true;
-  error.value = null; // Reset error on new fetch
+  error.value = null;
   const orderId = route.params.id;
   try {
-    const response = await fetch(
-      `http://localhost:8080/api/v1/orders/${orderId}`
+    const orderResponse = await fetch(
+      `http://localhost:8080/api/v1/orders/${orderId}`,
+      { headers: { Authorization: getBearerToken() } }
     );
-    if (!response.ok) throw new Error("Không thể tải thông tin đơn hàng.");
-    const data = await response.json();
-    if (data.statusCode === 200) {
-      order.value = data.data;
-    } else {
-      throw new Error(data.message || "Lỗi không xác định từ server.");
+    if (!orderResponse.ok) throw new Error("Không thể tải chi tiết đơn hàng.");
+
+    const data = await orderResponse.json();
+    order.value = data.data;
+
+    if (order.value && isEditable.value) {
+      await fetchSuggestedVouchers();
+    }
+
+    flightBookingDetails.value = [];
+    if (order.value.flightBookings && order.value.flightBookings.length > 0) {
+      for (const booking of order.value.flightBookings) {
+        try {
+          const detailRes = await fetch(
+            `http://localhost:8080/api/bookings/flights/reservation-summary/${booking.id}`,
+            { headers: { Authorization: getBearerToken() } }
+          );
+          if (detailRes.ok) {
+            const detail = await detailRes.json();
+            flightBookingDetails.value.push({ ...detail, showDetail: false });
+          }
+        } catch (e) {
+          console.error(`Lỗi tải chi tiết chuyến bay ${booking.id}:`, e);
+        }
+      }
     }
   } catch (e) {
     error.value = e.message;
@@ -79,69 +130,142 @@ const fetchOrderDetails = async () => {
   }
 };
 
-onMounted(fetchOrderDetails);
-
-// --- CÁC HÀM XỬ LÝ ---
-
-// Hàm để thêm dịch vụ mới
-const addMoreServices = () => {
-  localStorage.setItem("activeCartId", order.value.id);
-  router.push("/"); // Chuyển về trang chủ để chọn thêm dịch vụ
-};
-
-// Hàm để xóa một dịch vụ
-const handleDeleteItem = async (itemId, itemType) => {
-  if (!confirm(`Bạn có chắc chắn muốn xóa dịch vụ này khỏi đơn hàng?`)) return;
-
+const fetchSuggestedVouchers = async () => {
+  isLoadingVouchers.value = true;
   try {
     const response = await fetch(
-      `http://localhost:8080/api/v1/cart/items?itemId=${itemId}&itemType=${itemType}`,
+      `http://localhost:8080/api/vouchers/suggested?orderAmount=${order.value.amount}`,
       {
-        method: "DELETE",
+        headers: { Authorization: getBearerToken() },
       }
     );
-    if (!response.ok) throw new Error("Xóa dịch vụ thất bại.");
-
-    alert("Đã xóa dịch vụ thành công.");
-    // Tải lại dữ liệu đơn hàng để cập nhật tổng tiền và danh sách
-    await fetchOrderDetails();
+    if (response.ok) {
+      suggestedVouchers.value = await response.json();
+    }
   } catch (e) {
-    alert(e.message);
+    console.error("Lỗi tải voucher gợi ý:", e);
+  } finally {
+    isLoadingVouchers.value = false;
   }
 };
 
-// Hàm để sửa một dịch vụ (Xóa và thêm lại)
+onMounted(fetchOrderDetails);
+
+// --- EVENT HANDLERS ---
+const handleApplyVoucher = async () => {
+  if (!voucherCode.value.trim()) {
+    return (
+      window.$toast && window.$toast("Vui lòng nhập mã giảm giá.", "success")
+    );
+  }
+  isApplyingVoucher.value = true;
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/v1/orders/${order.value.id}/apply-voucher`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: getBearerToken(),
+        },
+        body: JSON.stringify({ voucherCode: voucherCode.value }),
+      }
+    );
+    const result = await response.json();
+    if (!response.ok)
+      throw new Error(result.message || "Mã giảm giá không hợp lệ.");
+
+    order.value = result.data;
+    window.$toast &&
+      window.$toast("Áp dụng mã giảm giá thành công!", "success");
+    voucherCode.value = "";
+  } catch (e) {
+    window.$toast && window.$toast(e.message, "error");
+  } finally {
+    isApplyingVoucher.value = false;
+  }
+};
+
+const selectVoucher = (code) => {
+  voucherCode.value = code;
+};
+
+const addMoreServices = () => {
+  localStorage.setItem("activeCartId", order.value.id);
+  router.push("/");
+};
+
+const handleDeleteItem = async (itemId, itemType) => {
+  if (!confirm(`Bạn có chắc chắn muốn xóa dịch vụ này khỏi đơn hàng?`)) return;
+
+  processingItemId.value = `${itemType}-${itemId}`;
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/v1/cart/items?orderId=${order.value.id}&itemId=${itemId}&itemType=${itemType}`,
+      { method: "DELETE", headers: { Authorization: getBearerToken() } }
+    );
+    if (!response.ok) throw new Error("Xóa dịch vụ thất bại.");
+
+    window.$toast && window.$toast("Đã xóa dịch vụ thành công.", "success");
+    await fetchOrderDetails();
+  } catch (e) {
+    window.$toast && window.$toast(e.message, "error");
+  } finally {
+    processingItemId.value = null;
+  }
+};
+
+const getPay = () => {
+  router.push(`/payment/${order.value.id}`);
+};
+
 const handleEditItem = async (item, itemType) => {
   if (
     !confirm(
-      `Chức năng sửa sẽ xóa dịch vụ này và đưa bạn về trang sản phẩm để chọn lại. Bạn có muốn tiếp tục?`
+      `Chức năng này sẽ xóa dịch vụ hiện tại và đưa bạn về trang sản phẩm để chọn lại. Bạn có muốn tiếp tục?`
     )
   )
     return;
 
+  processingItemId.value = `${itemType}-${item.id}`;
   try {
     const deleteResponse = await fetch(
-      `http://localhost:8080/api/v1/cart/items?itemId=${item.id}&itemType=${itemType}`,
-      {
-        method: "DELETE",
-      }
+      `http://localhost:8080/api/v1/cart/items?orderId=${order.value.id}&itemId=${item.id}&itemType=${itemType}`,
+      { method: "DELETE", headers: { Authorization: getBearerToken() } }
     );
     if (!deleteResponse.ok) throw new Error("Lỗi khi xóa dịch vụ cũ.");
 
-    // Nếu xóa thành công, lưu lại giỏ hàng và chuyển hướng
     localStorage.setItem("activeCartId", order.value.id);
-
-    // Chuyển hướng về trang chi tiết sản phẩm tương ứng
-    if (itemType === "TOUR") {
-      router.push(`/tours/${item.tourId}`);
-    } else if (itemType === "FLIGHT") {
-      router.push(`/flights/${item.flightId}`); // Giả sử DTO có flightId
-    }
-    // Thêm các loại hình khác nếu có
+    const paths = {
+      TOUR: `/tours/${item.tourId}`,
+      FLIGHT: `/flights/${item.flightId}`,
+      HOTEL: `/hotels/${item.hotelId}`,
+    };
+    if (paths[itemType]) router.push(paths[itemType]);
   } catch (e) {
-    alert(e.message);
+    window.$toast && window.$toast(e.message, "error");
+  } finally {
+    processingItemId.value = null;
   }
 };
+
+// --- Hotel Image Slider Functions ---
+function nextHotelImage(hotel) {
+  if (!hotel.imageUrls || hotel.imageUrls.length <= 1) return;
+  if (!(hotel.id in hotelImageIndices)) hotelImageIndices[hotel.id] = 0;
+  slideDirectionMap[hotel.id] = "next";
+  hotelImageIndices[hotel.id] =
+    (hotelImageIndices[hotel.id] + 1) % hotel.imageUrls.length;
+}
+
+function prevHotelImage(hotel) {
+  if (!hotel.imageUrls || hotel.imageUrls.length <= 1) return;
+  if (!(hotel.id in hotelImageIndices)) hotelImageIndices[hotel.id] = 0;
+  slideDirectionMap[hotel.id] = "prev";
+  hotelImageIndices[hotel.id] =
+    (hotelImageIndices[hotel.id] - 1 + hotel.imageUrls.length) %
+    hotel.imageUrls.length;
+}
 </script>
 
 <template>
@@ -151,6 +275,7 @@ const handleEditItem = async (item, itemType) => {
         <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
         <p class="mt-4 text-gray-600">Đang tải chi tiết đơn hàng...</p>
       </div>
+
       <div v-else-if="error" class="text-center py-20 bg-red-50 p-6 rounded-lg">
         <i class="fas fa-exclamation-triangle text-4xl text-red-500"></i>
         <p class="mt-4 font-semibold text-red-700">Đã xảy ra lỗi</p>
@@ -206,16 +331,32 @@ const handleEditItem = async (item, itemType) => {
                     class="flex items-center gap-2 flex-shrink-0"
                   >
                     <button
+                      :disabled="processingItemId === `TOUR-${tour.id}`"
                       @click="handleEditItem(tour, 'TOUR')"
-                      class="text-sm text-yellow-600 hover:text-yellow-800"
+                      class="text-sm text-yellow-600 hover:text-yellow-800 disabled:opacity-50"
                     >
-                      <i class="fa-solid fa-pencil"></i> Sửa
+                      <i
+                        :class="
+                          processingItemId === `TOUR-${tour.id}`
+                            ? 'fas fa-spinner fa-spin'
+                            : 'fa-solid fa-pencil'
+                        "
+                      ></i>
+                      Sửa
                     </button>
                     <button
+                      :disabled="processingItemId === `TOUR-${tour.id}`"
                       @click="handleDeleteItem(tour.id, 'TOUR')"
-                      class="text-sm text-red-600 hover:text-red-800"
+                      class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
                     >
-                      <i class="fa-solid fa-trash"></i> Xóa
+                      <i
+                        :class="
+                          processingItemId === `TOUR-${tour.id}`
+                            ? 'fas fa-spinner fa-spin'
+                            : 'fa-solid fa-trash'
+                        "
+                      ></i>
+                      Xóa
                     </button>
                   </div>
                 </div>
@@ -257,7 +398,7 @@ const handleEditItem = async (item, itemType) => {
               </div>
             </div>
 
-            <div v-if="order.flightBookings && order.flightBookings.length > 0">
+            <div v-if="flightBookingDetails.length > 0">
               <h2
                 class="text-2xl font-bold mb-4 text-gray-700 flex items-center gap-3"
               >
@@ -265,85 +406,59 @@ const handleEditItem = async (item, itemType) => {
                 bay đã đặt
               </h2>
               <div
-                v-for="flight in order.flightBookings"
-                :key="'flight-' + flight.id"
+                v-for="flightDetail in flightBookingDetails"
+                :key="flightDetail.booking.bookingId"
                 class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-4"
               >
                 <div class="flex justify-between items-start">
                   <h3 class="text-xl font-bold text-green-700 mb-4">
-                    {{ flight.flightName }} - {{ flight.airlineName }}
+                    {{ flightDetail.booking.flight.name }} -
+                    {{ flightDetail.booking.flight.airline?.name }}
                   </h3>
                   <div
                     v-if="isEditable"
                     class="flex items-center gap-2 flex-shrink-0"
                   >
                     <button
-                      @click="handleEditItem(flight, 'FLIGHT')"
-                      class="text-sm text-yellow-600 hover:text-yellow-800"
+                      :disabled="
+                        processingItemId ===
+                        `FLIGHT-${flightDetail.booking.bookingId}`
+                      "
+                      @click="
+                        handleDeleteItem(
+                          flightDetail.booking.bookingId,
+                          'FLIGHT'
+                        )
+                      "
+                      class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
                     >
-                      <i class="fa-solid fa-pencil"></i> Sửa
+                      <i
+                        :class="
+                          processingItemId ===
+                          `FLIGHT-${flightDetail.booking.bookingId}`
+                            ? 'fas fa-spinner fa-spin'
+                            : 'fa-solid fa-trash'
+                        "
+                      ></i>
+                      Xóa
                     </button>
-                    <button
-                      @click="handleDeleteItem(flight.id, 'FLIGHT')"
-                      class="text-sm text-red-600 hover:text-red-800"
-                    >
-                      <i class="fa-solid fa-trash"></i> Xóa
-                    </button>
                   </div>
-                </div>
-                <div
-                  class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-600"
-                >
-                  <div class="flex items-center gap-3">
-                    <i
-                      class="fa-solid fa-plane-departure w-5 text-center text-green-500"
-                    ></i
-                    ><span
-                      >Khởi hành:
-                      <strong>{{ flight.departureAirport }}</strong></span
-                    >
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <i
-                      class="fa-solid fa-clock w-5 text-center text-green-500"
-                    ></i
-                    ><span
-                      >Lúc:
-                      <strong>{{
-                        formatDateTime(flight.departureTime)
-                      }}</strong></span
-                    >
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <i
-                      class="fa-solid fa-plane-arrival w-5 text-center text-green-500"
-                    ></i
-                    ><span
-                      >Hạ cánh:
-                      <strong>{{ flight.arrivalAirport }}</strong></span
-                    >
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <i
-                      class="fa-solid fa-clock w-5 text-center text-green-500"
-                    ></i
-                    ><span
-                      >Lúc:
-                      <strong>{{
-                        formatDateTime(flight.arrivalTime)
-                      }}</strong></span
-                    >
-                  </div>
-                </div>
-                <div class="border-t mt-4 pt-4">
-                  <p class="text-lg text-right">
-                    Tổng giá vé:
-                    <span class="font-bold text-xl text-green-700">{{
-                      formatPrice(flight.totalPrice)
-                    }}</span>
-                  </p>
                 </div>
               </div>
+            </div>
+
+            <div v-if="order.hotelBookings && order.hotelBookings.length > 0">
+              <h2
+                class="text-2xl font-bold mb-4 text-gray-700 flex items-center gap-3"
+              >
+                <i class="fa-solid fa-hotel text-indigo-500"></i> Các phòng
+                khách sạn đã đặt
+              </h2>
+              <div
+                v-for="hotel in order.hotelBookings"
+                :key="'hotel-' + hotel.id"
+                class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl shadow-xl border border-indigo-100 mb-6 flex flex-col md:flex-row gap-6 items-center md:items-stretch hover:shadow-2xl transition-shadow duration-200 relative"
+              ></div>
             </div>
           </div>
 
@@ -383,16 +498,94 @@ const handleEditItem = async (item, itemType) => {
                       formatDateTime(order.payDate)
                     }}</strong>
                   </div>
-                  <div class="border-t pt-4 mt-4">
-                    <div class="flex justify-between items-center text-lg">
-                      <span class="font-bold text-gray-800">Tổng cộng</span>
-                      <span class="text-2xl font-bold text-blue-600">{{
-                        formatPrice(order.amount)
-                      }}</span>
-                    </div>
+
+                  <div
+                    v-if="order.voucher"
+                    class="flex justify-between items-center"
+                  >
+                    <span>Tạm tính:</span>
+                    <strong class="text-gray-800 line-through">{{
+                      formatPrice(order.originalAmount)
+                    }}</strong>
+                  </div>
+                  <div
+                    v-if="order.voucher"
+                    class="flex justify-between items-center text-green-600"
+                  >
+                    <span>Giảm giá ({{ order.voucher.code }}):</span>
+                    <strong class="font-semibold"
+                      >-
+                      {{
+                        formatPrice(order.originalAmount - order.amount)
+                      }}</strong
+                    >
                   </div>
                 </div>
+
+                <div class="border-t pt-4 mt-4">
+                  <div class="flex justify-between items-center text-lg">
+                    <span class="font-bold text-gray-800">Tổng cộng</span>
+                    <span class="text-2xl font-bold text-blue-600">{{
+                      formatPrice(order.amount)
+                    }}</span>
+                  </div>
+                </div>
+
+                <div v-if="isEditable" class="mt-4 pt-4 border-t">
+                  <div
+                    v-if="isLoadingVouchers"
+                    class="text-center text-sm text-gray-500 py-2"
+                  >
+                    <i class="fas fa-spinner fa-spin mr-1"></i> Đang tìm mã giảm
+                    giá...
+                  </div>
+                  <div
+                    v-else-if="suggestedVouchers.length > 0 && !order.voucher"
+                  >
+                    <p class="block text-sm font-medium text-gray-700 mb-2">
+                      Mã giảm giá cho bạn:
+                    </p>
+                    <div class="space-y-2 max-h-32 overflow-y-auto pr-2">
+                      <button
+                        v-for="voucher in suggestedVouchers"
+                        :key="voucher.id"
+                        @click="selectVoucher(voucher.code)"
+                        class="w-full text-left p-2 border-l-4 border-green-500 bg-green-50 rounded-md hover:bg-green-100 transition"
+                      >
+                        <strong class="text-green-700">{{
+                          voucher.code
+                        }}</strong>
+                        <p class="text-xs text-gray-600">
+                          {{ getVoucherDiscountText(voucher) }}
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2 mt-3" v-if="!order.voucher">
+                    <input
+                      v-model="voucherCode"
+                      @keyup.enter="handleApplyVoucher"
+                      type="text"
+                      class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Hoặc nhập mã khác"
+                    />
+                    <button
+                      @click="handleApplyVoucher"
+                      :disabled="isApplyingVoucher"
+                      class="flex-shrink-0 bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-black disabled:opacity-50"
+                    >
+                      <i
+                        v-if="isApplyingVoucher"
+                        class="fas fa-spinner fa-spin"
+                      ></i>
+                      <span v-else>Áp dụng</span>
+                    </button>
+                  </div>
+                </div>
+
                 <button
+                  @click="getPay"
                   v-if="isEditable"
                   class="mt-6 w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition"
                 >
@@ -412,3 +605,42 @@ const handleEditItem = async (item, itemType) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Transition for flight detail dropdown */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Transitions for hotel image slider */
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.slide-left-enter-from {
+  transform: translateX(100%);
+  opacity: 0.7;
+}
+.slide-left-leave-to {
+  transform: translateX(-100%);
+  opacity: 0.7;
+}
+.slide-right-enter-from {
+  transform: translateX(-100%);
+  opacity: 0.7;
+}
+.slide-right-leave-to {
+  transform: translateX(100%);
+  opacity: 0.7;
+}
+</style>

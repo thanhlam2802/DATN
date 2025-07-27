@@ -12,13 +12,19 @@
             <i class="fas fa-university text-blue-400"></i> Ngân hàng
           </label>
           <div class="relative">
-            <button type="button" @click="showDropdown = !showDropdown" class="w-full border border-gray-300 rounded-lg px-4 py-2 flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white hover:border-indigo-400 transition">
-              <img v-if="selectedBank && selectedBank.logo" :src="selectedBank.logo" class="w-6 h-6 mr-2 object-contain" />
+            <button type="button" @click="showDropdown = !showDropdown"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white hover:border-indigo-400 transition">
+              <img v-if="selectedBank && selectedBank.logo" :src="selectedBank.logo"
+                class="w-6 h-6 mr-2 object-contain" />
               <span class="font-medium">{{ selectedBank ? selectedBank.name : 'Chọn ngân hàng' }}</span>
-              <svg class="ml-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              <svg class="ml-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-            <ul v-if="showDropdown" class="absolute z-20 bg-white border w-full mt-1 rounded shadow max-h-60 overflow-auto animate-fade-in">
-              <li v-for="bank in banks" :key="bank.code" @click="selectBank(bank)" class="flex items-center px-4 py-2 hover:bg-indigo-50 cursor-pointer transition">
+            <ul v-if="showDropdown"
+              class="absolute z-20 bg-white border w-full mt-1 rounded shadow max-h-60 overflow-auto animate-fade-in">
+              <li v-for="bank in banks" :key="bank.code" @click="selectBank(bank)"
+                class="flex items-center px-4 py-2 hover:bg-indigo-50 cursor-pointer transition">
                 <img v-if="bank.logo" :src="bank.logo" class="w-6 h-6 mr-2 object-contain" />
                 <span>{{ bank.name }}</span>
               </li>
@@ -33,8 +39,11 @@
           <input v-model="bankTransfer.accountNumber" type="text" placeholder="Nhập số tài khoản" maxlength="20"
             class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition placeholder-gray-400"
             @blur="onAccountNumberBlur" @input="resetAccountInfo" />
-          <div v-if="isLoading" class="flex items-center mt-2 text-blue-500"><span class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400 mr-2"></span>Đang kiểm tra...</div>
-          <div v-if="notFound && !isLoading" class="text-red-500 text-sm mt-2">Không tìm thấy thông tin số tài khoản</div>
+          <div v-if="isLoading" class="flex items-center mt-2 text-blue-500"><span
+              class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400 mr-2"></span>Đang kiểm
+            tra...</div>
+          <div v-if="notFound && !isLoading" class="text-red-500 text-sm mt-2">Không tìm thấy thông tin số tài khoản
+          </div>
         </div>
         <!-- Thông tin tài khoản -->
         <div v-if="found" class="bg-indigo-50 rounded-lg p-4 flex flex-col gap-2 border border-indigo-100">
@@ -46,7 +55,8 @@
           <div class="flex items-center gap-2">
             <i class="fas fa-wallet text-green-400"></i>
             <span class="font-semibold text-gray-700">Số dư khả dụng:</span>
-            <span class="ml-auto font-bold text-green-600">{{ formatCurrency(bankTransfer.availableBalance) }} {{ bankTransfer.currency }}</span>
+            <span class="ml-auto font-bold text-green-600">{{ formatCurrency(bankTransfer.availableBalance) }} {{
+              bankTransfer.currency }}</span>
           </div>
         </div>
         <!-- Số tiền muốn thanh toán -->
@@ -54,14 +64,18 @@
           <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
             <i class="fas fa-coins text-yellow-400"></i> Số tiền muốn thanh toán
           </label>
-          <input v-model.number="bankTransfer.amount" type="number" min="0" :max="bankTransfer.availableBalance" placeholder="Nhập số tiền"
+          <input v-model.number="bankTransfer.amount" type="number" min="0" :max="bankTransfer.availableBalance"
+            placeholder="Nhập số tiền"
             class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder-gray-400"
             @input="validateAmount" />
-          <div v-if="amountError" class="text-red-500 text-sm mt-1">Số tiền không hợp lệ hoặc vượt quá số dư khả dụng</div>
+          <div v-if="amountError" class="text-red-500 text-sm mt-1">Số tiền không hợp lệ hoặc vượt quá số dư khả dụng
+          </div>
         </div>
         <div class="flex justify-end" v-if="found">
-          <button @click="submit" :disabled="isPaying || amountError || !bankTransfer.amount" class="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white px-8 py-2 rounded-lg font-semibold flex items-center shadow-lg transition disabled:opacity-60">
-            <span v-if="isPaying" class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
+          <button @click="submit" :disabled="isPaying || amountError || !bankTransfer.amount"
+            class="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white px-8 py-2 rounded-lg font-semibold flex items-center shadow-lg transition disabled:opacity-60">
+            <span v-if="isPaying"
+              class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
             <i class="fas fa-paper-plane mr-2"></i> Thanh toán
           </button>
         </div>
@@ -70,9 +84,11 @@
     <!-- Modal OTP đẹp -->
     <transition name="modal" appear>
       <div v-if="showOtpDialog" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-fade-in">
+        <div
+          class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-fade-in">
           <div class="bg-gradient-to-r from-indigo-500 to-blue-400 px-6 py-4 flex items-center justify-between">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-shield-alt"></i> Xác thực OTP</h3>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-shield-alt"></i> Xác thực
+              OTP</h3>
             <button @click="showOtpDialog = false" class="text-white hover:text-gray-200 focus:outline-none">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -80,14 +96,27 @@
             </button>
           </div>
           <div class="p-6 flex flex-col gap-4">
-            <div class="text-gray-700 text-base mb-2">Mã OTP đã được gửi qua email. Vui lòng nhập để xác nhận thanh toán.</div>
-            <input v-model="otp" maxlength="6" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-center tracking-widest text-xl placeholder-gray-400" placeholder="Nhập OTP" />
+            <div class="text-gray-700 text-base mb-2">Mã OTP đã được gửi qua email. Vui lòng nhập để xác nhận thanh
+              toán.</div>
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-clock text-yellow-400"></i>
+              <span class="font-semibold text-gray-700">Thời gian còn lại:</span>
+              <span class="font-mono text-lg text-indigo-600">{{ otpCountdownDisplay }}</span>
+            </div>
+            <input v-model="otp" maxlength="6"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-center tracking-widest text-xl placeholder-gray-400"
+              placeholder="Nhập OTP" :disabled="otpExpired" />
             <div v-if="otpError" class="text-red-500 text-sm mt-1">{{ otpError }}</div>
             <div v-if="otpSuccess" class="text-green-600 text-sm mt-1">Xác nhận OTP thành công!</div>
+            <div v-if="otpExpired" class="text-red-500 text-sm mt-1">OTP đã hết hạn. Vui lòng thực hiện lại giao dịch.
+            </div>
             <div class="flex justify-end gap-2 mt-2">
-              <button @click="showOtpDialog = false" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Hủy</button>
-              <button @click="confirmOtp" :disabled="isConfirming || !otp" class="px-4 py-2 rounded bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 flex items-center transition disabled:opacity-60">
-                <span v-if="isConfirming" class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
+              <button @click="showOtpDialog = false"
+                class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Hủy</button>
+              <button @click="confirmOtp" :disabled="isConfirming || !otp || otpExpired"
+                class="px-4 py-2 rounded bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 flex items-center transition disabled:opacity-60">
+                <span v-if="isConfirming"
+                  class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
                 <i class="fas fa-check mr-2"></i> Xác nhận
               </button>
             </div>
@@ -100,7 +129,7 @@
 
 <script setup>
 import { servicePaymentMake, servicePaymentConfirm } from '@/api/coreBankingApi'
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, onUnmounted, watch } from 'vue'
 import { defineEmits } from 'vue'
 import { accountLookup } from '@/api/coreBankingApi'
 
@@ -121,6 +150,7 @@ const banks = [
   { code: 'TCB', name: 'TPBank', logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/02/Icon-TPBank.png' },
   { code: 'Agri Bank', name: 'Agribank', logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/01/Icon-Agribank.png' },
 ]
+console.log(banks);
 
 const bankTransfer = reactive({
   bankCode: '',
@@ -142,6 +172,11 @@ const isConfirming = ref(false)
 const otpError = ref('')
 const otpSuccess = ref(false)
 const amountError = ref(false)
+
+const otpCountdown = ref(600) // 10 phút = 600 giây
+const otpCountdownDisplay = ref('10:00')
+const otpExpired = ref(false)
+let otpTimer = null
 
 function resetAccountInfo() {
   bankTransfer.accountName = ''
@@ -172,6 +207,8 @@ onBeforeUnmount(() => {
 })
 
 async function onAccountNumberBlur() {
+
+
   if (!selectedBank.value || !bankTransfer.accountNumber) {
     resetAccountInfo()
     return
@@ -271,25 +308,74 @@ async function confirmOtp() {
     isConfirming.value = false
   }
 }
+
+function startOtpCountdown() {
+  otpCountdown.value = 600
+  otpExpired.value = false
+  updateOtpCountdownDisplay()
+  if (otpTimer) clearInterval(otpTimer)
+  otpTimer = setInterval(() => {
+    if (otpCountdown.value > 0) {
+      otpCountdown.value--
+      updateOtpCountdownDisplay()
+    } else {
+      otpExpired.value = true
+      updateOtpCountdownDisplay()
+      clearInterval(otpTimer)
+    }
+  }, 1000)
+}
+
+function updateOtpCountdownDisplay() {
+  const m = Math.floor(otpCountdown.value / 60)
+  const s = otpCountdown.value % 60
+  otpCountdownDisplay.value = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+watch(showOtpDialog, (val) => {
+  if (val) {
+    startOtpCountdown()
+  } else {
+    if (otpTimer) clearInterval(otpTimer)
+  }
+})
+
+onUnmounted(() => {
+  if (otpTimer) clearInterval(otpTimer)
+})
 </script>
 
 <style scoped>
 .animate-fade-in {
   animation: fadeIn 0.4s;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
-.modal-enter-active, .modal-leave-active {
+
+.modal-enter-active,
+.modal-leave-active {
   transition: all 0.3s;
 }
-.modal-enter-from, .modal-leave-to {
+
+.modal-enter-from,
+.modal-leave-to {
   opacity: 0;
   transform: scale(0.95);
 }
-.modal-enter-to, .modal-leave-from {
+
+.modal-enter-to,
+.modal-leave-from {
   opacity: 1;
   transform: scale(1);
 }
-</style> 
+</style>

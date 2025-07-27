@@ -127,7 +127,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { getFlightReservationSummary } from '@/api/flightApi'
 
 const route = useRoute()
-const orderId = route.params.id || route.query.id
+const bookingId = route.params.id || route.query.id
 const order = ref({})
 const booking = ref(null)
 const customer = ref(null)
@@ -168,7 +168,7 @@ onMounted(async () => {
   loading.value = true
   try {
     // Lấy thông tin tổng hợp giữ chỗ chuyến bay
-    const res = await getFlightReservationSummary(orderId)
+    const res = await getFlightReservationSummary(bookingId)
     order.value = res.data.order
     booking.value = res.data.booking
     customer.value = res.data.customer

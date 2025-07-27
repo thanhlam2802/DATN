@@ -42,7 +42,7 @@ public class BookingTour {
     @Lob
     private String notes;
 
- 
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")

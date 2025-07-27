@@ -77,13 +77,7 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-if="loading">
-            <td colspan="6" class="py-8 text-center text-indigo-600">
-              <span class="animate-spin w-6 h-6 border-4 border-indigo-200 border-t-indigo-600 rounded-full inline-block mr-2"></span>
-              Đang tải danh sách chuyến bay...
-            </td>
-          </tr>
-          <tr v-else v-for="flight in filteredFlights" :key="flight.id" class="hover:bg-gray-50">
+          <tr v-for="flight in filteredFlights" :key="flight.id" class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
               {{ flight.flightNumber }}
             </td>

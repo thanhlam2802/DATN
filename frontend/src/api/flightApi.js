@@ -7,7 +7,7 @@ const api = axios.create({
 });
 
 // Flights
-export const searchFlights = (params) => api.get('/flights/search', { params });
+export const searchFlights = (params) => api.post('/flights/search', params );
 export const getFlightDetail = (flightId) => api.get(`/admin/flights/${flightId}`);
 export const getFlightDetailPublic = (flightId) => api.get(`/flights/${flightId}`);
 export const flightBooked = (flightId) => api.get(`/admin/flight-booked/${flightId}`);

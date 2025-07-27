@@ -78,10 +78,13 @@
 
               Loại chuyến bay
             </label>
-            <select v-model="filters.flightType"
+            <select v-model="filters.categoryId"
               class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="one-way">Một chiều</option>
               <option value="round-trip">Khứ hồi</option>
+              <option v-for="cate in categories" :key="cate.id" :value="cate.id">
+                {{ cate.name }}
+              </option>
             </select>
           </div>
 
@@ -152,7 +155,7 @@
                       d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314l1.414 1.414M16.95 16.95l1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z" />
                   </svg>
                 </div>
-                <span class="ml-2 text-gray-700">Sáng (07:00–11:00)</span>
+                <span class="ml-2 text-gray-700">Sáng (05:00–12:00)</span>
               </label>
 
               <!-- Trưa -->
@@ -170,12 +173,12 @@
                       d="M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2m0 16v2m8-10h-2M6 12H4m12.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414" />
                   </svg>
                 </div>
-                <span class="ml-2 text-gray-700">Trưa (11:01–17:00)</span>
+                <span class="ml-2 text-gray-700">Trưa (12:00–20:00)</span>
               </label>
 
               <!-- Tối -->
               <label class="relative flex items-center cursor-pointer">
-                <input type="radio" name="timeWindow" value="evening" v-model="filters.timeWindow"
+                <input type="radio" name="timeWindow" value="night" v-model="filters.timeWindow"
                   class="sr-only peer" />
                 <div class="w-6 h-6 flex items-center justify-center bg-transparent border-2 border-indigo-500 rounded-full
              peer-checked:bg-indigo-500 peer-checked:border-indigo-500
@@ -188,16 +191,20 @@
                       d="M20.354 15.354A9 9 0 118.646 3.646 7 7 0 0020.354 15.354z" />
                   </svg>
                 </div>
-                <span class="ml-2 text-gray-700">Tối (17:01–23:00)</span>
+                <span class="ml-2 text-gray-700">Tối (20:00–05:00)</span>
               </label>
             </div>
 
 
           </div>
-          <div class="my-auto flex justify-center items-center self-start">
+          <div class="my-auto flex justify-center items-center gap-4 self-start">
             <button type="submit"
-              class=" bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
+              class=" bg-indigo-600 hover:bg-transparent hover:text-indigo-600 horver:border hover:border-4 horver:border-indigo-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
               Search
+            </button>
+            <button @click="reset"
+              class="border bg-transparent border-4 border-indigo-600 hover:bg-indigo-600 hover:text-white text-indigo-600 font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
+              Reset
             </button>
           </div>
 
@@ -506,16 +513,11 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router';
-import { searchFlights, getAvailableSeats, getAllAirlines,getAllAirports } from '@/api/flightApi'
+import { searchFlights, getAvailableSeats, getAllAirlines,getAllAirports ,getAllFlightCategories} from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import FindAvailableSlotRequestDto from '@/dto/FindAvailableSlotRequestDto'
 
 const router = useRouter();
-
-/** ========== Tab State ========== **/
-const currentTab = ref("one-way");
-const tabActiveClass = "bg-indigo-600 text-white";
-const tabInactiveClass = "bg-white text-gray-600 hover:bg-gray-100";
 const showBookingModal = ref(false);
 const selectedFlight = ref(null);
 const availableSeats = ref(null);
@@ -544,6 +546,7 @@ function openBooking(flight) {
 
 
 }
+const categories = ref([]);
 const airports =ref([]);
 const airlines =ref([]);
 const economySummary = ref({
@@ -569,12 +572,23 @@ function closeBooking() {
   selectedFlight.value = null;
 }
 
-
+function reset(){
+  filters.value ={
+  departureAirportId: null,
+  arrivalAirportId: null,
+  departureDate: '',
+  categoryId: null,
+  airlineId: null,
+  timeWindow:null,  
+  priceMin: 0,
+  priceMax: 10000000,
+}
+}
 const filters = ref({
   departureAirportId: null,
   arrivalAirportId: null,
   departureDate: '',
-  flightType:null,  
+  categoryId: null,
   airlineId: null,
   timeWindow:null,  
   priceMin: 0,
@@ -587,10 +601,12 @@ const error = ref('')
 
 function onSearch() {
   loading.value = true
-  searchFlights()
+  console.log(filters.value);
+  
+  searchFlights(filters.value)
     .then(res => {
       flights.value = res.data
-      window.$toast('Tìm kiếm thành công!', 'success');
+      window.$toast('Thành công!', 'success');
     })
     .catch(() => {
       error.value = 'Không thể tìm chuyến bay.'
@@ -601,16 +617,35 @@ function onSearch() {
     })
 }
 function fillAirPorts(){
-  getAllAirlines().then(res =>{
+  getAllAirports().then(res =>{
     airports.value = res.data;
     console.log(airports.value);
     
+  })
+  getAllAirlines().then(res =>{
+    airlines.value = res.data;
+  })
+  getAllFlightCategories().then(res =>{
+    categories.value = res.data;
   })
   
 }
 onMounted(() => {
   fillAirPorts();
-  onSearch()
+  searchFlights(filters.value)
+    .then(res => {
+      flights.value = res.data
+      window.$toast('Tìm kiếm thành công!', 'success');
+    })
+    .catch((e) => {
+      error.value = 'Không thể tìm chuyến bay.'
+      console.log(e);
+      
+      window.$toast('Không tìm thấy chuyến bay!', 'error');
+    })
+    .finally(() => {
+      loading.value = false
+    })
 })
 
 /** ========== Pagination ========== **/

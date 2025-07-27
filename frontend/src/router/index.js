@@ -44,6 +44,8 @@ import SuccessHold from "@/components/Flight/SuccessHold.vue";
 import BankTransferForm from "@/components/Flight/BankTransferForm.vue";
 import ForgotPassword from "@/views/ForgotPassword.vue";
 import ResetPassword from "@/views/ResetPassword.vue";
+import ExpiredLink from "@/views/ExpiredLink.vue";
+import VerifyEmail from "@/views/VerifyEmail.vue";
 
 const routes = [
     {
@@ -55,6 +57,8 @@ const routes = [
             {path: "login", name: "Login", component: Login},
             {path: "forgot-password", name: "ForgotPassword", component: ForgotPassword},
             {path: "reset-password", name: "ResetPassword", component: ResetPassword},
+            {path: "expired-link", name: "ExpiredLink", component: ExpiredLink},
+            {path: "verify-email", name: "VerifyEmail", component: VerifyEmail},
             {path: "tour", name: "Tour", component: Tour},
             {path: "bus", name: "Bus", component: Bus},
             {path: "plane", name: "Plane", component: Plane},

@@ -130,7 +130,7 @@ public class JwtTokenUtil {
         claims.put("userId", user.getId());
         claims.put("name", user.getName());
         claims.put("email", user.getEmail());
-        claims.put("isVerified", user.isVerified());
+        claims.put("isVerified", user.getIsVerified());
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .addClaims(claims)

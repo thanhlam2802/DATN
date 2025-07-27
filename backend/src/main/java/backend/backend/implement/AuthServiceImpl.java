@@ -65,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
 
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
-        newUser.setVerified(false);
+        newUser.setIsVerified(false);
 
         newUser = userRepository.save(newUser);
 
@@ -130,7 +130,7 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(password, storedPassword)) {
             throw new BadRequestException("Wrong password", ErrorCode.AUTH_004);
         }
-        if (!user.isVerified()) {
+        if (!user.getIsVerified()) {
             Map<String, String> params = new HashMap<>();
             params.put("toEmail", user.getEmail());
             params.put("userId", user.getId().toString());
@@ -227,7 +227,7 @@ public class AuthServiceImpl implements AuthService {
         User user = getUserByEmail(verifyAccountRequestDto.getEmail());
         otpTransactionService.verifyOtp(user.getId(), OtpType.VERIFY_ACCOUNT, verifyAccountRequestDto.getCode());
         JwtResultDto jwtResultDto = new JwtResultDto();
-        user.setVerified(true);
+        user.setIsVerified(true);
         user = userRepository.save(user);
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
         return jwtResultDto;

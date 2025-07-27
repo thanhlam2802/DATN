@@ -1,14 +1,12 @@
 package backend.backend.controller;
 
 import backend.backend.dto.auth.*;
-import backend.backend.entity.User;
 import backend.backend.repository.UserRepository;
 import backend.backend.service.AuthService;
 import backend.backend.service.OTPTransactionService;
 import backend.backend.utils.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +35,7 @@ public class AuthController {
     @PostMapping("/register/verify-otp")
     public JwtResultDto verifyOtp(@Valid @RequestBody VerifyOtpRequestDto requestDto) {
         Integer userId = SecurityUtil.getUserId();
-        return otpTransactionService.verifyOtp(userId, OtpType.REGISTER_ACCOUNT, requestDto.getCode());
+        return otpTransactionService.verifyOtp(userId, OtpType.VERIFY_ACCOUNT, requestDto.getCode());
     }
 
 

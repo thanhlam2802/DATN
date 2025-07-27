@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", newUser.getEmail());
         params.put("userId", newUser.getId().toString());
-        otpTransactionService.sendOtp(params, OtpType.REGISTER_ACCOUNT);
+        otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
 
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
@@ -104,8 +104,14 @@ public class AuthServiceImpl implements AuthService {
         String token = header.substring(7);
 
         Claims claims = jwtTokenUtil.extractAllClaims(token);
+        Integer userId = jwtTokenUtil.extractUserId(token);
+        String email = jwtTokenUtil.extractUserEmail(token);
         boolean verified = claims.get("isVerified", Boolean.class);
         if (!verified) {
+            Map<String, String> params = new HashMap<>();
+            params.put("toEmail", email);
+            params.put("userId", userId.toString());
+            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
             throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
         }
     }

@@ -56,4 +56,9 @@ public class AuthController {
     public JwtResultDto resetPassword(@Valid @RequestBody ResetPasswordRequestDto requestDto) {
         return authService.resetPassword(requestDto);
     }
+
+    @PostMapping("/reset-password/verify-link")
+    public void resetPasswordVerifyLink(@Valid @RequestBody ResetPasswordVerifyLinkDto requestDto) {
+        authService.resetPasswordVerifyLink(requestDto);
+    }
 }

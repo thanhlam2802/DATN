@@ -1,10 +1,10 @@
 <template>
   <div class="w-full px-4 sm:px-6 lg:px-2 py-5">
     <div class="relative w-full rounded-md overflow-hidden shadow-md">
-      <img alt="Scenic lake" class="w-full h-[600px] object-cover brightness-75"
+      <img alt="Scenic lake" class="w-full lg:h-[700px] object-cover brightness-75"
            src="https://storage.googleapis.com/a1aa/image/f092f5e2-89b2-445b-38d1-ef49b53e6262.jpg"/>
 
-      <div class="absolute inset-0 flex items-center justify-center px-6 py-8">
+      <div class="absolute inset-0 flex items-center justify-center px-6">
         <form @submit.prevent="submitForm" class="bg-white rounded-md shadow-lg max-w-md w-full p-8">
           <h2 class="text-center font-extrabold text-xl mb-6">Sign in</h2>
 
@@ -37,7 +37,7 @@
                 <i :class="showPassword ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
               </button>
             </div>
-            <p v-if="passwordError" class="text-red-500 text-xs mt-1">{{ passwordError }}</p>ff
+            <p v-if="passwordError" class="text-red-500 text-xs mt-1">{{ passwordError }}</p>
           </div>
 
           <div class="flex items-center justify-between mb-6 text-sm">

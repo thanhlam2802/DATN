@@ -174,12 +174,22 @@ public class AuthServiceImpl implements AuthService {
         if (user.isEmpty()) {
             throw new BadRequestException("User not found", ErrorCode.AUTH_002);
         }
+        ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto = new ResetPasswordVerifyLinkDto();
+        resetPasswordVerifyLinkDto.setResetToken(resetPasswordRequestDto.getResetToken());
+        resetPasswordVerifyLinkDto.setOtpCode(resetPasswordRequestDto.getOtpCode());
+        resetPasswordVerifyLink(resetPasswordVerifyLinkDto);
         User userUpdated = user.get();
         userUpdated.setPasswordHash(passwordEncoder.encode(resetPasswordRequestDto.getNewPassword()));
         userUpdated = userRepository.save(userUpdated);
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(userUpdated));
         return jwtResultDto;
+    }
+
+    @Override
+    public void resetPasswordVerifyLink(ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto) {
+        Integer userId = jwtTokenUtil.extractUserId(resetPasswordVerifyLinkDto.getResetToken());
+        otpTransactionService.verifyAcquiredOtp(userId, OtpType.RESET_PASSWORD, resetPasswordVerifyLinkDto.getOtpCode());
     }
 
     @Override

@@ -31,5 +31,25 @@ export const AuthApi = {
                 errorCode: err.response.data.errorCode
             }
         }
+    },
+    resetPassWord: async (request) => {
+        try {
+            const res = await apiClient.post("/v1/auth/forgot-password/reset", request)
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response.data.errorCode
+            }
+        }
+    },
+    verifyResetPassLink: async (request) => {
+        try {
+            const res = await apiClient.post("/v1/auth/reset-password/verify-link", request)
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response.data.errorCode
+            }
+        }
     }
 }

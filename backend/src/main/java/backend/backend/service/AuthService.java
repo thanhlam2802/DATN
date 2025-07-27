@@ -19,5 +19,7 @@ public interface AuthService {
 
     JwtResultDto resetPassword(ResetPasswordRequestDto resetPasswordRequestDto);
 
+    void resetPasswordVerifyLink(ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto);
+
     void requestResetPassword(RequestResetPasswordRequestDto requestDto);
 }

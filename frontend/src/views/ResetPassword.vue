@@ -18,7 +18,8 @@
 
             <label class="block text-xs font-semibold text-gray-900 mb-1">
               <span class="text-red-500">*</span>
-              New Password</label>
+              New Password
+            </label>
             <input
                 v-model="newPassword"
                 type="password"
@@ -29,7 +30,8 @@
 
             <label class="block text-xs font-semibold text-gray-900 mb-1 mt-4">
               <span class="text-red-500">*</span>
-              Confirm New Password</label>
+              Confirm New Password
+            </label>
             <input
                 v-model="confirmPassword"
                 type="password"
@@ -57,49 +59,82 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "ResetPasswordView",
-  data() {
-    return {
-      newPassword: "",
-      confirmPassword: "",
-      newPasswordError: "",
-      confirmPasswordError: "",
-    };
-  },
-  methods: {
-    validatePasswords() {
-      let isValid = true;
+<script setup>
+import {ref, onMounted} from 'vue'
+import {useLoadingStore} from "@/store/GlobalStore.js";
+import {AuthApi} from "@/api/AuthApi.js";
+import {useRouter} from 'vue-router'
+import {ErrorCodes} from "@/data/ErrorCode.js";
 
-      if (this.newPassword.length < 4) {
-        this.newPasswordError = "Password must be at least 4 characters.";
-        isValid = false;
-      } else {
-        this.newPasswordError = "";
-      }
+const router = useRouter()
 
-      if (this.newPassword !== this.confirmPassword) {
-        this.confirmPasswordError = "Passwords do not match.";
-        isValid = false;
-      } else {
-        this.confirmPasswordError = "";
-      }
+const newPassword = ref('')
+const confirmPassword = ref('')
+const newPasswordError = ref('')
+const confirmPasswordError = ref('')
+const tokenRef = ref('')
+const otpCodeRef = ref('')
+const loadingStore = useLoadingStore();
 
-      return isValid;
-    },
+onMounted(async () => {
+  loadingStore.startLoading();
+  const urlParams = new URLSearchParams(window.location.search)
+  const token = urlParams.get('rt')
+  const otp = urlParams.get('otp')
+  const verifyLinkRequest = {
+    resetToken: token,
+    otpCode: otp
+  }
+  const res = await AuthApi.verifyResetPassLink(verifyLinkRequest);
+  if (res && res['errorCode'] === ErrorCodes.otpExpired) {
+    await router.push("/expired-link")
+    loadingStore.stopLoading();
+  }
+  loadingStore.stopLoading();
+  tokenRef.value = token;
+  otpCodeRef.value = otp;
+})
 
-    async submitForm() {
-      if (!this.validatePasswords()) return;
+const validatePasswords = () => {
+  let isValid = true
 
-      try {
+  if (newPassword.value.length < 4) {
+    newPasswordError.value = 'Password must be at least 4 characters.'
+    isValid = false
+  } else {
+    newPasswordError.value = ''
+  }
 
-        alert("Password reset successfully!");
-      } catch (error) {
-        console.error(error);
-        this.newPasswordError = "Something went wrong. Please try again.";
-      }
-    },
-  },
-};
+  if (newPassword.value !== confirmPassword.value) {
+    confirmPasswordError.value = 'Passwords do not match.'
+    isValid = false
+  } else {
+    confirmPasswordError.value = ''
+  }
+
+  return isValid
+}
+
+const submitForm = async () => {
+  if (!validatePasswords()) return
+
+  try {
+    const request = {
+      newPassword: newPassword.value,
+      otpCode: otpCodeRef.value,
+      resetToken: tokenRef.value
+    }
+    loadingStore.startLoading();
+    const res = await AuthApi.resetPassWord(request);
+    if (res && res['errorCode'] === ErrorCodes.otpExpired) {
+      await router.push("/expired-link")
+      loadingStore.stopLoading();
+    }
+    await router.push("/login")
+    loadingStore.stopLoading();
+  } catch (error) {
+    console.error(error)
+    newPasswordError.value = 'Something went wrong. Please try again.'
+  }
+}
 </script>

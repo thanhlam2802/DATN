@@ -89,7 +89,16 @@ public class OTPTransactionServiceImpl implements OTPTransactionService {
 
     @Override
     public void verifyAcquiredOtp(Integer userId, OtpType type, String code) {
-
+        Optional<OTPTransaction> otpTransaction = otpTransactionRepository
+                .findFirstByUserIdAndTypeOrderByCreatedAtDesc(userId, type);
+        if (otpTransaction.isEmpty()) {
+            throw new BadRequestException("Cannot find otp transaction", ErrorCode.OTP_001);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime createdAt = otpTransaction.get().getCreatedAt();
+        if (now.isAfter(createdAt.plusMinutes(otpTransaction.get().getExpiredInMinute()))) {
+            throw new BadRequestException("Expired OTP transaction", ErrorCode.OTP_003);
+        }
     }
 
     @Override

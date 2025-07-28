@@ -1,0 +1,63 @@
+# File schema của bạn (ví dụ: `schema.graphqls`)
+
+# Định nghĩa Scalar cho thời gian.
+# Route dùng Instant, Location dùng OffsetDateTime. Cân nhắc đồng bộ hoặc thêm scalar OffsetDateTime nếu cần.
+# scalar OffsetDateTime # Bỏ comment nếu bạn muốn dùng OffsetDateTime
+
+input CreateLocationInput {
+    name: String!
+    provinceCity: String
+    district: String
+    addressDetails: String
+    # latitude: Float # Thêm nếu bạn có trường này trong CreateLocationInput và Location entity
+    # longitude: Float # Thêm nếu bạn có trường này trong CreateLocationInput và Location entity
+}
+
+input CreateRouteInput {
+    originLocationDetails: CreateLocationInput!
+    destinationLocationDetails: CreateLocationInput!
+    distanceKm: Float
+    estimatedDurationMinutes: Int
+}
+
+input UpdateRouteInput {
+    originLocationDetails: CreateLocationInput
+    destinationLocationDetails: CreateLocationInput
+    distanceKm: Float
+    estimatedDurationMinutes: Int
+}
+
+# THÊM MỚI: Định nghĩa kiểu Location trong GraphQL, khớp với Location entity của bạn
+type Location {
+    id: ID!
+    name: String!
+    provinceCity: String
+    district: String
+    addressDetails: String
+    # latitude: Float # Thêm nếu có trong Location entity
+    # longitude: Float # Thêm nếu có trong Location entity
+    createdAt: Instant # Hoặc OffsetDateTime, tùy kiểu bạn dùng trong Location entity
+    updatedAt: Instant # Hoặc OffsetDateTime, tùy kiểu bạn dùng trong Location entity
+}
+
+# CẬP NHẬT: Thay đổi originLocationName và destinationLocationName thành các đối tượng Location
+type Route {
+    id: ID!
+    originLocation: Location!      # <-- ĐÃ THAY ĐỔI: Giờ là một đối tượng Location
+    destinationLocation: Location! # <-- ĐÃ THAY ĐỔI: Giờ là một đối tượng Location
+    distanceKm: Float
+    estimatedDurationMinutes: Int
+    createdAt: Instant # Đảm bảo kiểu thời gian này khớp với Route.java
+    updatedAt: Instant # Đảm bảo kiểu thời gian này khớp với Route.java
+}
+
+type Mutation {
+    createRoute(input: CreateRouteInput!): Route!
+    updateRoute(id : ID!, input: UpdateRouteInput!): Route!
+    deleteRoute(id: ID!): Boolean
+}
+
+type Query {
+    findAllRoutes: [Route!]!
+    findRouteById(id: ID!): Route
+}

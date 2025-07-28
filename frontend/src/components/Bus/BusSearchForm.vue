@@ -1,336 +1,532 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { LocationAPI } from '@/api/busAPI_Client'
 
+// DEV MODE: No auth features
+
+// Props
 const props = defineProps({
-  busType: {
+  activeTab: {
     type: String,
-    required: true
+    default: 'sleeping-bus'
   }
 })
 
-const emit = defineEmits(['search'])
+const emit = defineEmits(['search', 'roundtrip-change'])
+
+// Refs
+const returnDateSection = ref(null)
+
+// Loading states
+const loadingOrigins = ref(false)
+const loadingDestinations = ref(false)
+
+// Component lifecycle tracking
+const isMounted = ref(false)
 
 // Form data
-const formData = ref({
+const searchForm = ref({
   from: '',
   to: '',
   departureDate: '',
-  passengers: 1,
-  location: ''
+  returnDate: '',
+  roundtrip: false,
+  seats: 1
 })
 
-// Popular locations for quick selection
-const popularLocations = [
-  'Hồ Chí Minh',
-  'Hà Nội', 
-  'Đà Nẵng',
-  'Nha Trang',
-  'Đà Lạt',
-  'Cần Thơ',
-  'Huế',
-  'Quy Nhơn'
-]
+// Selected locations for logic
+const selectedFrom = ref(null)
+const selectedTo = ref(null)
 
-// Methods
-const handleSubmit = () => {
-  if (!formData.value.from || !formData.value.to || !formData.value.departureDate) {
-    alert('Vui lòng điền đầy đủ thông tin!')
+// Real data from API
+const originsList = ref([])
+const destinationsList = ref([])
+
+// Dropdown states
+const showFromDropdown = ref(false)
+const showToDropdown = ref(false)
+
+// Available options based on real API data
+const availableOrigins = computed(() => {
+  return originsList.value
+})
+
+const availableDestinations = computed(() => {
+  return destinationsList.value
+})
+
+// Filtered options based on input
+const filteredOrigins = computed(() => {
+  if (!searchForm.value.from) return availableOrigins.value
+  return availableOrigins.value.filter(location => 
+    location.name.toLowerCase().includes(searchForm.value.from.toLowerCase())
+  )
+})
+
+const filteredDestinations = computed(() => {
+  if (!searchForm.value.to) return availableDestinations.value
+  return availableDestinations.value.filter(location => 
+    location.name.toLowerCase().includes(searchForm.value.to.toLowerCase())
+  )
+})
+
+// Load origins on component mount
+onMounted(async () => {
+  isMounted.value = true
+  await loadOrigins()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  isMounted.value = false
+})
+
+// API calls
+const loadOrigins = async () => {
+  if (!isMounted.value) return
+  
+  try {
+    loadingOrigins.value = true
+    const origins = await LocationAPI.getAvailableOrigins()
+    
+    // Check if still mounted before updating state
+    if (isMounted.value) {
+      originsList.value = origins
+    }
+  } catch (error) {
+    // Use fallback data on error
+    if (isMounted.value) {
+      originsList.value = LocationAPI.getFallbackOrigins()
+    }
+  } finally {
+    if (isMounted.value) {
+      loadingOrigins.value = false
+    }
+  }
+}
+
+const loadDestinations = async (origin) => {
+  if (!isMounted.value || !origin) {
+    if (isMounted.value) {
+      destinationsList.value = []
+    }
     return
   }
   
-  emit('search', { ...formData.value })
+  try {
+    loadingDestinations.value = true
+    const destinations = await LocationAPI.getAvailableDestinations(origin)
+    
+    // Check if still mounted before updating state
+    if (isMounted.value) {
+      destinationsList.value = destinations
+    }
+  } catch (error) {
+    // Use fallback data on error
+    if (isMounted.value) {
+      destinationsList.value = LocationAPI.getFallbackDestinations(origin)
+    }
+  } finally {
+    if (isMounted.value) {
+      loadingDestinations.value = false
+    }
+  }
 }
 
+// Watch origin selection to load destinations
+watch(selectedFrom, async (newOrigin) => {
+  if (newOrigin) {
+    await loadDestinations(newOrigin.name)
+    // Clear destination if it's no longer valid
+    if (selectedTo.value && !destinationsList.value.find(dest => dest.name === selectedTo.value.name)) {
+      searchForm.value.to = ''
+      selectedTo.value = null
+    }
+  } else {
+    destinationsList.value = []
+    searchForm.value.to = ''
+    selectedTo.value = null
+  }
+})
+
+// Watch roundtrip change và emit về parent
+watch(
+  () => searchForm.value.roundtrip,
+  async (newValue) => {
+    emit('roundtrip-change', newValue)
+    
+    // Auto scroll to return date section when enabled
+    if (newValue) {
+      await nextTick()
+      setTimeout(() => {
+        // Add null check to prevent DOM errors
+        if (returnDateSection.value && returnDateSection.value.scrollIntoView) {
+          returnDateSection.value.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest' 
+          })
+        }
+      }, 300) // Wait for transition to start
+    }
+  }
+)
+
+// Methods
 const swapLocations = () => {
-  const temp = formData.value.from
-  formData.value.from = formData.value.to
-  formData.value.to = temp
+  const temp = searchForm.value.from
+  const tempSelected = selectedFrom.value
+  
+  searchForm.value.from = searchForm.value.to
+  searchForm.value.to = temp
+  
+  selectedFrom.value = selectedTo.value
+  selectedTo.value = tempSelected
 }
 
-// Set minimum date to today
+// Handle dropdown selections
+const selectOrigin = async (location) => {
+  searchForm.value.from = location.name
+  selectedFrom.value = location
+  showFromDropdown.value = false
+  
+  // Load destinations for selected origin
+  await loadDestinations(location.name)
+}
+
+const selectDestination = (location) => {
+  searchForm.value.to = location.name
+  selectedTo.value = location
+  showToDropdown.value = false
+}
+
+// Handle input focus/blur
+const handleFromFocus = () => {
+  showFromDropdown.value = true
+}
+
+const handleToFocus = () => {
+  // Load destinations if origin is selected but destinations not loaded
+  if (selectedFrom.value && destinationsList.value.length === 0 && !loadingDestinations.value) {
+    loadDestinations(selectedFrom.value.name)
+  }
+  showToDropdown.value = true
+}
+
+const handleFromBlur = () => {
+  // Delay to allow click on dropdown item
+  setTimeout(() => {
+    showFromDropdown.value = false
+  }, 200)
+}
+
+const handleToBlur = () => {
+  // Delay to allow click on dropdown item
+  setTimeout(() => {
+    showToDropdown.value = false
+  }, 200)
+}
+
+const handleRoundtripChange = () => {
+  emit('roundtrip-change', searchForm.value.roundtrip)
+}
+
+const handleSearch = () => {
+  // Validate form
+  if (!searchForm.value.from || !searchForm.value.to || !searchForm.value.departureDate) {
+    alert('Vui lòng điền đầy đủ thông tin tìm kiếm')
+    return
+  }
+
+  if (searchForm.value.roundtrip && !searchForm.value.returnDate) {
+    alert('Vui lòng chọn ngày về')
+    return
+  }
+
+  // Prepare search criteria for BusSearchAPI
+  const searchCriteria = {
+    from: searchForm.value.from,
+    to: searchForm.value.to,
+    departureDate: searchForm.value.departureDate,
+    returnDate: searchForm.value.returnDate,
+    seats: searchForm.value.seats,
+    roundtrip: searchForm.value.roundtrip
+  }
+
+  // Emit search event with real criteria
+  emit('search', searchCriteria)
+}
+
+// Set default date to today
 const today = new Date().toISOString().split('T')[0]
+searchForm.value.departureDate = today
 </script>
 
 <template>
-  <div class="space-y-8">
-    <!-- Main Search Form -->
-    <div class="bg-gradient-to-r from-white to-gray-50 rounded-2xl border border-gray-200 shadow-xl p-8">
-      <!-- Location Selection Row -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-6">
-        <!-- From Location -->
-        <div class="lg:col-span-4">
-          <label class="block text-sm font-semibold text-gray-700 mb-3">
-            <i class="fas fa-map-marker-alt mr-2 text-blue-500"></i>
-            Từ đâu
+  <div class="bg-white rounded-lg shadow-lg p-3 sm:p-6 md:p-8 max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-4 sm:mb-6">
+      <h2 class="text-base sm:text-lg md:text-xl font-bold text-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <span class="flex items-center">
+          <i class="fas fa-bus text-indigo-600 mr-2 text-sm sm:text-base"></i>
+          <span class="text-sm sm:text-base md:text-xl">Vé Xe Khách & Xe Trung Chuyển</span>
+        </span>
+        <span v-if="searchForm.roundtrip" class="text-xs sm:text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full w-fit">
+          <i class="fas fa-check-circle mr-1"></i>
+          Khứ Hồi
+        </span>
+      </h2>
+    </div>
+
+    <!-- Search Form -->
+    <form @submit.prevent="handleSearch" class="space-y-3 sm:space-y-4 md:space-y-6">
+      <!-- From and To Row -->
+      <div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:relative">
+        <!-- From -->
+        <div class="space-y-2 relative">
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">
+            Điểm đi
+            <span v-if="loadingOrigins" class="text-blue-500 ml-1">
+              <i class="fas fa-spinner fa-spin text-xs"></i>
+            </span>
           </label>
-          <div class="relative group">
-            <select 
-              v-model="formData.from"
-              class="w-full h-14 px-5 pr-12 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-medium shadow-sm
-                     focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:outline-none
-                     hover:border-gray-300 hover:shadow-md
-                     transition-all duration-300 ease-in-out
-                     appearance-none cursor-pointer"
-            >
-              <option value="" disabled class="text-gray-400">Chọn điểm đi</option>
-              <option v-for="location in popularLocations" :key="location" :value="location">
-                {{ location }}
-              </option>
-            </select>
-            <!-- Custom dropdown arrow -->
-            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-              <i class="fas fa-chevron-down text-gray-400 group-hover:text-purple-500 transition-colors duration-200"></i>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-bus text-gray-400 text-sm"></i>
+            </div>
+            <input
+              v-model="searchForm.from"
+              type="text"
+              placeholder="Nhập thành phố, bến xe..."
+              :disabled="loadingOrigins"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+              @focus="handleFromFocus"
+              @blur="handleFromBlur"
+              autocomplete="off"
+            />
+            
+            <!-- From Dropdown -->
+            <div v-if="showFromDropdown && filteredOrigins.length > 0" 
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
+              <div v-for="location in filteredOrigins" 
+                   :key="location.id"
+                   @click="selectOrigin(location)"
+                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center justify-between">
+                <div class="flex items-center">
+                  <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
+                  <div>
+                    <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
+                  </div>
+                </div>
+                <div v-if="location.count" class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {{ location.count }} chuyến
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Swap Button -->
-        <div class="lg:col-span-1 flex justify-center">
+        <!-- Mobile Swap Button -->
+        <div class="md:hidden flex justify-center py-1">
           <button
-            @click="swapLocations"
             type="button"
-            class="group h-14 w-14 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 text-white shadow-lg 
-                   hover:shadow-xl hover:scale-110 active:scale-95
-                   transition-all duration-300 ease-in-out
-                   flex items-center justify-center"
+            @click="swapLocations"
+            :disabled="!selectedFrom || !selectedTo"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
           >
-            <i class="fas fa-exchange-alt text-lg group-hover:rotate-180 transition-transform duration-300"></i>
+            <i class="fas fa-exchange-alt rotate-90 text-sm"></i>
           </button>
         </div>
 
-        <!-- To Location -->
-        <div class="lg:col-span-4">
-          <label class="block text-sm font-semibold text-gray-700 mb-3">
-            <i class="fas fa-flag-checkered mr-2 text-green-500"></i>
-            Đến đâu
-          </label>
-          <div class="relative group">
-            <select 
-              v-model="formData.to"
-              class="w-full h-14 px-5 pr-12 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-medium shadow-sm
-                     focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:outline-none
-                     hover:border-gray-300 hover:shadow-md
-                     transition-all duration-300 ease-in-out
-                     appearance-none cursor-pointer"
-            >
-              <option value="" disabled class="text-gray-400">Chọn điểm đến</option>
-              <option v-for="location in popularLocations" :key="location" :value="location">
-                {{ location }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-              <i class="fas fa-chevron-down text-gray-400 group-hover:text-purple-500 transition-colors duration-200"></i>
-            </div>
-          </div>
+        <!-- Desktop Swap Button -->
+        <div class="hidden md:flex absolute left-1/2 top-8 transform -translate-x-1/2 z-10">
+          <button
+            type="button"
+            @click="swapLocations"
+            :disabled="!selectedFrom || !selectedTo"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
+          >
+            <i class="fas fa-exchange-alt"></i>
+          </button>
         </div>
 
-        <!-- Departure Date -->
-        <div class="lg:col-span-3">
-          <label class="block text-sm font-semibold text-gray-700 mb-3">
-            <i class="fas fa-calendar-alt mr-2 text-orange-500"></i>
-            Ngày đi
+        <!-- To -->
+        <div class="space-y-2 relative">
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">
+            Điểm đến
+            <span v-if="loadingDestinations" class="text-blue-500 ml-1">
+              <i class="fas fa-spinner fa-spin text-xs"></i>
+            </span>
           </label>
           <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-bus text-gray-400 text-sm"></i>
+            </div>
             <input
-              v-model="formData.departureDate"
-              type="date"
-              :min="today"
-              class="w-full h-14 px-5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-medium shadow-sm
-                     focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:outline-none
-                     hover:border-gray-300 hover:shadow-md
-                     transition-all duration-300 ease-in-out
-                     cursor-pointer"
+              v-model="searchForm.to"
+              type="text"
+              placeholder="Chọn điểm đi trước..."
+              :disabled="!selectedFrom || loadingDestinations"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+              @focus="handleToFocus"
+              @blur="handleToBlur"
+              autocomplete="off"
             />
-            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-              <i class="fas fa-calendar text-gray-400"></i>
+            
+            <!-- To Dropdown -->
+            <div v-if="showToDropdown && filteredDestinations.length > 0" 
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
+              <div v-for="location in filteredDestinations" 
+                   :key="location.id"
+                   @click="selectDestination(location)"
+                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center justify-between">
+                <div class="flex items-center">
+                  <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
+                  <div>
+                    <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
+                  </div>
+                </div>
+                <div v-if="location.count" class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {{ location.count }} chuyến
+                </div>
+              </div>
+            </div>
+
+            <!-- No destinations available message -->
+            <div v-if="selectedFrom && showToDropdown && !loadingDestinations && filteredDestinations.length === 0"
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500 text-sm">
+              <i class="fas fa-info-circle mr-2"></i>
+              Không có điểm đến từ {{ selectedFrom.name }}
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Additional Options Row -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6 items-end">
-        <!-- Number of Passengers -->
-        <div class="xl:col-span-3">
-          <label class="block text-sm font-semibold text-gray-700 mb-3">
-            <i class="fas fa-users mr-2 text-indigo-500"></i>
-            Số lượng người
-          </label>
-          <div class="relative group">
-            <select 
-              v-model="formData.passengers"
-              class="w-full h-14 px-5 pr-12 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-medium shadow-sm
-                     focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:outline-none
-                     hover:border-gray-300 hover:shadow-md
-                     transition-all duration-300 ease-in-out
-                     appearance-none cursor-pointer"
-            >
-              <option v-for="i in 10" :key="i" :value="i">{{ i }} người</option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-              <i class="fas fa-chevron-down text-gray-400 group-hover:text-purple-500 transition-colors duration-200"></i>
+      <!-- Date, Seats, Roundtrip and Search Row -->
+      <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-3 lg:gap-4">
+        <!-- Departure Date -->
+        <div class="space-y-2">
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Ngày đi</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-calendar text-gray-400 text-sm"></i>
             </div>
+            <input
+              v-model="searchForm.departureDate"
+              type="date"
+              :min="today"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+            />
           </div>
         </div>
 
-        <!-- Specific Location -->
-        <div class="xl:col-span-6">
-          <label class="block text-sm font-semibold text-gray-700 mb-3">
-            <i class="fas fa-search-location mr-2 text-pink-500"></i>
-            Địa điểm cụ thể (tùy chọn)
-          </label>
+        <!-- Number of Seats -->
+        <div class="space-y-2">
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Số ghế</label>
           <div class="relative">
-            <input
-              v-model="formData.location"
-              type="text"
-              placeholder="Ví dụ: Bến xe Miền Đông, Sân bay..."
-              class="w-full h-14 px-5 pr-12 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-medium shadow-sm
-                     focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:outline-none
-                     hover:border-gray-300 hover:shadow-md
-                     transition-all duration-300 ease-in-out
-                     placeholder:text-gray-400"
-            />
-            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-              <i class="fas fa-map-pin text-gray-400"></i>
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-user text-gray-400 text-sm"></i>
             </div>
+            <input
+              v-model="searchForm.seats"
+              type="number"
+              min="1"
+              max="10"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+            />
+          </div>
+        </div>
+
+        <!-- Roundtrip Checkbox -->
+        <div class="space-y-2">
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">Loại vé</label>
+          <div class="flex items-center h-10 sm:h-12 bg-gray-50 rounded-lg px-3 sm:px-4 border border-gray-200">
+            <label class="flex items-center cursor-pointer">
+              <input
+                v-model="searchForm.roundtrip"
+                @change="handleRoundtripChange"
+                type="checkbox"
+                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              />
+              <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700">Khứ hồi</span>
+            </label>
           </div>
         </div>
 
         <!-- Search Button -->
-        <div class="xl:col-span-3">
+        <div class="space-y-2">
+          <label class="block text-xs sm:text-sm font-medium text-gray-700 invisible">Tìm</label>
           <button
-            @click="handleSubmit"
-            type="button"
-            class="w-full h-14 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-700
-                   hover:from-purple-700 hover:via-blue-700 hover:to-indigo-800
-                   text-white font-bold rounded-xl shadow-lg hover:shadow-xl
-                   transform hover:-translate-y-1 active:scale-95
-                   transition-all duration-300 ease-in-out
-                   flex items-center justify-center space-x-3
-                   group"
+            type="submit"
+            :disabled="loadingOrigins || loadingDestinations || !selectedFrom || !selectedTo"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 flex items-center justify-center text-sm"
           >
-            <i class="fas fa-search text-lg group-hover:scale-110 transition-transform duration-200"></i>
-            <span>Tìm kiếm</span>
-            <i class="fas fa-arrow-right opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200"></i>
+            <i class="fas fa-search mr-2 text-sm"></i>
+            Tìm kiếm
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- Bus Type Info Card -->
-    <div class="relative overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
-      <div class="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-indigo-50"></div>
-      <div class="relative p-6">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <i :class="busType === 'sleeping-bus' ? 'fas fa-bed' : 'fas fa-bus'" class="text-2xl text-white"></i>
+      <!-- Return Date Row (conditionally rendered) -->
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 transform scale-95 -translate-y-2"
+        enter-to-class="opacity-100 transform scale-100 translate-y-0"
+        leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100 transform scale-100 translate-y-0"
+        leave-to-class="opacity-0 transform scale-95 -translate-y-2"
+      >
+        <div v-if="searchForm.roundtrip" ref="returnDateSection" class="mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg bg-blue-50 border border-blue-200">
+          <div class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-3 lg:gap-4">
+            <div class="space-y-2 sm:col-span-2 lg:col-span-1">
+              <label class="block text-xs sm:text-sm font-medium text-blue-700">
+                <i class="fas fa-calendar-alt text-blue-500 mr-1 text-sm"></i>
+                Ngày về
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-calendar text-gray-400 text-sm"></i>
+                </div>
+                <input
+                  v-model="searchForm.returnDate"
+                  type="date"
+                  :min="searchForm.departureDate || today"
+                  class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm"
+                  placeholder="Chọn ngày về"
+                />
+              </div>
             </div>
-            <div>
-              <h3 class="text-xl font-bold text-gray-800">
-                {{ busType === 'sleeping-bus' ? 'Xe Giường nằm' : 'Xe Trung chuyển' }}
-              </h3>
-              <p class="text-gray-600 mt-1">
-                {{ busType === 'sleeping-bus' 
-                  ? 'Thoải mái cho các chuyến đi dài, có thể nằm nghỉ ngơi' 
-                  : 'Phù hợp cho các chuyến đi ngắn, giá thành tiết kiệm' 
-                }}
-              </p>
+            <div class="sm:col-span-2 lg:col-span-3 flex items-end">
+              <div class="text-xs sm:text-sm text-blue-600 bg-blue-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg w-full sm:w-auto text-center sm:text-left">
+                <i class="fas fa-info-circle mr-1"></i>
+                <span class="hidden sm:inline">Vé khứ hồi - </span>Chọn ngày về để tiếp tục
+              </div>
             </div>
-          </div>
-          
-          <!-- Features -->
-          <div class="hidden lg:flex space-x-4">
-            <div class="flex items-center space-x-2 bg-white bg-opacity-70 rounded-full px-4 py-2">
-              <i class="fas fa-shield-alt text-green-500"></i>
-              <span class="text-sm font-medium text-gray-700">An toàn</span>
-            </div>
-            <div class="flex items-center space-x-2 bg-white bg-opacity-70 rounded-full px-4 py-2">
-              <i class="fas fa-clock text-blue-500"></i>
-              <span class="text-sm font-medium text-gray-700">Đúng giờ</span>
-            </div>
-            <div class="flex items-center space-x-2 bg-white bg-opacity-70 rounded-full px-4 py-2">
-              <i class="fas fa-star text-yellow-500"></i>
-              <span class="text-sm font-medium text-gray-700">Chất lượng</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Mobile Features -->
-        <div class="lg:hidden mt-4 flex flex-wrap gap-2">
-          <div class="flex items-center space-x-2 bg-white bg-opacity-70 rounded-full px-3 py-1">
-            <i class="fas fa-shield-alt text-green-500 text-sm"></i>
-            <span class="text-xs font-medium text-gray-700">An toàn</span>
-          </div>
-          <div class="flex items-center space-x-2 bg-white bg-opacity-70 rounded-full px-3 py-1">
-            <i class="fas fa-clock text-blue-500 text-sm"></i>
-            <span class="text-xs font-medium text-gray-700">Đúng giờ</span>
-          </div>
-          <div class="flex items-center space-x-2 bg-white bg-opacity-70 rounded-full px-3 py-1">
-            <i class="fas fa-star text-yellow-500 text-sm"></i>
-            <span class="text-xs font-medium text-gray-700">Chất lượng</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Quick Tips -->
-    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
-      <div class="flex items-start space-x-3">
-        <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <i class="fas fa-lightbulb text-amber-600"></i>
-        </div>
-        <div>
-          <h4 class="font-semibold text-amber-800 mb-1">Mẹo đặt vé</h4>
-          <ul class="text-sm text-amber-700 space-y-1">
-            <li>• Đặt vé trước 2-3 ngày để có giá tốt nhất</li>
-            <li>• Kiểm tra kỹ thông tin trước khi thanh toán</li>
-            <li>• Mang theo CMND/CCCD khi lên xe</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+      </Transition>
+    </form>
   </div>
 </template>
 
 <style scoped>
-/* Custom styles for enhanced UI */
-select {
-  background-image: none;
+/* Custom scrollbar for date inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
 }
 
-/* Custom focus effects */
-.focus-ring:focus {
-  @apply ring-4 ring-purple-100 ring-opacity-50;
+/* Remove number input arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-/* Hover animations */
-@keyframes float-up {
-  0% { transform: translateY(0px); }
-  100% { transform: translateY(-2px); }
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
-.hover-float:hover {
-  animation: float-up 0.3s ease-out forwards;
-}
-
-/* Gradient text effect */
-.gradient-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Input focus glow effect */
-input:focus, select:focus {
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1), 0 0 20px rgba(139, 92, 246, 0.1);
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  .grid-mobile-stack > * {
-    grid-column: 1 / -1;
-  }
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
 }
 </style> 

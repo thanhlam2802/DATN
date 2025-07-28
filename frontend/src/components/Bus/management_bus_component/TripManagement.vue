@@ -6,8 +6,55 @@
         <h3 class="text-lg font-medium leading-6 text-gray-900">Quản lý Chuyến xe</h3>
         <p class="mt-1 text-sm text-gray-500">Quản lý và theo dõi tất cả chuyến xe của nhà xe</p>
       </div>
-      <div class="mt-4 sm:mt-0">
-        <button @click="showAddModal = true" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+        <!-- Auto-management controls -->
+        <div class="flex items-center space-x-2">
+          <button
+            @click="tripManager.toggleAutoManager"
+            :class="[
+              'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors border',
+              tripManager.autoManagerEnabled.value 
+                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+            ]"
+            title="Toggle automatic trip status management"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {{ tripManager.autoManagerEnabled.value ? '🟢 Auto ON' : '🔴 Auto OFF' }}
+          </button>
+          
+          <button
+            @click="handleManualSync"
+            :disabled="tripManager.syncLoading.value"
+            :class="[
+              'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors border',
+              tripManager.syncLoading.value 
+                ? 'bg-blue-50 text-blue-400 border-blue-200 opacity-70 cursor-not-allowed' 
+                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+            ]"
+            title="Manually trigger auto-management check"
+          >
+            <template v-if="tripManager.syncLoading.value">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Đang đồng bộ...
+            </template>
+            <template v-else>
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Sync
+            </template>
+          </button>
+          
+          
+        </div>
+        
+        <button @click="openCreateModal" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
@@ -16,18 +63,87 @@
       </div>
     </div>
 
+    <!-- Error Message -->
+    <!-- <div v-if="tripManager.error.value" class="bg-red-50 border-l-4 border-red-400 p-4 rounded-md shadow-sm">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">Có lỗi xảy ra</h3>
+          <p class="mt-1 text-sm text-red-700">{{ tripManager.error.value }}</p>
+          <button @click="tripManager.clearError" class="mt-2 text-sm text-red-600 hover:text-red-500">
+            Đóng thông báo
+          </button>
+        </div>
+      </div>
+    </div> -->
+
+    <!-- Warning về xe bus -->
+    <div v-if="!tripManager.loadingBuses.value && tripManager.availableBuses.value.length === 0" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-yellow-800">Chưa có xe bus</h3>
+          <p class="mt-1 text-sm text-yellow-700">
+            Bạn chưa có xe bus nào. Vui lòng thêm xe bus trước khi tạo chuyến đi.
+          </p>
+          <p class="mt-1 text-xs text-yellow-600">
+            💡 Gợi ý: Đi đến trang "Quản lý Xe buýt" để thêm xe bus mới.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Filters Section -->
     <div class="bg-white shadow rounded-lg p-6">
-      <h4 class="text-sm font-medium text-gray-900 mb-4">Lọc chuyến xe</h4>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="text-sm font-medium text-gray-900">Lọc chuyến xe</h4>
+        <div class="flex items-center space-x-3">
+          <!-- Advanced Filter Toggle -->
+          <button
+            @click="showAdvancedFilters = !showAdvancedFilters"
+            :class="[
+              'inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium transition-all duration-200',
+              showAdvancedFilters ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 hover:bg-gray-50'
+            ]"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 110-4m6 2a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 110-4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4a2 2 0 110-4"></path>
+            </svg>
+            Bộ lọc nâng cao
+            <span v-if="activeFiltersCount > 0" class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {{ activeFiltersCount }}
+            </span>
+          </button>
+          
+          <!-- Clear Filters -->
+          <button 
+            @click="clearAllFilters"
+            class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            v-if="activeFiltersCount > 0"
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
+      </div>
+      
+      <!-- Basic Filters -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Tuyến đường</label>
           <div class="relative">
             <select v-model="filters.route" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
               <option value="">Tất cả tuyến</option>
-              <option value="hanoi-hochiminh">Hà Nội - TP.HCM</option>
-              <option value="hanoi-danang">Hà Nội - Đà Nẵng</option>
-              <option value="hochiminh-danang">TP.HCM - Đà Nẵng</option>
+              <option v-for="route in availableRoutes" :key="route.id" :value="route.id">
+                {{ route.name }}
+              </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,14 +152,15 @@
             </div>
           </div>
         </div>
+        
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
           <div class="relative">
             <select v-model="filters.status" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
               <option value="">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="inactive">Tạm dừng</option>
-              <option value="completed">Hoàn thành</option>
+              <option v-for="status in availableStatuses" :key="status.value" :value="status.value">
+                {{ status.label }} ({{ status.count }})
+              </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,17 +169,134 @@
             </div>
           </div>
         </div>
+        
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Ngày khởi hành</label>
           <input v-model="filters.date" type="date" class="w-full bg-white border border-gray-300 rounded-lg shadow-sm px-3 py-2 text-sm text-gray-700 placeholder-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
         </div>
-        <div class="flex items-end">
-          <button @click="applyFilters" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
-            Áp dụng lọc
-          </button>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Xe buýt</label>
+          <div class="relative">
+            <select v-model="filters.busId" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+              <option value="">Tất cả xe</option>
+              <option v-for="bus in availableBuses" :key="bus.id" :value="bus.id">
+                {{ bus.name }} ({{ bus.licensePlate }})
+              </option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
         </div>
       </div>
     </div>
+
+      <!-- Advanced Filters -->
+      <transition name="filter-slide">
+        <div v-if="showAdvancedFilters" class="border-t border-gray-200 pt-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Price Range Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Khoảng giá vé</label>
+              <div class="space-y-3">
+                <div class="flex items-center space-x-2">
+                  <input 
+                    v-model.number="filters.priceRange.min"
+                    type="number" 
+                    :min="priceRange.min"
+                    :max="filters.priceRange.max"
+                    placeholder="Từ"
+                    class="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <span class="text-gray-500">-</span>
+                  <input 
+                    v-model.number="filters.priceRange.max"
+                    type="number" 
+                    :min="filters.priceRange.min"
+                    :max="priceRange.max"
+                    placeholder="Đến"
+                    class="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <span class="text-xs text-gray-500">VNĐ</span>
+                </div>
+                <div class="text-xs text-gray-500">
+                  Phạm vi: {{ formatPrice(priceRange.min) }} - {{ formatPrice(priceRange.max) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Occupancy Level Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Mức độ lấp đầy</label>
+              <div class="relative">
+                <select v-model="filters.occupancyLevel" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                  <option value="">Tất cả mức độ</option>
+                  <option value="low">🟢 Thấp (&lt; 30%)</option>
+                  <option value="medium">🟡 Trung bình (30-70%)</option>
+                  <option value="high">🔴 Cao (&gt; 70%)</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Time Range Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ khởi hành</label>
+              <div class="space-y-2">
+                <input 
+                  v-model="filters.timeRange.departureFrom"
+                  type="time" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Từ giờ"
+                />
+                <input 
+                  v-model="filters.timeRange.departureTo"
+                  type="time" 
+                  :min="filters.timeRange.departureFrom"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Đến giờ"
+                />
+              </div>
+            </div>
+
+          </div>
+          
+          <!-- Filter Summary -->
+          <div class="mt-4 p-3 bg-gray-50 rounded-md">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-600">Kết quả lọc:</span>
+              <span class="font-medium text-blue-600">{{ filteredTrips.length }} / {{ tripManager.busSlots.value.length }} chuyến xe</span>
+            </div>
+            <div v-if="activeFiltersCount > 0" class="mt-2 flex flex-wrap gap-1">
+              <span v-if="filters.route" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Tuyến: {{ availableRoutes.find(r => r.id === filters.route)?.name || 'N/A' }}
+              </span>
+              <span v-if="filters.status" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {{ availableStatuses.find(s => s.value === filters.status)?.label || 'N/A' }}
+              </span>
+              <span v-if="filters.busId" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                Xe: {{ availableBuses.find(b => b.id === filters.busId)?.name || 'N/A' }}
+              </span>
+              <span v-if="filters.occupancyLevel" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                Lấp đầy: {{ filters.occupancyLevel === 'low' ? 'Thấp' : filters.occupancyLevel === 'medium' ? 'TB' : 'Cao' }}
+              </span>
+              <span v-if="filters.priceRange.min > priceRange.min || filters.priceRange.max < priceRange.max" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                Giá: {{ formatPrice(filters.priceRange.min) }} - {{ formatPrice(filters.priceRange.max) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </div>
+
+
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -79,7 +313,7 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tổng chuyến xe</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.totalTrips }}</dd>
+                <dd class="text-lg font-medium text-gray-900">{{ tripManager.stats.value.totalTrips }}</dd>
               </dl>
             </div>
           </div>
@@ -99,7 +333,7 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Đang hoạt động</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.activeTrips }}</dd>
+                <dd class="text-lg font-medium text-gray-900">{{ tripManager.stats.value.activeTrips }}</dd>
               </dl>
             </div>
           </div>
@@ -110,16 +344,16 @@
         <div class="p-5">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+              <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z"/>
                 </svg>
               </div>
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Tạm dừng</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.inactiveTrips }}</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Đã lên lịch</dt>
+                <dd class="text-lg font-medium text-gray-900">{{ tripManager.stats.value.scheduledTrips }}</dd>
               </dl>
             </div>
           </div>
@@ -139,7 +373,7 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Hoàn thành</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.completedTrips }}</dd>
+                <dd class="text-lg font-medium text-gray-900">{{ tripManager.stats.value.completedTrips }}</dd>
               </dl>
             </div>
           </div>
@@ -158,7 +392,8 @@
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã chuyến</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tuyến đường</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian dự kiến</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian thực tế</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Xe</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã bán</th>
@@ -166,24 +401,144 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="trip in filteredTrips" :key="trip.id">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ trip.code }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.route }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <div>{{ trip.departureTime }}</div>
-                <div class="text-xs text-gray-400">{{ trip.date }}</div>
+            <!-- Loading State -->
+            <tr v-if="tripManager.loading.value">
+              <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                <div class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang tải dữ liệu...
+                </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.busNumber }}</td>
+            </tr>
+            
+            
+            <!-- Empty State -->
+            <tr v-else-if="filteredTrips.length === 0">
+              <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                <div class="flex flex-col items-center">
+                  <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0M15 17a2 2 0 104 0M9 17h6"></path>
+                  </svg>
+                  <p>Chưa có chuyến xe nào</p>
+                  <button @click="openCreateModal" class="mt-2 text-blue-600 hover:text-blue-800">
+                    Thêm chuyến xe đầu tiên
+                  </button>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Data Rows -->
+            <tr v-else v-for="busSlot in filteredTrips" :key="busSlot.id">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ busSlot.id }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ getRouteInfo(busSlot) }}</td>
+              
+              <!-- Scheduled Time -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <div>{{ formatTime(busSlot.departureTime) }} - {{ formatTime(busSlot.arrivalTime) }}</div>
+                <div class="text-xs text-gray-400">{{ busSlot.slotDate || 'Hôm nay' }}</div>
+              </td>
+              
+              <!-- Actual Time & Delay Info -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <div v-if="busSlot.actualDepartureTime || busSlot.actualArrivalTime" class="space-y-1">
+                  <div v-if="busSlot.actualDepartureTime" class="text-gray-700">
+                    Đi: {{ getDisplayTime(busSlot.departureTime, busSlot.actualDepartureTime) }}
+                  </div>
+                  <div v-if="busSlot.actualArrivalTime" class="text-gray-700">
+                    Đến: {{ getDisplayTime(busSlot.arrivalTime, busSlot.actualArrivalTime) }}
+                  </div>
+                                     <div v-if="busSlot.delayReason" class="text-xs text-amber-600 flex items-center">
+                     <span class="mr-1">{{ getDelayReasonIcon(busSlot.delayReason) }}</span>
+                     {{ getDelayReasonText(busSlot.delayReason) }}
+                   </div>
+                </div>
+                <div v-else class="text-xs text-gray-400">
+                  Chưa cập nhật
+                </div>
+              </td>
+              
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ getBusInfo(busSlot) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getStatusBadgeClass(trip.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                  {{ getStatusText(trip.status) }}
+                <span :class="getStatusBadgeClass(busSlot.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  {{ getStatusText(busSlot.status) }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ trip.soldSeats }}/{{ trip.totalSeats }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <span :class="'inline-flex px-2 py-1 text-xs font-medium rounded-full ' + getOccupancyBadgeClass(busSlot.totalSeats, busSlot.availableSeats)">
+                {{ busSlot.totalSeats - busSlot.availableSeats }}/{{ busSlot.totalSeats }}
+                </span>
+                <div class="text-xs text-green-600">{{ formatPrice(busSlot.price) }}</div>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <button @click="editTrip(trip)" class="text-blue-600 hover:text-blue-900">Sửa</button>
-                  <button @click="deleteTrip(trip.id)" class="text-red-600 hover:text-red-900">Xóa</button>
+                <div class="flex flex-col space-y-1">
+                  <!-- Primary Actions -->
+                  <div class="flex space-x-2">
+                    <button @click="editTrip(busSlot)" class="text-blue-600 hover:text-blue-900 hover:cursor-pointer">Sửa</button>
+                    <button 
+                      @click="handleDeleteTrip(busSlot.id)" 
+                      :disabled="tripManager.isTripButtonLoading(busSlot.id, 'delete')"
+                      class="text-red-600 hover:text-red-900 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                      <span v-if="tripManager.isTripButtonLoading(busSlot.id, 'delete')">
+                        <svg class="animate-spin inline-block h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </span>
+                      <span>Xóa</span>
+                    </button>
+                    <button @click="openStatusUpdateModal(busSlot)" class="text-purple-600 hover:text-purple-900 hover:cursor-pointer" title="Update thời gian thực tế">
+                      🕐
+                    </button>
+                  </div>
+                  
+                  <!-- Quick Status Actions -->
+                  <div class="flex space-x-1" v-if="busSlot.status === 'SCHEDULED' || busSlot.status === 'IN_PROGRESS'">
+                    <button 
+                      v-if="busSlot.status === 'SCHEDULED'"
+                      @click="handleQuickMarkInProgress(busSlot)" 
+                      :disabled="tripManager.isTripButtonLoading(busSlot.id, 'start')"
+                      class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
+                      title="Đánh dấu đang chạy"
+                    >
+                      <span v-if="tripManager.isTripButtonLoading(busSlot.id, 'start')" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Đang...
+                      </span>
+                      <span v-else>🚌 Bắt đầu</span>
+                    </button>
+                    <button 
+                      v-if="busSlot.status === 'IN_PROGRESS'"
+                      @click="handleQuickMarkCompleted(busSlot)" 
+                      :disabled="tripManager.isTripButtonLoading(busSlot.id, 'complete')"
+                      class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
+                      title="Đánh dấu hoàn thành"
+                    >
+                      <span v-if="tripManager.isTripButtonLoading(busSlot.id, 'complete')" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Đang...
+                      </span>
+                      <span v-else>✅ Hoàn thành</span>
+                    </button>
+                  </div>
+                  
+                  <!-- Progress Indicator for IN_PROGRESS trips -->
+                  <div v-if="busSlot.status === 'IN_PROGRESS'" class="w-full bg-gray-200 rounded-full h-1">
+                    <div 
+                      class="bg-green-500 h-1 rounded-full transition-all duration-300" 
+                      :style="{ width: calculateProgress(busSlot) + '%' }"
+                    ></div>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -192,307 +547,575 @@
       </div>
     </div>
 
-    <!-- Add/Edit Modal with Beautiful Design -->
-    <transition name="modal" appear>
-                             <div v-if="showAddModal" @click="handleBackdropClick" class="fixed inset-0 h-full w-full z-50 flex items-center justify-center bg-black-100 bg-opacity-20 backdrop-blur-sm p-4">
-        <div @click.stop class="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl overflow-hidden transform">
+    <!-- Trip Form Modal -->
+    <TripFormModal
+      :visible="showAddModal"
+      :editing-trip="editingTrip"
+      :available-buses="tripManager.availableBuses.value"
+      :available-routes="tripManager.availableRoutes.value"
+      :loading-buses="tripManager.loadingBuses.value"
+      :loading-routes="tripManager.loadingRoutes.value"
+      :loading="tripManager.loading.value"
+      @close="closeModal"
+      @save="handleSaveTrip"
+    />
+
+  <!-- Manual Status Update Modal -->
+  <transition name="modal" appear>
+      <div v-if="showStatusUpdateModal" @click="closeStatusUpdateModal" class="fixed inset-0 h-full w-full z-50 flex items-center justify-center bg-black-100 backdrop-blur-sm p-4 ">
+      <div @click.stop class="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 text-white">
+          <h3 class="text-lg font-semibold">⏰ Cập nhật trạng thái thực tế</h3>
+          <p class="text-sm opacity-90">Chuyến: {{ updatingTrip?.id }}</p>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 space-y-4">
+          <!-- Status -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái hiện tại</label>
+            <select v-model="statusUpdateForm.status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="SCHEDULED">📅 Đã lên lịch</option>
+              <option value="IN_PROGRESS">🚌 Đang chạy</option>
+              <option value="COMPLETED">✅ Hoàn thành</option>
+              <option value="CANCELLED">❌ Đã hủy</option>
+            </select>
+          </div>
           
-          <!-- Modal Header -->
-          <div class="bg-white px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-xl font-semibold text-gray-900">{{ editingTrip ? 'Sửa chuyến xe' : 'Thêm chuyến xe mới' }}</h3>
-                  <p class="text-gray-600 text-sm">{{ editingTrip ? 'Cập nhật thông tin chuyến xe' : 'Tạo chuyến xe cho tuyến đường' }}</p>
-                </div>
-              </div>
-              <button @click="closeModal" class="text-gray-400 hover:text-gray-600 focus:outline-none transition-colors duration-200">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
+          <!-- Actual Times -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ khởi hành thực tế</label>
+              <input 
+                v-model="statusUpdateForm.actualDepartureTime" 
+                type="datetime-local" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ đến thực tế</label>
+              <input 
+                v-model="statusUpdateForm.actualArrivalTime" 
+                type="datetime-local" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              />
             </div>
           </div>
-
-          <!-- Modal Content -->
-          <div class="px-6 py-6">
-            <form @submit.prevent="saveTrip" class="space-y-6">
-              
-              <!-- Trip Information Section -->
-              <div class="space-y-4">
-                <div class="flex items-center space-x-2 mb-4">
-                  <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <h4 class="text-lg font-medium text-gray-900">Thông tin chuyến xe</h4>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                      Mã chuyến <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <input 
-                        v-model="tripForm.code" 
-                        type="text" 
-                        required 
-                        placeholder="VD: BUS001"
-                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
-                      >
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                      Tuyến đường <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <select 
-                        v-model="tripForm.route" 
-                        required 
-                        class="appearance-none w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 bg-white"
-                      >
-                        <option value="">Chọn tuyến đường</option>
-                        <option value="Hà Nội - TP.HCM">Hà Nội - TP.HCM</option>
-                        <option value="Hà Nội - Đà Nẵng">Hà Nội - Đà Nẵng</option>
-                        <option value="TP.HCM - Đà Nẵng">TP.HCM - Đà Nẵng</option>
-                      </select>
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        </svg>
-                      </div>
-                      <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                      Ngày khởi hành <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <input 
-                        v-model="tripForm.date" 
-                        type="date" 
-                        required 
-                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
-                      >
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                      Giờ khởi hành <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <input 
-                        v-model="tripForm.departureTime" 
-                        type="time" 
-                        required 
-                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
-                      >
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                      Số xe <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <input 
-                        v-model="tripForm.busNumber" 
-                        type="text" 
-                        required 
-                        placeholder="VD: BKS-001"
-                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
-                      >
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10.5V21"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                      Số ghế <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <input 
-                        v-model="tripForm.totalSeats" 
-                        type="number" 
-                        required 
-                        min="1"
-                        placeholder="40"
-                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
-                      >
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </form>
+          
+          <!-- Delay Reason -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Lý do delay/sớm (nếu có)</label>
+            <select v-model="statusUpdateForm.delayReason" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="">-- Không có --</option>
+              <option value="TRAFFIC_JAM">🚗 Kẹt xe</option>
+              <option value="WEATHER">🌧️ Thời tiết xấu</option>
+              <option value="VEHICLE_ISSUE">🔧 Sự cố xe</option>
+              <option value="PASSENGER_DELAY">👥 Khách trễ</option>
+              <option value="ROAD_ACCIDENT">⚠️ Tai nạn giao thông</option>
+              <option value="FUEL_STOP">⛽ Dừng đổ xăng</option>
+              <option value="DRIVER_BREAK">☕ Nghỉ giải lao</option>
+              <option value="EARLY_ARRIVAL">🏃‍♂️ Đến sớm</option>
+              <option value="OTHER">❓ Lý do khác</option>
+            </select>
           </div>
-
-          <!-- Modal Footer -->
-          <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div class="text-sm text-gray-500">
-              <span class="flex items-center">
-                <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h5v-4l-2-2h-3v6z"/>
-                </svg>
-                Quản lý chuyến xe
-              </span>
-            </div>
-            <div class="flex space-x-3">
-              <button 
-                @click="closeModal" 
-                type="button" 
-                class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 shadow-sm"
-              >
-                Hủy bỏ
-              </button>
-              <button 
-                @click="saveTrip" 
-                type="submit" 
-                class="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-              >
-                {{ editingTrip ? 'Cập nhật chuyến' : 'Tạo chuyến xe' }}
-              </button>
-            </div>
+          
+          <!-- Current Location -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Vị trí hiện tại (optional)</label>
+            <input 
+              v-model="statusUpdateForm.currentLocation" 
+              type="text" 
+              placeholder="VD: Đang ở Hà Nội, sẽ đến Thanh Hóa lúc 15:30"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          
+          <!-- Driver Notes -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú tài xế</label>
+            <textarea 
+              v-model="statusUpdateForm.driverNotes" 
+              rows="2"
+              placeholder="Ghi chú thêm từ tài xế hoặc điều hành..."
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            ></textarea>
           </div>
         </div>
+        
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 px-6 py-4 flex space-x-3 justify-end">
+          <button 
+            @click="closeStatusUpdateModal"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Hủy
+          </button>
+          <button 
+              @click="handleSaveStatusUpdate"
+              :disabled="tripManager.loading.value"
+            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-lg hover:bg-purple-700 disabled:opacity-50"
+          >
+              <span v-if="tripManager.loading.value">Đang lưu...</span>
+            <span v-else>💾 Cập nhật</span>
+          </button>
+        </div>
       </div>
-    </transition>
+    </div>
+  </transition>
+
+    <!-- Success Message -->
+    <div v-if="successMessage" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50">
+      {{ successMessage }}
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useTripManagement } from '@/composables/useTripManagement'
+import TripFormModal from './TripFormModal.vue'
+import { BusSlotStatus, DelayReason } from '@/api/busApi/busSlot'
+// @ts-ignore
+import { toast, confirm, handleError } from '@/utils/notifications'
 
-// State
+// Initialize trip management composable
+const tripManager = useTripManagement()
+
+// UI State
 const showAddModal = ref(false)
 const editingTrip = ref(null)
+const showStatusUpdateModal = ref(false)
+const updatingTrip = ref(null)
+const successMessage = ref('')
+const debuggingAuto = ref(false)
+
+// Enhanced Filter State
+const showAdvancedFilters = ref(false)
 const filters = ref({
   route: '',
   status: '',
-  date: ''
-})
-
-const tripForm = ref({
-  code: '',
-  route: '',
   date: '',
-  departureTime: '',
-  busNumber: '',
-  totalSeats: 40,
-  soldSeats: 0,
-  status: 'active'
+  busId: '',
+  priceRange: {
+    min: 0,
+    max: 1000000
+  },
+  occupancyLevel: '', // 'low', 'medium', 'high'
+  timeRange: {
+    departureFrom: '',
+    departureTo: ''
+  }
 })
 
-const trips = ref([
-  {
-    id: 1,
-    code: 'BUS001',
-    route: 'Hà Nội - TP.HCM',
-    date: '2024-01-15',
-    departureTime: '08:00',
-    busNumber: 'BKS-001',
-    totalSeats: 40,
-    soldSeats: 25,
-    status: 'active'
-  },
-  {
-    id: 2,
-    code: 'BUS002',
-    route: 'Hà Nội - Đà Nẵng',
-    date: '2024-01-15',
-    departureTime: '14:30',
-    busNumber: 'BKS-002',
-    totalSeats: 40,
-    soldSeats: 32,
-    status: 'active'
-  },
-  {
-    id: 3,
-    code: 'BUS003',
-    route: 'TP.HCM - Đà Nẵng',
-    date: '2024-01-14',
-    departureTime: '20:00',
-    busNumber: 'BKS-003',
-    totalSeats: 40,
-    soldSeats: 40,
-    status: 'completed'
+// Computed filter data
+const availableRoutes = computed(() => {
+  // Get unique routes from trips and available routes
+  const routesFromTrips = tripManager.busSlots.value
+    .filter(slot => slot.route)
+    .map(slot => {
+      const route = slot.route
+      // Handle both new format (with Location entities) and mapped format
+      let routeName
+      if (route.originLocation && route.destinationLocation) {
+        routeName = `${route.originLocation.name} - ${route.destinationLocation.name}`
+      } else {
+        routeName = route.name || `${route.origin} - ${route.destination}`
+      }
+      
+      return {
+        id: route.id,
+        name: routeName,
+        origin: route.originLocation?.name || route.origin,
+        destination: route.destinationLocation?.name || route.destination
+      }
+    })
+
+  const routesFromApi = tripManager.availableRoutes.value || []
+  
+  // Combine and deduplicate
+  const combinedRoutes = [...routesFromApi, ...routesFromTrips]
+  const uniqueRoutes = combinedRoutes.filter((route, index, self) => 
+    index === self.findIndex(r => r.id === route.id || r.name === route.name)
+  )
+  
+  return uniqueRoutes.sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const availableBuses = computed(() => {
+  // Get unique buses from trips
+  const busesFromTrips = tripManager.busSlots.value
+    .filter(slot => slot.bus)
+    .map(slot => ({
+      id: slot.bus.id,
+      name: slot.bus.name,
+      licensePlate: slot.bus.licensePlate
+    }))
+    
+  const busesFromApi = tripManager.availableBuses.value || []
+  
+  // Combine and deduplicate
+  const combinedBuses = [...busesFromApi, ...busesFromTrips]
+  const uniqueBuses = combinedBuses.filter((bus, index, self) => 
+    index === self.findIndex(b => b.id === bus.id)
+  )
+  
+  return uniqueBuses.sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const availableStatuses = computed(() => {
+  return [
+    { value: 'SCHEDULED', label: '📅 Đã lên lịch', count: 0 },
+    { value: 'IN_PROGRESS', label: '🚌 Đang hoạt động', count: 0 },
+    { value: 'DELAYED', label: '⏰ Tạm dừng', count: 0 },
+    { value: 'COMPLETED', label: '✅ Hoàn thành', count: 0 },
+    { value: 'CANCELLED', label: '❌ Đã hủy', count: 0 }
+  ].map(status => ({
+    ...status,
+    count: tripManager.busSlots.value.filter(slot => slot.status === status.value).length
+  }))
+})
+
+const priceRange = computed(() => {
+  if (tripManager.busSlots.value.length === 0) return { min: 0, max: 1000000 }
+  
+  const prices = tripManager.busSlots.value.map(slot => slot.price || 0)
+  return {
+    min: Math.min(...prices),
+    max: Math.max(...prices)
   }
-])
+})
+
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (filters.value.route) count++
+  if (filters.value.status) count++
+  if (filters.value.date) count++
+  if (filters.value.busId) count++
+  if (filters.value.occupancyLevel) count++
+  if (filters.value.priceRange.min > priceRange.value.min || 
+      filters.value.priceRange.max < priceRange.value.max) count++
+  if (filters.value.timeRange.departureFrom || filters.value.timeRange.departureTo) count++
+  return count
+})
+
+// Status update form
+const statusUpdateForm = ref({
+  status: '',
+  actualDepartureTime: '',
+  actualArrivalTime: '',
+  delayReason: '',
+  currentLocation: '',
+  driverNotes: ''
+})
 
 // Computed
-const stats = computed(() => ({
-  totalTrips: trips.value.length,
-  activeTrips: trips.value.filter(trip => trip.status === 'active').length,
-  inactiveTrips: trips.value.filter(trip => trip.status === 'inactive').length,
-  completedTrips: trips.value.filter(trip => trip.status === 'completed').length
-}))
-
 const filteredTrips = computed(() => {
-  let filtered = trips.value
+  let filtered = tripManager.busSlots.value
 
+  // Route filter
   if (filters.value.route) {
-    filtered = filtered.filter(trip => trip.route.includes(filters.value.route))
+    filtered = filtered.filter(slot => {
+      if (!slot.route) return false
+      const routeName = `${slot.route.origin} - ${slot.route.destination}`
+      return slot.route.id === filters.value.route || routeName.includes(filters.value.route)
+    })
   }
   
+  // Status filter
   if (filters.value.status) {
-    filtered = filtered.filter(trip => trip.status === filters.value.status)
+    filtered = filtered.filter(slot => slot.status === filters.value.status)
   }
   
+  // Date filter
   if (filters.value.date) {
-    filtered = filtered.filter(trip => trip.date === filters.value.date)
+    filtered = filtered.filter(slot => slot.slotDate === filters.value.date)
+  }
+
+  // Bus filter
+  if (filters.value.busId) {
+    filtered = filtered.filter(slot => slot.bus && slot.bus.id === filters.value.busId)
+  }
+
+  // Price range filter
+  filtered = filtered.filter(slot => {
+    const price = slot.price || 0
+    return price >= filters.value.priceRange.min && price <= filters.value.priceRange.max
+  })
+
+  // Occupancy level filter
+  if (filters.value.occupancyLevel) {
+    filtered = filtered.filter(slot => {
+      const occupancyRate = ((slot.totalSeats - slot.availableSeats) / slot.totalSeats) * 100
+      switch (filters.value.occupancyLevel) {
+        case 'low': return occupancyRate < 30
+        case 'medium': return occupancyRate >= 30 && occupancyRate < 70
+        case 'high': return occupancyRate >= 70
+        default: return true
+      }
+    })
+  }
+
+  // Time range filter
+  if (filters.value.timeRange.departureFrom) {
+    filtered = filtered.filter(slot => {
+      if (!slot.departureTime) return false
+      const departureTime = formatTimeForComparison(slot.departureTime)
+      return departureTime >= filters.value.timeRange.departureFrom
+    })
+  }
+
+  if (filters.value.timeRange.departureTo) {
+    filtered = filtered.filter(slot => {
+      if (!slot.departureTime) return false
+      const departureTime = formatTimeForComparison(slot.departureTime)
+      return departureTime <= filters.value.timeRange.departureTo
+    })
   }
 
   return filtered
 })
 
+// Show success message temporarily
+const showSuccessMessage = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
+}
+
+// Filter helper methods
+const formatTimeForComparison = (time) => {
+  if (!time) return ''
+  try {
+    if (typeof time === 'string' && time.match(/^\d{2}:\d{2}:\d{2}$/)) {
+      return time.substring(0, 5) // HH:MM:SS -> HH:MM
+    }
+    return new Date(time).toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false
+    })
+  } catch {
+    return ''
+  }
+}
+
+const clearAllFilters = () => {
+  filters.value = {
+    route: '',
+    status: '',
+    date: '',
+    busId: '',
+    priceRange: {
+      min: priceRange.value.min,
+      max: priceRange.value.max
+    },
+    occupancyLevel: '',
+    timeRange: {
+      departureFrom: '',
+      departureTo: ''
+    }
+  }
+}
+
+const initializeFilters = () => {
+  // Initialize price range when data loads
+  if (priceRange.value) {
+    filters.value.priceRange.min = priceRange.value.min
+    filters.value.priceRange.max = priceRange.value.max
+  }
+}
+
+const getOccupancyLevel = (trip) => {
+  const occupancyRate = ((trip.totalSeats - trip.availableSeats) / trip.totalSeats) * 100
+  if (occupancyRate < 30) return { level: 'low', label: 'Thấp', color: 'green' }
+  if (occupancyRate < 70) return { level: 'medium', label: 'Trung bình', color: 'yellow' }
+  return { level: 'high', label: 'Cao', color: 'red' }
+}
+
 // Methods
+const openCreateModal = () => {
+  editingTrip.value = null
+  tripManager.setEditingTrip(null) // Clear editing trip ID for new trip
+  tripManager.resetForm()
+  showAddModal.value = true
+}
+
+const editTrip = (busSlot) => {
+  editingTrip.value = busSlot
+  tripManager.setEditingTrip(busSlot) // Set editing trip ID for conflict checking
+  showAddModal.value = true
+}
+
+const closeModal = () => {
+  showAddModal.value = false
+  editingTrip.value = null
+  tripManager.resetForm()
+  tripManager.setEditingTrip(null) // Clear editing trip ID
+}
+
+const openStatusUpdateModal = (trip) => {
+  updatingTrip.value = trip
+  
+  // Pre-fill form với data hiện tại
+  statusUpdateForm.value = {
+    status: trip.status,
+    actualDepartureTime: trip.actualDepartureTime || '',
+    actualArrivalTime: trip.actualArrivalTime || '',
+    delayReason: trip.delayReason || '',
+    currentLocation: trip.currentLocation || '',
+    driverNotes: ''
+  }
+  
+  showStatusUpdateModal.value = true
+}
+
+const closeStatusUpdateModal = () => {
+  showStatusUpdateModal.value = false
+  updatingTrip.value = null
+  statusUpdateForm.value = {
+  status: '',
+  actualDepartureTime: '',
+  actualArrivalTime: '',
+  delayReason: '',
+  currentLocation: '',
+  driverNotes: ''
+  }
+}
+
+// Event Handlers
+const handleSaveTrip = async (tripData) => {
+  try {
+    if (editingTrip.value) {
+      await tripManager.updateTrip(editingTrip.value.id, tripData)
+      toast.updated('chuyến xe')
+    } else {
+      await tripManager.createTrip(tripData)
+      toast.created('chuyến xe')
+    }
+    
+    // 🔄 Refresh data để get complete data từ server
+    await tripManager.loadBusSlots()
+    
+    // ✅ Chỉ đóng modal khi thành công
+    closeModal()
+  } catch (error) {
+    console.error('Error saving trip:', error)
+    handleError.api(error, editingTrip.value ? 'cập nhật chuyến xe' : 'tạo chuyến xe')
+    // ❌ Không đóng modal khi có lỗi - để user có thể sửa và thử lại
+  }
+}
+
+const handleDeleteTrip = async (tripId) => {
+  const confirmed = await confirm.delete('chuyến xe này')
+  
+  if (confirmed) {
+    try {
+      await tripManager.deleteTrip(tripId)
+      toast.deleted('chuyến xe')
+      
+      // 🔄 Refresh data để cập nhật UI
+      await tripManager.loadBusSlots()
+    } catch (error) {
+      console.error('Error deleting trip:', error)
+      handleError.api(error, 'xóa chuyến xe')
+    }
+  }
+}
+
+const handleQuickMarkInProgress = async (trip) => {
+  try {
+    await tripManager.quickMarkInProgress(trip)
+    toast.success('🚌 Chuyến xe đã bắt đầu!')
+    
+    // 🔄 Refresh data để cập nhật status và related data
+    await tripManager.loadBusSlots()
+  } catch (error) {
+    console.error('Error marking trip in progress:', error)
+    handleError.api(error, 'bắt đầu chuyến xe')
+    
+    // Auto-fallback: refresh data after error
+    setTimeout(async () => {
+      try {
+        await tripManager.loadBusSlots()
+      } catch (refreshError) {
+        console.error('Error refreshing data:', refreshError)
+      }
+    }, 2000)
+  }
+}
+
+const handleQuickMarkCompleted = async (trip) => {
+  try {
+    await tripManager.quickMarkCompleted(trip)
+    toast.success('✅ Chuyến xe đã hoàn thành!')
+    
+    // 🔄 Refresh data để cập nhật status và related data
+    await tripManager.loadBusSlots()
+  } catch (error) {
+    console.error('Error marking trip completed:', error)
+    handleError.api(error, 'hoàn thành chuyến xe')
+    
+    // Auto-fallback: refresh data after error
+    setTimeout(async () => {
+      try {
+        await tripManager.loadBusSlots()
+      } catch (refreshError) {
+        console.error('Error refreshing data:', refreshError)
+      }
+    }, 2000)
+  }
+}
+
+const handleSaveStatusUpdate = async () => {
+  if (!updatingTrip.value) return
+  
+  try {
+    await tripManager.updateTripStatus(updatingTrip.value.id, statusUpdateForm.value)
+    toast.updated('trạng thái chuyến xe')
+    
+    // 🔄 Refresh data để cập nhật status mới
+    await tripManager.loadBusSlots()
+    
+    closeStatusUpdateModal()
+  } catch (error) {
+    handleError.api(error, 'cập nhật trạng thái chuyến xe')
+    throw error;
+  }
+}
+
+const handleManualSync = async () => {
+  try {
+    await tripManager.manualTriggerAutoManager()
+    toast.success('✅ Đồng bộ thành công!')
+    
+    // 🔄 Refresh data sau khi sync
+    await tripManager.loadBusSlots()
+  } catch (error) {
+    handleError.api(error, 'đồng bộ dữ liệu')
+    throw error;
+  }
+}
+
+
+
+// Helper Methods
 const getStatusBadgeClass = (status) => {
   switch (status) {
-    case 'active':
+    case BusSlotStatus.IN_PROGRESS:
       return 'bg-green-100 text-green-800'
-    case 'inactive':
+    case BusSlotStatus.SCHEDULED:
+      return 'bg-blue-100 text-blue-800'
+    case BusSlotStatus.DELAYED:
       return 'bg-yellow-100 text-yellow-800'
-    case 'completed':
+    case BusSlotStatus.COMPLETED:
       return 'bg-gray-100 text-gray-800'
+    case BusSlotStatus.CANCELLED:
+      return 'bg-red-100 text-red-800'
+    case BusSlotStatus.ARCHIVED:
+      return 'bg-gray-100 text-gray-500'
     default:
       return 'bg-gray-100 text-gray-800'
   }
@@ -500,76 +1123,142 @@ const getStatusBadgeClass = (status) => {
 
 const getStatusText = (status) => {
   switch (status) {
-    case 'active':
+    case BusSlotStatus.IN_PROGRESS:
       return 'Đang hoạt động'
-    case 'inactive':
+    case BusSlotStatus.SCHEDULED:
+      return 'Đã lên lịch'
+    case BusSlotStatus.DELAYED:
       return 'Tạm dừng'
-    case 'completed':
+    case BusSlotStatus.COMPLETED:
       return 'Hoàn thành'
+    case BusSlotStatus.CANCELLED:
+      return 'Đã hủy'
+    case BusSlotStatus.ARCHIVED:
+      return 'Đã lưu trữ'
     default:
       return 'Không xác định'
   }
 }
 
-const applyFilters = () => {
-  // Filters are applied automatically through computed property
-  console.log('Applying filters:', filters.value)
+const getBusInfo = (busSlot) => {
+  return busSlot.bus ? `${busSlot.bus.name} (${busSlot.bus.licensePlate})` : 'N/A'
 }
 
-const editTrip = (trip) => {
-  editingTrip.value = trip
-  tripForm.value = { ...trip }
-  showAddModal.value = true
-}
-
-const deleteTrip = (tripId) => {
-  if (confirm('Bạn có chắc chắn muốn xóa chuyến xe này?')) {
-    trips.value = trips.value.filter(trip => trip.id !== tripId)
+const getRouteInfo = (busSlot) => {
+  if (!busSlot.route) return 'N/A'
+  
+  // Handle both old format (from mapping) and new format (from API)
+  if (busSlot.route.originLocation && busSlot.route.destinationLocation) {
+    return `${busSlot.route.originLocation.name} - ${busSlot.route.destinationLocation.name}`
   }
+  
+  // Fallback to mapped format
+  return busSlot.route.name || `${busSlot.route.origin} - ${busSlot.route.destination}`
 }
 
-const saveTrip = () => {
-  if (editingTrip.value) {
-    // Update existing trip
-    const index = trips.value.findIndex(trip => trip.id === editingTrip.value.id)
-    if (index !== -1) {
-      trips.value[index] = { ...tripForm.value }
+const formatTime = (datetime) => {
+  if (!datetime) return 'N/A'
+  try {
+    if (typeof datetime === 'string' && datetime.match(/^\d{2}:\d{2}:\d{2}$/)) {
+      return datetime.substring(0, 5) // HH:MM:SS -> HH:MM
     }
-  } else {
-    // Add new trip
-    const newTrip = {
-      ...tripForm.value,
-      id: Date.now(),
-      soldSeats: 0
-    }
-    trips.value.push(newTrip)
-  }
-  closeModal()
-}
-
-console.log('TripManagement');
-
-const handleBackdropClick = () => {
-  closeModal()
-}
-
-const closeModal = () => {
-  showAddModal.value = false
-  editingTrip.value = null
-  tripForm.value = {
-    code: '',
-    route: '',
-    date: '',
-    departureTime: '',
-    busNumber: '',
-    totalSeats: 40,
-    soldSeats: 0,
-    status: 'active'
+    return new Date(datetime).toLocaleTimeString('vi-VN', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })
+  } catch {
+    return datetime || 'N/A'
   }
 }
 
-onMounted(() => {
-  // Initialize component
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+const getDisplayTime = (scheduledTime, actualTime) => {
+  if (!scheduledTime) return 'N/A'
+  if (!actualTime) return formatTime(scheduledTime)
+  
+  const scheduled = new Date(scheduledTime)
+  const actual = new Date(actualTime)
+  const diff = Math.round((actual - scheduled) / (60 * 1000)) // diff in minutes
+  
+  const formattedTime = formatTime(actualTime)
+  if (Math.abs(diff) < 5) {
+    return `${formattedTime} (đúng giờ)`
+  } else if (diff < 0) {
+    return `${formattedTime} (sớm ${Math.abs(diff)} phút)`
+    } else {
+    return `${formattedTime} (trễ ${diff} phút)`
+  }
+}
+
+const getDelayReasonIcon = (reason) => {
+  switch (reason) {
+    case DelayReason.TRAFFIC_JAM: return '🚗'
+    case DelayReason.WEATHER: return '🌧️'
+    case DelayReason.VEHICLE_ISSUE: return '🔧'
+    case DelayReason.PASSENGER_DELAY: return '👥'
+    case DelayReason.ROAD_ACCIDENT: return '⚠️'
+    case DelayReason.FUEL_STOP: return '⛽'
+    case DelayReason.DRIVER_BREAK: return '☕'
+    case DelayReason.EARLY_ARRIVAL: return '🏃‍♂️'
+    case DelayReason.OTHER: return '❓'
+    default: return '❓'
+  }
+}
+
+const getDelayReasonText = (reason) => {
+  switch (reason) {
+    case DelayReason.TRAFFIC_JAM: return 'Kẹt xe'
+    case DelayReason.WEATHER: return 'Thời tiết xấu'
+    case DelayReason.VEHICLE_ISSUE: return 'Sự cố xe'
+    case DelayReason.PASSENGER_DELAY: return 'Khách trễ'
+    case DelayReason.ROAD_ACCIDENT: return 'Tai nạn giao thông'
+    case DelayReason.FUEL_STOP: return 'Dừng đổ xăng'
+    case DelayReason.DRIVER_BREAK: return 'Nghỉ giải lao'
+    case DelayReason.EARLY_ARRIVAL: return 'Đến sớm'
+    case DelayReason.OTHER: return 'Lý do khác'
+    default: return 'Không xác định'
+  }
+}
+
+const calculateProgress = (trip) => {
+  if (trip.status !== BusSlotStatus.IN_PROGRESS) return 0
+  
+  const now = new Date()
+  const departure = trip.actualDepartureTime ? new Date(trip.actualDepartureTime) : new Date(trip.departureTime)
+  const arrival = trip.actualArrivalTime ? new Date(trip.actualArrivalTime) : new Date(trip.arrivalTime)
+  
+  const totalDuration = arrival.getTime() - departure.getTime()
+  const elapsedTime = now.getTime() - departure.getTime()
+  
+  let progress = (elapsedTime / totalDuration) * 100
+  
+  // Constrain to 0-100
+  progress = Math.max(0, Math.min(100, progress))
+  
+  return Math.round(progress)
+}
+
+const getOccupancyBadgeClass = (totalSeats, availableSeats) => {
+  const occupancyRate = ((totalSeats - availableSeats) / totalSeats) * 100
+  if (occupancyRate < 30) return 'bg-green-100 text-green-800' // Thấp
+  if (occupancyRate < 70) return 'bg-yellow-100 text-yellow-800' // Trung bình
+  return 'bg-red-100 text-red-800' // Cao
+}
+
+// Lifecycle
+onMounted(async () => {
+  await tripManager.initialize()
+  initializeFilters() // Call initializeFilters after data is loaded
+})
+
+onUnmounted(() => {
+  tripManager.cleanup()
 })
 </script>
 
@@ -628,34 +1317,32 @@ onMounted(() => {
   transform: scale(0.95) translateY(-10px);
 }
 
-/* Input hover effects */
-.group:hover input {
-  border-color: #9ca3af;
+/* Filter Slide Transition */
+.filter-slide-enter-active {
+  transition: all 0.3s ease-out;
 }
 
-/* Button animations */
-.transition-all:hover {
-  transform: translateY(-1px);
+.filter-slide-leave-active {
+  transition: all 0.2s ease-in;
 }
 
-/* Gradient animation */
-.bg-gradient-to-r:hover {
-  background-size: 200% 200%;
-  animation: gradient-shift 0.3s ease;
+.filter-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
+.filter-slide-enter-to {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-/* Loading animation for inputs */
-.focus\:ring-2:focus {
-  animation: ring-pulse 0.3s ease-out;
+.filter-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-@keyframes ring-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-  100% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+.filter-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style> 

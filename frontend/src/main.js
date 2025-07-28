@@ -22,4 +22,22 @@ const app = createApp(App)
 app.use(i18n)
 app.use(router);
 app.use(createPinia())
+
+// For development debugging
+if (import.meta.env.MODE === 'development') {
+  // Expose BusAPI globally for debugging
+  window.debugGraphQL = async () => {
+    try {
+      
+      const { BusAPI } = await import('./api/busApi/bus/api')
+      window.BusAPI = BusAPI
+     
+      return BusAPI
+    } catch (error) {
+      console.error('❌ Debug setup failed:', error)
+    }
+  }
+  
+}
+
 app.mount("#app");

@@ -1,0 +1,54 @@
+# src/main/resources/graphql/price.graphqls
+
+# String cho LocalDate (validFrom, validTo) đã được xử lý trong Java
+
+# --- Kiểu dữ liệu cho RouteBusCategoryPrice (Quy tắc giá) ---
+type RouteBusCategoryPrice {
+    id: ID!
+    route: Route!           # Liên kết với Route (cần được định nghĩa trong schema khác hoặc import)
+    busCategory: BusCategory! # Liên kết với BusCategory (cần được định nghĩa trong schema khác hoặc import)
+    basePrice: BigDecimal!
+    promotionPrice: BigDecimal # Có thể null nếu không có khuyến mãi
+    validFrom: String!        # Ngày bắt đầu hiệu lực (YYYY-MM-DD)
+    validTo: String!          # Ngày kết thúc hiệu lực (YYYY-MM-DD)
+    notes: String             # Ghi chú (có thể null)
+    createdAt: Instant        # ĐÃ SỬA: Thay DateTime bằng Instant
+    updatedAt: Instant        # ĐÃ SỬA: Thay DateTime bằng Instant
+}
+
+# --- Kiểu đầu vào cho Create RouteBusCategoryPrice ---
+input CreateRouteBusCategoryPriceInput {
+    routeId: ID!
+    busCategoryId: ID!
+    basePrice: BigDecimal!
+    promotionPrice: BigDecimal
+    validFrom: String!        # YYYY-MM-DD
+    validTo: String!          # YYYY-MM-DD
+    notes: String
+}
+
+# --- Kiểu đầu vào cho Update RouteBusCategoryPrice ---
+input UpdateRouteBusCategoryPriceInput {
+    routeId: ID
+    busCategoryId: ID
+    basePrice: BigDecimal
+    promotionPrice: BigDecimal
+    validFrom: String         # YYYY-MM-DD
+    validTo: String           # YYYY-MM-DD
+    notes: String
+}
+
+# --- Định nghĩa các Query (đọc dữ liệu) cho Quy tắc giá ---
+extend type Query {
+    findAllRouteBusCategoryPrices: [RouteBusCategoryPrice!]!
+    findRouteBusCategoryPriceById(id: ID!): RouteBusCategoryPrice
+    # Tìm quy tắc giá hiệu lực vào một ngày cụ thể cho cặp tuyến/loại xe
+    findActiveRouteBusCategoryPrice(routeId: ID!, busCategoryId: ID!, date: String!): RouteBusCategoryPrice
+}
+
+# --- Định nghĩa các Mutation (ghi dữ liệu) cho Quy tắc giá ---
+extend type Mutation {
+    createRouteBusCategoryPrice(input: CreateRouteBusCategoryPriceInput!): RouteBusCategoryPrice!
+    updateRouteBusCategoryPrice(id: ID!, input: UpdateRouteBusCategoryPriceInput!): RouteBusCategoryPrice!
+    deleteRouteBusCategoryPrice(id: ID!): Boolean!
+}

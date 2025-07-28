@@ -1,0 +1,33 @@
+type Image {
+    id: ID!
+    url: String!
+    altText: String
+    uploadedAt: DateTime # Hoặc String nếu bạn chưa cấu hình DateTime scalar
+    publicId: String!    # Trường mới từ Cloudinary, thường là bắt buộc khi đã upload
+}
+
+# Input cho việc tạo Image (khi upload ảnh)
+input CreateImageInput {
+    url: String!
+    altText: String
+    publicId: String! # Khi tạo ảnh mới sau khi upload lên Cloudinary
+}
+
+# Input cho việc cập nhật Image (nếu có nghiệp vụ cập nhật altText)
+input UpdateImageInput {
+    altText: String
+}
+
+# Extend Query và Mutation nếu bạn muốn quản lý Image trực tiếp qua GraphQL (ví dụ: lấy ảnh theo ID)
+extend type Query {
+    findImageById(id: ID!): Image
+}
+
+extend type Mutation {
+    # Mutation để tạo Image mới sau khi upload lên Cloudinary (chỉ tạo entry trong DB)
+    createImage(input: CreateImageInput!): Image!
+    # Mutation để cập nhật thông tin ảnh (ví dụ: altText)
+    updateImage(id: ID!, input: UpdateImageInput!): Image!
+    # Mutation để xóa Image (cả từ DB và Cloudinary)
+    deleteImage(id: ID!): Boolean!
+}

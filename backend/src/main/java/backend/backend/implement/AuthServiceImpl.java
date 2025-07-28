@@ -88,6 +88,7 @@ public class AuthServiceImpl implements AuthService {
 
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
+        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(newUser));
         return jwtResultDto;
     }
 
@@ -139,6 +140,7 @@ public class AuthServiceImpl implements AuthService {
         }
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
+        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));
         return jwtResultDto;
     }
 
@@ -172,6 +174,7 @@ public class AuthServiceImpl implements AuthService {
         user = userRepository.save(user);
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
+        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));
         return jwtResultDto;
     }
 
@@ -193,6 +196,7 @@ public class AuthServiceImpl implements AuthService {
         userUpdated = userRepository.save(userUpdated);
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(userUpdated));
+        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(userUpdated));
         return jwtResultDto;
     }
 
@@ -230,6 +234,43 @@ public class AuthServiceImpl implements AuthService {
         user.setIsVerified(true);
         user = userRepository.save(user);
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
+        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));
+        return jwtResultDto;
+    }
+
+    @Override
+    public void verifyAccountResend(String email) {
+        User user = getUserByEmail(email);
+        Map<String, String> params = new HashMap<>();
+        params.put("toEmail", user.getEmail());
+        params.put("userId", user.getId().toString());
+        otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
+    }
+
+    @Override
+    public JwtResultDto refreshToken(RefreshTokenRequestDto refreshTokenRequestDto) {
+        String refreshToken = refreshTokenRequestDto.getRefreshToken();
+        String email = jwtTokenUtil.extractUserEmail(refreshToken);
+
+        if (!jwtTokenUtil.validateToken(refreshToken, email)) {
+            throw new BadRequestException("Invalid or expired refresh token", ErrorCode.AUTH_008);
+        }
+        Integer userId = jwtTokenUtil.extractUserId(refreshToken);
+        Optional<User> userOptional = userRepository.findById(userId);
+
+        if (userOptional.isEmpty()) {
+            throw new BadRequestException("User not found", ErrorCode.AUTH_002);
+        }
+
+        User user = userOptional.get();
+
+        if (!user.getIsVerified()) {
+            throw new AuthException("User is not verified", ErrorCode.AUTH_007);
+        }
+
+        JwtResultDto jwtResultDto = new JwtResultDto();
+        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
+        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));
         return jwtResultDto;
     }
 

@@ -62,5 +62,15 @@ export const AuthApi = {
                 errorCode: err.response.data.errorCode
             }
         }
+    },
+    verifyAccountResend: async (request) => {
+        try {
+            const res = await apiClient.post("/v1/auth/verify-account/resend", request)
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response.data.errorCode
+            }
+        }
     }
 }

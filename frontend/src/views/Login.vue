@@ -12,7 +12,10 @@
           <h2 class="text-center font-extrabold text-xl mb-6">Sign in</h2>
 
           <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="email">Email</label>
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="email">
+              <span class="text-red-500">*</span>
+              Email
+            </label>
             <div class="relative">
               <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <i class="fas fa-envelope"></i>
@@ -29,7 +32,9 @@
           </div>
 
           <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="password">Password</label>
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="password">
+              <span class="text-red-500">*</span>
+              Password</label>
             <div class="relative">
               <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <i class="fas fa-lock"></i>
@@ -92,12 +97,6 @@
                 class="w-10 h-10 rounded-full bg-blue-700 text-white hover:bg-blue-600"
             >
               <i class="fab fa-facebook-f"></i>
-            </button>
-            <button
-                type="button"
-                class="w-10 h-10 rounded-full bg-black text-white hover:bg-gray-900"
-            >
-              <i class="fab fa-apple"></i>
             </button>
           </div>
         </form>

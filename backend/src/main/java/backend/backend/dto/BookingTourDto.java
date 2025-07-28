@@ -21,11 +21,11 @@ public class BookingTourDto {
     private String tourName;
     private LocalDate departureDate;
     
-    // Thay thế cho numberOfPeople
+  
     private int numberOfAdults;
     private int numberOfChildren;
 
-    // Thay thế cho pricePerPerson
+    
     private BigDecimal adultPrice;
     private BigDecimal childPrice;
 

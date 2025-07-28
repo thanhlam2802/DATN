@@ -1,9 +1,13 @@
 package backend.backend.implement;
 
 import backend.backend.dao.OrderDAO;
+import backend.backend.dao.BookingTourDAO;
+import backend.backend.dao.DepartureDAO;
 import backend.backend.dao.HotelBookingDAO;
 import backend.backend.dao.Hotel.HotelRoomDAO;
 import backend.backend.entity.Order;
+import backend.backend.entity.BookingTour;
+import backend.backend.entity.Departure;
 import backend.backend.entity.HotelBooking;
 import backend.backend.entity.HotelRoomVariant;
 import backend.backend.entity.HotelRoom;
@@ -25,8 +29,13 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
     private HotelBookingDAO hotelBookingDAO;
     @Autowired
     private HotelRoomDAO hotelRoomDAO;
+    @Autowired
+    private BookingTourDAO bookingTourDAO;
 
-    // Chạy mỗi 5 phút để kiểm tra và dọn dẹp
+    @Autowired
+    private DepartureDAO departureDAO;
+    
+    
     @Scheduled(fixedRate = 300000)
     @Transactional
     public void cancelExpiredOrders() {
@@ -47,6 +56,22 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
                         room.setRoomQuantity((short) (currentQty + roomsBooked));
                         hotelRoomDAO.save(room);
                         System.out.println("Order " + order.getId() + " hoàn lại " + roomsBooked + " phòng cho roomId=" + room.getId());
+                    }
+                }
+                List<BookingTour> tourBookings = bookingTourDAO.findByOrderId(order.getId());
+                for (BookingTour booking : tourBookings) {
+                    Departure departure = booking.getDeparture();
+                    if (departure != null) {
+                        int adults = booking.getNumberOfAdults() != null ? booking.getNumberOfAdults() : 0;
+                        int children = booking.getNumberOfChildren() != null ? booking.getNumberOfChildren() : 0;
+                        int totalPeopleToRestore = adults + children;
+
+                        if (totalPeopleToRestore > 0) {
+                            Integer currentBookedSeats = departure.getBookedSeats();
+                            departure.setBookedSeats(currentBookedSeats - totalPeopleToRestore);
+                            departureDAO.save(departure);
+                            System.out.println("  Order " + order.getId() + " restored " + totalPeopleToRestore + " seat(s) for departureId=" + departure.getId());
+                        }
                     }
                 }
                 order.setStatus("CANCELLED");

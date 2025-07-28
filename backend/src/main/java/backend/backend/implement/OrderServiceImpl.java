@@ -4,6 +4,7 @@ import backend.backend.controller.OrderController;
 import backend.backend.dao.*;
 import backend.backend.dto.*;
 import backend.backend.entity.*;
+import backend.backend.event.VoucherUsedUpEvent;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,8 @@ public class OrderServiceImpl implements OrderService {
     @Autowired private TourDAO tourDAO;
     @Autowired private UserDAO userDAO;
     @Autowired private VoucherDAO voucherDAO;
+    
+    @Autowired private  ApplicationEventPublisher eventPublisher;
 
     
 
@@ -54,6 +58,7 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
             order.setVoucher(voucher);
         }
+        
 
         order.setStatus("PAID");
         order.setPayDate(LocalDateTime.now());
@@ -105,6 +110,7 @@ public class OrderServiceImpl implements OrderService {
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(savedOrder);
         bookingTour.setCustomerName(directRequest.getCustomerName());
+        bookingTour.setEmail(directRequest.getEmail());  
         bookingTour.setPhone(directRequest.getPhone());
         bookingTour.setNumberOfAdults(directRequest.getNumberOfAdults());
         bookingTour.setNumberOfChildren(directRequest.getNumberOfChildren());
@@ -192,6 +198,8 @@ public class OrderServiceImpl implements OrderService {
             order.setTransactionId(transactionId);
             order.setStatus("PAID");
             order.setPayDate(LocalDateTime.now());
+          
+            
             orderDAO.save(order);
             logger.info("––– Order Saved –––");
         }
@@ -370,16 +378,24 @@ public class OrderServiceImpl implements OrderService {
         // 7. Cập nhật thông tin đơn hàng
         order.setOriginalAmount(originalAmount); 
         order.setAmount(newAmount);              
-        order.setVoucher(voucher);             
-
-        // 8. Tăng số lượt đã sử dụng của voucher
+        order.setVoucher(voucher);      
         voucher.setUsageCount(voucher.getUsageCount() + 1);
-        voucherDAO.save(voucher);
+        Voucher updatedVoucher = voucherDAO.save(voucher);
+
+        // KIỂM TRA VÀ PHÁT SỰ KIỆN NẾU VOUCHER ĐÃ HẾT
+        if (updatedVoucher.getUsageLimit() != null && updatedVoucher.getUsageCount() >= updatedVoucher.getUsageLimit()) {
+            eventPublisher.publishEvent(new VoucherUsedUpEvent(this, updatedVoucher.getCode()));
+        }
+
+
+      
 
         Order updatedOrder = orderDAO.save(order);
 
         return convertToDto(updatedOrder); 
     }
+    
+    
     private void validateVoucher(Voucher voucher, BigDecimal orderAmount) {
         if (voucher.getStatus() != VoucherStatus.ACTIVE) {
             throw new RuntimeException("Mã giảm giá này không còn hoạt động.");

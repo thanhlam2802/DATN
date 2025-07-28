@@ -110,6 +110,7 @@ public class OrderServiceImpl implements OrderService {
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(savedOrder);
         bookingTour.setCustomerName(directRequest.getCustomerName());
+        bookingTour.setEmail(directRequest.getEmail());  
         bookingTour.setPhone(directRequest.getPhone());
         bookingTour.setNumberOfAdults(directRequest.getNumberOfAdults());
         bookingTour.setNumberOfChildren(directRequest.getNumberOfChildren());

@@ -1,6 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+// 1. IMPORT CÁC HÀM XỬ LÝ TOKEN
+import {
+  getAccessToken,
+  clearToken,
+  getBearerToken,
+} from "@/services/TokenService";
 
 const orders = ref([]);
 const isLoading = ref(true);
@@ -8,13 +14,31 @@ const error = ref(null);
 const selectedStatus = ref("ALL");
 const router = useRouter();
 
+// State để lưu thông tin user sau khi giải mã token
+const user = ref(null);
+
 const fetchMyOrders = async () => {
+  // Kiểm tra nếu không có user thì không gọi API
+  if (!user.value) {
+    error.value = "Bạn cần đăng nhập để xem các chuyến đi.";
+    isLoading.value = false;
+    return;
+  }
+
   isLoading.value = true;
   error.value = null;
   try {
-    const userId = 1;
+    // 2. LẤY USERID ĐỘNG TỪ USER ĐÃ ĐĂNG NHẬP
+    const userId = user.value.userId;
     const response = await fetch(
-      `http://localhost:8080/api/v1/orders/my-orders?userId=${userId}`
+      `http://localhost:8080/api/v1/orders/my-orders?userId=${userId}`,
+      {
+        // 3. THÊM HEADER XÁC THỰC VÀO YÊU CẦU
+        headers: {
+          Authorization: getBearerToken(),
+          "Content-Type": "application/json",
+        },
+      }
     );
 
     if (!response.ok) {
@@ -37,10 +61,32 @@ const fetchMyOrders = async () => {
 };
 
 // Gọi API khi component được tạo
-onMounted(fetchMyOrders);
+onMounted(() => {
+  const token = getAccessToken();
+  if (token) {
+    try {
+      // Giải mã token để lấy thông tin user
+      const payloadBase64 = token.split(".")[1];
+      const decodedJson = atob(
+        payloadBase64.replace(/-/g, "+").replace(/_/g, "/")
+      );
+      user.value = JSON.parse(decodedJson);
+      // Sau khi xác định được user, gọi API để lấy đơn hàng
+      fetchMyOrders();
+    } catch (e) {
+      console.error("Token không hợp lệ, đang xóa token:", e);
+      clearToken();
+      error.value = "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.";
+      isLoading.value = false;
+    }
+  } else {
+    // Nếu không có token, hiển thị thông báo và không gọi API
+    error.value = "Bạn cần đăng nhập để xem trang này.";
+    isLoading.value = false;
+  }
+});
 
 // --- COMPUTED PROPERTIES ---
-// Lọc danh sách đơn hàng dựa trên tab được chọn
 const filteredOrders = computed(() => {
   if (selectedStatus.value === "ALL") {
     return orders.value;
@@ -49,13 +95,11 @@ const filteredOrders = computed(() => {
 });
 
 // --- HELPER FUNCTIONS ---
-// Định dạng giá tiền
 const formatPrice = (price) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
     price || 0
   );
 
-// Định dạng ngày tháng
 const formatDate = (dateString) =>
   new Date(dateString).toLocaleDateString("vi-VN", {
     day: "2-digit",
@@ -65,23 +109,15 @@ const formatDate = (dateString) =>
     minute: "2-digit",
   });
 
-// Lấy thông tin hiển thị cho từng trạng thái
 const getStatusInfo = (status) => {
-  switch (status) {
-    case "PAID":
-      return { text: "Đã thanh toán", color: "green" };
-    case "PENDING_PAYMENT":
-      return { text: "Chờ thanh toán", color: "orange" };
-    case "CANCELLED":
-      return { text: "Đã hủy", color: "red" };
-    default:
-      return { text: status, color: "gray" };
-  }
+  const statusMap = {
+    PAID: { text: "Đã thanh toán", color: "green" },
+    PENDING_PAYMENT: { text: "Chờ thanh toán", color: "orange" },
+    CANCELLED: { text: "Đã hủy", color: "red" },
+  };
+  return statusMap[status] || { text: status, color: "gray" };
 };
 
-/**
- * Xử lý khi người dùng muốn thêm dịch vụ vào đơn hàng đang chờ.
- */
 const addMoreServices = (orderId) => {
   localStorage.setItem("activeCartId", orderId);
   router.push("/");
@@ -89,12 +125,12 @@ const addMoreServices = (orderId) => {
 </script>
 
 <template>
-  <div class="bg-gray-50  w-full">
+  <div class="bg-gray-50 w-full min-h-screen">
     <div class="container mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold mb-6">Chuyến đi của tôi</h1>
 
       <div class="mb-6 border-b border-gray-200">
-        <nav class="-mb-px flex space-x-6">
+        <nav class="-mb-px flex space-x-6 overflow-x-auto">
           <button
             @click="selectedStatus = 'ALL'"
             :class="[
@@ -151,6 +187,13 @@ const addMoreServices = (orderId) => {
         <i class="fas fa-exclamation-triangle text-4xl text-red-500"></i>
         <p class="mt-4 font-semibold text-red-700">Đã xảy ra lỗi</p>
         <p class="text-red-600">{{ error }}</p>
+        <router-link
+          v-if="!user"
+          to="/login"
+          class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+        >
+          Đi đến trang đăng nhập
+        </router-link>
       </div>
 
       <div v-else-if="filteredOrders.length > 0" class="space-y-4">

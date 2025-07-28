@@ -21,6 +21,7 @@ public class ReviewDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm")
     private String date;
     private String content;
+    private String tourName; 
     private List<String> images;
 
     public static ReviewDto fromEntity(Review review) {

@@ -56,6 +56,7 @@ public class Tour {
 
     // SỬA Ở ĐÂY: Thêm cascade và orphanRemoval
     @OneToMany(mappedBy = "tour", cascade = CascadeType.ALL, orphanRemoval = true)
+    
     private List<TourSchedule> tourSchedules = new ArrayList<>();
 
     @ToString.Exclude

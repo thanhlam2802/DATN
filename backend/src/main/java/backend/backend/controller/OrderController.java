@@ -1,6 +1,7 @@
 package backend.backend.controller;
 
 import backend.backend.dao.UserDAO;
+import backend.backend.dto.ApplyVoucherRequest;
 import backend.backend.dto.CheckoutDto;
 import backend.backend.dto.DirectTourReservationRequestDto;
 import backend.backend.dto.OrderDto; 
@@ -8,6 +9,7 @@ import backend.backend.entity.ApiResponse;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
 import backend.backend.utils.ResponseFactory;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -96,8 +98,28 @@ public class OrderController {
             return ResponseFactory.created(temporaryOrder, "Thanh toán thành công.");
         } catch (Exception e) {
             logger.error("Lỗi khi xử lý thanh toán cho Order ID: {}. Chi tiết lỗi: {}", id, e.getMessage());
-            // Bạn có thể muốn throw một exception cụ thể hơn hoặc trả về một lỗi phù hợp
-            throw e; // re-throw a exception
+          
+            throw e; 
         }
+        
+       
+        
+    }
+    
+ 
+    /**
+     * API để áp dụng một mã giảm giá vào đơn hàng đang chờ thanh toán.
+     * @param id ID của đơn hàng cần áp dụng.
+     * @param request Chứa voucherCode người dùng nhập.
+     * @return OrderDto đã được cập nhật với giá mới.
+     */
+    @PostMapping("/{id}/apply-voucher")
+    public ResponseEntity<ApiResponse<OrderDto>> applyVoucher(
+            @PathVariable Integer id,
+            @Valid @RequestBody ApplyVoucherRequest request) {
+        
+        // Giả sử OrderService có phương thức applyVoucherToOrder
+        OrderDto updatedOrder = orderService.applyVoucherToOrder(id, request.getVoucherCode());
+        return ResponseFactory.success(updatedOrder, "Áp dụng mã giảm giá thành công.");
     }
 }

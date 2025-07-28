@@ -1,7 +1,11 @@
 package backend.backend.service;
 
+import java.util.List;
+import java.util.Map;
+
 import backend.backend.dto.BookingTourDto;
 import backend.backend.dto.BookingTourRequestDto;
+import backend.backend.dto.MyTourBookingDTO;
 
 /**
  * Interface định nghĩa các dịch vụ liên quan đến việc đặt tour.
@@ -23,5 +27,10 @@ public interface BookingTourService {
      * @return Một đối tượng DTO chứa thông tin chi tiết của booking.
      */
     BookingTourDto getBookingTourById(Integer id);
+    
+    
+    List<MyTourBookingDTO> getMyTourBookings();
+
+	List<MyTourBookingDTO> filterAdminBookings(Map<String, String> params);
 
 }

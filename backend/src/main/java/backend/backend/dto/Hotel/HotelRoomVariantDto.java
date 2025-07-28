@@ -18,6 +18,9 @@ public class HotelRoomVariantDto {
     private BigDecimal price;
     private BigDecimal taxAndFeeAmount;
 
+    private String discountType;
+    private BigDecimal discountValue;
+
     public static HotelRoomVariantDto fromEntity(HotelRoomVariant variant) {
         return new HotelRoomVariantDto(
                 variant.getId(),
@@ -26,7 +29,10 @@ public class HotelRoomVariantDto {
                 variant.getCancellable(),
                 variant.getPayAtHotel(),
                 variant.getPrice(),
-                variant.getTaxAndFeeAmount());
+                variant.getTaxAndFeeAmount(),
+                variant.getDiscountType(),
+                variant.getDiscountValue()
+        );
     }
 
     public BigDecimal getTotalPrice() {

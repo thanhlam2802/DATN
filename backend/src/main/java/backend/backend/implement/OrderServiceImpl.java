@@ -2,28 +2,29 @@ package backend.backend.implement;
 
 import backend.backend.controller.OrderController;
 import backend.backend.dao.*;
-import backend.backend.dto.BookingTourDto;
-import backend.backend.dto.CheckoutDto;
-import backend.backend.dto.DirectFlightReservationRequestDto;
-import backend.backend.dto.DirectTourReservationRequestDto;
-import backend.backend.dto.FlightBookingDto;
-import backend.backend.dto.OrderDto;
+import backend.backend.dto.*;
 import backend.backend.entity.*;
+import backend.backend.event.VoucherUsedUpEvent;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
+import lombok.RequiredArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
     @Autowired private BusBookingDAO busBookingDAO;
@@ -37,30 +38,27 @@ public class OrderServiceImpl implements OrderService {
     @Autowired private TourDAO tourDAO;
     @Autowired private UserDAO userDAO;
     @Autowired private VoucherDAO voucherDAO;
+    
+    @Autowired private  ApplicationEventPublisher eventPublisher;
+
+    
 
     @Override
     @Transactional
     public OrderDto placeOrder(CheckoutDto checkoutDto) {
-        Order order =
-                orderDAO
-                        .findById(checkoutDto.getOrderId())
-                        .orElseThrow(
-                                () ->
-                                        new ResourceNotFoundException(
-                                                "Không tìm thấy đơn hàng với ID: " + checkoutDto.getOrderId()));
+        Order order = orderDAO.findById(checkoutDto.getOrderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + checkoutDto.getOrderId()));
 
-        if (!"CART".equalsIgnoreCase(order.getStatus())
-                && !"PENDING_PAYMENT".equalsIgnoreCase(order.getStatus())) {
+        if (!"CART".equalsIgnoreCase(order.getStatus()) && !"PENDING_PAYMENT".equalsIgnoreCase(order.getStatus())) {
             throw new IllegalStateException("Đơn hàng này đã được xử lý hoặc không hợp lệ.");
         }
 
         if (checkoutDto.getVoucherId() != null) {
-            Voucher voucher =
-                    voucherDAO
-                            .findById(checkoutDto.getVoucherId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
+            Voucher voucher = voucherDAO.findById(checkoutDto.getVoucherId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
             order.setVoucher(voucher);
         }
+        
 
         order.setStatus("PAID");
         order.setPayDate(LocalDateTime.now());
@@ -72,44 +70,26 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrderById(Integer id) {
-        Order order =
-                orderDAO
-                        .findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hóa đơn với ID: " + id));
-
+        Order order = orderDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hóa đơn với ID: " + id));
         return toDetailedOrderDto(order);
     }
 
     @Override
     @Transactional
     public OrderDto createDirectTourReservation(DirectTourReservationRequestDto directRequest) {
-        User user =
-                userDAO
-                        .findById(directRequest.getUserId())
-                        .orElseThrow(
-                                () ->
-                                        new ResourceNotFoundException(
-                                                "Không tìm thấy người dùng với ID: " + directRequest.getUserId()));
+        User user = userDAO.findById(directRequest.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + directRequest.getUserId()));
 
-        Departure departure =
-                departureDAO
-                        .findById(directRequest.getDepartureId())
-                        .orElseThrow(
-                                () ->
-                                        new ResourceNotFoundException(
-                                                "Không tìm thấy ngày khởi hành với ID: " + directRequest.getDepartureId()));
+        Departure departure = departureDAO.findById(directRequest.getDepartureId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ngày khởi hành với ID: " + directRequest.getDepartureId()));
 
-        // 1. Tính tổng số ghế cần đặt
         int seatsToBook = directRequest.getNumberOfAdults() + directRequest.getNumberOfChildren();
-
-        // 2. Kiểm tra số chỗ còn trống
         int availableSeats = departure.getSeatCount() - departure.getBookedSeats();
         if (seatsToBook > availableSeats) {
-            throw new IllegalStateException(
-                    "Không đủ chỗ trống cho chuyến đi này. Chỉ còn lại " + availableSeats + " chỗ.");
+            throw new IllegalStateException("Không đủ chỗ trống cho chuyến đi này. Chỉ còn lại " + availableSeats + " chỗ.");
         }
-
-        // 3. Cập nhật số chỗ đã đặt cho chuyến đi
+        
         departure.setBookedSeats(departure.getBookedSeats() + seatsToBook);
 
         BigDecimal adultPrice = departure.getAdultPrice();
@@ -130,6 +110,7 @@ public class OrderServiceImpl implements OrderService {
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(savedOrder);
         bookingTour.setCustomerName(directRequest.getCustomerName());
+        bookingTour.setEmail(directRequest.getEmail());  
         bookingTour.setPhone(directRequest.getPhone());
         bookingTour.setNumberOfAdults(directRequest.getNumberOfAdults());
         bookingTour.setNumberOfChildren(directRequest.getNumberOfChildren());
@@ -140,6 +121,7 @@ public class OrderServiceImpl implements OrderService {
 
         return toOrderDTO(savedOrder);
     }
+    
     @Override
     @Transactional
     public Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
@@ -201,7 +183,6 @@ public class OrderServiceImpl implements OrderService {
         return flightBookingDAO.save(booking).getId();
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersByUserId(Integer userId) {
@@ -217,13 +198,13 @@ public class OrderServiceImpl implements OrderService {
             order.setTransactionId(transactionId);
             order.setStatus("PAID");
             order.setPayDate(LocalDateTime.now());
+          
+            
             orderDAO.save(order);
             logger.info("––– Order Saved –––");
-
         }
         return toOrderDTO(order);
     }
-
     // --- Mapper Methods ---
 
     private OrderDto toOrderDTOWithProductInfo(Order entity) {
@@ -232,66 +213,56 @@ public class OrderServiceImpl implements OrderService {
 
         List<BookingTour> tourBookings = bookingTourDAO.findByOrderId(entity.getId());
         List<FlightBooking> flightBookings = flightBookingDAO.findByOrderId(entity.getId());
+        List<HotelBooking> hotelBookings = hotelBookingDAO.findByOrderId(entity.getId());
 
-        int totalItems = tourBookings.size() + flightBookings.size();
+        int totalItems = tourBookings.size() + flightBookings.size() + hotelBookings.size();
 
         if (totalItems == 1) {
             if (!tourBookings.isEmpty()) {
                 mainProductName = tourBookings.get(0).getDeparture().getTour().getName();
             } else if (!flightBookings.isEmpty()) {
                 mainProductName = flightBookings.get(0).getFlightSlot().getFlight().getName();
+            } else if (!hotelBookings.isEmpty()) {
+                HotelBooking hotel = hotelBookings.get(0);
+                String hotelName = "Khách sạn";
+                if (hotel.getRoomVariant() != null && hotel.getRoomVariant().getRoom() != null && hotel.getRoomVariant().getRoom().getHotel() != null) {
+                    hotelName = hotel.getRoomVariant().getRoom().getHotel().getName();
+                }
+                String variantName = hotel.getRoomVariant() != null ? hotel.getRoomVariant().getVariantName() : "";
+                mainProductName = hotelName + (variantName.isEmpty() ? "" : (" - " + variantName));
             }
         }
 
-        if (mainProductName != null) {
-            dto.setMainProduct(mainProductName);
-        } else {
-            dto.setMainProduct("Nhiều dịch vụ");
-        }
-
+        dto.setMainProduct(totalItems > 1 ? "Nhiều dịch vụ" : mainProductName);
         return dto;
     }
 
     private OrderDto toOrderDTO(Order entity) {
+        if (entity == null) return null;
         OrderDto dto = new OrderDto();
         dto.setId(entity.getId());
         dto.setAmount(entity.getAmount());
         dto.setStatus(entity.getStatus());
         dto.setPayDate(entity.getPayDate());
         dto.setCreatedAt(entity.getCreatedAt());
-
-        if (entity.getExpiresAt() != null) {
-            dto.setExpiresAt(entity.getExpiresAt());
-        }
-
+        dto.setExpiresAt(entity.getExpiresAt());
         if (entity.getUser() != null) dto.setUserId(entity.getUser().getId());
         if (entity.getVoucher() != null) dto.setVoucherId(entity.getVoucher().getId());
         if (entity.getDestination() != null) dto.setDestinationId(entity.getDestination().getId());
-
         return dto;
     }
 
     private OrderDto toDetailedOrderDto(Order entity) {
         OrderDto dto = toOrderDTO(entity);
-
-        List<BookingTour> tourBookings = bookingTourDAO.findByOrderId(entity.getId());
-        dto.setTourBookings(
-                tourBookings.stream().map(this::toBookingTourDto).collect(Collectors.toList()));
-
-        List<FlightBooking> flightBookings = flightBookingDAO.findByOrderId(entity.getId());
-        dto.setFlightBookings(
-                flightBookings.stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
-
+        dto.setTourBookings(bookingTourDAO.findByOrderId(entity.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
+        dto.setFlightBookings(flightBookingDAO.findByOrderId(entity.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
+        dto.setHotelBookings(hotelBookingDAO.findByOrderId(entity.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
         return dto;
     }
 
     private BookingTourDto toBookingTourDto(BookingTour tourBooking) {
-        // Lấy các đối tượng liên quan
         Departure departure = tourBooking.getDeparture();
         Tour tour = departure.getTour();
-        Order order = tourBooking.getOrder();
-
-        // Sử dụng @Builder từ DTO để tạo đối tượng
         return BookingTourDto.builder()
                 .id(tourBooking.getId())
                 .tourId(tour.getId())
@@ -302,44 +273,164 @@ public class OrderServiceImpl implements OrderService {
                 .adultPrice(departure.getAdultPrice())
                 .childPrice(departure.getChildPrice())
                 .totalPrice(tourBooking.getTotalPrice())
-                .orderId(order != null ? order.getId() : null)
+                .orderId(tourBooking.getOrder() != null ? tourBooking.getOrder().getId() : null)
                 .build();
     }
 
     private FlightBookingDto toFlightBookingDto(FlightBooking flightBooking) {
-        // Lấy các đối tượng liên quan để truy cập ID
         FlightSlot slot = flightBooking.getFlightSlot();
         Flight flight = slot.getFlight();
         Order order = flightBooking.getOrder();
         Customer customer = flightBooking.getCustomer();
 
-        // Tạo DTO và điền thông tin theo cấu trúc mới
         FlightBookingDto dto = new FlightBookingDto();
-
-        // Thông tin từ chính FlightBooking
         dto.setId(flightBooking.getId());
         dto.setBookingDate(flightBooking.getBookingDate());
         dto.setTotalPrice(flightBooking.getTotalPrice().doubleValue());
-// Lấy ID từ các đối tượng liên quan
         dto.setFlightSlotId(slot.getId());
         dto.setFlightId(flight.getId());
-
         if (order != null) {
             dto.setOrderId(order.getId());
             if (order.getUser() != null) {
                 dto.setUserId(order.getUser().getId());
             }
         }
-
         if (customer != null) {
             dto.setCustomerId(customer.getId());
         }
-
-        // Xử lý seatCodes
-        // Giả định mỗi booking hiện tại chỉ có 1 ghế, tạo list chứa 1 ghế đó
         if (slot.getSeatNumber() != null && !slot.getSeatNumber().isEmpty()) {
-            dto.setSeatCodes(java.util.Collections.singletonList(slot.getSeatNumber()));
+            dto.setSeatCodes(Collections.singletonList(slot.getSeatNumber()));
+        }
+        return dto;
+    }
+
+    private backend.backend.dto.HotelBookingDto toHotelBookingDto(HotelBooking hotelBooking) {
+        backend.backend.dto.HotelBookingDto dto = new backend.backend.dto.HotelBookingDto();
+        dto.setId(hotelBooking.getId());
+        dto.setRoomVariantId(hotelBooking.getRoomVariant().getId());
+        dto.setCheckInDate(hotelBooking.getCheckInDate());
+        dto.setCheckOutDate(hotelBooking.getCheckOutDate());
+        dto.setNumAdults(hotelBooking.getNumAdults());
+        dto.setNumChildren(hotelBooking.getNumChildren());
+        dto.setTotalPrice(hotelBooking.getTotalPrice());
+        dto.setCreatedAt(hotelBooking.getCreatedAt());
+        dto.setOrderId(hotelBooking.getOrder() != null ? hotelBooking.getOrder().getId() : null);
+        if (hotelBooking.getOrder() != null && hotelBooking.getOrder().getUser() != null) {
+            dto.setUserId(hotelBooking.getOrder().getUser().getId());
+        }
+        if (hotelBooking.getRoomVariant() != null) {
+            dto.setVariantName(hotelBooking.getRoomVariant().getVariantName());
+            if (hotelBooking.getRoomVariant().getRoom() != null) {
+                dto.setRoomType(hotelBooking.getRoomVariant().getRoom().getRoomType());
+                if (hotelBooking.getRoomVariant().getRoom().getHotel() != null) {
+                    dto.setHotelName(hotelBooking.getRoomVariant().getRoom().getHotel().getName());
+                }
+                if (hotelBooking.getRoomVariant().getRoom().getRoomImages() != null && !hotelBooking.getRoomVariant().getRoom().getRoomImages().isEmpty()) {
+                    var roomImages = hotelBooking.getRoomVariant().getRoom().getRoomImages();
+                    var img = roomImages.get(0);
+                    if (img.getImage() != null) {
+                        dto.setImageUrl(img.getImage().getUrl());
+                    }
+                    java.util.List<String> urls = new java.util.ArrayList<>();
+                    for (var ri : roomImages) {
+                        if (ri.getImage() != null && ri.getImage().getUrl() != null) {
+                            urls.add(ri.getImage().getUrl());
+                        }
+                    }
+                    dto.setImageUrls(urls);
+                }
+            }
+        }
+        dto.setRooms(hotelBooking.getRooms());
+        return dto;
+    }
+
+    /**
+     * Logic chính để áp dụng voucher vào đơn hàng.
+     *
+     * @param orderId ID của đơn hàng.
+     * @param voucherCode Mã voucher.
+     * @return OrderDTO đã được cập nhật.
+     */
+    @Transactional
+    public OrderDto applyVoucherToOrder(Integer orderId, String voucherCode) {
+        Order order = orderDAO.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));
+
+        if (!"PENDING_PAYMENT".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể áp dụng voucher cho đơn hàng đang chờ thanh toán.");
         }
 
-        return dto;
-    }}
+        if (order.getVoucher() != null) {
+            throw new RuntimeException("Mỗi đơn hàng chỉ được áp dụng một mã giảm giá.");
+        }
+
+        Voucher voucher = voucherDAO.findByCode(voucherCode)
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá '" + voucherCode + "' không tồn tại."));
+
+    
+        validateVoucher(voucher, order.getAmount());
+     
+        BigDecimal originalAmount = order.getAmount();
+        BigDecimal discount = calculateEffectiveDiscount(voucher, originalAmount);
+        BigDecimal newAmount = originalAmount.subtract(discount);
+        
+        // 7. Cập nhật thông tin đơn hàng
+        order.setOriginalAmount(originalAmount); 
+        order.setAmount(newAmount);              
+        order.setVoucher(voucher);      
+        voucher.setUsageCount(voucher.getUsageCount() + 1);
+        Voucher updatedVoucher = voucherDAO.save(voucher);
+
+        // KIỂM TRA VÀ PHÁT SỰ KIỆN NẾU VOUCHER ĐÃ HẾT
+        if (updatedVoucher.getUsageLimit() != null && updatedVoucher.getUsageCount() >= updatedVoucher.getUsageLimit()) {
+            eventPublisher.publishEvent(new VoucherUsedUpEvent(this, updatedVoucher.getCode()));
+        }
+
+
+      
+
+        Order updatedOrder = orderDAO.save(order);
+
+        return convertToDto(updatedOrder); 
+    }
+    
+    
+    private void validateVoucher(Voucher voucher, BigDecimal orderAmount) {
+        if (voucher.getStatus() != VoucherStatus.ACTIVE) {
+            throw new RuntimeException("Mã giảm giá này không còn hoạt động.");
+        }
+        LocalDate today = LocalDate.now();
+        if (today.isBefore(voucher.getStartDate()) || today.isAfter(voucher.getExpiryDate())) {
+            throw new RuntimeException("Mã giảm giá đã hết hạn hoặc chưa đến ngày sử dụng.");
+        }
+        if (voucher.getUsageLimit() != null && voucher.getUsageCount() >= voucher.getUsageLimit()) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng.");
+        }
+        if (voucher.getConditionMinAmount() != null && orderAmount.compareTo(voucher.getConditionMinAmount()) < 0) {
+            throw new RuntimeException("Đơn hàng chưa đủ điều kiện tối thiểu để áp dụng mã này.");
+        }
+    }
+    /**
+     * Hàm helper để tính toán số tiền giảm giá thực tế của một voucher.
+     * VỊ TRÍ ĐÚNG CỦA NÓ LÀ Ở ĐÂY.
+     */
+    private BigDecimal calculateEffectiveDiscount(Voucher voucher, BigDecimal orderAmount) {
+        if (voucher.getType() == VoucherType.FIXED_AMOUNT) {
+            return voucher.getDiscountAmount();
+        }
+        if (voucher.getType() == VoucherType.PERCENTAGE) {
+            BigDecimal discount = orderAmount.multiply(BigDecimal.valueOf(voucher.getDiscountPercentage() / 100.0));
+            if (voucher.getMaxDiscountAmount() != null && discount.compareTo(voucher.getMaxDiscountAmount()) > 0) {
+                return voucher.getMaxDiscountAmount();
+            }
+            return discount;
+        }
+        return BigDecimal.ZERO;
+    }
+    
+    private OrderDto convertToDto(Order order) {
+      
+        return new OrderDto();
+    }
+}

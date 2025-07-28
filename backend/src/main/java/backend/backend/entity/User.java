@@ -1,6 +1,8 @@
 package backend.backend.entity;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
@@ -10,6 +12,8 @@ import java.util.List;
 import jakarta.persistence.*;
 
 @Data
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
 public class User {
@@ -43,7 +47,11 @@ public class User {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-    @ToString.Exclude 
+
+    @Column(name = "is_verified")
+    private Boolean isVerified;
+
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<UserRole> userRoles;
 

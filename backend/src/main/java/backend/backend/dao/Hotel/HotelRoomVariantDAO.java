@@ -26,4 +26,7 @@ public interface HotelRoomVariantDAO extends JpaRepository<HotelRoomVariant, Int
             @Param("checkOut") LocalDate checkOut);
 
     List<HotelRoomVariant> findByRoomId(Integer roomId);
+
+    @Query("SELECT v FROM HotelRoomVariant v JOIN FETCH v.room WHERE v.id = :id")
+    Optional<HotelRoomVariant> findByIdWithRoom(@Param("id") Integer id);
 }

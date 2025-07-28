@@ -179,7 +179,8 @@ public class OrderServiceImpl implements OrderService {
         booking.setTotalPrice(totalPrice);
         booking.setCustomer(savedCustomer);
         flightBookingDAO.save(booking);
-
+        slot.setStatus("USED");
+        flightSlotDAO.save(slot);
         return flightBookingDAO.save(booking).getId();
     }
 

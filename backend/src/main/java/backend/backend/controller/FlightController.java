@@ -29,8 +29,8 @@ public class FlightController {
     @Autowired
     private FlightCategoryDAO flightCategoryDAO;
 
-    @GetMapping("/search")
-    public ResponseEntity<List<FlightDto>> searchFlights(FlightSearchRequestDto request) {
+    @PostMapping("/search")
+    public ResponseEntity<List<FlightDto>> searchFlights(@RequestBody  FlightSearchRequestDto request) {
         String requestId = UUID.randomUUID().toString();
         log.info("SEARCH_FLIGHTS_REQUEST - RequestId: {}, Params: {}", requestId, request);
         try {

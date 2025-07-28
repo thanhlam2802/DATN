@@ -37,8 +37,9 @@
                 class="flex flex-col items-center justify-center w-full max-w-xs px-4 py-6 bg-white border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition">
                 
                 <span class="text-sm text-gray-600">Chọn ảnh (có thể chọn nhiều)</span>
-                <input type="file" multiple accept="image/*" @change="onImageChange" class="hidden" />
+                <input type="file" multiple accept="image/*" @change="onImageChange" class="hidden" :disabled="loadingImage" />
               </label>
+              <div v-if="loadingImage" class="text-indigo-600 text-sm flex items-center gap-2 mb-2"><span class="animate-spin w-4 h-4 border-2 border-indigo-500 border-t-white rounded-full"></span> Đang tải ảnh...</div>
 
               <div class="flex flex-wrap gap-2">
                 <div v-for="(img, idx) in images" :key="idx" class="relative w-24 h-24">
@@ -454,18 +455,29 @@ const previewFlightNumber = computed(() => {
 })
 
 const images = ref([])
+const loadingImage = ref(false)
 function onImageChange(e) {
   const files = Array.from(e.target.files)
-  for (const file of files) {
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      images.value.push({ file, preview: ev.target.result })
+  if (files.length === 0) return
+  loadingImage.value = true
+  try {
+    for (const file of files) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        images.value.push({ file, preview: ev.target.result })
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
+    window.$toast('Thêm ảnh thành công!', 'success')
+  } catch (error) {
+    window.$toast('Lỗi khi thêm ảnh!', 'error')
+  } finally {
+    loadingImage.value = false
   }
 }
 function removeImage(idx) {
   images.value.splice(idx, 1)
+  window.$toast('Xóa ảnh thành công!', 'success')
 }
 
 onMounted(async () => {

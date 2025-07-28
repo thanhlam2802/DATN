@@ -21,7 +21,7 @@ public interface AdminFlightService {
 
     // Quản lý ghế
     List<FlightSlotDto> getSeats(Integer flightId);
-
+    List<FlightSlotDto> getSeatsBooked(Integer flightId);
     List<FlightSlotDto> updateSeats(Integer flightId, List<FlightSlotDto> seats);
 
     FlightSlotDto updateSeat(Integer slotId, FlightSlotDto slotDto);
@@ -33,6 +33,8 @@ public interface AdminFlightService {
     FlightBookingDetailDto getFlightBookingDetail(Integer bookingId);
 
     FlightBookingDetailDto updateFlightBookingStatus(Integer bookingId, String status);
+
+    void updateGroupSeat(Integer flightId, FlightSeatGroupDto dto);
 
     // Thống kê
     List<FlightStatisticsDto> getFlightStatistics(String type, String value);

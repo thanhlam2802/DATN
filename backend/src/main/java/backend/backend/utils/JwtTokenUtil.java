@@ -134,6 +134,7 @@ public class JwtTokenUtil {
         claims.put("name", user.getName());
         claims.put("email", user.getEmail());
         claims.put("isVerified", user.getIsVerified());
+        claims.put("authProvider", user.getAuthProvider());
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .addClaims(claims)
@@ -147,7 +148,7 @@ public class JwtTokenUtil {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
         claims.put("type", "refresh");
-
+        claims.put("authProvider", user.getAuthProvider());
         long refreshTokenExpiration = 1000L * 60 * 60 * 24 * 7; // 7 ngày
 
         return Jwts.builder()

@@ -1,5 +1,6 @@
 package backend.backend.entity;
 
+import backend.backend.dto.auth.AuthProvider;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,13 +44,17 @@ public class User {
     private String passwordHash;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     @Column(name = "is_verified")
     private Boolean isVerified;
+
+    @Column(name = "auth_provider")
+    @Enumerated(EnumType.STRING)
+    private AuthProvider authProvider;
 
     @ToString.Exclude
     @OneToMany(mappedBy = "user")
@@ -85,6 +90,7 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<Payment> payments;
+
 //
 //    @OneToMany(mappedBy = "user")
 //    private List<HotelBooking> hotelBookings;

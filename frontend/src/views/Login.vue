@@ -91,7 +91,9 @@
           </div>
 
           <div class="mt-6 flex justify-center space-x-4">
-            <button type="button" class="w-10 h-10 rounded-full bg-red-700 text-white hover:bg-red-600">G</button>
+            <button @click="googleLogin()" type="button"
+                    class="w-10 h-10 rounded-full bg-red-700 text-white hover:bg-red-600">G
+            </button>
             <button
                 type="button"
                 class="w-10 h-10 rounded-full bg-blue-700 text-white hover:bg-blue-600"
@@ -119,6 +121,9 @@ import {saveAccessToken} from "@/services/TokenService.js";
 import {useUserStore} from "@/store/UserStore.js";
 import {ErrorCodes} from "@/data/ErrorCode.js";
 import {useLoadingStore} from "@/store/GlobalStore.js";
+
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 
 const loadingStore = useLoadingStore();
 
@@ -155,6 +160,10 @@ const validatePassword = () => {
   passwordError.value = "";
   return true;
 };
+
+const googleLogin = () => {
+  window.location.href = `${BASE_URL}/oauth2/authorization/google`;
+}
 
 const submitForm = async () => {
   const isEmailValid = validateEmail();

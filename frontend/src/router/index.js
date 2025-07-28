@@ -48,6 +48,7 @@ import ForgotPassword from "@/views/ForgotPassword.vue";
 import ResetPassword from "@/views/ResetPassword.vue";
 import ExpiredLink from "@/views/ExpiredLink.vue";
 import VerifyEmail from "@/views/VerifyEmail.vue";
+import OAuth2LoginSuccessView from "@/views/OAuth2LoginSuccessView.vue";
 
 const routes = [
     {
@@ -162,8 +163,11 @@ const routes = [
         name: "BusManagement",
         component: BusManagementLayout,
     },
-
-
+    {
+        path: "/oauth2/login/success",
+        name: "OAuth2LoginSuccessView",
+        component: OAuth2LoginSuccessView
+    },
     {
         path: "/plane/admin",
         name: "AdminFight",
@@ -183,17 +187,17 @@ const routes = [
         component: TourManager,
     },
 
-  {
-    path: "/hotel/admin",
-    component: AdminLayout,
-    children: [
-      { path: "dashboard", component: Dashboard },
-      { path: "hotelform", component: HotelForm },
-      { path: "customer", component: Customer },
-      { path: "booking", component: Booking },
-      { path: "", redirect: "dashboard" },
-    ],
-  },
+    {
+        path: "/hotel/admin",
+        component: AdminLayout,
+        children: [
+            {path: "dashboard", component: Dashboard},
+            {path: "hotelform", component: HotelForm},
+            {path: "customer", component: Customer},
+            {path: "booking", component: Booking},
+            {path: "", redirect: "dashboard"},
+        ],
+    },
 
     {
         path: "/admin/dashboard",

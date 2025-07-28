@@ -32,8 +32,11 @@ public class JwtTokenUtil {
     @Value("${jwt.secret}")
     private String secretString;
 
-    @Value("${jwt.expiration}")
-    private long expirationTime;
+    @Value("${jwt.access-token.expiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token.expiration}")
+    private long refreshTokenExpiration;
 
     private SecretKey secretKey;
 
@@ -135,21 +138,40 @@ public class JwtTokenUtil {
                 .setSubject(user.getEmail())
                 .addClaims(claims)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
                 .signWith(secretKey)
                 .compact();
     }
-//
-//    /**
-//     * Xác thực token có hợp lệ với thông tin người dùng hay không.
-//     *
-//     * @param token       Chuỗi JWT cần xác thực.
-//     * @param userDetails Chi tiết thông tin người dùng để so sánh.
-//     * @return true nếu token hợp lệ, ngược lại false.
-//     */
-//    public Boolean validateToken(String token, UserDetails userDetails) {
-//        final String username = extractUsername(token);
-//
-//        return (username != null && username.equals(userDetails.getUsername()));
-//    }
+
+    public String generateRefreshToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("type", "refresh");
+
+        long refreshTokenExpiration = 1000L * 60 * 60 * 24 * 7; // 7 ngày
+
+        return Jwts.builder()
+                .setSubject(user.getEmail())
+                .addClaims(claims)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public Boolean validateToken(String token, String email) {
+        try {
+            final String tokenEmail = extractUserEmail(token);
+            return (tokenEmail != null
+                    && tokenEmail.equals(email)
+                    && !isTokenExpired(token));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public Boolean isTokenExpired(String token) {
+        final Date expiration = extractExpiration(token);
+        return expiration.before(new Date());
+    }
 }

@@ -5,11 +5,13 @@
            src="https://storage.googleapis.com/a1aa/image/f092f5e2-89b2-445b-38d1-ef49b53e6262.jpg"/>
 
       <div class="absolute inset-0 flex items-center justify-center px-6 py-5">
-        <form @submit.prevent="submitForm" class="bg-white rounded-md shadow-lg max-w-md w-full p-4">
-          <h2 class="text-center font-extrabold text-xl mb-6">Register</h2>
+        <form @submit.prevent="submitForm" class="bg-white rounded-md shadow-lg max-w-md w-full p-8">
+          <h2 class="text-center font-extrabold text-xl mb-6">Sign up</h2>
 
           <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="name">Full Name</label>
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="name">
+              <span class="text-red-500">*</span>
+              Full Name</label>
             <div class="relative">
                             <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
                                 <i class="fas fa-user"></i>
@@ -22,7 +24,9 @@
           </div>
 
           <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="email">Email</label>
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="email">
+              <span class="text-red-500">*</span>
+              Email</label>
             <div class="relative">
                             <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
                                 <i class="fas fa-envelope"></i>
@@ -36,7 +40,9 @@
           </div>
 
           <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="password">Password</label>
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="password">
+              <span class="text-red-500">*</span>
+              Password</label>
             <div class="relative">
                             <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
                                 <i class="fas fa-lock"></i>
@@ -55,7 +61,9 @@
           </div>
 
           <div class="mb-6">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="confirmPassword">Confirm
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="confirmPassword">
+              <span class="text-red-500">*</span>
+              Confirm
               Password</label>
             <div class="relative">
                             <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -74,7 +82,9 @@
             <p v-if="passwordNotMatch" class="text-red-500 text-xs mt-1">{{ passwordNotMatch }}</p>
 
             <div class="mb-6">
-              <label class="block text-xs font-semibold text-gray-900 mb-1 mt-4" for="role">Select Role</label>
+              <label class="block text-xs font-semibold text-gray-900 mb-1 mt-4" for="role">
+                <span class="text-red-500">*</span>
+                Select Role</label>
 
               <div class="relative">
                 <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -93,7 +103,7 @@
 
           <button type="submit"
                   class="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-2 rounded-md">
-            Register
+            Sign up
           </button>
 
           <p class="text-center text-xs mt-4 text-gray-900">
@@ -113,9 +123,6 @@
             </button>
             <button type="button" class="w-10 h-10 rounded-full bg-blue-700 text-white hover:bg-blue-600">
               <i class="fab fa-facebook-f"></i>
-            </button>
-            <button type="button" class="w-10 h-10 rounded-full bg-black text-white hover:bg-gray-900">
-              <i class="fab fa-apple"></i>
             </button>
           </div>
         </form>

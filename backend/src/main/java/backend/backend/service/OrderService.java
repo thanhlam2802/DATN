@@ -14,7 +14,7 @@ public interface OrderService {
 	OrderDto placeOrder(CheckoutDto checkoutDto);
 	OrderDto getOrderById(Integer id);
 	OrderDto createDirectTourReservation(DirectTourReservationRequestDto directRequest);
-	OrderDto createDirectFlightReservation(DirectFlightReservationRequestDto directRequest);
+	Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest);
 	/**
      * Lấy danh sách các đơn hàng của một người dùng.
      * @param userId ID của người dùng.
@@ -22,5 +22,8 @@ public interface OrderService {
      */
     List<OrderDto> getOrdersByUserId(Integer userId);
 
+	OrderDto paidOrder(Integer id,String transactionId);
+	
+	OrderDto applyVoucherToOrder(Integer orderId, String voucherCode);
 	
 }

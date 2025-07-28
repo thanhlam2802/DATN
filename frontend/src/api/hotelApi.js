@@ -40,6 +40,44 @@ export const bookHotel = (data) => {
     return axios.post(`${API_BASE_URL}/book`, data, { headers });
 };
 
+export const addItemToCart = (orderId, data) => {
+    return axios.post(`/api/v1/cart/${orderId}/items`, data);
+};
+
+export const getHotelCustomers = (hotelId) => {
+    return axios.get(`${API_ADMIN_BASE_URL}/${hotelId}/customers`);
+};
+
+export const getAllHotelCustomers = () => {
+    return axios.get(`${API_ADMIN_BASE_URL}/customers`);
+};
+
+export const getCustomerBookedRooms = (customerId) => {
+    return axios.get(`${API_ADMIN_BASE_URL}/customers/${customerId}/booked-rooms`);
+};
+
+export const getAllHotelBookings = () => {
+    return axios.get(`${API_ADMIN_BASE_URL}/bookings`);
+};
+
+export const getDashboardStatistics = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/dashboard-statistics`, {
+    params: { timePeriod }
+  });
+};
+
+export const getHotelRevenueChart = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/revenue-chart`, {
+    params: { timePeriod }
+  });
+};
+
+export const getHotelRevenuePieChart = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/revenue-pie-chart`, {
+    params: { timePeriod }
+  });
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -48,5 +86,13 @@ export default {
     updateHotel,
     deleteHotel,
     createHotelReview,
-    bookHotel
+    bookHotel,
+    addItemToCart,
+    getHotelCustomers,
+    getAllHotelCustomers,
+    getCustomerBookedRooms,
+    getAllHotelBookings,
+    getDashboardStatistics,
+    getHotelRevenueChart,
+    getHotelRevenuePieChart
 };

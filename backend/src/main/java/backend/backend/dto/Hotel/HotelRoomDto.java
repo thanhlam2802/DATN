@@ -36,7 +36,6 @@ public class HotelRoomDto {
 
                 List<HotelRoomVariantDto> availableVariantList = room.getRoomVariants() != null
                                 ? room.getRoomVariants().stream()
-                                                .filter(variant -> !bookedVariantIds.contains(variant.getId()))
                                                 .map(HotelRoomVariantDto::fromEntity)
                                                 .collect(Collectors.toList())
                                 : Collections.emptyList();

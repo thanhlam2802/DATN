@@ -1,10 +1,8 @@
 package backend.backend.service;
 
-import backend.backend.dto.FlightBookingDetailDto;
-import backend.backend.dto.FlightBookingDto;
-import backend.backend.dto.PaymentRequestDto;
-import backend.backend.dto.PaymentStatusDto;
-import backend.backend.dto.FlightOrderReservationDto;
+import backend.backend.dto.*;
+import backend.backend.entity.FlightBooking;
+
 import java.util.List;
 
 public interface FlightBookingService {
@@ -14,4 +12,5 @@ public interface FlightBookingService {
     FlightBookingDetailDto getFlightBookingDetail(Integer bookingId);
     PaymentStatusDto cancelFlightBooking(Integer bookingId);
     FlightOrderReservationDto getFlightReservationSummary(Integer orderId);
+    FlightBooking createFlightBooking(Integer orderId, AddItemRequestDto genericRequest);
 } 

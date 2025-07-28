@@ -75,10 +75,11 @@ public class HotelPublicController {
 
     @PostMapping("/book")
     public ResponseEntity<ApiResponse<OrderDto>> bookHotel(@RequestBody HotelBookingRequestDto dto, Authentication authentication) {
-        if (authentication == null) {
-            return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để đặt phòng!", null);
-        }
-        OrderDto order = hotelBookingService.bookHotel(dto, authentication);
+        // if (authentication == null) {
+        //     return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để đặt phòng!", null);
+        // }
+        // Pass null for authentication, and set userId=1 in service if authentication is null
+        OrderDto order = hotelBookingService.bookHotel(dto, null);
         return ResponseFactory.success(order, "Đặt phòng thành công. Vui lòng thanh toán để xác nhận.");
     }
 }

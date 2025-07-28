@@ -16,7 +16,6 @@ const contactInfo = ref({
   notes: "",
 });
 
-// State để xử lý trạng thái của nút bấm (tránh nhấn nhiều lần)
 const isProcessing = ref(false);
 
 onMounted(() => {

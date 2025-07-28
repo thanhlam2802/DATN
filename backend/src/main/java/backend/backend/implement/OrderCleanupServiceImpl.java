@@ -34,7 +34,9 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
         if (!expiredOrders.isEmpty()) {
             for (Order order : expiredOrders) {
                 List<FlightBooking> flightBooking = flightBookingDAO.findByOrderId(order.getId());
+                System.out.println("size của booking: " + flightBooking.size());
                 for (FlightBooking flightBooking1 : flightBooking) {
+                    System.out.println("id cancel booking: " + flightBooking1.getId());
                     flightBookingService.cancelBooking(flightBooking1.getId());
                 }
                 order.setStatus("CANCELLED");

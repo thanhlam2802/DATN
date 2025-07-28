@@ -156,7 +156,7 @@ public class OrderServiceImpl implements OrderService {
         Flight flight = slot.getFlight();
 
         // 3. Kiểm tra slot đã được đặt chưa
-        boolean slotBooked = flightBookingDAO.findByFlightSlotId(slot.getId()).size() > 0;
+        boolean slotBooked = slot.getStatus().equalsIgnoreCase("used");
         if (slotBooked) {
             throw new IllegalStateException("Vé này đã có người khác đặt. Bạn đã thao tác chậm, vui lòng chọn vé khác!");
         }

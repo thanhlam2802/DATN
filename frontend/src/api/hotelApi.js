@@ -78,6 +78,20 @@ export const getHotelRevenuePieChart = (timePeriod = 'this_month') => {
   });
 };
 
+export const getTopRoomsChart = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/top-rooms-chart`, {
+    params: { timePeriod }
+  });
+};
+
+export const getAllHotelReviews = () => {
+  return axios.get(`${API_ADMIN_BASE_URL}/reviews`);
+};
+
+export const deleteHotelReview = (reviewId) => {
+  return axios.delete(`${API_ADMIN_BASE_URL}/reviews/${reviewId}`);
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -94,5 +108,8 @@ export default {
     getAllHotelBookings,
     getDashboardStatistics,
     getHotelRevenueChart,
-    getHotelRevenuePieChart
+    getHotelRevenuePieChart,
+    getTopRoomsChart,
+    getAllHotelReviews,
+    deleteHotelReview
 };

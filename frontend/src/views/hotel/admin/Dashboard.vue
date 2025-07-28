@@ -108,7 +108,15 @@
 
                     <div class="bg-white rounded-lg shadow-sm p-3 mb-4">
                       <div class="flex justify-between items-center mb-2">
-                        <div class="font-medium text-sm">Biểu đồ doanh thu</div>
+                        <div class="flex items-center gap-3">
+                          <div class="font-medium text-lg">Biểu đồ doanh thu {{ chartTimeLabel }}</div>
+                          <div class="flex items-center gap-2 text-lg font-bold text-orange-600">
+                            <div class="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                              <i class="fas fa-arrow-right text-white text-xs"></i>
+                            </div>
+                            {{ formatCurrency(chartTotalRevenue) }}
+                          </div>
+                        </div>
                         <div class="w-36">
                           <CustomSelect
                             v-model="selectedChartTimePeriod"
@@ -126,9 +134,9 @@
                       </template>
                     </div>
 
-                    <div class="bg-white rounded-lg shadow-sm p-3">
+                    <div class="bg-white rounded-lg shadow-sm p-3 mb-4">
                       <div class="flex justify-between items-center mb-2">
-                        <div class="font-medium text-sm">Doanh thu theo khách sạn</div>
+                        <div class="font-medium text-lg">Doanh thu theo khách sạn</div>
                         <div class="w-36">
                           <CustomSelect
                             v-model="selectedPieChartTimePeriod"
@@ -140,6 +148,43 @@
                       </div>
                       <template v-if="revenuePieChartData">
                         <RevenuePieChart :data="revenuePieChartData" :height="350" />
+                      </template>
+                      <template v-else>
+                        <div class="text-center text-gray-500 py-12 text-sm">Không có dữ liệu</div>
+                      </template>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-3">
+                      <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-3">
+                          <div class="font-medium text-lg">Top loại phòng đươc đặt nhiều nhất {{ topRoomsTimeLabel }}</div>
+                        </div>
+                        <div class="w-36">
+                          <CustomSelect
+                            v-model="selectedTopRoomsTimePeriod"
+                            :options="timeOptions"
+                            placeholder="Chọn thời gian"
+                            @update:modelValue="onTopRoomsTimePeriodChange"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div class="mb-4">
+                        <div class="relative w-64">
+                          <input
+                            v-model="topRoomsSearchQuery"
+                            type="text"
+                            placeholder="Tìm kiếm tên phòng"
+                            class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                          />
+                          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400 text-sm"></i>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <template v-if="topRoomsChartData">
+                        <TopRoomsChart :data="filteredTopRoomsChartData" :height="400" />
                       </template>
                       <template v-else>
                         <div class="text-center text-gray-500 py-12 text-sm">Không có dữ liệu</div>
@@ -202,6 +247,7 @@ import hotelApi from '@/api/hotelApi';
 import CustomSelect from '@/components/CustomSelect.vue';
 import RevenueChart from '@/components/Hotel/HotelAdmin/RevenueChart.vue';
 import RevenuePieChart from '@/components/Hotel/HotelAdmin/RevenuePieChart.vue';
+import TopRoomsChart from '@/components/Hotel/HotelAdmin/TopRoomsChart.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
 
 const stats = ref({
@@ -219,6 +265,8 @@ const loading = ref(true);
 const selectedTimePeriod = ref('this_month');
 const selectedChartTimePeriod = ref('this_month');
 const selectedPieChartTimePeriod = ref('this_month');
+const selectedTopRoomsTimePeriod = ref('this_month');
+const topRoomsSearchQuery = ref('');
 
 const timeOptions = [
   { value: 'today', label: 'Hôm nay' },
@@ -245,8 +293,106 @@ const comparisonLabel = computed(() => {
   }
 });
 
+const chartTimeLabel = computed(() => {
+  switch (selectedChartTimePeriod.value) {
+    case 'today':
+      return 'hôm nay';
+    case 'yesterday':
+      return 'hôm qua';
+    case 'last_7_days':
+      return '7 ngày qua';
+    case 'this_month':
+      return 'tháng này';
+    case 'last_month':
+      return 'tháng trước';
+    default:
+      return 'Tháng này';
+  }
+});
+
+const pieChartTimeLabel = computed(() => {
+  switch (selectedPieChartTimePeriod.value) {
+    case 'today':
+      return 'Hôm nay';
+    case 'yesterday':
+      return 'Hôm qua';
+    case 'last_7_days':
+      return '7 ngày qua';
+    case 'this_month':
+      return 'Tháng này';
+    case 'last_month':
+      return 'Tháng trước';
+    default:
+      return 'Tháng này';
+  }
+});
+
+const topRoomsTimeLabel = computed(() => {
+  switch (selectedTopRoomsTimePeriod.value) {
+    case 'today':
+      return 'hôm nay';
+    case 'yesterday':
+      return 'hôm qua';
+    case 'last_7_days':
+      return '7 ngày qua';
+    case 'this_month':
+      return 'tháng này';
+    case 'last_month':
+      return 'tháng trước';
+    default:
+      return 'tháng này';
+  }
+});
+
+const chartTotalRevenue = computed(() => {
+  if (!revenueChartData.value || !revenueChartData.value.datasets) {
+    return 0;
+  }
+  
+  let total = 0;
+  
+  revenueChartData.value.datasets.forEach(dataset => {
+    if (dataset.data && Array.isArray(dataset.data)) {
+      total += dataset.data.reduce((sum, value) => sum + (value || 0), 0);
+    }
+  });
+  
+  return total;
+});
+
+const filteredTopRoomsChartData = computed(() => {
+  if (!topRoomsChartData.value || !topRoomsChartData.value.labels) {
+    return { labels: [], data: [], hotels: [] };
+  }
+  
+  const searchQuery = topRoomsSearchQuery.value.toLowerCase().trim();
+  
+  if (!searchQuery) {
+    return topRoomsChartData.value;
+  }
+  
+  const filteredLabels = [];
+  const filteredData = [];
+  const filteredHotels = [];
+  
+  topRoomsChartData.value.labels.forEach((label, index) => {
+    if (label.toLowerCase().includes(searchQuery)) {
+      filteredLabels.push(label);
+      filteredData.push(topRoomsChartData.value.data[index]);
+      filteredHotels.push(topRoomsChartData.value.hotels[index]);
+    }
+  });
+  
+  return {
+    labels: filteredLabels,
+    data: filteredData,
+    hotels: filteredHotels
+  };
+});
+
 const revenueChartData = ref({ labels: [], data: [] });
 const revenuePieChartData = ref({ labels: [], data: [] });
+const topRoomsChartData = ref({ labels: [], data: [], hotels: [] });
 
 const onTimePeriodChange = (value) => {
   selectedTimePeriod.value = value;
@@ -263,6 +409,11 @@ const onPieChartTimePeriodChange = (value) => {
   fetchRevenuePieChart();
 };
 
+const onTopRoomsTimePeriodChange = (value) => {
+  selectedTopRoomsTimePeriod.value = value;
+  fetchTopRoomsChart();
+};
+
 onMounted(() => {
   const breadcrumbStore = useAdminBreadcrumbStore();
   breadcrumbStore.setBreadcrumb([
@@ -271,6 +422,7 @@ onMounted(() => {
   fetchDashboardStatistics();
   fetchRevenueChart();
   fetchRevenuePieChart();
+  fetchTopRoomsChart();
 });
 
 const fetchDashboardStatistics = async () => {
@@ -348,6 +500,32 @@ const fetchRevenuePieChart = async () => {
   }
 };
 
+const fetchTopRoomsChart = async () => {
+  try {
+    console.log('=== TOP ROOMS CHART DEBUG ===');
+    console.log('Calling top rooms chart API with period:', selectedTopRoomsTimePeriod.value);
+    const res = await hotelApi.getTopRoomsChart(selectedTopRoomsTimePeriod.value);
+    console.log('Top rooms chart API Response:', res);
+    console.log('Top rooms chart data:', res.data);
+    console.log('Top rooms chart data.data:', res.data?.data);
+    console.log('Labels:', res.data?.data?.labels);
+    console.log('Data:', res.data?.data?.data);
+    console.log('Hotels:', res.data?.data?.hotels);
+    
+    if (res.data && res.data.data) {
+      console.log('Setting top rooms chart data:', res.data.data);
+      topRoomsChartData.value = res.data.data;
+      console.log('Updated topRoomsChartData:', topRoomsChartData.value);
+    } else {
+      console.log('No top rooms chart data found in response');
+      topRoomsChartData.value = { labels: [], data: [], hotels: [] };
+    }
+  } catch (e) {
+    console.error('Error fetching top rooms chart:', e);
+    topRoomsChartData.value = { labels: [], data: [], hotels: [] };
+  }
+};
+
 watch(stats, (newStats) => {
   console.log('Stats changed:', newStats);
 }, { deep: true });
@@ -359,59 +537,6 @@ watch(revenueChartData, (newData) => {
   console.log('revenueChartData.labels:', newData?.labels);
   console.log('revenueChartData.datasets:', newData?.datasets);
 }, { deep: true });
-
-const recentBookings = ref([
-    {
-        id: 1,
-        guestName: 'Sarah Johnson',
-        guestImage: 'https://randomuser.me/api/portraits/men/46.jpg',
-        hotel: 'Grand Hotel Luxury',
-        checkIn: 'Jun 1, 2025',
-        checkOut: 'Jun 5, 2025',
-        status: 'Confirmed',
-        amount: '$1,200'
-    },
-    {
-        id: 2,
-        guestName: 'Michael Chen',
-        guestImage: 'https://randomuser.me/api/portraits/men/21.jpg',
-        hotel: 'Seaside Resort',
-        checkIn: 'Jun 3, 2025',
-        checkOut: 'Jun 7, 2025',
-        status: 'Pending',
-        amount: '$850'
-    },
-    {
-        id: 3,
-        guestName: 'Emma Davis',
-        guestImage: 'https://randomuser.me/api/portraits/women/12.jpg',
-        hotel: 'Mountain View Lodge',
-        checkIn: 'Jun 5, 2025',
-        checkOut: 'Jun 8, 2025',
-        status: 'Completed',
-        amount: '$650'
-    },
-    {
-        id: 4,
-        guestName: 'James Wilson',
-        guestImage: 'https://randomuser.me/api/portraits/men/13.jpg',
-        hotel: 'City Center Hotel',
-        checkIn: 'Jun 6, 2025',
-        checkOut: 'Jun 9, 2025',
-        status: 'Cancelled',
-        amount: '$920'
-    }
-]);
-
-const getStatusClass = (status) => {
-    const classes = {
-        'Confirmed': 'bg-green-100 text-green-700',
-        'Pending': 'bg-yellow-100 text-yellow-700',
-        'Completed': 'bg-blue-100 text-blue-700',
-        'Cancelled': 'bg-red-100 text-red-700'
-    };
-    return classes[status] || 'bg-slate-100 text-slate-700';
-};
 
 function formatNumber(val) {
   console.log('formatNumber input:', val, typeof val);

@@ -38,7 +38,10 @@ public class BookingTour {
 
     @Column(name = "booking_date")
     private LocalDate bookingDate;
-
+    
+    @Column(length = 255)
+    private String email;
+    
     @Lob
     private String notes;
 

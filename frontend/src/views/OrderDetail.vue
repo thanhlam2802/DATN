@@ -1,7 +1,12 @@
 <script setup>
-import { ref, onMounted, computed, reactive } from "vue";
+import { ref, onMounted, computed, reactive, onUnmounted } from "vue"; // Import thêm onUnmounted
 import { useRoute, useRouter } from "vue-router";
-import { getBearerToken } from "@/services/TokenService"; // Import getBearerToken
+import { getBearerToken } from "@/services/TokenService";
+
+// --- START: Thư viện WebSocket ---
+import SockJS from "sockjs-client/dist/sockjs.min.js";
+import Stomp from "stompjs";
+// --- END: Thư viện WebSocket ---
 
 const route = useRoute();
 const router = useRouter();
@@ -11,13 +16,18 @@ const order = ref(null);
 const flightBookingDetails = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
-const processingItemId = ref(null); // State loading cho từng item
+const processingItemId = ref(null);
 
 // --- STATE CHO VOUCHER ---
 const voucherCode = ref("");
 const isApplyingVoucher = ref(false);
 const suggestedVouchers = ref([]);
 const isLoadingVouchers = ref(false);
+
+// --- START: STATE CHO WEBSOCKET ---
+const stompClient = ref(null);
+const isSocketConnected = ref(false);
+// --- END: STATE CHO WEBSOCKET ---
 
 // Reactive state for hotel image sliders
 const hotelImageIndices = reactive({});
@@ -87,6 +97,74 @@ const getVoucherDiscountText = (voucher) => {
   return "";
 };
 
+const connectWebSocket = () => {
+  const orderId = route.params.id;
+  if (!orderId || (stompClient.value && isSocketConnected.value)) return;
+
+  const socket = new SockJS("http://localhost:8080/ws");
+  stompClient.value = Stomp.over(socket);
+  stompClient.value.debug = null; // Tắt log không cần thiết
+
+  stompClient.value.connect({}, (frame) => {
+    console.log("WebSocket Connected:", frame);
+    isSocketConnected.value = true;
+
+    // Kênh riêng cho đơn hàng này (giữ nguyên)
+    stompClient.value.subscribe(`/topic/orders/${orderId}`, (response) => {
+      handleVoucherResponse(JSON.parse(response.body));
+    });
+
+    // MỚI: Lắng nghe trên kênh cập nhật voucher công khai
+    stompClient.value.subscribe(`/topic/vouchers/updates`, (response) => {
+      const update = JSON.parse(response.body);
+      if (update.status === "UNAVAILABLE") {
+        console.log(`Voucher ${update.voucherCode} đã hết! Cập nhật UI.`);
+        // Tìm voucher trong danh sách gợi ý và vô hiệu hóa nó
+        const usedVoucher = suggestedVouchers.value.find(
+          (v) => v.code === update.voucherCode
+        );
+        if (usedVoucher) {
+          // Bạn có thể thêm một thuộc tính 'disabled' hoặc xóa nó khỏi danh sách
+          usedVoucher.disabled = true;
+        }
+      }
+    });
+  });
+};
+
+/**
+ * Xử lý phản hồi voucher từ server qua WebSocket.
+ */
+const handleVoucherResponse = (response) => {
+  isApplyingVoucher.value = false; // Tắt loading
+  if (response.statusCode === 200 && response.data) {
+    // Thành công
+    order.value = response.data;
+    window.$toast &&
+      window.$toast(
+        response.message || "Áp dụng voucher thành công!",
+        "success"
+      );
+    voucherCode.value = "";
+  } else {
+    // Thất bại
+    window.$toast &&
+      window.$toast(
+        response.message || "Có lỗi xảy ra, vui lòng thử lại.",
+        "error"
+      );
+  }
+};
+
+onUnmounted(() => {
+  if (stompClient.value && isSocketConnected.value) {
+    stompClient.value.disconnect();
+    console.log("WebSocket Disconnected.");
+  }
+});
+
+// --- END: Logic WebSocket ---
+
 // --- API CALLS ---
 const fetchOrderDetails = async () => {
   isLoading.value = true;
@@ -102,7 +180,9 @@ const fetchOrderDetails = async () => {
     const data = await orderResponse.json();
     order.value = data.data;
 
+    // THAY ĐỔI: Nếu đơn hàng có thể sửa, kết nối WebSocket và tải voucher
     if (order.value && isEditable.value) {
+      connectWebSocket();
       await fetchSuggestedVouchers();
     }
 
@@ -152,38 +232,32 @@ const fetchSuggestedVouchers = async () => {
 onMounted(fetchOrderDetails);
 
 // --- EVENT HANDLERS ---
-const handleApplyVoucher = async () => {
-  if (!voucherCode.value.trim()) {
-    return (
-      window.$toast && window.$toast("Vui lòng nhập mã giảm giá.", "success")
-    );
-  }
-  isApplyingVoucher.value = true;
-  try {
-    const response = await fetch(
-      `http://localhost:8080/api/v1/orders/${order.value.id}/apply-voucher`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: getBearerToken(),
-        },
-        body: JSON.stringify({ voucherCode: voucherCode.value }),
-      }
-    );
-    const result = await response.json();
-    if (!response.ok)
-      throw new Error(result.message || "Mã giảm giá không hợp lệ.");
 
-    order.value = result.data;
-    window.$toast &&
-      window.$toast("Áp dụng mã giảm giá thành công!", "success");
-    voucherCode.value = "";
-  } catch (e) {
-    window.$toast && window.$toast(e.message, "error");
-  } finally {
-    isApplyingVoucher.value = false;
+/**
+ * THAY ĐỔI: Gửi yêu cầu áp dụng voucher qua WebSocket thay vì HTTP fetch.
+ */
+const handleApplyVoucher = () => {
+  const code = voucherCode.value.trim();
+  if (!code) {
+    window.$toast && window.$toast("Vui lòng nhập mã giảm giá.", "info");
+    return;
   }
+
+  if (!stompClient.value || !isSocketConnected.value) {
+    window.$toast &&
+      window.$toast("Lỗi kết nối real-time. Đang thử kết nối lại...", "error");
+    connectWebSocket(); // Thử kết nối lại
+    return;
+  }
+
+  isApplyingVoucher.value = true;
+  const payload = { voucherCode: code };
+
+  stompClient.value.send(
+    `/app/orders/${order.value.id}/apply-voucher`,
+    {},
+    JSON.stringify(payload)
+  );
 };
 
 const selectVoucher = (code) => {
@@ -454,11 +528,38 @@ function prevHotelImage(hotel) {
                 <i class="fa-solid fa-hotel text-indigo-500"></i> Các phòng
                 khách sạn đã đặt
               </h2>
-              <div
-                v-for="hotel in order.hotelBookings"
-                :key="'hotel-' + hotel.id"
-                class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl shadow-xl border border-indigo-100 mb-6 flex flex-col md:flex-row gap-6 items-center md:items-stretch hover:shadow-2xl transition-shadow duration-200 relative"
-              ></div>
+              <div v-for="hotel in order.hotelBookings" :key="'hotel-' + hotel.id" class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl shadow-xl border border-indigo-100 mb-6 flex flex-col md:flex-row gap-6 items-center md:items-stretch hover:shadow-2xl transition-shadow duration-200 relative">
+                <div class="relative flex-shrink-0 flex flex-col items-center">
+                  <template v-if="(hotel.imageUrls && hotel.imageUrls.length) || hotel.imageUrl">
+                    <div class="relative w-40 h-32 md:w-56 md:h-40 flex items-center justify-center overflow-hidden rounded-xl">
+                      <transition :name="slideDirectionMap[hotel.id] === 'next' ? 'slide-right' : 'slide-left'">
+                        <img :key="hotel.imageUrls && hotel.imageUrls.length ? hotel.imageUrls[hotelImageIndices[hotel.id] || 0] : hotel.imageUrl" :src="hotel.imageUrls && hotel.imageUrls.length ? hotel.imageUrls[hotelImageIndices[hotel.id] || 0] : hotel.imageUrl" class="w-40 h-32 md:w-56 md:h-40 object-cover border-2 border-indigo-200 shadow-md mb-2 absolute left-0 top-0" />
+                      </transition>
+                      <div v-if="hotel.imageUrls && hotel.imageUrls.length > 1" class="flex gap-2 absolute top-1/2 left-0 right-0 justify-between px-2 -translate-y-1/2 z-10">
+                        <button @click="prevHotelImage(hotel)" class="bg-white/80 hover:bg-indigo-100 rounded-full p-1 shadow border border-indigo-200"><i class="fa-solid fa-chevron-left text-indigo-600"></i></button>
+                        <button @click="nextHotelImage(hotel)" class="bg-white/80 hover:bg-indigo-100 rounded-full p-1 shadow border border-indigo-200"><i class="fa-solid fa-chevron-right text-indigo-600"></i></button>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <div class="flex justify-between items-start">
+                  <div class="flex-1 flex flex-col justify-between">
+                    <h3 class="text-2xl font-extrabold text-indigo-700 mb-1 flex items-center gap-2"><i class="fa-solid fa-bed text-indigo-400"></i> {{ hotel.hotelName }}</h3>
+                    <div class="text-base text-gray-700 font-semibold mb-1 flex items-center gap-2"><i class="fa-solid fa-door-closed text-gray-400"></i> {{ hotel.roomType }} <span class="mx-1">-</span> <span class="text-indigo-600 font-bold">{{ hotel.variantName }}</span></div>
+                    <div class="flex flex-wrap gap-4 text-sm text-gray-500 mb-1 mt-2">
+                      <div class="flex items-center gap-1"><i class="fa-solid fa-calendar-days text-blue-400"></i> Nhận phòng: <b>{{ formatDate(hotel.checkInDate) }}</b></div>
+                      <div class="flex items-center gap-1"><i class="fa-solid fa-calendar-check text-green-400"></i> Trả phòng: <b>{{ formatDate(hotel.checkOutDate) }}</b></div>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-600 mt-1"><i class="fa-solid fa-users text-pink-400"></i> Khách: <b>{{ hotel.numAdults }}</b> người lớn, <b>{{ hotel.numChildren }}</b> trẻ em</div>
+                    <div class="flex items-center gap-1 mt-1 text-sm text-indigo-700 pt-1"><i class="fa-solid fa-door-open text-indigo-400"></i> Số lượng phòng đã đặt: <b>{{ hotel.numberOfRooms ?? hotel.rooms ?? 1 }}</b></div>
+                    <div class="text-right font-bold text-2xl text-indigo-600 absolute right-6 bottom-3">{{ formatPrice(hotel.totalPrice) }}</div>
+                  </div>
+                  <div v-if="isEditable" class="flex gap-2 absolute right-6 top-6 z-10">
+                    <button @click="handleEditItem(hotel, 'HOTEL')" class="text-sm text-yellow-600 hover:text-yellow-800 flex items-center"><i class="fa-solid fa-pencil mr-1"></i> Sửa</button>
+                    <button @click="handleDeleteItem(hotel.id, 'HOTEL')" class="text-sm text-red-600 hover:text-red-800 flex items-center"><i class="fa-solid fa-trash mr-1"></i> Xóa</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -550,13 +651,30 @@ function prevHotelImage(hotel) {
                         v-for="voucher in suggestedVouchers"
                         :key="voucher.id"
                         @click="selectVoucher(voucher.code)"
-                        class="w-full text-left p-2 border-l-4 border-green-500 bg-green-50 rounded-md hover:bg-green-100 transition"
+                        :disabled="voucher.disabled"
+                        class="w-full text-left p-2 border-l-4 rounded-md transition"
+                        :class="{
+                          'border-green-500 bg-green-50 hover:bg-green-100':
+                            !voucher.disabled,
+                          'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed':
+                            voucher.disabled,
+                        }"
                       >
-                        <strong class="text-green-700">{{
-                          voucher.code
-                        }}</strong>
-                        <p class="text-xs text-gray-600">
+                        <strong
+                          :class="{ 'text-green-700': !voucher.disabled }"
+                          >{{ voucher.code }}</strong
+                        >
+                        <p
+                          class="text-xs"
+                          :class="{ 'text-gray-600': !voucher.disabled }"
+                        >
                           {{ getVoucherDiscountText(voucher) }}
+                        </p>
+                        <p
+                          v-if="voucher.disabled"
+                          class="text-xs font-bold text-red-500"
+                        >
+                          Đã hết lượt sử dụng
                         </p>
                       </button>
                     </div>

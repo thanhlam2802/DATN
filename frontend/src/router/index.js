@@ -31,6 +31,8 @@ import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
 import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
 import HotelForm from "@/views/hotel/admin/HotelForm.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
+import Customer from "@/views/hotel/admin/Customer.vue";
+import Booking from "@/views/hotel/admin/Booking.vue";
 import AdminDashboard from "@/views/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
@@ -181,15 +183,17 @@ const routes = [
         component: TourManager,
     },
 
-    {
-        path: "/hotel/admin",
-        component: AdminLayout,
-        children: [
-            {path: "dashboard", component: Dashboard},
-            {path: "hotelform", component: HotelForm},
-            {path: "", redirect: "dashboard"},
-        ],
-    },
+  {
+    path: "/hotel/admin",
+    component: AdminLayout,
+    children: [
+      { path: "dashboard", component: Dashboard },
+      { path: "hotelform", component: HotelForm },
+      { path: "customer", component: Customer },
+      { path: "booking", component: Booking },
+      { path: "", redirect: "dashboard" },
+    ],
+  },
 
     {
         path: "/admin/dashboard",

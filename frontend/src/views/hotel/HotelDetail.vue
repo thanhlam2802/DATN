@@ -16,7 +16,7 @@
 
   <main v-else-if="hotel" class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:w-[1320px]" style="padding-top: 1rem;">
     <div ref="searchWidgetContainer"
-      class="sticky top-16 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
+      class="sticky top-18 z-40 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 mb-4 mt-4">
       <div class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
         <div ref="locationContainer"
           class="relative flex flex-grow cursor-pointer items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[200px] rounded-t-md md:rounded-l-md md:rounded-tr-none">
@@ -169,8 +169,11 @@
           </div>
         </div>
         <div class="flex items-center gap-4 mt-4 sm:mt-0">
-          <div class="text-left"><span class="text-gray-500 text-sm block">Giá/phòng/đêm từ</span>
-            <div class="text-2xl font-bold text-orange-500 whitespace-nowrap">{{ minRoomPrice }}</div>
+          <div class="text-left">
+            <span class="text-gray-500 text-sm block">Giá/phòng/đêm từ</span>
+            <div class="text-2xl font-bold text-orange-500 whitespace-nowrap">
+              {{ getHeaderDisplayPrice(hotel) !== null ? formatPrice(getHeaderDisplayPrice(hotel)) : 'Liên hệ' }}
+            </div>
           </div>
           <button
             class="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-6 py-2 text-base font-semibold transition focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -183,13 +186,11 @@
           <h2 class="text-xl font-bold text-gray-800 mb-4">Tổng quan</h2>
           <div class="text-sm text-gray-700 leading-relaxed space-y-4">
             <div>
-              <div :class="!showMoreOverview && 'line-clamp-4'"
-                class="prose prose-sm max-w-none text-justify text-gray-700" v-html="hotel.description"></div>
-              <button @click="showMoreOverview = !showMoreOverview"
-                class="text-blue-600 font-semibold text-sm hover:underline focus:outline-none mt-2 inline-flex items-center gap-1.5">
-                <span>{{ showMoreOverview ? "Thu gọn" : "Xem thêm" }}</span>
-                <i class="fas fa-chevron-down transition-transform duration-200"
-                  :class="{ 'rotate-180': showMoreOverview }"></i>
+              <div class="prose prose-sm max-w-none text-justify text-gray-700 line-clamp-4" v-html="hotel.description">
+              </div>
+              <button @click="showDescriptionModal = true" class="btn-outline-blue mt-2">
+                <span>Xem thêm</span>
+                <i class="fas fa-chevron-down"></i>
               </button>
             </div>
             <div class="border-t border-gray-200 pt-4 mt-4">
@@ -240,11 +241,9 @@
             </div>
           </div>
           <button v-if="hotel.amenities && hotel.amenities.length > INITIAL_AMENITIES_COUNT"
-            @click="showAllAmenities = !showAllAmenities"
-            class="mt-4 text-sm font-semibold text-blue-600 hover:underline focus:outline-none inline-flex items-center gap-1.5">
+            @click="showAllAmenities = !showAllAmenities" class="btn-outline-blue mt-4">
             <span>{{ showAllAmenities ? "Ẩn bớt" : "Xem tất cả tiện ích" }}</span>
-            <i class="fas fa-chevron-down transition-transform duration-200"
-              :class="{ 'rotate-180': showAllAmenities }"></i>
+            <i class="fas fa-chevron-down" :class="{ 'rotate-180': showAllAmenities }"></i>
           </button>
         </div>
       </div>
@@ -260,10 +259,12 @@
               chọn những tiện nghi bạn cần</h3>
             <div class="flex flex-wrap gap-x-6 gap-y-3 pt-2">
               <div v-for="filter in amenityFilters" :key="filter.id" class="flex items-center">
-                <input :id="`filter-${filter.id}`" type="checkbox" :value="filter.id" v-model="selectedAmenities"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer" />
-                <label :for="`filter-${filter.id}`" class="ml-2 block text-sm text-gray-900 cursor-pointer">{{
-                  filter.label }}</label>
+                <label class="custom-checkbox flex items-center cursor-pointer">
+                  <input :id="`filter-${filter.id}`" type="checkbox" :value="filter.id" v-model="selectedAmenities"
+                    class="hidden" />
+                  <span class="checkmark"></span>
+                  <span class="ml-2 block text-sm text-gray-900">{{ filter.label }}</span>
+                </label>
               </div>
             </div>
           </div>
@@ -293,7 +294,7 @@
         <p class="text-xl text-gray-700">Không tìm thấy phòng nào phù hợp với lựa chọn của bạn.</p>
       </div>
       <div v-else v-for="room in filteredRoomTypes" :key="room.id"
-        class="flex flex-col md:flex-row gap-6 border border-gray-200 rounded-lg p-5 mb-6">
+        class="flex flex-col md:flex-row gap-6 border border-gray-200 rounded-lg p-4 mb-6 pt-4">
         <div class="relative flex flex-col gap-4 md:w-1/3">
           <h3 class="text-lg font-bold text-black">{{ room.roomType }}</h3>
           <div class="relative w-full h-48 overflow-hidden rounded-lg shadow-md">
@@ -324,7 +325,7 @@
             class="font-bold text-sm flex items-center gap-1 hover:underline mt-2 text-blue-600"><i
               class="fas fa-info-circle"></i> Xem chi tiết phòng</button>
         </div>
-        <div class="md:w-2/3 border border-gray-100 rounded-lg shadow-sm">
+        <div class="md:w-2/3 border border-gray-100 rounded-lg shadow-sm mt-10">
           <table class="w-full text-sm text-gray-700 border-collapse">
             <thead class="bg-gray-50 text-gray-800 font-bold">
               <tr>
@@ -363,10 +364,13 @@
                 </td>
                 <td class="text-center align-middle py-4 px-4">
                   <div class="relative inline-block">
-                    <p class="text-orange-500 font-bold text-base peer">
-                      {{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) :
-                        variant.price) }}
-                    </p>
+                    <template v-if="showVariantDiscount(variant)">
+                      <span class="text-gray-400 font-semibold text-xs line-through block">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
+                      <span class="text-orange-500 font-bold text-lg block peer">{{ formatPrice(getDiscountedPrice(variant)) }}</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-orange-500 font-bold text-lg block peer">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
+                    </template>
                     <p class="text-xs text-gray-400 font-normal mt-1">
                       {{ priceDisplayMode === 'totalPrice' ? 'Đã bao gồm thuế và phí' : 'Chưa bao gồm thuế và phí' }}
                     </p>
@@ -374,16 +378,12 @@
                       class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 translate-z-0 w-max max-w-[280px] bg-gray-800 text-white text-xs rounded-lg py-2 px-3 opacity-0 peer-hover:opacity-100 transition-opacity whitespace-nowrap z-9999 shadow-lg cursor-default">
                       <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-left">
                         <span class="font-medium text-gray-300">Giá phòng:</span>
-                        <span class="text-right font-semibold">{{ formatPrice(variant.price) }}</span>
-
+                        <span class="text-right font-semibold">{{ formatPrice(getDiscountedBasePrice(variant)) }}</span>
                         <span class="font-medium text-gray-300">Thuế và phí:</span>
-                        <span class="text-right font-semibold">{{ formatPrice(getTaxesAndFees(variant)) }}</span>
-
+                        <span class="text-right font-semibold">{{ formatPrice(getDiscountedTaxesAndFees(variant)) }}</span>
                         <div class="col-span-2 border-t border-gray-600 my-1"></div>
-
                         <span class="font-bold text-gray-100">Tổng cộng:</span>
-                        <span class="text-right font-bold text-gray-100">{{ formatPrice(variant.totalPrice ??
-                          variant.price) }}</span>
+                        <span class="text-right font-bold text-gray-100">{{ formatPrice(getDiscountedTotalPrice(variant)) }}</span>
                       </div>
                       <div
                         class="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800">
@@ -397,6 +397,12 @@
                     @click="goToBooking(room, variant)">
                     Chọn
                   </button>
+                  <div v-if="room.roomQuantity !== undefined && room.roomQuantity !== null && room.roomQuantity <= 5 && room.roomQuantity > 0"
+                      class="mt-2 flex justify-center items-center">
+                    <span class="inline-block px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold text-xs whitespace-nowrap border border-red-200">
+                      Chỉ còn {{ room.roomQuantity }} phòng
+                    </span>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -415,44 +421,106 @@
       </div>
     </section>
 
-    <section v-if="reviewsList.length > 0" class="bg-white rounded-xl shadow p-6 mb-8">
-      <div class="flex items-center gap-4 mb-8">
-        <h2 class="text-2xl font-bold text-gray-800">{{ hotel.reviewCount }} đánh giá</h2>
-      </div>
-      <div class="space-y-6">
-        <div v-for="review in paginatedReviews" :key="review.id"
-          class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div class="flex items-start gap-6">
-            <div class="flex-shrink-0 w-40">
-              <div class="flex items-center gap-4">
-                <img :alt="review.username" class="w-12 h-12 rounded-full object-cover"
-                  :src="review.avatar || 'https://i.pravatar.cc/150?u=' + review.username" />
-                <div>
-                  <h3 class="text-base font-bold text-gray-900">{{ review.username }}</h3>
-                  <p class="text-sm text-gray-500 mt-0.5">{{ formatDate(review.createdAt) }}</p>
-                </div>
+    <section class="bg-white rounded-xl shadow p-6 mb-8">
+      <div class="flex flex-col sm:flex-row items-center gap-8 mb-8">
+        <div class="flex flex-row items-center gap-6 w-full sm:w-auto">
+          <div class="flex items-center justify-center">
+            <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-white border-2 border-blue-100 shadow p-0.5">
+              <div class="w-24 h-24 flex items-center justify-center rounded-2xl bg-blue-50">
+                <span class="text-5xl font-extrabold text-blue-500">{{ averageRating.toFixed(1) }}</span>
               </div>
             </div>
-            <div class="flex-grow">
-              <div class="flex items-center justify-between mb-2">
-                <div
-                  class="flex items-center gap-1.5 bg-blue-100 text-blue-800 font-bold text-sm px-2.5 py-1 rounded-full">
-                  <i class="fas fa-star text-xs"></i><span>{{ review.rating.toFixed(1) }}</span>
-                </div>
-              </div>
-              <p class="text-gray-700 leading-relaxed">{{ review.comment }}</p>
+          </div>
+          <div class="flex flex-col justify-center">
+            <div class="text-2xl font-extrabold text-blue-600">{{ ratingLabel }}</div>
+            <div class="text-lg font-bold text-gray-900 mt-1">Từ {{ reviewsList.length }} đánh giá</div>
+            <div class="text-gray-400 text-sm mt-1">Bởi khách du lịch trên hệ thống</div>
+          </div>
+        </div>
+        <div class="flex-1 flex flex-col sm:flex-row gap-4 items-center justify-end">
+          <div class="flex items-center gap-8">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Sắp xếp theo:</span>
+              <CustomSelect
+                v-model="selectedSortOption"
+                :options="sortOptions"
+                class="w-44 min-w-[235px]"
+                @update:modelValue="val => selectedSortOption = val"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Lọc theo mức độ:</span>
+              <CustomSelect
+                v-model="selectedLevelFilter"
+                :options="levelOptions"
+                class="w-44 min-w-[200px]"
+                @update:modelValue="val => selectedLevelFilter = val"
+              />
             </div>
           </div>
         </div>
       </div>
-      <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div v-if="filteredReviews.length > 0" class="space-y-6">
+        <div v-for="review in paginatedReviews" :key="review.id"
+          class="flex items-start gap-6 bg-white p-6 rounded-2xl border border-gray-200 shadow mb-4">
+          <div class="flex-shrink-0">
+            <div v-if="review.avatar" class="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+              <img :src="review.avatar" :alt="review.author" class="w-full h-full object-cover" />
+            </div>
+            <div v-else class="w-16 h-16 rounded-full bg-blue-900 flex items-center justify-center text-white text-2xl font-bold">
+              {{ (review.author || '').charAt(0).toUpperCase() }}
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-row items-start justify-between gap-2">
+              <div class="flex items-center gap-3 flex-wrap">
+                <span class="font-bold text-lg text-gray-900">{{ review.author }}</span>
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-base">
+                  <i class="fas fa-crow text-blue-400"></i> {{ review.rating?.toFixed(1) || review.rating }}/5
+                </span>
+              </div>
+              <span class="text-gray-500 text-sm font-medium whitespace-nowrap">{{ formatRelativeTime(review) }}</span>
+            </div>
+            <div class="mt-2 text-base text-gray-900 font-normal whitespace-pre-line">{{ review.content }}</div>
+            <div v-if="review.translated" class="text-xs text-gray-400 italic mt-1">translated by Google <a href="#" class="text-blue-500 underline ml-1">Xem bản gốc</a></div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="text-center text-gray-500 text-base py-8">
+        Chưa có nhận xét nào cho khách sạn này. Hãy là người đầu tiên đánh giá!
+      </div>
+      <div class="mt-10 bg-slate-50 rounded-xl p-6 shadow flex flex-col gap-4 max-w-xl mx-auto">
+        <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <i class="fas fa-pen-nib text-blue-500"></i> Viết đánh giá của bạn
+        </h3>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-gray-700 font-medium mr-2">Chọn số sao:</span>
+          <template v-for="n in 5" :key="n">
+            <i class="fas fa-star cursor-pointer text-2xl transition"
+              :class="n <= newReview.rating ? 'text-yellow-400' : 'text-gray-300'" @click="newReview.rating = n"></i>
+          </template>
+        </div>
+        <textarea v-model="newReview.content" rows="3" maxlength="500"
+          class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-blue-200 focus:outline-none resize-none"
+          placeholder="Chia sẻ cảm nhận của bạn về khách sạn này..."></textarea>
+        <button @click="submitReview" :disabled="submittingReview || !canSubmitReview"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-lg transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <i class="fas fa-paper-plane"></i>
+          <span v-if="!submittingReview">Gửi đánh giá</span>
+          <span v-else>Đang gửi...</span>
+        </button>
+        <p v-if="reviewError" class="text-red-500 text-sm text-center mt-2">{{ reviewError }}</p>
+        <p v-if="reviewSuccess" class="text-green-600 text-sm text-center mt-2">{{ reviewSuccess }}</p>
+      </div>
+      <div v-if="reviewsList.length > 0" class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-2">
-          <label for="reviews-per-page" class="text-sm font-medium text-gray-700">Hiển thị:</label>
-          <select id="reviews-per-page" v-model="reviewsPerPage"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5">
-            <option v-for="option in reviewsPerPageOptions" :key="option.value" :value="option.value">{{ option.text }}
-            </option>
-          </select>
+          <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Hiển thị:</span>
+          <CustomSelect
+            v-model="reviewsPerPage"
+            :options="reviewsPerPageOptions"
+            class="w-44 min-w-[140px]"
+            @update:modelValue="val => reviewsPerPage = val"
+          />
         </div>
         <div class="flex items-center gap-4">
           <span class="text-sm font-medium text-gray-700">Trang {{ currentPage }} / {{ totalPages }}</span>
@@ -470,23 +538,46 @@
   </main>
 
   <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center pt-15"
-    style="backdrop-filter: blur(6px); background-color: rgba(0, 0, 0, 0.15)" @click.self="closeModal">
+    style="background-color: rgba(0,0,0,0.5)" @click.self="closeModal">
     <div
       class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 lg:mx-0 overflow-hidden relative flex flex-col md:flex-row"
       style="max-height: 80vh">
       <div class="md:w-1/2 w-full flex flex-col bg-gray-50">
-        <div class="flex-grow flex items-center justify-center p-4">
-          <div class="w-full h-80 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden shadow">
+        <div class="flex-grow flex items-center justify-center p-4 relative">
+          <div
+            class="w-full h-80 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden shadow relative">
             <img v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length"
               :src="selectedRoom.imageUrls[modalImageIndex]" :alt="selectedRoom.roomType"
               class="w-full h-full object-cover transition-all duration-200" />
+            <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="prevModalImage"
+              class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 z-10">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="nextModalImage"
+              class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 z-10">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            <div v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1"
+              class="absolute top-3 right-4 bg-black/60 text-white text-xs font-semibold rounded-full px-3 py-1 z-20">
+              {{ modalImageIndex + 1 }}/{{ selectedRoom.imageUrls.length }}
+            </div>
           </div>
         </div>
-        <div class="flex gap-3 justify-center p-3 bg-white">
-          <img v-for="(img, idx) in selectedRoom.imageUrls" :key="idx" :src="img" :alt="`Ảnh ${idx + 1}`"
-            class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 transition-all duration-200"
-            :class="modalImageIndex === idx ? 'border-blue-500 shadow-lg scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'"
-            @click="modalImageIndex = idx" />
+        <div class="flex gap-3 justify-center p-3 bg-white relative items-center group">
+          <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="prevModalImage"
+            class="absolute left-0 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div ref="thumbsContainer" class="flex gap-3 overflow-x-auto scrollbar-hide w-full px-8">
+            <img v-for="(img, idx) in selectedRoom.imageUrls" :key="idx" :src="img" :alt="`Ảnh ${idx + 1}`"
+              class="w-24 h-20 object-cover rounded-lg cursor-pointer border-2 transition-all duration-200 mt-2 mb-2"
+              :class="modalImageIndex === idx ? 'border-blue-500 shadow-lg scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'"
+              @click="modalImageIndex = idx" />
+          </div>
+          <button v-if="selectedRoom.imageUrls && selectedRoom.imageUrls.length > 1" @click="nextModalImage"
+            class="absolute right-0 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center z-10 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
       <div class="md:w-1/2 w-full flex flex-col h-full">
@@ -535,14 +626,35 @@
           class="fas fa-times fa-lg"></i></button>
     </div>
   </div>
+
+  <div v-if="showDescriptionModal" class="fixed inset-0 z-50 flex items-center justify-center pt-15"
+    style="background-color: rgba(0,0,0,0.5)" @click.self="showDescriptionModal = false">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 lg:mx-0 overflow-hidden relative flex flex-col"
+      style="max-height: 80vh">
+      <button @click="showDescriptionModal = false"
+        class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 z-50 text-2xl"><i
+          class="fas fa-times"></i></button>
+      <h2 class="text-xl font-bold text-gray-800 mb-4 px-8 pt-8">Giới thiệu {{ hotel.name }}</h2>
+      <hr class="mb-4 mt-2" />
+      <div class="flex-1 overflow-auto px-8">
+        <HtmlContent :content="hotel.description" />
+      </div>
+      <button @click="showDescriptionModal = false"
+        class="m-8 w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors">
+        Khám phá thêm về {{ hotel.name }}
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { getHotelById, getHotelReviews, searchHotels } from "@/api/hotelApi";
-import { getAllProvinces } from "@/api/provinceApi";
+import { getHotelById, getHotelReviews, searchHotels, createHotelReview } from "@/api/hotelApi";
+import { getAllProvinces } from "@/api/provinceApi.js";
 import HotelCard from '@/components/Home/HotelCard.vue';
+import HtmlContent from '@/components/HtmlContent.vue';
+import CustomSelect from '@/components/CustomSelect.vue';
 
 const hotel = ref(null);
 const reviewsList = ref([]);
@@ -582,8 +694,20 @@ const priceDisplayMode = ref('price');
 const provinces = ref([]);
 const hotelSuggestions = ref([]);
 const debounceTimer = ref(null);
+const showDescriptionModal = ref(false);
+const thumbsContainer = ref(null);
+
+const newReview = ref({ rating: 0, content: '' });
+const submittingReview = ref(false);
+const reviewError = ref('');
+const reviewSuccess = ref('');
+const canSubmitReview = computed(() => newReview.value.rating > 0 && newReview.value.content.trim().length > 0);
 
 const goToBooking = (room, variant) => {
+  if (room.roomQuantity !== undefined && room.roomQuantity !== null && searchParams.value.rooms > room.roomQuantity) {
+    if (window.$toast) window.$toast(`Hiện tại không đủ phòng`, 'error');
+    return;
+  }
   router.push({
     name: 'HotelBooking',
     query: {
@@ -597,15 +721,19 @@ const goToBooking = (room, variant) => {
       variantBreakfast: variant.hasBreakfast ? 'Gồm bữa sáng' : 'Không gồm bữa sáng',
       roomBed: room.bedType,
       variantOriginalPrice: variant.price,
-      variantDiscountedPrice: variant.totalPrice ?? variant.price,
+      variantDiscountedPrice: getDiscountedPrice(variant),
+      taxAndFeeAmount: variant.taxAndFeeAmount || 0,
       nights: numberOfNights.value || 1,
       checkin: searchParams.value.checkin,
       checkout: searchParams.value.checkout,
       maxAdults: room.maxAdults,
       maxChildren: room.maxChildren,
+      adults: searchParams.value.adults,
+      children: searchParams.value.children,
       discount: 0,
       serviceFee: 0,
       rooms: searchParams.value.rooms,
+      roomVariantId: variant.id,
     }
   });
 };
@@ -710,7 +838,7 @@ const visibleAmenities = computed(() => {
 const filteredRoomTypes = computed(() => {
   if (!hotel.value?.availableRooms) return [];
 
-  const roomsCopy = JSON.parse(JSON.stringify(hotel.value.availableRooms));
+  const roomsCopy = JSON.parse(JSON.stringify(hotel.value.availableRooms)).filter(room => room.roomQuantity > 0);
 
   if (selectedAmenities.value.length === 0) {
     return roomsCopy;
@@ -775,8 +903,8 @@ const getTaxesAndFees = (variant) => {
 const currentPage = ref(1);
 const reviewsPerPage = ref(5);
 const reviewsPerPageOptions = ref([
-  { value: 5, text: "5 đánh giá" },
-  { value: 10, text: "10 đánh giá" },
+  { value: 5, label: '5 đánh giá' },
+  { value: 10, label: '10 đánh giá' }
 ]);
 
 const totalPages = computed(() => {
@@ -784,10 +912,51 @@ const totalPages = computed(() => {
   return Math.ceil(reviewsList.value.length / reviewsPerPage.value);
 });
 
+const averageRating = computed(() => {
+  if (!reviewsList.value.length) return 0;
+  const sum = reviewsList.value.reduce((acc, r) => acc + (r.rating || 0), 0);
+  return sum / reviewsList.value.length;
+});
+const ratingLabel = computed(() => {
+  const avg = averageRating.value;
+  if (avg >= 4.5) return 'Xuất sắc';
+  if (avg >= 4.0) return 'Rất tốt';
+  if (avg >= 3.0) return 'Tốt';
+  if (avg >= 2.0) return 'Trung bình';
+  return 'Kém';
+});
+const selectedSortOption = ref('recent');
+const selectedLevelFilter = ref('all');
+const filteredReviews = computed(() => {
+  let filtered = reviewsList.value.slice();
+  if (selectedLevelFilter.value !== 'all') {
+    filtered = filtered.filter(r => {
+      if (selectedLevelFilter.value === 'excellent') return r.rating === 5;
+      if (selectedLevelFilter.value === 'verygood') return r.rating === 4;
+      if (selectedLevelFilter.value === 'good') return r.rating === 3;
+      if (selectedLevelFilter.value === 'average') return r.rating === 2;
+      if (selectedLevelFilter.value === 'poor') return r.rating === 1;
+      return true;
+    });
+  }
+  if (selectedSortOption.value === 'recent') {
+    filtered.sort((a, b) => {
+      const dateA = parseVNDate(a.createdAt || a.created_at || a.date);
+      const dateB = parseVNDate(b.createdAt || b.created_at || b.date);
+      return dateB - dateA;
+    });
+  } else if (selectedSortOption.value === 'ratingDesc') {
+    filtered.sort((a, b) => b.rating - a.rating);
+  } else if (selectedSortOption.value === 'ratingAsc') {
+    filtered.sort((a, b) => a.rating - b.rating);
+  }
+  return filtered;
+});
+
 const paginatedReviews = computed(() => {
   const start = (currentPage.value - 1) * reviewsPerPage.value;
   const end = start + reviewsPerPage.value;
-  return reviewsList.value.slice(start, end);
+  return filteredReviews.value.slice(start, end);
 });
 
 const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++; };
@@ -919,6 +1088,9 @@ const updateGuests = (type, amount) => {
 };
 
 const handleClickOutside = (event) => {
+  if (priceDropdownRef.value && !priceDropdownRef.value.contains(event.target)) {
+    showPriceDropdown.value = false;
+  }
   if (searchWidgetContainer.value && !searchWidgetContainer.value.contains(event.target)) {
     showLocationDropdown.value = false;
     showGuestsDropdown.value = false;
@@ -932,8 +1104,6 @@ const handleClickOutside = (event) => {
     if (guestsContainer.value && !guestsContainer.value.contains(event.target)) {
       showGuestsDropdown.value = false;
     }
-    if (priceDropdownRef.value && !priceDropdownRef.value.contains(event.target))
-      showPriceDropdown.value = false;
   }
 };
 
@@ -992,6 +1162,169 @@ const selectPriceOption = (value) => {
   priceDisplayMode.value = value;
   showPriceDropdown.value = false;
 };
+
+function prevModalImage() {
+  if (!selectedRoom.value?.imageUrls?.length) return;
+  modalImageIndex.value = (modalImageIndex.value - 1 + selectedRoom.value.imageUrls.length) % selectedRoom.value.imageUrls.length;
+  scrollThumbToActive();
+}
+function nextModalImage() {
+  if (!selectedRoom.value?.imageUrls?.length) return;
+  modalImageIndex.value = (modalImageIndex.value + 1) % selectedRoom.value.imageUrls.length;
+  scrollThumbToActive();
+}
+function scrollThumbs(direction) {
+  const el = thumbsContainer.value;
+  if (!el) return;
+  const scrollAmount = 120;
+  if (direction === 'left') el.scrollLeft -= scrollAmount;
+  else el.scrollLeft += scrollAmount;
+}
+function scrollThumbToActive() {
+  const el = thumbsContainer.value;
+  if (!el) return;
+  const active = el.querySelectorAll('img')[modalImageIndex.value];
+  if (active) {
+    const offsetLeft = active.offsetLeft;
+    const offsetWidth = active.offsetWidth;
+    const containerWidth = el.offsetWidth;
+    if (offsetLeft < el.scrollLeft || offsetLeft + offsetWidth > el.scrollLeft + containerWidth) {
+      el.scrollLeft = offsetLeft - containerWidth / 2 + offsetWidth / 2;
+    }
+  }
+}
+watch(modalImageIndex, () => scrollThumbToActive());
+
+function parseVNDate(str) {
+  if (!str) return new Date(0);
+  const [datePart, timePart] = str.split(' ');
+  const [day, month, year] = datePart.split('/').map(Number);
+  let hours = 0, minutes = 0;
+  if (timePart) {
+    [hours, minutes] = timePart.split(':').map(Number);
+  }
+  return new Date(year, month - 1, day, hours, minutes);
+}
+
+function formatRelativeTime(review) {
+  const raw = review.createdAt || review.created_at || review.date;
+  if (!raw) return '';
+  const date = parseVNDate(raw);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  const diffWeek = Math.floor(diffDay / 7);
+  const diffMonth = Math.floor(diffDay / 30);
+  if (diffMin < 1) return 'Vừa xong';
+  if (diffHour < 1) return `${diffMin} phút trước`;
+  if (diffDay < 1) return `${diffHour} giờ trước`;
+  if (diffWeek < 1) return `${diffDay} ngày trước`;
+  if (diffMonth < 1) return `${diffWeek} tuần trước`;
+  return `${diffMonth} tháng trước`;
+}
+
+const submitReview = async () => {
+  reviewError.value = '';
+  reviewSuccess.value = '';
+  if (!canSubmitReview.value) return;
+  submittingReview.value = true;
+  try {
+    await createHotelReview(hotel.value.id, {
+      rating: newReview.value.rating,
+      content: newReview.value.content.trim()
+    });
+    reviewSuccess.value = 'Đánh giá của bạn đã được gửi!';
+    newReview.value.rating = 0;
+    newReview.value.content = '';
+    await fetchHotelData(hotel.value.id);
+  } catch (e) {
+    if (e.response && e.response.status === 401) {
+      if (window.$toast) window.$toast('Bạn cần đăng nhập để gửi đánh giá!', 'error');
+      return;
+    } else {
+      reviewError.value = 'Gửi đánh giá thất bại. Vui lòng thử lại.';
+    }
+  } finally {
+    submittingReview.value = false;
+  }
+};
+
+const sortOptions = [
+  { label: 'Gần đây nhất', value: 'recent' },
+  { label: 'Đánh giá (cao xuống thấp)', value: 'ratingDesc' },
+  { label: 'Đánh giá (thấp đến cao)', value: 'ratingAsc' },
+];
+const levelOptions = [
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Xuất sắc (5★)', value: 'excellent' },
+  { label: 'Rất tốt (4★)', value: 'verygood' },
+  { label: 'Tốt (3★)', value: 'good' },
+  { label: 'Trung bình (2★)', value: 'average' },
+  { label: 'Kém (1★)', value: 'poor' },
+];
+
+function getDiscountedPrice(variant) {
+  if (!variant.discountType || !variant.discountValue) return priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+  let base = priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+  if (variant.discountType === 'amount') return Math.max(0, base - variant.discountValue);
+  if (variant.discountType === 'percent') return Math.max(0, base * (1 - variant.discountValue / 100));
+  return base;
+}
+function showVariantDiscount(variant) {
+  if (!variant.discountType || !variant.discountValue) return false;
+  let base = priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+  let discounted = getDiscountedPrice(variant);
+  return discounted < base;
+}
+
+function getHeaderDisplayPrice(hotel) {
+  let min = Infinity;
+  if (hotel.availableRooms) {
+    hotel.availableRooms.forEach(room => {
+      if (room.availableVariants) {
+        room.availableVariants.forEach(variant => {
+          let base = priceDisplayMode.value === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price;
+          let price = base;
+          if (variant.discountType && variant.discountValue) {
+            if (variant.discountType === 'amount') price = base - variant.discountValue;
+            if (variant.discountType === 'percent') price = base * (1 - variant.discountValue / 100);
+          }
+          if (price < min) min = price;
+        });
+      }
+    });
+  }
+  return min !== Infinity ? min : null;
+}
+
+function getDiscountedBasePrice(variant) {
+  let base = variant.price;
+  if (variant.discountType && variant.discountValue) {
+    if (variant.discountType === 'amount') base = base - variant.discountValue;
+    if (variant.discountType === 'percent') base = base * (1 - variant.discountValue / 100);
+  }
+  return base;
+}
+function getDiscountedTaxesAndFees(variant) {
+  let base = variant.price;
+  if (variant.discountType && variant.discountValue) {
+    if (variant.discountType === 'amount') base = base - variant.discountValue;
+    if (variant.discountType === 'percent') base = base * (1 - variant.discountValue / 100);
+  }
+  if (variant.taxAndFeeAmount) return variant.taxAndFeeAmount;
+  return 0;
+}
+function getDiscountedTotalPrice(variant) {
+  let base = variant.price;
+  if (variant.discountType && variant.discountValue) {
+    if (variant.discountType === 'amount') base = base - variant.discountValue;
+    if (variant.discountType === 'percent') base = base * (1 - variant.discountValue / 100);
+  }
+  return base + (variant.taxAndFeeAmount || 0);
+}
 </script>
 
 <style scoped>
@@ -1024,5 +1357,80 @@ const selectPriceOption = (value) => {
 
 .slide-right-leave-to {
   transform: translateX(100%);
+}
+
+.custom-checkbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.custom-checkbox .checkmark {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.custom-checkbox input:checked+.checkmark {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.custom-checkbox .checkmark::after {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  mask: url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="gray" stroke-width="3" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>') center/contain no-repeat;
+  background: #d1d5db;
+  opacity: 0.7;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.custom-checkbox input:checked+.checkmark::after {
+  background: #fff;
+  opacity: 1;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.btn-outline-blue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: #e6f0fa;
+  color: #1976d2;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  transition: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-outline-blue:active,
+.btn-outline-blue:focus,
+.btn-outline-blue:hover {
+  background: #e6f0fa;
+  color: #1976d2;
+  text-decoration: none;
+  box-shadow: none;
 }
 </style>

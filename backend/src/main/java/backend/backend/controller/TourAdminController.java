@@ -17,11 +17,20 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/tours")
-@CrossOrigin(origins = "*")
+
 public class TourAdminController {
 
 @Autowired
 private TourAdminService tourAdminService;
+
+		/**
+		 * API [GET] /api/admin/tours?userId=5 - Lấy danh sách tour theo userId
+		 */
+		@GetMapping(params = "userId")
+		public ResponseEntity<ApiResponse<List<TourDetailAdminDTO>>> getToursByUserId(@RequestParam Integer userId) {
+		    List<TourDetailAdminDTO> tours = tourAdminService.getToursByUserId(userId);
+		    return ResponseFactory.success(tours, "Lấy danh sách tour theo người dùng thành công.");
+		}
 
 		/**
 		* API [GET] /api/admin/tours - Lấy danh sách tour

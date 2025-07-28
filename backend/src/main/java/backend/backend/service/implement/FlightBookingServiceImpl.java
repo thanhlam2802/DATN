@@ -1,15 +1,19 @@
 package backend.backend.service.implement;
 
-import backend.backend.dao.FlightBookingDAO;
-import backend.backend.dao.FlightDAO;
-import backend.backend.dao.FlightSlotDAO;
+import backend.backend.dao.*;
+
+
 import backend.backend.dto.*;
 import backend.backend.entity.*;
+import backend.backend.exception.ResourceNotFoundException; // BỔ SUNG
 import backend.backend.service.FlightBookingService;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
+import java.math.BigDecimal; // BỔ SUNG
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,37 +22,60 @@ import java.util.stream.Collectors;
 @Service
 public class FlightBookingServiceImpl implements FlightBookingService {
 
+
     @Autowired
     private FlightBookingDAO flightBookingDAO;
     @Autowired
     private FlightDAO flightDAO;
     @Autowired
     private FlightSlotDAO flightSlotDAO;
+    @Autowired
+    private CustomerDAO customerDAO;
+    @Autowired
+    private OrderDAO orderDAO;
 
+
+    /**
+     * SỬA ĐỔI: Phương thức này giờ sẽ cập nhật tổng tiền của Order.
+     */
     @Override
+    @Transactional // BỔ SUNG
     public FlightBookingDetailDto bookFlight(FlightBookingDto bookingDto) {
         String requestId = UUID.randomUUID().toString();
         log.info("BOOK_FLIGHT_REQUEST      - RequestId: {}, payload: {}", requestId, bookingDto);
         try {
-            // Lấy slot
-            FlightSlot slot = flightSlotDAO.findById(bookingDto.getFlightSlotId()).orElse(null);
-            if (slot == null) {
-                log.warn("BOOK_FLIGHT_SLOT_NOT_FOUND - RequestId: {}, slotId: {}", requestId, bookingDto.getFlightSlotId());
-                return null;
+            // 1. Lấy slot
+            FlightSlot slot = flightSlotDAO.findById(bookingDto.getFlightSlotId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy slot chuyến bay với ID: " + bookingDto.getFlightSlotId()));
+
+            // 2. Lấy Order (giỏ hàng)
+            Order order;
+            if (bookingDto.getOrderId() != null) {
+                order = orderDAO.findById(bookingDto.getOrderId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy order với ID: " + bookingDto.getOrderId()));
+            } else {
+                throw new IllegalArgumentException("OrderId là bắt buộc để thêm chuyến bay vào giỏ hàng.");
             }
 
-            // Tạo booking
+            // 3. Tính toán giá và cập nhật tổng tiền của Order
+            BigDecimal newBookingPrice = slot.getPrice();
+           System.out.print(newBookingPrice);
+            BigDecimal currentOrderAmount = order.getAmount() != null ? order.getAmount() : BigDecimal.ZERO;
+            order.setAmount(currentOrderAmount.add(newBookingPrice));
+            orderDAO.save(order);
+            
+
+            // 4. Tạo booking flight
             FlightBooking booking = new FlightBooking();
             booking.setFlightSlot(slot);
             booking.setBookingDate(LocalDateTime.now());
+            booking.setOrder(order); // Gán đối tượng Order đã được quản lý
+            booking.setTotalPrice(newBookingPrice); 
             if (bookingDto.getCustomerId() != null) {
                 Customer c = new Customer(); c.setId(bookingDto.getCustomerId());
                 booking.setCustomer(c);
             }
-            if (bookingDto.getTicketDetailId() != null) {
-                TicketDetail td = new TicketDetail(); td.setId(bookingDto.getTicketDetailId());
-                booking.setTicketDetail(td);
-            }
+            
             flightBookingDAO.save(booking);
             log.info("BOOK_FLIGHT_SUCCESS      - RequestId: {}, bookingId: {}", requestId, booking.getId());
 
@@ -64,11 +91,9 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         String requestId = UUID.randomUUID().toString();
         log.info("PAY_FLIGHT_REQUEST       - RequestId: {}, bookingId: {}", requestId, paymentRequestDto.getBookingId());
         try {
-            FlightBooking booking = flightBookingDAO.findById(paymentRequestDto.getBookingId()).orElse(null);
-            if (booking == null) {
-                log.warn("PAY_FLIGHT_BOOKING_NOT_FOUND - RequestId: {}, bookingId: {}", requestId, paymentRequestDto.getBookingId());
-                return null;
-            }
+            FlightBooking booking = flightBookingDAO.findById(paymentRequestDto.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt vé máy bay với ID: " + paymentRequestDto.getBookingId()));
+            
             PaymentStatusDto status = new PaymentStatusDto();
             status.setBookingId(booking.getId());
             status.setStatus("PAID");
@@ -97,17 +122,15 @@ public class FlightBookingServiceImpl implements FlightBookingService {
             throw e;
         }
     }
-
+    @Transactional
     @Override
     public FlightBookingDetailDto getFlightBookingDetail(Integer bookingId) {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_BOOKING_DETAIL_REQ   - RequestId: {}, bookingId: {}", requestId, bookingId);
         try {
-            FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
-            if (booking == null) {
-                log.warn("GET_BOOKING_DETAIL_NOT_FOUND - RequestId: {}, bookingId: {}", requestId, bookingId);
-                return null;
-            }
+            FlightBooking booking = flightBookingDAO.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt vé máy bay với ID: " + bookingId));
+            
             FlightBookingDetailDto dto = toBookingDetailDto(booking, booking.getFlightSlot().getFlight());
             log.info("GET_BOOKING_DETAIL_SUCCESS - RequestId: {}, bookingId: {}", requestId, bookingId);
             return dto;
@@ -122,11 +145,9 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         String requestId = UUID.randomUUID().toString();
         log.info("CANCEL_BOOKING_REQUEST   - RequestId: {}, bookingId: {}", requestId, bookingId);
         try {
-            FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
-            if (booking == null) {
-                log.warn("CANCEL_BOOKING_NOT_FOUND - RequestId: {}, bookingId: {}", requestId, bookingId);
-                return null;
-            }
+            FlightBooking booking = flightBookingDAO.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt vé máy bay với ID: " + bookingId));
+
             PaymentStatusDto status = new PaymentStatusDto();
             status.setBookingId(booking.getId());
             status.setStatus("CANCELLED");
@@ -138,13 +159,39 @@ public class FlightBookingServiceImpl implements FlightBookingService {
             throw e;
         }
     }
+    @Transactional
+    @Override
+    public FlightOrderReservationDto getFlightReservationSummary(Integer bookingId) {
+        FlightBooking booking = flightBookingDAO.findById(bookingId).orElse(null);
+        if (booking == null) return null;
+        FlightOrderReservationDto dto = new FlightOrderReservationDto();
+        dto.setOrder(toOrderDto(booking.getOrder()));
+        dto.setBooking(getFlightBookingDetail(booking.getId()));
+        dto.setCustomer(toCustomerDto(booking.getCustomer()));
+        dto.setFlightSlot(toFlightSlotDto(booking.getFlightSlot()));
+        return dto;
+    }
+
+    @Override
+    public FlightBooking createFlightBooking(Integer orderId,AddItemRequestDto genericRequest) {
+        Customer customer = customerDAO.findById(genericRequest.getCustomerId()).orElse(null);
+        FlightSlot flightSlot = flightSlotDAO.findById(genericRequest.getFlightSlotId()).orElse(null);
+        FlightBooking booking = new FlightBooking();
+        booking.setCustomer(customer);
+        booking.setFlightSlot(flightSlot);
+        booking.setTotalPrice(flightSlot.getPrice());
+        booking.setOrder(orderDAO.findById(orderId).orElse(null));
+        booking.setBookingDate(LocalDateTime.now());
+
+        return flightBookingDAO.save(booking);
+    }
 
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking booking, Flight flight) {
         log.debug("MAPPING_BOOKING_TO_DTO    - bookingId: {}, flightId: {}", booking.getId(), flight.getId());
         FlightBookingDetailDto dto = new FlightBookingDetailDto();
         dto.setBookingId(booking.getId());
         dto.setFlight(toFlightDto(flight));
-        dto.setTotalPrice(booking.getFlightSlot().getPrice().doubleValue());
+        dto.setTotalPrice(booking.getTotalPrice().doubleValue());
         dto.setStatus("BOOKED");
         dto.setCreatedAt(booking.getBookingDate());
         log.debug("MAPPING_BOOKING_TO_DTO_DONE - bookingId: {}", booking.getId());
@@ -163,7 +210,6 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         dto.setUpdatedAt(flight.getUpdatedAt());
         if (flight.getCategory() != null) {
             log.debug("MAPPING_CATEGORY          - categoryId: {}", flight.getCategory().getId());
-            dto.setCategoryId(flight.getCategory().getId());
             dto.setCategory(toFlightCategoryDto(flight.getCategory()));
         }
         if (flight.getOwner() != null) {
@@ -212,4 +258,47 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         log.debug("MAPPING_CATEGORY_TO_DTO_DONE - categoryId: {}", category.getId());
         return dto;
     }
+
+
+    private static OrderDto toOrderDto(Order entity) {
+        if (entity == null) return null;
+        OrderDto dto = new OrderDto();
+        dto.setId(entity.getId());
+        dto.setUserId(entity.getUser() != null ? entity.getUser().getId() : null);
+        dto.setAmount(entity.getAmount());
+        dto.setStatus(entity.getStatus());
+        dto.setPayDate(entity.getPayDate());
+        dto.setVoucherId(entity.getVoucher() != null ? entity.getVoucher().getId() : null);
+        dto.setDestinationId(entity.getDestination() != null ? entity.getDestination().getId() : null);
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setMainProduct("");
+        dto.setExpiresAt(entity.getExpiresAt());
+        return dto;
+    }
+    private static CustomerDto toCustomerDto(Customer entity) {
+        if (entity == null) return null;
+        CustomerDto dto = new CustomerDto();
+        dto.setId(entity.getId());
+        dto.setFullName(entity.getFullName());
+        dto.setGender(entity.getGender());
+        dto.setDob(entity.getDob());
+        dto.setPassport(entity.getPassport());
+        dto.setEmail(entity.getEmail());
+        dto.setPhone(entity.getPhone());
+        return dto;
+    }
+    private static FlightSlotDto toFlightSlotDto(FlightSlot entity) {
+        if (entity == null) return null;
+        FlightSlotDto dto = new FlightSlotDto();
+        dto.setId(entity.getId());
+        dto.setPrice(entity.getPrice());
+        dto.setIsBusiness(entity.getIsBusiness());
+        dto.setSeatNumber(entity.getSeatNumber());
+        dto.setIsWindow(entity.getIsWindow());
+        dto.setIsAisle(entity.getIsAisle());
+        dto.setFlightId(entity.getFlight() != null ? entity.getFlight().getId() : null);
+        dto.setCarryOnLuggage(entity.getCarryOnLuggage());
+        return dto;
+    }
 }
+

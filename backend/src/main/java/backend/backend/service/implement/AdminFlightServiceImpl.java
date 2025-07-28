@@ -46,7 +46,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
             throw e;
         }
     }
-
+    @Transactional
     @Override
     public FlightDto getFlightDetail(Integer flightId) {
         String requestId = UUID.randomUUID().toString();
@@ -168,32 +168,11 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 f.setArrivalAirport(aa);
             }
             // giả định owner
-            User u = new User(); u.setId(5);
+            User u = new User(); u.setId(16);
             f.setOwner(u);
 
             Flight saved = flightDAO.save(f);
             log.info("CREATE_FLIGHT_DETAILS_SUC  - RequestId: {}, flightId: {}", requestId, saved.getId());
-
-            if (req.getImages() != null) {
-                for (MultipartFile imgFile : req.getImages()) {
-                    if (imgFile.isEmpty()) continue;
-                    try {
-                        Map<String,String> up = imageStorageService.uploadImage(imgFile);
-                        Image img = new Image();
-                        img.setUrl(up.get("url"));
-                        img.setAltText(saved.getName());
-                        img.setUploadedAt(LocalDateTime.now());
-                        Image savedImg = imageDAO.save(img);
-                        FlightImage fi = new FlightImage();
-                        fi.setFlight(saved);
-                        fi.setImage(savedImg);
-                        flightImageDAO.save(fi);
-                        log.debug("UPLOADED_IMAGE            - RequestId: {}, imageId: {}", requestId, savedImg.getId());
-                    } catch (Exception ex) {
-                        log.error("UPLOAD_IMAGE_FAILED       - RequestId: {}, error: {}", requestId, ex.getMessage(), ex);
-                    }
-                }
-            }
 
             if (req.getTicketInfo() != null) {
                 var t = req.getTicketInfo();
@@ -264,7 +243,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                     s.setIsAisle(sDto.getIsAisle());
                     s.setSeatNumber(sDto.getSeatNumber());
                     flightSlotDAO.save(s);
-                    log.debug("UPDATED_SEAT              - RequestId: {}, slotId: {}", requestId, s.getId());
+                    log.info("UPDATED_SEAT              - RequestId: {}, slotId: {}", requestId, s.getId());
                 });
             }
             var updated = flightDAO.findById(flightId).orElseThrow().getFlightSlots()
@@ -457,7 +436,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         } catch (Exception e) {
             log.error("DELETE_AIRPORT_FAILED     - RequestId: {}, airportId: {}, error: {}", requestId, airportId, e.getMessage(), e);
             throw e;
-        }
+        }   
     }
 
     @Override
@@ -496,7 +475,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                     fi.setFlight(flight);
                     fi.setImage(savedImg);
                     flightImageDAO.save(fi);
-                    log.debug("UPLOADED_IMAGE - flightId: {}, imageId: {}", flightId, savedImg.getId());
+                    log.info("UPLOADED_IMAGE - flightId: {}, imageId: {}", flightId, savedImg.getId());
                 } catch (Exception ex) {
                     log.error("UPLOAD_IMAGE_FAILED - flightId: {}, error: {}", flightId, ex.getMessage(), ex);
                 }
@@ -512,31 +491,198 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         }).toList();
     }
 
-    // mapping helpers with debug logging
-
-    private FlightDto toFlightDto(Flight f) {
-        log.debug("MAPPING_FLIGHT_TO_DTO      - flightId: {}", f.getId());
-        FlightDto dto = FlightDto.builder()
-                .id(f.getId())
-                .flightNumber(f.getFlightNumber())
-                .name(f.getName())
-                .departureTime(f.getDepartureTime())
-                .arrivalTime(f.getArrivalTime())
-                .createdAt(f.getCreatedAt())
-                .updatedAt(f.getUpdatedAt())
-                .categoryId(Optional.ofNullable(f.getCategory()).map(FlightCategory::getId).orElse(null))
-                .category(Optional.ofNullable(f.getCategory()).map(this::toFlightCategoryDto).orElse(null))
-                .ownerId(Optional.ofNullable(f.getOwner()).map(User::getId).orElse(null))
-                .departureAirport(Optional.ofNullable(f.getDepartureAirport()).map(this::toAirportDto).orElse(null))
-                .arrivalAirport(Optional.ofNullable(f.getArrivalAirport()).map(this::toAirportDto).orElse(null))
-                .airline(Optional.ofNullable(f.getAirline()).map(this::toAirlineDto).orElse(null))
-                .build();
-        log.debug("MAPPING_FLIGHT_TO_DTO_DONE - flightId: {}", f.getId());
-        return dto;
+    @Override
+    @Transactional
+    public List<ImageDto> uploadFlightImages(Integer flightId, List<MultipartFile> files) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPLOAD_FLIGHT_IMAGES_REQUEST - RequestId: {}, flightId: {}, fileCount: {}", requestId, flightId, files.size());
+        try {
+            Flight flight = flightDAO.findById(flightId).orElseThrow();
+            List<ImageDto> uploadedImages = new ArrayList<>();
+            
+            if (files != null) {
+                for (MultipartFile imgFile : files) {
+                    if (imgFile.isEmpty()) continue;
+                    try {
+                        Map<String,String> up = imageStorageService.uploadImage(imgFile);
+                        Image img = new Image();
+                        img.setUrl(up.get("url"));
+                        img.setAltText(flight.getName());
+                        img.setUploadedAt(LocalDateTime.now());
+                        img.setPublicId(up.get("publicId"));
+                        Image savedImg = imageDAO.save(img);
+                        FlightImage fi = new FlightImage();
+                        fi.setFlight(flight);
+                        fi.setImage(savedImg);
+                        flightImageDAO.save(fi);
+                        
+                        ImageDto dto = new ImageDto();
+                        dto.setId(savedImg.getId());
+                        dto.setImageUrl(savedImg.getUrl());
+                        uploadedImages.add(dto);
+                        
+                        log.info("UPLOADED_IMAGE - RequestId: {}, flightId: {}, imageId: {}", requestId, flightId, savedImg.getId());
+                    } catch (Exception ex) {
+                        log.error("UPLOAD_IMAGE_FAILED - RequestId: {}, flightId: {}, error: {}", requestId, flightId, ex.getMessage(), ex);
+                    }
+                }
+            }
+            
+            log.info("UPLOAD_FLIGHT_IMAGES_SUCCESS - RequestId: {}, flightId: {}, uploadedCount: {}", requestId, flightId, uploadedImages.size());
+            return uploadedImages;
+        } catch (Exception e) {
+            log.error("UPLOAD_FLIGHT_IMAGES_FAILED - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+            throw e;
+        }
     }
 
+    @Override
+    @Transactional
+    public void deleteFlightImage(Integer flightId, Integer imageId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("DELETE_FLIGHT_IMAGE_REQUEST - RequestId: {}, flightId: {}, imageId: {}", requestId, flightId, imageId);
+        try {
+            // Tìm FlightImage theo flightId và imageId
+            Optional<FlightImage> flightImageOpt = flightImageDAO.findById(imageId);
+            if (flightImageOpt.isEmpty()) {
+                log.warn("DELETE_FLIGHT_IMAGE_NOT_FOUND - RequestId: {}, flightId: {}, imageId: {}", requestId, flightId, imageId);
+                throw new RuntimeException("Flight image not found");
+            }
+            FlightImage flightImage = flightImageOpt.get();
+            // Xóa ảnh khỏi cloud storage
+            try {
+                imageStorageService.deleteImage(flightImage.getImage().getPublicId());
+            } catch (Exception ex) {
+                log.error("DELETE_IMAGE_FROM_CLOUD_FAILED - RequestId: {}, flightId: {}, imageId: {}, error: {}", requestId, flightId, imageId, ex.getMessage(), ex);
+            }
+            // Xóa liên kết FlightImage
+            flightImageDAO.delete(flightImage);
+            // Xóa Image
+            imageDAO.delete(flightImage.getImage());
+            log.info("DELETE_FLIGHT_IMAGE_SUCCESS - RequestId: {}, flightId: {}, imageId: {}", requestId, flightId, imageId);
+        } catch (Exception e) {
+            log.error("DELETE_FLIGHT_IMAGE_FAILED - RequestId: {}, flightId: {}, imageId: {}, error: {}", requestId, flightId, imageId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public List<ImageDto> addFlightImages(Integer flightId, List<MultipartFile> files) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("ADD_FLIGHT_IMAGES_REQUEST - RequestId: {}, flightId: {}, fileCount: {}", requestId, flightId, files.size());
+        try {
+            Flight flight = flightDAO.findById(flightId).orElseThrow();
+            List<ImageDto> uploadedImages = new ArrayList<>();
+            
+            if (files != null) {
+                for (MultipartFile imgFile : files) {
+                    if (imgFile.isEmpty()) continue;
+                    try {
+                        Map<String,String> up = imageStorageService.uploadImage(imgFile);
+                        Image img = new Image();
+                        img.setUrl(up.get("url"));
+                        img.setAltText(flight.getName());
+                        img.setUploadedAt(LocalDateTime.now());
+                        img.setPublicId(up.get("publicId"));
+                        Image savedImg = imageDAO.save(img);
+                        FlightImage fi = new FlightImage();
+                        fi.setFlight(flight);
+                        fi.setImage(savedImg);
+                        flightImageDAO.save(fi);
+                        
+                        ImageDto dto = new ImageDto();
+                        dto.setId(savedImg.getId());
+                        dto.setImageUrl(savedImg.getUrl());
+                        uploadedImages.add(dto);
+                        
+                        log.info("ADDED_IMAGE - RequestId: {}, flightId: {}, imageId: {}", requestId, flightId, savedImg.getId());
+                    } catch (Exception ex) {
+                        log.error("ADD_IMAGE_FAILED - RequestId: {}, flightId: {}, error: {}", requestId, flightId, ex.getMessage(), ex);
+                    }
+                }
+            }
+            
+            log.info("ADD_FLIGHT_IMAGES_SUCCESS - RequestId: {}, flightId: {}, uploadedCount: {}", requestId, flightId, uploadedImages.size());
+            return uploadedImages;
+        } catch (Exception e) {
+            log.error("ADD_FLIGHT_IMAGES_FAILED - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // mapping helpers with debug logging
+
+    private FlightDto toFlightDto(Flight flight) {
+        log.info("MAPPING_FLIGHT_TO_DTO  - flightId: {}", flight.getId());
+        List<FlightImageDto> images = Optional.ofNullable(flight.getFlightImages())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(this::toFlightImageDto)
+                .collect(Collectors.toList());
+        log.info("MAPPED_FLIGHT_IMAGES        - flightId: {}, imageCount: {}", flight.getId(), images.size());
+
+        List<FlightSlotDto> slots = Optional.ofNullable(flight.getFlightSlots())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(this::toFlightSlotDto)
+                .collect(Collectors.toList());
+        log.info("MAPPED_FLIGHT_SLOTS         - flightId: {}, slotCount: {}", flight.getId(), slots.size());
+
+        Double minPrice = slots.stream()
+                .map(FlightSlotDto::getPrice)
+                .filter(Objects::nonNull)
+                .mapToDouble(BigDecimal::doubleValue)
+                .min().orElse(Double.NaN);
+        Double maxPrice = slots.stream()
+                .map(FlightSlotDto::getPrice)
+                .filter(Objects::nonNull)
+                .mapToDouble(BigDecimal::doubleValue)
+                .max().orElse(Double.NaN);
+        log.info("CALCULATED_PRICE_RANGE      - flightId: {}, minPrice: {}, maxPrice: {}",
+                flight.getId(), minPrice, maxPrice);
+
+        FlightDto dto = FlightDto.builder()
+                .id(flight.getId())
+                .flightNumber(flight.getFlightNumber())
+                .name(flight.getName())
+                .departureTime(flight.getDepartureTime())
+                .arrivalTime(flight.getArrivalTime())
+                .createdAt(flight.getCreatedAt())
+                .updatedAt(flight.getUpdatedAt())
+
+                .category(flight.getCategory() != null ? toFlightCategoryDto(flight.getCategory()) : null)
+                .ownerId(flight.getOwner() != null ? flight.getOwner().getId() : null)
+                .departureAirport(flight.getDepartureAirport() != null ? toAirportDto(flight.getDepartureAirport()) : null)
+                .arrivalAirport(flight.getArrivalAirport() != null ? toAirportDto(flight.getArrivalAirport()) : null)
+                .airline(flight.getAirline() != null ? toAirlineDto(flight.getAirline()) : null)
+                .images(images)
+                .flightSlots(slots)
+                .minPrice(Double.isNaN(minPrice) ? null : minPrice)
+                .maxPrice(Double.isNaN(maxPrice) ? null : maxPrice)
+                .totalAvailableSeats(flightDAO.countByBookingId(flight.getId()))
+                .build();
+        log.info("MAPPING_FLIGHT_TO_DTO_DONE  - flightId: {}", flight.getId());
+
+        return dto;
+    }
+    private FlightImageDto toFlightImageDto(FlightImage fi) {
+        Image img = fi.getImage();
+        log.info("MAPPING_IMAGE_TO_DTO        - flightImageId: {}, imageId: {}",
+                fi.getId(), img != null ? img.getId() : null);
+        FlightImageDto dto = FlightImageDto.builder()
+                .id(fi.getId())
+                .imageId(img != null ? img.getId() : null)
+                .flightId(fi.getFlight() != null ? fi.getFlight().getId() : null)
+                .imageUrl(img != null ? img.getUrl() : null)
+                .altText(img != null ? img.getAltText() : null)
+                .uploadedAt(img != null ? img.getUploadedAt() : null)
+                .build();
+        log.info("MAPPING_IMAGE_TO_DTO_DONE   - flightImageId: {}", fi.getId());
+        return dto;
+    }
     private FlightSlotDto toFlightSlotDto(FlightSlot s) {
-        log.debug("MAPPING_SLOT_TO_DTO        - slotId: {}", s.getId());
+        log.info("MAPPING_SLOT_TO_DTO        - slotId: {}", s.getId());
         FlightSlotDto dto = FlightSlotDto.builder()
                 .id(s.getId())
                 .flightId(Optional.ofNullable(s.getFlight()).map(Flight::getId).orElse(null))
@@ -547,12 +693,12 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .isAisle(s.getIsAisle())
                 .carryOnLuggage(s.getCarryOnLuggage())
                 .build();
-        log.debug("MAPPING_SLOT_TO_DTO_DONE   - slotId: {}", s.getId());
+        log.info("MAPPING_SLOT_TO_DTO_DONE   - slotId: {}", s.getId());
         return dto;
     }
 
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking b, Flight f) {
-        log.debug("MAPPING_BOOKING_TO_DTO     - bookingId: {}", b.getId());
+        log.info("MAPPING_BOOKING_TO_DTO     - bookingId: {}", b.getId());
         FlightBookingDetailDto dto = FlightBookingDetailDto.builder()
                 .bookingId(b.getId())
                 .createdAt(b.getBookingDate())
@@ -560,37 +706,37 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .totalPrice(b.getFlightSlot().getPrice().doubleValue())
                 .status("BOOKED")
                 .build();
-        log.debug("MAPPING_BOOKING_TO_DTO_DONE- bookingId: {}", b.getId());
+        log.info("MAPPING_BOOKING_TO_DTO_DONE- bookingId: {}", b.getId());
         return dto;
     }
 
     private AirportDto toAirportDto(Airport a) {
-        log.debug("MAPPING_AIRPORT_TO_DTO     - airportId: {}", a.getId());
+        log.info("MAPPING_AIRPORT_TO_DTO     - airportId: {}", a.getId());
         AirportDto dto = AirportDto.builder()
                 .id(a.getId())
                 .name(a.getName())
                 .build();
-        log.debug("MAPPING_AIRPORT_TO_DTO_DONE- airportId: {}", a.getId());
+        log.info("MAPPING_AIRPORT_TO_DTO_DONE- airportId: {}", a.getId());
         return dto;
     }
 
     private AirlineDto toAirlineDto(Airline a) {
-        log.debug("MAPPING_AIRLINE_TO_DTO     - airlineId: {}", a.getId());
+        log.info("MAPPING_AIRLINE_TO_DTO     - airlineId: {}", a.getId());
         AirlineDto dto = AirlineDto.builder()
                 .id(a.getId())
                 .name(a.getName())
                 .build();
-        log.debug("MAPPING_AIRLINE_TO_DTO_DONE- airlineId: {}", a.getId());
+        log.info("MAPPING_AIRLINE_TO_DTO_DONE- airlineId: {}", a.getId());
         return dto;
     }
 
     private FlightCategoryDto toFlightCategoryDto(FlightCategory c) {
-        log.debug("MAPPING_CATEGORY_TO_DTO    - categoryId: {}", c.getId());
+        log.info("MAPPING_CATEGORY_TO_DTO    - categoryId: {}", c.getId());
         FlightCategoryDto dto = FlightCategoryDto.builder()
                 .id(c.getId())
                 .name(c.getName())
                 .build();
-        log.debug("MAPPING_CATEGORY_TO_DTO_DONE- categoryId: {}", c.getId());
+        log.info("MAPPING_CATEGORY_TO_DTO_DONE- categoryId: {}", c.getId());
         return dto;
     }
 }

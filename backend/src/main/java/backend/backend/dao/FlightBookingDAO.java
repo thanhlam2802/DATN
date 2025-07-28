@@ -10,6 +10,8 @@ import java.util.Optional;
 
 @Repository
 public interface FlightBookingDAO extends JpaRepository<FlightBooking, Integer> {
+	
+	
     List<FlightBooking> findByCustomerId(Integer customerId);
     List<FlightBooking> findByFlightSlotId(Integer slotId);
     Optional<FlightBooking> findById(Integer id);
@@ -19,4 +21,5 @@ public interface FlightBookingDAO extends JpaRepository<FlightBooking, Integer> 
             + "FROM FlightBooking fb "
             + "WHERE fb.flightSlot.flight.id = :flightId")
     Double sumRevenueByFlightId(@Param("flightId") Integer flightId);
+	List<FlightBooking> findByOrderId(Integer id);
 } 

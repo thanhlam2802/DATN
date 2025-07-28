@@ -1,6 +1,5 @@
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <div class="flex items-center justify-between">
       <h2 class="text-3xl font-bold text-gray-800">Phản hồi & Đánh giá</h2>
       <div class="flex space-x-2">
@@ -18,23 +17,32 @@
       </div>
     </div>
 
-    <!-- Thống kê -->
+    <div v-if="isLoading" class="text-center text-gray-500 py-10">
+      <p>Đang tải dữ liệu đánh giá...</p>
+    </div>
 
-    <!-- Danh sách đánh giá -->
-    <div v-if="filteredReviews.length > 0" class="space-y-4">
+    <div
+      v-else-if="error"
+      class="text-center text-red-500 bg-red-50 p-4 rounded-lg"
+    >
+      <p>Đã xảy ra lỗi khi tải dữ liệu: {{ error }}</p>
+    </div>
+
+    <div v-else-if="filteredReviews.length > 0" class="space-y-4">
       <div
         v-for="review in filteredReviews"
         :key="review.id"
         class="bg-white p-6 rounded-lg shadow-sm space-y-4"
       >
-        <!-- Thông tin người đánh giá -->
         <div class="flex justify-between items-start">
           <div>
             <div class="flex items-center gap-2">
               <h4 class="font-semibold text-gray-900">{{ review.customer }}</h4>
               <span class="text-sm text-gray-500">{{ review.date }}</span>
             </div>
-            <p class="text-sm text-gray-600 mt-1">{{ review.tour }}</p>
+            <p class="text-sm text-gray-600 mt-1">
+              Tour: {{ review.tourName }}
+            </p>
             <div class="flex mt-1">
               <StarIcon
                 v-for="i in 5"
@@ -58,10 +66,8 @@
           </span>
         </div>
 
-        <!-- Nội dung đánh giá -->
         <div class="text-gray-700">{{ review.comment }}</div>
 
-        <!-- Phần phản hồi -->
         <div v-if="review.reply" class="mt-4 pl-4 border-l-4 border-blue-200">
           <div class="bg-blue-50 rounded-lg p-4">
             <div class="flex items-center gap-2 mb-2">
@@ -72,7 +78,6 @@
           </div>
         </div>
 
-        <!-- Form phản hồi -->
         <div v-else class="mt-4">
           <div class="flex items-start gap-4">
             <textarea
@@ -83,9 +88,10 @@
             ></textarea>
             <button
               @click="submitReply(review)"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50"
+              :disabled="!review.draftReply.trim()"
             >
-              Gửi phản hồi
+              Gửi
             </button>
           </div>
         </div>
@@ -93,58 +99,90 @@
     </div>
 
     <div v-else class="text-center text-gray-500 py-10">
-      <p>Không có đánh giá nào</p>
+      <p>Không có đánh giá nào phù hợp với bộ lọc.</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { StarIcon } from "lucide-vue-next";
 
-// Dữ liệu mẫu
-const reviews = ref([
-  {
-    id: 1,
-    customer: "Nguyễn Văn A",
-    tour: "Hạ Long Bay 3N2Đ",
-    rating: 5,
-    date: "2024-01-10",
-    comment:
-      "Tour rất tuyệt vời! Hướng dẫn viên nhiệt tình, cảnh đẹp, đồ ăn ngon!",
-    reply: {
-      content:
-        "Cảm ơn bạn đã đánh giá tích cực. Chúng tôi rất vui khi bạn hài lòng với chuyến đi!",
-      date: "2024-01-11",
-    },
-    draftReply: "",
-  },
-  {
-    id: 2,
-    customer: "Trần Thị B",
-    tour: "Sapa 2N1Đ",
-    rating: 4,
-    date: "2024-01-08",
-    comment: "Chuyến đi rất thú vị, tuy nhiên thời gian hơi gấp rút.",
-    reply: null,
-    draftReply: "",
-  },
-  {
-    id: 3,
-    customer: "Lê Văn C",
-    tour: "Phú Quốc 4N3Đ",
-    rating: 3,
-    date: "2024-01-05",
-    comment:
-      "Tour có nhiều điểm hay nhưng khách sạn hơi chật, cần cải thiện thêm.",
-    reply: null,
-    draftReply: "",
-  },
-]);
-
+// --- State Management ---
+const reviews = ref([]);
+const isLoading = ref(true);
+const error = ref(null);
 const filterRating = ref("all");
 const filterStatus = ref("all");
 
+// --- API & Data Fetching ---
+const ownerId = 1;
+
+async function fetchReviews() {
+  isLoading.value = true;
+  error.value = null;
+  try {
+    const response = await fetch(`/api/v1/reviews/tours/owner/${ownerId}`);
+    if (!response.ok) {
+      throw new Error("Không thể kết nối tới máy chủ.");
+    }
+    const data = await response.json();
+
+    // Ánh xạ dữ liệu từ API sang cấu trúc frontend cần
+    reviews.value = data.map((reviewFromApi) => ({
+      id: reviewFromApi.id,
+      customer: reviewFromApi.author,
+      tourName: reviewFromApi.tourName, // Đã kích hoạt để hiển thị tên tour
+      rating: reviewFromApi.rating,
+      date: reviewFromApi.date,
+      comment: reviewFromApi.content,
+      reply: reviewFromApi.reply, // Giả định API trả về object reply
+      draftReply: "", // Trạng thái riêng của frontend
+    }));
+  } catch (err) {
+    error.value = err.message;
+    console.error("Lỗi khi tải đánh giá:", err);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function submitReply(review) {
+  if (!review.draftReply.trim()) return;
+
+  try {
+    const response = await fetch("/api/v1/replies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reviewId: review.id,
+        content: review.draftReply,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Gửi phản hồi thất bại.");
+    }
+
+    const newReply = await response.json();
+    // Giả sử API trả về { content, createdAt }
+    review.reply = {
+      content: newReply.content,
+      date: new Date(newReply.createdAt).toLocaleDateString("vi-VN"),
+    };
+    review.draftReply = "";
+  } catch (err) {
+    alert(err.message);
+    console.error("Lỗi khi gửi phản hồi:", err);
+  }
+}
+
+// --- Lifecycle Hooks ---
+onMounted(() => {
+  fetchReviews();
+});
+
+// --- Computed Properties ---
 const filteredReviews = computed(() =>
   reviews.value.filter((review) => {
     const ratingMatch =
@@ -157,35 +195,8 @@ const filteredReviews = computed(() =>
     return ratingMatch && statusMatch;
   })
 );
-
-const averageRating = computed(
-  () =>
-    reviews.value.reduce((sum, r) => sum + r.rating, 0) / reviews.value.length
-);
-
-function countStatus(status) {
-  return reviews.value.filter((r) => r.status === status).length;
-}
-
-function submitReply(review) {
-  if (!review.draftReply.trim()) return;
-
-  review.reply = {
-    content: review.draftReply,
-    date: new Date().toISOString().split("T")[0],
-  };
-  review.draftReply = "";
-}
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+/* CSS không thay đổi */
 </style>

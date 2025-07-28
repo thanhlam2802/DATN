@@ -1,11 +1,13 @@
 package backend.backend.entity;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
+
 import jakarta.persistence.*;
-import lombok.ToString;
 
 @Data
 @Entity
@@ -15,27 +17,37 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "address")
-    private String address;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "name", nullable = false, length = 200)
+    private String name;
 
     @Column(name = "email", nullable = false, unique = true, length = 200)
     private String email;
 
-    @Column(name = "name", nullable = false, length = 200)
-    private String name;
+    @Column(name = "gender")
+    private String gender;
 
-    @Column(name = "password_hash", nullable = false, length = 200)
-    private String passwordHash;
+    @Column(name = "birthday")
+    private Date birthday;
 
     @Column(name = "phone", length = 20)
     private String phone;
 
+    @Column(name = "address")
+    private String address;
+
+    @Column(name = "password_hash", nullable = false, length = 200)
+    private String passwordHash;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_verified")
+    private Boolean isVerified;
+
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<UserRole> userRoles;
 
@@ -44,7 +56,7 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<SearchHistory> searchHistories;
-    
+
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 
@@ -55,7 +67,6 @@ public class User {
     private List<Flight> ownedFlights;
 
     @OneToMany(mappedBy = "owner")
-    @ToString.Include
     private List<Bus> ownedBuses;
 
     @OneToMany(mappedBy = "owner")
@@ -64,9 +75,7 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<UserVoucher> userVouchers;
 
-    @OneToMany(mappedBy = "user")
-    private List<TicketBooking> ticketBookings;
-    
+
     @OneToMany(mappedBy = "user")
     private List<Order> orders;
 

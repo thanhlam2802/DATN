@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>AgriBank - Mã OTP giao dịch</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f6fff9; margin: 0; padding: 0; color: #222; }
+        .container { max-width: 500px; background: #fff; margin: 40px auto; padding: 32px; border-radius: 12px; box-shadow: 0 0 24px rgba(0, 153, 51, 0.08); }
+        .header { text-align: center; margin-bottom: 24px; }
+        .logo { height: 56px; }
+        .bank-name { color: #b22222; font-size: 28px; font-weight: bold; margin-top: 8px; }
+        .otp-box { background: #eafff2; border: 2px solid #b22222; border-radius: 8px; padding: 18px 0; text-align: center; margin: 24px 0; }
+        .otp { font-size: 36px; font-weight: bold; color: #b22222; letter-spacing: 8px; }
+        .info { margin: 18px 0; font-size: 16px; }
+        .info strong { color: #b22222; }
+        .footer { margin-top: 32px; font-size: 13px; color: #888; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img class="logo" src="https://upload.wikimedia.org/wikipedia/vi/thumb/3/3d/Argibank_logo.svg/2560px-Argibank_logo.svg.png" alt="AgriBank Logo" />
+        <div class="bank-name">AgriBank</div>
+    </div>
+    <div class="info">
+        Kính gửi <strong th:text="${recipientName}"></strong>,<br/>
+        Bạn vừa thực hiện một giao dịch thanh toán tại AgriBank.<br/>
+        Vui lòng sử dụng mã OTP dưới đây để xác nhận giao dịch:
+    </div>
+    <div class="otp-box">
+        <span class="otp" th:text="${otp}"></span>
+    </div>
+    <div class="info">
+        <strong>Số tiền:</strong> <span th:text="${amount}"></span><br/>
+        <strong>Mã giao dịch:</strong> <span th:text="${transactionId}"></span><br/>
+        <strong>Thời gian:</strong> <span th:text="${time}"></span><br/>
+        <strong>Mã OTP có hiệu lực đến:</strong> <span th:text="${expiredTime}"></span>
+    </div>
+    <div class="info" style="color:#d32f2f; font-size:15px;">
+        ⚠️ Không chia sẻ mã OTP này với bất kỳ ai. AgriBank không bao giờ yêu cầu bạn cung cấp OTP qua điện thoại, email hoặc bất kỳ hình thức nào khác.
+    </div>
+    <div class="footer">
+        © 2025 AgriBank. Email này được gửi tự động, vui lòng không phản hồi.<br/>
+        Hotline: 1900 558818 | Website: <a href="https://www.agribank.com.vn" style="color:#b22222;">www.agribank.com.vn</a>
+    </div>
+</div>
+</body>
+</html> 

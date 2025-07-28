@@ -61,7 +61,7 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
                 for (FlightBooking flightBooking1 : flightBooking) {
 
                     flightBookingService.cancelBooking(flightBooking1.getId());
-
+                }
             
 
                 System.out.println("Expired order: " + order.getId());
@@ -102,4 +102,4 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
         }
     }
 }
-    }
+    

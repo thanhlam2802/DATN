@@ -480,7 +480,7 @@ function prevHotelImage(hotel) {
                 bay đã đặt
               </h2>
               <div
-                v-for="flightDetail in flightBookingDetails"
+                v-for="(flightDetail, idx) in flightBookingDetails"
                 :key="flightDetail.booking.bookingId"
                 class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-4"
               >
@@ -494,30 +494,156 @@ function prevHotelImage(hotel) {
                     class="flex items-center gap-2 flex-shrink-0"
                   >
                     <button
-                      :disabled="
-                        processingItemId ===
-                        `FLIGHT-${flightDetail.booking.bookingId}`
-                      "
                       @click="
                         handleDeleteItem(
                           flightDetail.booking.bookingId,
                           'FLIGHT'
                         )
                       "
-                      class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
+                      class="text-sm text-red-600 hover:text-red-800"
                     >
-                      <i
-                        :class="
-                          processingItemId ===
-                          `FLIGHT-${flightDetail.booking.bookingId}`
-                            ? 'fas fa-spinner fa-spin'
-                            : 'fa-solid fa-trash'
-                        "
-                      ></i>
-                      Xóa
+                      <i class="fa-solid fa-trash"></i> Xóa
                     </button>
                   </div>
                 </div>
+                <div
+                  class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-600"
+                >
+                  <div class="flex items-center gap-3">
+                    <i
+                      class="fa-solid fa-chair w-5 text-center text-indigo-500"
+                    ></i>
+                    <span
+                      >Số ghế:
+                      <strong>{{
+                        flightDetail.flightSlot?.seatNumber
+                      }}</strong></span
+                    >
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <i
+                      class="fa-solid fa-couch w-5 text-center text-yellow-500"
+                    ></i>
+                    <span
+                      >Hạng vé:
+                      <strong>{{
+                        flightDetail.flightSlot?.isBusiness
+                          ? "Thương gia"
+                          : "Phổ thông"
+                      }}</strong></span
+                    >
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <i
+                      class="fa-solid fa-user w-5 text-center text-blue-500"
+                    ></i>
+                    <span
+                      >Khách:
+                      <strong>{{ flightDetail.customer?.fullName }}</strong> -
+                      <strong>{{ flightDetail.customer?.phone }}</strong></span
+                    >
+                  </div>
+                </div>
+                <div
+                  class="border-t mt-4 pt-4 flex justify-between items-center"
+                >
+                  <p class="text-lg">
+                    Tổng giá vé:
+                    <span class="font-bold text-xl text-green-700">{{
+                      formatPrice(flightDetail.booking.totalPrice)
+                    }}</span>
+                  </p>
+                  <button
+                    @click="flightDetail.showDetail = !flightDetail.showDetail"
+                    class="text-blue-600 hover:underline flex items-center"
+                  >
+                    <i
+                      :class="
+                        flightDetail.showDetail
+                          ? 'fa-solid fa-chevron-up'
+                          : 'fa-solid fa-chevron-down'
+                      "
+                    ></i>
+                    <span class="ml-1">Chi tiết</span>
+                  </button>
+                </div>
+                <transition name="fade">
+                  <div
+                    v-if="flightDetail.showDetail"
+                    class="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200"
+                  >
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <span class="font-semibold">Khởi hành:</span>
+                        <span
+                          >{{
+                            formatDateTime(
+                              flightDetail.booking.flight.departureTime
+                            )
+                          }}
+                          tại
+                          {{
+                            flightDetail.booking.flight.departureAirport?.name
+                          }}</span
+                        >
+                      </div>
+                      <div>
+                        <span class="font-semibold">Hạ cánh:</span>
+                        <span
+                          >{{
+                            formatDateTime(
+                              flightDetail.booking.flight.arrivalTime
+                            )
+                          }}
+                          tại
+                          {{
+                            flightDetail.booking.flight.arrivalAirport?.name
+                          }}</span
+                        >
+                      </div>
+                      <div>
+                        <span class="font-semibold">Email:</span>
+                        {{ flightDetail.customer?.email }}
+                      </div>
+                      <div>
+                        <span class="font-semibold">Passport:</span>
+                        {{ flightDetail.customer?.passport }}
+                      </div>
+                      <div>
+                        <span class="font-semibold">Giới tính:</span>
+                        {{
+                          flightDetail.customer?.gender === true
+                            ? "Nam"
+                            : flightDetail.customer?.gender === false
+                            ? "Nữ"
+                            : "Khác"
+                        }}
+                      </div>
+                      <div>
+                        <span class="font-semibold">Ngày sinh:</span>
+                        {{
+                          flightDetail.customer?.dob
+                            ? formatDate(flightDetail.customer.dob)
+                            : ""
+                        }}
+                      </div>
+                      <div>
+                        <span class="font-semibold">Hành lý xách tay:</span>
+                        {{ flightDetail.flightSlot?.carryOnLuggage }} kg
+                      </div>
+                      <div>
+                        <span class="font-semibold">Vị trí ghế:</span>
+                        {{
+                          flightDetail.flightSlot?.isWindow
+                            ? "Cửa sổ"
+                            : flightDetail.flightSlot?.isAisle
+                            ? "Lối đi"
+                            : "Khác"
+                        }}
+                      </div>
+                    </div>
+                  </div>
+                </transition>
               </div>
             </div>
 
@@ -528,35 +654,137 @@ function prevHotelImage(hotel) {
                 <i class="fa-solid fa-hotel text-indigo-500"></i> Các phòng
                 khách sạn đã đặt
               </h2>
-              <div v-for="hotel in order.hotelBookings" :key="'hotel-' + hotel.id" class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl shadow-xl border border-indigo-100 mb-6 flex flex-col md:flex-row gap-6 items-center md:items-stretch hover:shadow-2xl transition-shadow duration-200 relative">
+              <div
+                v-for="hotel in order.hotelBookings"
+                :key="'hotel-' + hotel.id"
+                class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl shadow-xl border border-indigo-100 mb-6 flex flex-col md:flex-row gap-6 items-center md:items-stretch hover:shadow-2xl transition-shadow duration-200 relative"
+              >
                 <div class="relative flex-shrink-0 flex flex-col items-center">
-                  <template v-if="(hotel.imageUrls && hotel.imageUrls.length) || hotel.imageUrl">
-                    <div class="relative w-40 h-32 md:w-56 md:h-40 flex items-center justify-center overflow-hidden rounded-xl">
-                      <transition :name="slideDirectionMap[hotel.id] === 'next' ? 'slide-right' : 'slide-left'">
-                        <img :key="hotel.imageUrls && hotel.imageUrls.length ? hotel.imageUrls[hotelImageIndices[hotel.id] || 0] : hotel.imageUrl" :src="hotel.imageUrls && hotel.imageUrls.length ? hotel.imageUrls[hotelImageIndices[hotel.id] || 0] : hotel.imageUrl" class="w-40 h-32 md:w-56 md:h-40 object-cover border-2 border-indigo-200 shadow-md mb-2 absolute left-0 top-0" />
+                  <template
+                    v-if="
+                      (hotel.imageUrls && hotel.imageUrls.length) ||
+                      hotel.imageUrl
+                    "
+                  >
+                    <div
+                      class="relative w-40 h-32 md:w-56 md:h-40 flex items-center justify-center overflow-hidden rounded-xl"
+                    >
+                      <transition
+                        :name="
+                          slideDirectionMap[hotel.id] === 'next'
+                            ? 'slide-right'
+                            : 'slide-left'
+                        "
+                      >
+                        <img
+                          :key="
+                            hotel.imageUrls && hotel.imageUrls.length
+                              ? hotel.imageUrls[
+                                  hotelImageIndices[hotel.id] || 0
+                                ]
+                              : hotel.imageUrl
+                          "
+                          :src="
+                            hotel.imageUrls && hotel.imageUrls.length
+                              ? hotel.imageUrls[
+                                  hotelImageIndices[hotel.id] || 0
+                                ]
+                              : hotel.imageUrl
+                          "
+                          class="w-40 h-32 md:w-56 md:h-40 object-cover border-2 border-indigo-200 shadow-md mb-2 absolute left-0 top-0"
+                        />
                       </transition>
-                      <div v-if="hotel.imageUrls && hotel.imageUrls.length > 1" class="flex gap-2 absolute top-1/2 left-0 right-0 justify-between px-2 -translate-y-1/2 z-10">
-                        <button @click="prevHotelImage(hotel)" class="bg-white/80 hover:bg-indigo-100 rounded-full p-1 shadow border border-indigo-200"><i class="fa-solid fa-chevron-left text-indigo-600"></i></button>
-                        <button @click="nextHotelImage(hotel)" class="bg-white/80 hover:bg-indigo-100 rounded-full p-1 shadow border border-indigo-200"><i class="fa-solid fa-chevron-right text-indigo-600"></i></button>
+                      <div
+                        v-if="hotel.imageUrls && hotel.imageUrls.length > 1"
+                        class="flex gap-2 absolute top-1/2 left-0 right-0 justify-between px-2 -translate-y-1/2 z-10"
+                      >
+                        <button
+                          @click="prevHotelImage(hotel)"
+                          class="bg-white/80 hover:bg-indigo-100 rounded-full p-1 shadow border border-indigo-200"
+                        >
+                          <i
+                            class="fa-solid fa-chevron-left text-indigo-600"
+                          ></i>
+                        </button>
+                        <button
+                          @click="nextHotelImage(hotel)"
+                          class="bg-white/80 hover:bg-indigo-100 rounded-full p-1 shadow border border-indigo-200"
+                        >
+                          <i
+                            class="fa-solid fa-chevron-right text-indigo-600"
+                          ></i>
+                        </button>
                       </div>
                     </div>
                   </template>
                 </div>
                 <div class="flex justify-between items-start">
                   <div class="flex-1 flex flex-col justify-between">
-                    <h3 class="text-2xl font-extrabold text-indigo-700 mb-1 flex items-center gap-2"><i class="fa-solid fa-bed text-indigo-400"></i> {{ hotel.hotelName }}</h3>
-                    <div class="text-base text-gray-700 font-semibold mb-1 flex items-center gap-2"><i class="fa-solid fa-door-closed text-gray-400"></i> {{ hotel.roomType }} <span class="mx-1">-</span> <span class="text-indigo-600 font-bold">{{ hotel.variantName }}</span></div>
-                    <div class="flex flex-wrap gap-4 text-sm text-gray-500 mb-1 mt-2">
-                      <div class="flex items-center gap-1"><i class="fa-solid fa-calendar-days text-blue-400"></i> Nhận phòng: <b>{{ formatDate(hotel.checkInDate) }}</b></div>
-                      <div class="flex items-center gap-1"><i class="fa-solid fa-calendar-check text-green-400"></i> Trả phòng: <b>{{ formatDate(hotel.checkOutDate) }}</b></div>
+                    <h3
+                      class="text-2xl font-extrabold text-indigo-700 mb-1 flex items-center gap-2"
+                    >
+                      <i class="fa-solid fa-bed text-indigo-400"></i>
+                      {{ hotel.hotelName }}
+                    </h3>
+                    <div
+                      class="text-base text-gray-700 font-semibold mb-1 flex items-center gap-2"
+                    >
+                      <i class="fa-solid fa-door-closed text-gray-400"></i>
+                      {{ hotel.roomType }} <span class="mx-1">-</span>
+                      <span class="text-indigo-600 font-bold">{{
+                        hotel.variantName
+                      }}</span>
                     </div>
-                    <div class="flex items-center gap-2 text-sm text-gray-600 mt-1"><i class="fa-solid fa-users text-pink-400"></i> Khách: <b>{{ hotel.numAdults }}</b> người lớn, <b>{{ hotel.numChildren }}</b> trẻ em</div>
-                    <div class="flex items-center gap-1 mt-1 text-sm text-indigo-700 pt-1"><i class="fa-solid fa-door-open text-indigo-400"></i> Số lượng phòng đã đặt: <b>{{ hotel.numberOfRooms ?? hotel.rooms ?? 1 }}</b></div>
-                    <div class="text-right font-bold text-2xl text-indigo-600 absolute right-6 bottom-3">{{ formatPrice(hotel.totalPrice) }}</div>
+                    <div
+                      class="flex flex-wrap gap-4 text-sm text-gray-500 mb-1 mt-2"
+                    >
+                      <div class="flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-days text-blue-400"></i>
+                        Nhận phòng: <b>{{ formatDate(hotel.checkInDate) }}</b>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <i
+                          class="fa-solid fa-calendar-check text-green-400"
+                        ></i>
+                        Trả phòng: <b>{{ formatDate(hotel.checkOutDate) }}</b>
+                      </div>
+                    </div>
+                    <div
+                      class="flex items-center gap-2 text-sm text-gray-600 mt-1"
+                    >
+                      <i class="fa-solid fa-users text-pink-400"></i> Khách:
+                      <b>{{ hotel.numAdults }}</b> người lớn,
+                      <b>{{ hotel.numChildren }}</b> trẻ em
+                    </div>
+                    <div
+                      class="flex items-center gap-1 mt-1 text-sm text-indigo-700 pt-1"
+                    >
+                      <i class="fa-solid fa-door-open text-indigo-400"></i> Số
+                      lượng phòng đã đặt:
+                      <b>{{ hotel.numberOfRooms ?? hotel.rooms ?? 1 }}</b>
+                    </div>
+                    <div
+                      class="text-right font-bold text-2xl text-indigo-600 absolute right-6 bottom-3"
+                    >
+                      {{ formatPrice(hotel.totalPrice) }}
+                    </div>
                   </div>
-                  <div v-if="isEditable" class="flex gap-2 absolute right-6 top-6 z-10">
-                    <button @click="handleEditItem(hotel, 'HOTEL')" class="text-sm text-yellow-600 hover:text-yellow-800 flex items-center"><i class="fa-solid fa-pencil mr-1"></i> Sửa</button>
-                    <button @click="handleDeleteItem(hotel.id, 'HOTEL')" class="text-sm text-red-600 hover:text-red-800 flex items-center"><i class="fa-solid fa-trash mr-1"></i> Xóa</button>
+                  <div
+                    v-if="isEditable"
+                    class="flex gap-2 absolute right-6 top-6 z-10"
+                  >
+                    <button
+                      @click="handleEditItem(hotel, 'HOTEL')"
+                      class="text-sm text-yellow-600 hover:text-yellow-800 flex items-center"
+                    >
+                      <i class="fa-solid fa-pencil mr-1"></i> Sửa
+                    </button>
+                    <button
+                      @click="handleDeleteItem(hotel.id, 'HOTEL')"
+                      class="text-sm text-red-600 hover:text-red-800 flex items-center"
+                    >
+                      <i class="fa-solid fa-trash mr-1"></i> Xóa
+                    </button>
                   </div>
                 </div>
               </div>

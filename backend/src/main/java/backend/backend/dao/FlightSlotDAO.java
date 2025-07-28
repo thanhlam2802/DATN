@@ -14,7 +14,7 @@ import java.util.List;
 @Repository
 public interface FlightSlotDAO extends JpaRepository<FlightSlot, Integer> {
     // Có thể bổ sung các phương thức custom nếu cần
-    @Query("SELECT COUNT(fs) FROM FlightSlot fs WHERE fs.flight.id = :flightId AND fs.id NOT IN (SELECT fb.flightSlot.id FROM FlightBooking fb)")
+    @Query("SELECT COUNT(fs) FROM FlightSlot fs WHERE fs.flight.id = :flightId AND fs.status ")
     int countAvailableSlotsByFlightId(@Param("flightId") Integer flightId);
 
     @Query("SELECT COUNT(fs) FROM FlightSlot fs WHERE fs.flight.id = :flightId AND fs.isBusiness = false AND fs.id NOT IN (SELECT fb.flightSlot.id FROM FlightBooking fb)")

@@ -13,4 +13,5 @@ public interface FlightBookingService {
     PaymentStatusDto cancelFlightBooking(Integer bookingId);
     FlightOrderReservationDto getFlightReservationSummary(Integer orderId);
     FlightBooking createFlightBooking(Integer orderId, AddItemRequestDto genericRequest);
+    void cancelBooking(Integer bookingId);
 } 

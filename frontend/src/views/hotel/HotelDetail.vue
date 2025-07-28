@@ -467,8 +467,8 @@
             <div v-if="review.avatar" class="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
               <img :src="review.avatar" :alt="review.author" class="w-full h-full object-cover" />
             </div>
-            <div v-else class="w-16 h-16 rounded-full bg-blue-900 flex items-center justify-center text-white text-2xl font-bold">
-              {{ (review.author || '').charAt(0).toUpperCase() }}
+            <div v-else class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+              {{ getInitials(review.author) }}
             </div>
           </div>
           <div class="flex-1 min-w-0">
@@ -841,17 +841,49 @@ const filteredRoomTypes = computed(() => {
   const roomsCopy = JSON.parse(JSON.stringify(hotel.value.availableRooms)).filter(room => room.roomQuantity > 0);
 
   if (selectedAmenities.value.length === 0) {
-    return roomsCopy;
+    const sortedRooms = roomsCopy.map(room => {
+      const sortedVariants = [...room.availableVariants].sort((a, b) => {
+        const priceA = priceDisplayMode.value === 'totalPrice' ? (a.totalPrice ?? a.price) : a.price;
+        const priceB = priceDisplayMode.value === 'totalPrice' ? (b.totalPrice ?? b.price) : b.price;
+        return priceA - priceB;
+      });
+      return { ...room, availableVariants: sortedVariants };
+    });
+
+    return sortedRooms.sort((a, b) => {
+      const minPriceA = Math.min(...a.availableVariants.map(v => 
+        priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
+      ));
+      const minPriceB = Math.min(...b.availableVariants.map(v => 
+        priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
+      ));
+      return minPriceA - minPriceB;
+    });
   }
 
   const filteredRooms = roomsCopy.map(room => {
     const matchingVariants = room.availableVariants.filter(variant => {
       return selectedAmenities.value.every(amenityKey => variant[amenityKey] === true);
     });
-    return { ...room, availableVariants: matchingVariants };
+    
+    const sortedVariants = matchingVariants.sort((a, b) => {
+      const priceA = priceDisplayMode.value === 'totalPrice' ? (a.totalPrice ?? a.price) : a.price;
+      const priceB = priceDisplayMode.value === 'totalPrice' ? (b.totalPrice ?? b.price) : b.price;
+      return priceA - priceB;
+    });
+    
+    return { ...room, availableVariants: sortedVariants };
   }).filter(room => room.availableVariants.length > 0);
 
-  return filteredRooms;
+  return filteredRooms.sort((a, b) => {
+    const minPriceA = Math.min(...a.availableVariants.map(v => 
+      priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
+    ));
+    const minPriceB = Math.min(...b.availableVariants.map(v => 
+      priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
+    ));
+    return minPriceA - minPriceB;
+  });
 });
 
 const minRoomPrice = computed(() => {
@@ -1324,6 +1356,16 @@ function getDiscountedTotalPrice(variant) {
     if (variant.discountType === 'percent') base = base * (1 - variant.discountValue / 100);
   }
   return base + (variant.taxAndFeeAmount || 0);
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name
+    .split(' ')
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 }
 </script>
 

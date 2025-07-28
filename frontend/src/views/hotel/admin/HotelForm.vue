@@ -154,9 +154,10 @@
             <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
                 <div class="overflow-x-auto">
                   <div class="overflow-y-auto h-[453px]">
-                    <table class="min-w-[1100px] w-full divide-y divide-slate-200">
+                    <table class="min-w-[1200px] w-full divide-y divide-slate-200">
                       <thead class="bg-slate-100">
                         <tr>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
                           <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
                           <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hạng sao</th>
                           <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
@@ -168,7 +169,7 @@
                       </thead>
                       <tbody class="bg-white divide-y divide-slate-100">
                         <tr v-if="paginatedHotels.length === 0" class="hover:bg-slate-50">
-                            <td colspan="6" class="px-6 py-12 text-center">
+                            <td colspan="8" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center space-y-3">
                                     <i class="fas fa-search text-4xl text-slate-300"></i>
                                     <p class="text-lg font-medium text-slate-500">Không tìm thấy khách sạn nào</p>
@@ -179,6 +180,11 @@
                         <tr v-for="(h, index) in paginatedHotels" :key="h.id"
                             class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
                             @click="() => viewHotelDetail(h)">
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <div class="text-sm font-medium text-slate-700 text-center">
+                                    {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                                </div>
+                            </td>
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="flex items-center space-x-3">
                                     <div>

@@ -7,6 +7,7 @@ import backend.backend.utils.ResponseFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
@@ -18,6 +19,9 @@ import backend.backend.dto.CustomerDto;
 import backend.backend.dao.HotelBookingDAO;
 import backend.backend.dto.HotelBookingDto;
 import backend.backend.dao.ReviewDAO;
+import backend.backend.dao.Hotel.HotelDAO;
+import backend.backend.dto.Hotel.*;
+import backend.backend.entity.Hotel;
 import org.springframework.http.HttpStatus;
 
 @RestController
@@ -39,6 +43,9 @@ public class HotelAdminController {
 
     @Autowired
     private ReviewDAO reviewDAO;
+    
+    @Autowired
+    private HotelDAO hotelDAO;
 
     @PostMapping
     public ResponseEntity<ApiResponse<HotelDetailDto>> createHotel(MultipartHttpServletRequest request) {
@@ -225,6 +232,20 @@ public class HotelAdminController {
         }
     }
 
+    @GetMapping("/top-rooms-chart")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getTopRoomsChart(
+            @RequestParam(defaultValue = "this_month") String timePeriod) {
+        try {
+            logger.info("[TOP ROOMS CHART] Getting top rooms chart data for period: {}", timePeriod);
+            Map<String, Object> chartData = hotelBookingDAO.getTopRoomsChartData(timePeriod);
+            logger.info("[TOP ROOMS CHART] Returning {} rooms", chartData.get("labels"));
+            return ResponseFactory.success(chartData, "Lấy dữ liệu biểu đồ top rooms thành công");
+        } catch (Exception e) {
+            logger.error("[TOP ROOMS CHART] Error getting top rooms chart data: {}", e.getMessage(), e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi lấy dữ liệu biểu đồ top rooms", null);
+        }
+    }
+
     @GetMapping("/test-data")
     public ResponseEntity<ApiResponse<Map<String, Object>>> testData() {
         try {
@@ -253,6 +274,74 @@ public class HotelAdminController {
             System.err.println("Error in testData: " + e.getMessage());
             e.printStackTrace();
             return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/reviews")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<AdminReviewDto>>> getAllHotelReviews() {
+        try {
+            logger.info("[REVIEWS] Starting to fetch hotel reviews");
+            
+            List<backend.backend.entity.Review> reviews = reviewDAO.findByEntityTypeWithUser("Hotel");
+            logger.info("[REVIEWS] Found {} reviews in database", reviews.size());
+            
+            List<AdminReviewDto> reviewDtos = reviews.stream().map(review -> {
+                AdminReviewDto dto = new AdminReviewDto();
+                dto.setId(review.getId());
+                dto.setRating(review.getRating());
+                dto.setContent(review.getContent());
+                dto.setCreatedAt(review.getCreatedAt());
+                dto.setUpdatedAt(review.getCreatedAt());
+                
+                if (review.getUser() != null) {
+                    String userName = review.getUser().getName();
+                    String userEmail = review.getUser().getEmail();
+                    dto.setCustomerName(userName != null && !userName.trim().isEmpty() ? userName : "Anonymous");
+                    dto.setCustomerEmail(userEmail != null ? userEmail : "N/A");
+                } else {
+                    dto.setCustomerName("Anonymous");
+                    dto.setCustomerEmail("N/A");
+                }
+
+                try {
+                    Hotel hotel = hotelDAO.findById(review.getEntityId()).orElse(null);
+                    if (hotel != null) {
+                        dto.setHotelName(hotel.getName());
+                        dto.setHotelAddress(hotel.getAddress() != null ? hotel.getAddress() : "Địa chỉ không có");
+                    } else {
+                        dto.setHotelName("Khách sạn không tồn tại");
+                        dto.setHotelAddress("N/A");
+                    }
+                } catch (Exception e) {
+                    logger.warn("Could not fetch hotel details for hotel ID {}: {}", review.getEntityId(), e.getMessage());
+                    dto.setHotelName("Hotel " + review.getEntityId());
+                    dto.setHotelAddress("Address " + review.getEntityId());
+                }
+                
+                return dto;
+            }).collect(java.util.stream.Collectors.toList());
+            
+            logger.info("[REVIEWS] Returning {} reviews", reviewDtos.size());
+            return ResponseFactory.success(reviewDtos, "Lấy danh sách đánh giá thành công");
+        } catch (Exception e) {
+            logger.error("[REVIEWS] Error getting all hotel reviews: {}", e.getMessage(), e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi lấy danh sách đánh giá: " + e.getMessage(), null);
+        }
+    }
+
+    @DeleteMapping("/reviews/{reviewId}")
+    public ResponseEntity<ApiResponse<Void>> deleteHotelReview(@PathVariable Integer reviewId) {
+        try {
+            if (!reviewDAO.existsById(reviewId)) {
+                return ResponseFactory.error(HttpStatus.NOT_FOUND, "Không tìm thấy đánh giá", null);
+            }
+            
+            reviewDAO.deleteById(reviewId);
+            return ResponseFactory.success(null, "Xóa đánh giá thành công");
+        } catch (Exception e) {
+            logger.error("[REVIEWS] Error deleting review {}: {}", reviewId, e.getMessage(), e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi xóa đánh giá", null);
         }
     }
 

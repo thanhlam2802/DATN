@@ -33,6 +33,7 @@ import HotelForm from "@/views/hotel/admin/HotelForm.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
 import Customer from "@/views/hotel/admin/Customer.vue";
 import Booking from "@/views/hotel/admin/Booking.vue";
+import Review from "@/views/hotel/admin/Review.vue";
 import AdminDashboard from "@/views/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
@@ -187,6 +188,7 @@ const routes = [
       { path: "hotelform", component: HotelForm },
       { path: "customer", component: Customer },
       { path: "booking", component: Booking },
+      { path: "review", component: Review },
       { path: "", redirect: "dashboard" },
     ],
   },

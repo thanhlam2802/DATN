@@ -3,11 +3,11 @@
     <div class="relative w-full rounded-md overflow-hidden shadow-md">
       <img
         alt="Scenic lake"
-        class="w-full h-[600px] object-cover brightness-75"
+        class="w-full lg:h-[700px] object-cover brightness-75"
         src="https://storage.googleapis.com/a1aa/image/f092f5e2-89b2-445b-38d1-ef49b53e6262.jpg"
       />
 
-      <div class="absolute inset-0 flex items-center justify-center px-6 py-8">
+      <div class="absolute inset-0 flex items-center justify-center px-6">
         <form
           @submit.prevent="submitForm"
           class="bg-white rounded-md shadow-lg max-w-md w-full p-8"
@@ -72,6 +72,9 @@
             </div>
             <p v-if="passwordError" class="text-red-500 text-xs mt-1">
               {{ passwordError }}
+            </p>
+            <p v-if="wrongCredentialError" class="text-red-500 text-xs mt-1">
+              {{ wrongCredentialError }}
             </p>
           </div>
 
@@ -145,79 +148,94 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { AuthApi } from "@/api/AuthApi.js";
 import { saveAccessToken } from "@/services/TokenService.js";
 import { useUserStore } from "@/store/UserStore.js";
-import { useRouter } from "vue-router";
 import { ErrorCodes } from "@/data/ErrorCode.js";
+import { useLoadingStore } from "@/store/GlobalStore.js";
+
+const loadingStore = useLoadingStore();
 
 const router = useRouter();
+const userStore = useUserStore();
 
-export default {
-  name: "LoginView",
-  data() {
-    return {
-      password: "",
-      email: "",
-      emailError: "",
-      passwordError: "",
-      showPassword: false,
-    };
-  },
-  methods: {
-    togglePassword() {
-      this.showPassword = !this.showPassword;
-    },
+const email = ref("");
+const password = ref("");
+const showPassword = ref(false);
 
-    validateEmail() {
-      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!regex.test(this.email)) {
-        this.emailError = "Invalid email, try again!";
-        return false;
-      }
-      this.emailError = "";
-      return true;
-    },
-    validatePassword() {
-      if (this.password.trim().length < 4) {
-        this.passwordError = "Password must be at least 4 characters.";
-        return false;
-      }
-      this.passwordError = "";
-      return true;
-    },
+const emailError = ref("");
+const passwordError = ref("");
+const wrongCredentialError = ref("");
 
-    async submitForm() {
-      const isEmailValid = this.validateEmail();
-      const isPasswordValid = this.validatePassword();
+const togglePassword = () => {
+  showPassword.value = !showPassword.value;
+};
 
-      if (!isEmailValid || !isPasswordValid) {
-        return;
-      }
+const validateEmail = () => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!regex.test(email.value)) {
+    emailError.value = "Invalid email, try again!";
+    return false;
+  }
+  emailError.value = "";
+  return true;
+};
 
-      const loginRequest = {
-        identifier: this.email,
-        password: this.password,
-      };
+const validatePassword = () => {
+  if (password.value.trim().length < 4) {
+    passwordError.value = "Password must be at least 4 characters.";
+    return false;
+  }
+  passwordError.value = "";
+  return true;
+};
 
-      const res = await AuthApi.login(loginRequest);
+const submitForm = async () => {
+  const isEmailValid = validateEmail();
+  const isPasswordValid = validatePassword();
 
-      if (res["errorCode"] && res["errorCode"] === ErrorCodes.userNotVerified) {
-        console.log("Not verified");
-        this.$router.push("/verify-email");
-        return;
-      }
+  if (!isEmailValid || !isPasswordValid) return;
 
-      saveAccessToken(res.accessToken);
+  const loginRequest = {
+    identifier: email.value,
+    password: password.value,
+  };
 
-      useUserStore().login();
+  try {
+    loadingStore.startLoading();
+    const res = await AuthApi.login(loginRequest);
 
-      this.$router.push("/");
+    if (res["errorCode"] === ErrorCodes.userNotVerified) {
+      console.log("Not verified");
+      await router.push("/verify-email?email=" + email.value);
+      loadingStore.stopLoading();
+      return;
+    }
+    if (res["errorCode"] === ErrorCodes.invalidPassword) {
+      wrongCredentialError.value = "Wrong credential !!!";
+      loadingStore.stopLoading();
+      return;
+    }
+    if (res["errorCode"]) {
+      wrongCredentialError.value = "An error occur !!!";
+      return;
+    }
 
-      this.emailError = "";
-      this.passwordError = "";
-    },
-  },
+    saveAccessToken(res.accessToken);
+    userStore.login();
+    await router.push("/");
+
+    emailError.value = "";
+    passwordError.value = "";
+    wrongCredentialError.value = "";
+    loadingStore.stopLoading();
+  } catch (error) {
+    console.error("Login failed:", error);
+    passwordError.value = "Login failed. Please try again.";
+    loadingStore.stopLoading();
+  }
 };
 </script>

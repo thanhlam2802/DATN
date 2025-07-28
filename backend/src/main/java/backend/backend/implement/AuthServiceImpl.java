@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", newUser.getEmail());
         params.put("userId", newUser.getId().toString());
-        otpTransactionService.sendOtp(params, OtpType.REGISTER_ACCOUNT);
+        otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
 
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
@@ -104,8 +104,14 @@ public class AuthServiceImpl implements AuthService {
         String token = header.substring(7);
 
         Claims claims = jwtTokenUtil.extractAllClaims(token);
+        Integer userId = jwtTokenUtil.extractUserId(token);
+        String email = jwtTokenUtil.extractUserEmail(token);
         boolean verified = claims.get("isVerified", Boolean.class);
         if (!verified) {
+            Map<String, String> params = new HashMap<>();
+            params.put("toEmail", email);
+            params.put("userId", userId.toString());
+            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
             throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
         }
     }
@@ -125,6 +131,10 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Wrong password", ErrorCode.AUTH_004);
         }
         if (!user.getIsVerified()) {
+            Map<String, String> params = new HashMap<>();
+            params.put("toEmail", user.getEmail());
+            params.put("userId", user.getId().toString());
+            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
             throw new BadRequestException("User is not verified", ErrorCode.AUTH_007);
         }
         JwtResultDto jwtResultDto = new JwtResultDto();
@@ -210,6 +220,17 @@ public class AuthServiceImpl implements AuthService {
 
         emailRequestDto.setBody(TemplateUtil.process("templates/reset_password.html", params));
         emailService.sendEmail(emailRequestDto);
+    }
+
+    @Override
+    public JwtResultDto verifyAccount(VerifyAccountRequestDto verifyAccountRequestDto) {
+        User user = getUserByEmail(verifyAccountRequestDto.getEmail());
+        otpTransactionService.verifyOtp(user.getId(), OtpType.VERIFY_ACCOUNT, verifyAccountRequestDto.getCode());
+        JwtResultDto jwtResultDto = new JwtResultDto();
+        user.setIsVerified(true);
+        user = userRepository.save(user);
+        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
+        return jwtResultDto;
     }
 
 }

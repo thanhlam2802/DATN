@@ -9,7 +9,7 @@ import java.util.Map;
 public interface OTPTransactionService {
     void sendOtp(Map<String, String> params, OtpType type);
 
-    JwtResultDto verifyOtp(Integer userId, OtpType type, String code);
+    void verifyOtp(Integer userId, OtpType type, String code);
 
     OTPTransaction acquireOtp(Integer userId, OtpType type, Long expiredTime);
 

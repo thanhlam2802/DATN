@@ -31,6 +31,8 @@ import BookingSuccess from "@/views/hotel/BookingSuccess.vue";
 import AdminLayout from "@/components/Hotel/HotelAdmin/AdminLayout.vue";
 import HotelForm from "@/views/hotel/admin/HotelForm.vue";
 import Dashboard from "@/views/hotel/admin/Dashboard.vue";
+import Customer from "@/views/hotel/admin/Customer.vue";
+import Booking from "@/views/hotel/admin/Booking.vue";
 import AdminDashboard from "@/views/admin/Dashboard.vue";
 
 import TourManager from "../layouts/TourManager.vue";
@@ -44,6 +46,8 @@ import SuccessHold from "@/components/Flight/SuccessHold.vue";
 import BankTransferForm from "@/components/Flight/BankTransferForm.vue";
 import ForgotPassword from "@/views/ForgotPassword.vue";
 import ResetPassword from "@/views/ResetPassword.vue";
+import ExpiredLink from "@/views/ExpiredLink.vue";
+import VerifyEmail from "@/views/VerifyEmail.vue";
 
 const routes = [
     {
@@ -55,6 +59,8 @@ const routes = [
             {path: "login", name: "Login", component: Login},
             {path: "forgot-password", name: "ForgotPassword", component: ForgotPassword},
             {path: "reset-password", name: "ResetPassword", component: ResetPassword},
+            {path: "expired-link", name: "ExpiredLink", component: ExpiredLink},
+            {path: "verify-email", name: "VerifyEmail", component: VerifyEmail},
             {path: "tour", name: "Tour", component: Tour},
             {path: "bus", name: "Bus", component: Bus},
             {path: "plane", name: "Plane", component: Plane},
@@ -177,15 +183,17 @@ const routes = [
         component: TourManager,
     },
 
-    {
-        path: "/hotel/admin",
-        component: AdminLayout,
-        children: [
-            {path: "dashboard", component: Dashboard},
-            {path: "hotelform", component: HotelForm},
-            {path: "", redirect: "dashboard"},
-        ],
-    },
+  {
+    path: "/hotel/admin",
+    component: AdminLayout,
+    children: [
+      { path: "dashboard", component: Dashboard },
+      { path: "hotelform", component: HotelForm },
+      { path: "customer", component: Customer },
+      { path: "booking", component: Booking },
+      { path: "", redirect: "dashboard" },
+    ],
+  },
 
     {
         path: "/admin/dashboard",

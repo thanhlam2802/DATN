@@ -15,7 +15,9 @@ import java.io.Serializable;
 @Embeddable
 public class UserRoleId implements Serializable {
 
+
 	private Integer userId;
+
     private Integer roleId;
 
 }

@@ -14,8 +14,9 @@ public class ResetPasswordRequestDto {
 
     @NotBlank
     private String newPassword;
+
+
     @NotBlank
-   private String  OtpCode; 
-    
-    
+    private String otpCode;
+
 }

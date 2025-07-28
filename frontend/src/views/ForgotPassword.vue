@@ -1,5 +1,10 @@
 <template>
   <div class="w-full px-4 sm:px-6 lg:px-2 py-5">
+<!--    <div class="absolute top-6 left-6 z-10">-->
+<!--      <router-link to="/login" class="flex items-center text-white hover:text-purple-300">-->
+<!--        <i class="fas fa-arrow-left mr-2"></i> Back to Login-->
+<!--      </router-link>-->
+<!--    </div>-->
     <div class="relative w-full rounded-md overflow-hidden shadow-md">
       <img
           alt="Scenic lake"

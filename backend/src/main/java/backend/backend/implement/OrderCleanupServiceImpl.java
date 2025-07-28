@@ -59,7 +59,10 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
 
                 List<FlightBooking> flightBooking = flightBookingDAO.findByOrderId(order.getId());
                 for (FlightBooking flightBooking1 : flightBooking) {
-                    flightBookingService.cancelFlightBooking(flightBooking1.getId());
+
+                    flightBookingService.cancelBooking(flightBooking1.getId());
+
+            
 
                 System.out.println("Expired order: " + order.getId());
                 List<HotelBooking> hotelBookings = hotelBookingDAO.findByOrderId(order.getId());

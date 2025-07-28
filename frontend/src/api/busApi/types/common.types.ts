@@ -28,6 +28,16 @@ export interface BusAmenity {
   updatedAt?: string;
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  provinceCity?: string;
+  district?: string;
+  addressDetails?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Bus {
   id: string;
   name: string;
@@ -44,8 +54,8 @@ export interface Bus {
 
 export interface Route {
   id: string;
-  origin: string;
-  destination: string;
+  originLocation: Location;
+  destinationLocation: Location;
   distanceKm: number;
   estimatedDurationMinutes: number;
   createdAt?: string;

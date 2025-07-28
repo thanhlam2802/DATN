@@ -242,6 +242,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouteAPI } from '@/api/busApi/route/api';
+import { PriceAPI } from '@/api/busApi/priceApi/api';
 import RouteModal from './RouteModal.vue';
 import type { Route } from '@/api/busApi/types/common.types'
 // @ts-ignore
@@ -273,8 +274,21 @@ const handleAddRoute = () => {
   routeModal.value?.openForCreate()
 }
 
-const handleEditRoute = (route: Route) => {
-  routeModal.value?.openForEdit(route)
+const handleEditRoute = async (route: Route) => {
+  try {
+    // Load price information for this route before opening modal
+    const routePrices = await PriceAPI.findAllPrices()
+    const routePriceData = routePrices.filter(price => 
+      price.route && String(price.route.id) === String(route.id)
+    )
+    
+    // Pass price data to modal
+    routeModal.value?.openForEdit(route, routePriceData)
+  } catch (error) {
+    console.error('Error loading route price data:', error)
+    // Fallback: open modal without price data
+    routeModal.value?.openForEdit(route)
+  }
 }
 
 const handleRouteCreated = (newRoute: Route) => {

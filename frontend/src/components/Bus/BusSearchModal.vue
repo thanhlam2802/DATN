@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { mockBusTrips, timeSlots, availableFacilities } from '@/data/locationData.js'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { timeSlots, availableFacilities } from '@/data/locationData.js'
+import { BusSearchAPI } from '@/api/busAPI_Client'
 import BusCard from './BusCard.vue'
 import BusTicketBooking from './BusTicketBooking.vue'
 
@@ -22,6 +23,13 @@ const currentStep = ref(1) // 1: Tìm kiếm, 2: Chọn ghế, 3: Thông tin, 4:
 const selectedTrip = ref(null)
 const showBookingFlow = ref(false)
 
+// Loading state
+const loadingResults = ref(false)
+const searchError = ref('')
+
+// Component lifecycle tracking
+const isMounted = ref(false)
+
 // Steps configuration
 const steps = [
   { id: 1, name: 'Tìm kiếm', icon: 'fas fa-search' },
@@ -39,8 +47,140 @@ const filters = ref({
   availableSeats: ''
 })
 
-// Mock search results (in real app, this would come from API)
-const searchResults = ref(mockBusTrips)
+// Real search results from API
+const rawSearchResults = ref([])
+const searchResults = ref([])
+
+// Transform BusSlot data to match UI expectations
+const transformBusSlotToTrip = (busSlot) => {
+  // Calculate duration from estimated minutes
+  const duration = busSlot.route.estimatedDurationMinutes 
+    ? `${Math.floor(busSlot.route.estimatedDurationMinutes / 60)}h ${busSlot.route.estimatedDurationMinutes % 60}m`
+    : '8h 30m' // fallback
+
+  // Get first image URL or use fallback
+  const imageUrl = busSlot.bus.busImages?.[0]?.image?.url || '/default-bus.jpg'
+
+  // Mock facilities based on bus category (real data should come from backend)
+  const facilities = generateFacilitiesFromCategory(busSlot.bus.categoryName)
+
+  return {
+    id: busSlot.id,
+    busSlotId: busSlot.id, // Keep reference for booking
+    company: busSlot.bus.name || 'Nhà xe không xác định',
+    busType: busSlot.bus.categoryName || 'Xe khách',
+    route: {
+      from: busSlot.route.origin,
+      to: busSlot.route.destination,
+      distance: busSlot.route.distanceKm ? `${busSlot.route.distanceKm}km` : 'N/A'
+    },
+    schedule: {
+      departure: busSlot.departureTime,
+      arrival: busSlot.arrivalTime,
+      duration: duration
+    },
+    price: busSlot.price,
+    totalSeats: busSlot.totalSeats,
+    availableSeats: busSlot.availableSeats,
+    facilities: facilities,
+    image: imageUrl,
+    status: busSlot.status,
+    // For booking flow
+    type: determineBusType(busSlot.totalSeats),
+    activeTab: determineBusType(busSlot.totalSeats)
+  }
+}
+
+// Generate facilities based on bus category
+const generateFacilitiesFromCategory = (categoryName) => {
+  const categoryLower = categoryName?.toLowerCase() || ''
+  const facilities = []
+  
+  if (categoryLower.includes('vip') || categoryLower.includes('luxury')) {
+    facilities.push('wifi', 'ac', 'water', 'blanket', 'entertainment')
+  } else if (categoryLower.includes('giường nằm') || categoryLower.includes('sleeping')) {
+    facilities.push('ac', 'water', 'blanket')
+  } else if (categoryLower.includes('ghế ngồi') || categoryLower.includes('seat')) {
+    facilities.push('ac', 'water')
+  } else {
+    // Default facilities
+    facilities.push('ac')
+  }
+  
+  return facilities
+}
+
+// Determine bus type for seat layout
+const determineBusType = (totalSeats) => {
+  if (totalSeats <= 20) {
+    return 'shuttle-bus'
+  } else {
+    return 'sleeping-bus'
+  }
+}
+
+// Mount/unmount tracking
+onMounted(() => {
+  isMounted.value = true
+})
+
+onUnmounted(() => {
+  isMounted.value = false
+})
+
+// Perform search when modal opens or search params change
+const performSearch = async () => {
+  if (!isMounted.value || !props.searchParams.from || !props.searchParams.to || !props.searchParams.departureDate) {
+    return
+  }
+
+  try {
+    loadingResults.value = true
+    searchError.value = ''
+
+    const criteria = {
+      from: props.searchParams.from,
+      to: props.searchParams.to,
+      departureDate: props.searchParams.departureDate,
+      seats: props.searchParams.seats || 1,
+      roundtrip: props.searchParams.roundtrip || false
+    }
+
+    const busSlots = await BusSearchAPI.searchBusSlots(criteria)
+    
+    // Check if still mounted before updating state
+    if (isMounted.value) {
+      rawSearchResults.value = busSlots
+      // Transform to UI format
+      searchResults.value = busSlots.map(transformBusSlotToTrip)
+    }
+
+  } catch (error) {
+    if (isMounted.value) {
+      searchError.value = 'Không thể tìm kiếm chuyến xe. Vui lòng thử lại.'
+      searchResults.value = []
+      rawSearchResults.value = []
+    }
+  } finally {
+    if (isMounted.value) {
+      loadingResults.value = false
+    }
+  }
+}
+
+// Watch for search params changes
+watch(() => props.searchParams, async (newParams) => {
+  if (props.show && newParams && isMounted.value) {
+    await performSearch()
+  }
+}, { deep: true })
+
+// Watch for modal show/hide
+watch(() => props.show, async (isVisible) => {
+  if (isVisible && isMounted.value) {
+    await performSearch()
+  }
+})
 
 // Filtered results based on filters
 const filteredResults = computed(() => {
@@ -108,7 +248,6 @@ const toggleTimeSlot = (slotId) => {
   } else {
     filters.value.timeSlots.push(slotId)
   }
-  console.log('Time slots updated:', filters.value.timeSlots)
 }
 
 const toggleFacility = (facilityId) => {
@@ -118,7 +257,6 @@ const toggleFacility = (facilityId) => {
   } else {
     filters.value.facilities.push(facilityId)
   }
-  console.log('Facilities updated:', filters.value.facilities)
 }
 
 const toggleArrivalTimeSlot = (slotId) => {
@@ -131,7 +269,6 @@ const toggleArrivalTimeSlot = (slotId) => {
   } else {
     filters.value.arrivalTimeSlots.push(slotId)
   }
-  console.log('Arrival time slots updated:', filters.value.arrivalTimeSlots)
 }
 
 // Handle modal close
@@ -154,39 +291,25 @@ const clearFilters = () => {
     facilities: [],
     availableSeats: ''
   }
-  console.log('Filters cleared')
 }
-
-// Watch for filter changes and log them
-watch(() => filters.value, (newFilters) => {
-  console.log('Filters changed:', newFilters)
-  console.log('Filtered results count:', filteredResults.value.length)
-}, { deep: true })
-
-// Watch for availableSeats changes
-watch(() => filters.value.availableSeats, (newValue) => {
-  console.log('Available seats filter changed:', newValue)
-})
 
 // Booking flow functions
 const startBookingFlow = (trip) => {
   selectedTrip.value = {
     ...trip,
     type: props.searchParams.busType || trip.type, // Use busType from search params
-    activeTab: props.searchParams.busType // Pass activeTab info
+    activeTab: props.searchParams.busType || trip.activeTab // Pass activeTab info
   }
   currentStep.value = 2 // Move to seat selection
   showBookingFlow.value = true
-  console.log('Starting booking flow for trip:', selectedTrip.value)
 }
 
 const handleStepChange = (step) => {
   currentStep.value = step
-  console.log('Step changed to:', step)
 }
 
 const handleBookingComplete = (bookingData) => {
-  console.log('Booking completed:', bookingData)
+  // Handle booking completion
   // In real app, send to API
   // Reset modal state
   currentStep.value = 1
@@ -219,6 +342,11 @@ const getStepConnectorClass = (stepIndex) => {
   } else {
     return 'bg-gray-200' // Pending
   }
+}
+
+// Retry search function
+const retrySearch = () => {
+  performSearch()
 }
 </script>
 
@@ -403,8 +531,32 @@ const getStepConnectorClass = (stepIndex) => {
                     </div>
                   </div>
 
+                  <!-- Loading State -->
+                  <div v-if="loadingResults" class="text-center py-12">
+                    <div class="flex flex-col items-center">
+                      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                      <h3 class="text-lg font-medium text-gray-900 mb-2">Đang tìm kiếm chuyến xe...</h3>
+                      <p class="text-gray-600">Vui lòng chờ trong giây lát</p>
+                    </div>
+                  </div>
+
+                  <!-- Error State -->
+                  <div v-else-if="searchError" class="text-center py-12">
+                    <div class="flex flex-col items-center">
+                      <i class="fas fa-exclamation-triangle text-red-400 text-4xl mb-4"></i>
+                      <h3 class="text-lg font-medium text-gray-900 mb-2">Có lỗi xảy ra</h3>
+                      <p class="text-gray-600 mb-4">{{ searchError }}</p>
+                      <button 
+                        @click="retrySearch"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-redo mr-2"></i>
+                        Thử lại
+                      </button>
+                    </div>
+                  </div>
+
                   <!-- Bus Cards -->
-                  <div class="space-y-4">
+                  <div v-else-if="!loadingResults && filteredResults.length > 0" class="space-y-4">
                     <BusCard 
                       v-for="trip in filteredResults"
                       :key="trip.id"
@@ -414,11 +566,31 @@ const getStepConnectorClass = (stepIndex) => {
                   </div>
 
                   <!-- No Results -->
-                  <div v-if="filteredResults.length === 0" 
+                  <div v-else-if="!loadingResults && searchResults.length === 0" 
                        class="text-center py-12">
                     <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">Không tìm thấy chuyến xe</h3>
-                    <p class="text-gray-600">Thử điều chỉnh bộ lọc hoặc thay đổi tiêu chí tìm kiếm</p>
+                    <p class="text-gray-600 mb-4">Không có chuyến xe nào phù hợp với tiêu chí tìm kiếm</p>
+                    <button 
+                      @click="clearFilters"
+                      class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                      <i class="fas fa-filter mr-2"></i>
+                      Xóa bộ lọc
+                    </button>
+                  </div>
+
+                  <!-- Filtered No Results -->
+                  <div v-else-if="!loadingResults && searchResults.length > 0 && filteredResults.length === 0" 
+                       class="text-center py-12">
+                    <i class="fas fa-filter text-gray-400 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Không có kết quả với bộ lọc hiện tại</h3>
+                    <p class="text-gray-600 mb-4">Thử điều chỉnh bộ lọc để xem thêm chuyến xe</p>
+                    <button 
+                      @click="clearFilters"
+                      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      <i class="fas fa-times mr-2"></i>
+                      Xóa bộ lọc
+                    </button>
                   </div>
 
                 </div>

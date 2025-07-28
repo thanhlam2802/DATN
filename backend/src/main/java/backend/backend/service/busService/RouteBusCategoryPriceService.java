@@ -15,4 +15,6 @@ public interface RouteBusCategoryPriceService {
     Optional<RouteBusCategoryPriceResponse> findRouteBusCategoryPriceById(Integer id);
     List<RouteBusCategoryPriceResponse> findAllRouteBusCategoryPrices();
     Optional<RouteBusCategoryPriceResponse> findActiveRouteBusCategoryPrice(Integer routeId, Integer busCategoryId, LocalDate date);
+
+
 }

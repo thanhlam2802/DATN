@@ -36,16 +36,16 @@ public class BusServiceImpl implements BusService {
     private final BusImageDAO busImageRepository;
     private final BusAmenityDAO busAmenityDAO; // <-- BỔ SUNG: Inject BusAmenityDAO
 
-    // --- Helper Methods ---
-    private User getCurrentAuthenticatedUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new IllegalStateException("Người dùng chưa được xác thực hoặc không tìm thấy thông tin.");
-        }
-        String username = authentication.getName();
-        return userRepository.findByName(username)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng: " + username));
-    }
+//    // --- Helper Methods ---
+//    private User getCurrentAuthenticatedUser() {
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+//            throw new IllegalStateException("Người dùng chưa được xác thực hoặc không tìm thấy thông tin.");
+//        }
+//        String username = authentication.getName();
+//        return userRepository.findByName(username)
+//                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng: " + username));
+//    }
 
     private String safeTrim(String raw, String errorMessage) {
         if (raw == null || raw.trim().isEmpty()) {

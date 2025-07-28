@@ -1,9 +1,6 @@
 package backend.backend.service.busService;
 
-import backend.backend.dto.BusDTO.BusResponse;
-import backend.backend.dto.BusDTO.BusSlotResponse;
-import backend.backend.dto.BusDTO.CreateBusRequest;
-import backend.backend.dto.BusDTO.UpdateBusRequest;
+import backend.backend.dto.BusDTO.*;
 import backend.backend.entity.Bus;
 import org.springframework.data.repository.query.Param;
 
@@ -22,6 +19,5 @@ public interface BusService {
     List<BusResponse> findBusesByOwnerId(Integer ownerId); // <-- Đã cập nhật
     List<BusResponse> findBusesByCategoryId(Integer categoryId); // <-- Thêm vào để đồng bộ với ServiceImpl
     List<BusResponse> searchBuses(String name, String licensePlate); // <-- Thêm vào để đồng bộ với ServiceImpl
-
 }
 

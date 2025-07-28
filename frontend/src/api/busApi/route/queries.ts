@@ -3,12 +3,12 @@
  */
 
 import { gql } from '../../graphqlClient';
-import { ROUTE_FRAGMENT } from '../fragments';
+import { ROUTE_FRAGMENT, LOCATION_FRAGMENT } from './fragments';
 
 export const FIND_ALL_ROUTES = gql`
   query FindAllRoutes {
     findAllRoutes {
-      ...RouteFragment
+      ...RouteInfo
     }
   }
   ${ROUTE_FRAGMENT}
@@ -17,18 +17,17 @@ export const FIND_ALL_ROUTES = gql`
 export const FIND_ROUTE_BY_ID = gql`
   query FindRouteById($id: ID!) {
     findRouteById(id: $id) {
-      ...RouteFragment
+      ...RouteInfo
     }
   }
   ${ROUTE_FRAGMENT}
 `;
 
-export const FIND_BY_ORIGIN_AND_DESTINATION = `
-  ${ROUTE_FRAGMENT}
-  
+export const FIND_BY_ORIGIN_AND_DESTINATION = gql`
   query FindByOriginAndDestination($origin: String!, $destination: String!) {
     findByOriginAndDestination(origin: $origin, destination: $destination) {
       ...RouteInfo
     }
   }
+  ${ROUTE_FRAGMENT}
 `; 

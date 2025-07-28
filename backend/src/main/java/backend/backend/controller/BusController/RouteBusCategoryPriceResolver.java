@@ -1,6 +1,7 @@
 package backend.backend.controller.BusController;
 
 import backend.backend.dto.BusDTO.CreateRouteBusCategoryPriceRequest;
+import backend.backend.dto.BusDTO.CreateRouteBusCategoryPriceInput; // ADD: Import the correct input type
 import backend.backend.dto.BusDTO.RouteBusCategoryPriceResponse;
 import backend.backend.dto.BusDTO.UpdateRouteBusCategoryPriceRequest;
 import backend.backend.service.busService.RouteBusCategoryPriceService;
@@ -45,9 +46,20 @@ public class RouteBusCategoryPriceResolver {
     }
 
     @MutationMapping
-    public RouteBusCategoryPriceResponse createRouteBusCategoryPrice(@Argument CreateRouteBusCategoryPriceRequest input) {
+    public RouteBusCategoryPriceResponse createRouteBusCategoryPrice(@Argument CreateRouteBusCategoryPriceInput input) {
         try {
-            return routeBusCategoryPriceService.createRouteBusCategoryPrice(input);
+            // Convert CreateRouteBusCategoryPriceInput to CreateRouteBusCategoryPriceRequest
+            CreateRouteBusCategoryPriceRequest request = CreateRouteBusCategoryPriceRequest.builder()
+                    .routeId(input.routeId())
+                    .busCategoryId(input.busCategoryId())
+                    .basePrice(input.basePrice())
+                    .promotionPrice(input.promotionPrice())
+                    .validFrom(LocalDate.parse(input.validFrom()))  // Convert String to LocalDate
+                    .validTo(LocalDate.parse(input.validTo()))      // Convert String to LocalDate
+                    .notes(input.notes())
+                    .build();
+            
+            return routeBusCategoryPriceService.createRouteBusCategoryPrice(request);
         } catch (IllegalArgumentException e) {
             throw new GraphQLException(e.getMessage());
         }

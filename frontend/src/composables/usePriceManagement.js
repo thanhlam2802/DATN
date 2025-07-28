@@ -178,7 +178,7 @@ export function usePriceManagement() {
       
       if (conflictCheck.hasConflict) {
         const conflictMessages = conflictCheck.conflictingPrices.map(price => 
-          `${price.route.origin} → ${price.route.destination} - ${price.busCategory.name} (${price.validFrom} đến ${price.validTo})`
+          `${price.route.originLocation.name} → ${price.route.destinationLocation.name} - ${price.busCategory.name} (${price.validFrom} đến ${price.validTo})`
         )
         throw new Error(`Xung đột thời gian với các quy tắc giá sau:\n${conflictMessages.join('\n')}`)
       }
@@ -224,7 +224,7 @@ export function usePriceManagement() {
       
       if (conflictCheck.hasConflict) {
         const conflictMessages = conflictCheck.conflictingPrices.map(price => 
-          `${price.route.origin} → ${price.route.destination} - ${price.busCategory.name} (${price.validFrom} đến ${price.validTo})`
+          `${price.route.originLocation.name} → ${price.route.destinationLocation.name} - ${price.busCategory.name} (${price.validFrom} đến ${price.validTo})`
         )
         throw new Error(`Xung đột thời gian với các quy tắc giá sau:\n${conflictMessages.join('\n')}`)
       }

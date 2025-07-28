@@ -142,7 +142,7 @@
             <select v-model="filters.route" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
               <option value="">Tất cả tuyến</option>
               <option v-for="route in availableRoutes" :key="route.id" :value="route.id">
-                {{ route.name || `${route.origin} - ${route.destination}` }}
+                {{ route.name }}
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -189,9 +189,9 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </div>
-          </div>
         </div>
       </div>
+    </div>
 
       <!-- Advanced Filters -->
       <transition name="filter-slide">
@@ -451,10 +451,10 @@
                   <div v-if="busSlot.actualArrivalTime" class="text-gray-700">
                     Đến: {{ getDisplayTime(busSlot.arrivalTime, busSlot.actualArrivalTime) }}
                   </div>
-                  <div v-if="busSlot.delayReason" class="text-xs text-amber-600 flex items-center">
-                    <span class="mr-1">{{ getDelayReasonIcon(busSlot.delayReason) }}</span>
-                    {{ getDelayReasonText(busSlot.delayReason) }}
-                  </div>
+                                     <div v-if="busSlot.delayReason" class="text-xs text-amber-600 flex items-center">
+                     <span class="mr-1">{{ getDelayReasonIcon(busSlot.delayReason) }}</span>
+                     {{ getDelayReasonText(busSlot.delayReason) }}
+                   </div>
                 </div>
                 <div v-else class="text-xs text-gray-400">
                   Chưa cập nhật
@@ -469,7 +469,7 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 <span :class="'inline-flex px-2 py-1 text-xs font-medium rounded-full ' + getOccupancyBadgeClass(busSlot.totalSeats, busSlot.availableSeats)">
-                  {{ busSlot.totalSeats - busSlot.availableSeats }}/{{ busSlot.totalSeats }}
+                {{ busSlot.totalSeats - busSlot.availableSeats }}/{{ busSlot.totalSeats }}
                 </span>
                 <div class="text-xs text-green-600">{{ formatPrice(busSlot.price) }}</div>
               </td>
@@ -560,110 +560,110 @@
       @save="handleSaveTrip"
     />
 
-    <!-- Manual Status Update Modal -->
-    <transition name="modal" appear>
+  <!-- Manual Status Update Modal -->
+  <transition name="modal" appear>
       <div v-if="showStatusUpdateModal" @click="closeStatusUpdateModal" class="fixed inset-0 h-full w-full z-50 flex items-center justify-center bg-black-100 backdrop-blur-sm p-4 ">
-        <div @click.stop class="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
-          
-          <!-- Modal Header -->
-          <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 text-white">
-            <h3 class="text-lg font-semibold">⏰ Cập nhật trạng thái thực tế</h3>
-            <p class="text-sm opacity-90">Chuyến: {{ updatingTrip?.id }}</p>
+      <div @click.stop class="relative w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 text-white">
+          <h3 class="text-lg font-semibold">⏰ Cập nhật trạng thái thực tế</h3>
+          <p class="text-sm opacity-90">Chuyến: {{ updatingTrip?.id }}</p>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 space-y-4">
+          <!-- Status -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái hiện tại</label>
+            <select v-model="statusUpdateForm.status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="SCHEDULED">📅 Đã lên lịch</option>
+              <option value="IN_PROGRESS">🚌 Đang chạy</option>
+              <option value="COMPLETED">✅ Hoàn thành</option>
+              <option value="CANCELLED">❌ Đã hủy</option>
+            </select>
           </div>
           
-          <!-- Modal Body -->
-          <div class="p-6 space-y-4">
-            <!-- Status -->
+          <!-- Actual Times -->
+          <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái hiện tại</label>
-              <select v-model="statusUpdateForm.status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                <option value="SCHEDULED">📅 Đã lên lịch</option>
-                <option value="IN_PROGRESS">🚌 Đang chạy</option>
-                <option value="COMPLETED">✅ Hoàn thành</option>
-                <option value="CANCELLED">❌ Đã hủy</option>
-              </select>
-            </div>
-            
-            <!-- Actual Times -->
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Giờ khởi hành thực tế</label>
-                <input 
-                  v-model="statusUpdateForm.actualDepartureTime" 
-                  type="datetime-local" 
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Giờ đến thực tế</label>
-                <input 
-                  v-model="statusUpdateForm.actualArrivalTime" 
-                  type="datetime-local" 
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                />
-              </div>
-            </div>
-            
-            <!-- Delay Reason -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Lý do delay/sớm (nếu có)</label>
-              <select v-model="statusUpdateForm.delayReason" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                <option value="">-- Không có --</option>
-                <option value="TRAFFIC_JAM">🚗 Kẹt xe</option>
-                <option value="WEATHER">🌧️ Thời tiết xấu</option>
-                <option value="VEHICLE_ISSUE">🔧 Sự cố xe</option>
-                <option value="PASSENGER_DELAY">👥 Khách trễ</option>
-                <option value="ROAD_ACCIDENT">⚠️ Tai nạn giao thông</option>
-                <option value="FUEL_STOP">⛽ Dừng đổ xăng</option>
-                <option value="DRIVER_BREAK">☕ Nghỉ giải lao</option>
-                <option value="EARLY_ARRIVAL">🏃‍♂️ Đến sớm</option>
-                <option value="OTHER">❓ Lý do khác</option>
-              </select>
-            </div>
-            
-            <!-- Current Location -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Vị trí hiện tại (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ khởi hành thực tế</label>
               <input 
-                v-model="statusUpdateForm.currentLocation" 
-                type="text" 
-                placeholder="VD: Đang ở Hà Nội, sẽ đến Thanh Hóa lúc 15:30"
+                v-model="statusUpdateForm.actualDepartureTime" 
+                type="datetime-local" 
                 class="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
-            
-            <!-- Driver Notes -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú tài xế</label>
-              <textarea 
-                v-model="statusUpdateForm.driverNotes" 
-                rows="2"
-                placeholder="Ghi chú thêm từ tài xế hoặc điều hành..."
+              <label class="block text-sm font-medium text-gray-700 mb-2">Giờ đến thực tế</label>
+              <input 
+                v-model="statusUpdateForm.actualArrivalTime" 
+                type="datetime-local" 
                 class="w-full border border-gray-300 rounded-lg px-3 py-2"
-              ></textarea>
+              />
             </div>
           </div>
           
-          <!-- Modal Footer -->
-          <div class="bg-gray-50 px-6 py-4 flex space-x-3 justify-end">
-            <button 
-              @click="closeStatusUpdateModal"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Hủy
-            </button>
-            <button 
-              @click="handleSaveStatusUpdate"
-              :disabled="tripManager.loading.value"
-              class="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-lg hover:bg-purple-700 disabled:opacity-50"
-            >
-              <span v-if="tripManager.loading.value">Đang lưu...</span>
-              <span v-else>💾 Cập nhật</span>
-            </button>
+          <!-- Delay Reason -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Lý do delay/sớm (nếu có)</label>
+            <select v-model="statusUpdateForm.delayReason" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="">-- Không có --</option>
+              <option value="TRAFFIC_JAM">🚗 Kẹt xe</option>
+              <option value="WEATHER">🌧️ Thời tiết xấu</option>
+              <option value="VEHICLE_ISSUE">🔧 Sự cố xe</option>
+              <option value="PASSENGER_DELAY">👥 Khách trễ</option>
+              <option value="ROAD_ACCIDENT">⚠️ Tai nạn giao thông</option>
+              <option value="FUEL_STOP">⛽ Dừng đổ xăng</option>
+              <option value="DRIVER_BREAK">☕ Nghỉ giải lao</option>
+              <option value="EARLY_ARRIVAL">🏃‍♂️ Đến sớm</option>
+              <option value="OTHER">❓ Lý do khác</option>
+            </select>
+          </div>
+          
+          <!-- Current Location -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Vị trí hiện tại (optional)</label>
+            <input 
+              v-model="statusUpdateForm.currentLocation" 
+              type="text" 
+              placeholder="VD: Đang ở Hà Nội, sẽ đến Thanh Hóa lúc 15:30"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          
+          <!-- Driver Notes -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú tài xế</label>
+            <textarea 
+              v-model="statusUpdateForm.driverNotes" 
+              rows="2"
+              placeholder="Ghi chú thêm từ tài xế hoặc điều hành..."
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            ></textarea>
           </div>
         </div>
+        
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 px-6 py-4 flex space-x-3 justify-end">
+          <button 
+            @click="closeStatusUpdateModal"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Hủy
+          </button>
+          <button 
+              @click="handleSaveStatusUpdate"
+              :disabled="tripManager.loading.value"
+            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-lg hover:bg-purple-700 disabled:opacity-50"
+          >
+              <span v-if="tripManager.loading.value">Đang lưu...</span>
+            <span v-else>💾 Cập nhật</span>
+          </button>
+        </div>
       </div>
-    </transition>
+    </div>
+  </transition>
 
     <!-- Success Message -->
     <div v-if="successMessage" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50">
@@ -714,12 +714,23 @@ const availableRoutes = computed(() => {
   // Get unique routes from trips and available routes
   const routesFromTrips = tripManager.busSlots.value
     .filter(slot => slot.route)
-    .map(slot => ({
-      id: slot.route.id,
-      name: `${slot.route.origin} - ${slot.route.destination}`,
-      origin: slot.route.origin,
-      destination: slot.route.destination
-    }))
+    .map(slot => {
+      const route = slot.route
+      // Handle both new format (with Location entities) and mapped format
+      let routeName
+      if (route.originLocation && route.destinationLocation) {
+        routeName = `${route.originLocation.name} - ${route.destinationLocation.name}`
+      } else {
+        routeName = route.name || `${route.origin} - ${route.destination}`
+      }
+      
+      return {
+        id: route.id,
+        name: routeName,
+        origin: route.originLocation?.name || route.origin,
+        destination: route.destinationLocation?.name || route.destination
+      }
+    })
 
   const routesFromApi = tripManager.availableRoutes.value || []
   
@@ -965,12 +976,12 @@ const closeStatusUpdateModal = () => {
   showStatusUpdateModal.value = false
   updatingTrip.value = null
   statusUpdateForm.value = {
-    status: '',
-    actualDepartureTime: '',
-    actualArrivalTime: '',
-    delayReason: '',
-    currentLocation: '',
-    driverNotes: ''
+  status: '',
+  actualDepartureTime: '',
+  actualArrivalTime: '',
+  delayReason: '',
+  currentLocation: '',
+  driverNotes: ''
   }
 }
 
@@ -1134,7 +1145,15 @@ const getBusInfo = (busSlot) => {
 }
 
 const getRouteInfo = (busSlot) => {
-  return busSlot.route ? `${busSlot.route.origin} - ${busSlot.route.destination}` : 'N/A'
+  if (!busSlot.route) return 'N/A'
+  
+  // Handle both old format (from mapping) and new format (from API)
+  if (busSlot.route.originLocation && busSlot.route.destinationLocation) {
+    return `${busSlot.route.originLocation.name} - ${busSlot.route.destinationLocation.name}`
+  }
+  
+  // Fallback to mapped format
+  return busSlot.route.name || `${busSlot.route.origin} - ${busSlot.route.destination}`
 }
 
 const formatTime = (datetime) => {
@@ -1172,7 +1191,7 @@ const getDisplayTime = (scheduledTime, actualTime) => {
     return `${formattedTime} (đúng giờ)`
   } else if (diff < 0) {
     return `${formattedTime} (sớm ${Math.abs(diff)} phút)`
-  } else {
+    } else {
     return `${formattedTime} (trễ ${diff} phút)`
   }
 }
@@ -1326,4 +1345,4 @@ onUnmounted(() => {
   opacity: 0;
   transform: translateY(-10px);
 }
-</style>
+</style> 

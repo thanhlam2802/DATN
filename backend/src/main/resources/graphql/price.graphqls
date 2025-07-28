@@ -12,8 +12,8 @@ type RouteBusCategoryPrice {
     validFrom: String!        # Ngày bắt đầu hiệu lực (YYYY-MM-DD)
     validTo: String!          # Ngày kết thúc hiệu lực (YYYY-MM-DD)
     notes: String             # Ghi chú (có thể null)
-    createdAt: DateTime
-    updatedAt: DateTime
+    createdAt: Instant        # ĐÃ SỬA: Thay DateTime bằng Instant
+    updatedAt: Instant        # ĐÃ SỬA: Thay DateTime bằng Instant
 }
 
 # --- Kiểu đầu vào cho Create RouteBusCategoryPrice ---

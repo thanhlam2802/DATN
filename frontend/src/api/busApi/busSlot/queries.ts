@@ -1,4 +1,5 @@
 import { gql } from '../../graphqlClient'
+import { ROUTE_FRAGMENT } from '../route/fragments'
 
 // Fragment for complete BusSlot data with real-time fields
 export const BUS_SLOT_DETAIL_FRAGMENT = gql`
@@ -15,11 +16,7 @@ export const BUS_SLOT_DETAIL_FRAGMENT = gql`
       ownerName
     }
     route {
-      id
-      origin
-      destination
-      distanceKm
-      estimatedDurationMinutes
+      ...RouteInfo
     }
     slotDate
     
@@ -53,6 +50,7 @@ export const BUS_SLOT_DETAIL_FRAGMENT = gql`
     createdAt
     updatedAt
   }
+  ${ROUTE_FRAGMENT}
 `
 
 // Basic queries

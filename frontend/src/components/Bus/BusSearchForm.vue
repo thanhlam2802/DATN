@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch, computed, nextTick } from 'vue'
-import { getOrigins, getDestinations } from '@/data/locationData.js'
+import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { LocationAPI } from '@/api/busAPI_Client'
 
 // DEV MODE: No auth features
 
@@ -17,6 +17,13 @@ const emit = defineEmits(['search', 'roundtrip-change'])
 // Refs
 const returnDateSection = ref(null)
 
+// Loading states
+const loadingOrigins = ref(false)
+const loadingDestinations = ref(false)
+
+// Component lifecycle tracking
+const isMounted = ref(false)
+
 // Form data
 const searchForm = ref({
   from: '',
@@ -31,17 +38,21 @@ const searchForm = ref({
 const selectedFrom = ref(null)
 const selectedTo = ref(null)
 
+// Real data from API
+const originsList = ref([])
+const destinationsList = ref([])
+
 // Dropdown states
 const showFromDropdown = ref(false)
 const showToDropdown = ref(false)
 
-// Available options based on bus type and selections
+// Available options based on real API data
 const availableOrigins = computed(() => {
-  return getOrigins(props.activeTab)
+  return originsList.value
 })
 
 const availableDestinations = computed(() => {
-  return getDestinations(props.activeTab, selectedFrom.value)
+  return destinationsList.value
 })
 
 // Filtered options based on input
@@ -59,6 +70,85 @@ const filteredDestinations = computed(() => {
   )
 })
 
+// Load origins on component mount
+onMounted(async () => {
+  isMounted.value = true
+  await loadOrigins()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  isMounted.value = false
+})
+
+// API calls
+const loadOrigins = async () => {
+  if (!isMounted.value) return
+  
+  try {
+    loadingOrigins.value = true
+    const origins = await LocationAPI.getAvailableOrigins()
+    
+    // Check if still mounted before updating state
+    if (isMounted.value) {
+      originsList.value = origins
+    }
+  } catch (error) {
+    // Use fallback data on error
+    if (isMounted.value) {
+      originsList.value = LocationAPI.getFallbackOrigins()
+    }
+  } finally {
+    if (isMounted.value) {
+      loadingOrigins.value = false
+    }
+  }
+}
+
+const loadDestinations = async (origin) => {
+  if (!isMounted.value || !origin) {
+    if (isMounted.value) {
+      destinationsList.value = []
+    }
+    return
+  }
+  
+  try {
+    loadingDestinations.value = true
+    const destinations = await LocationAPI.getAvailableDestinations(origin)
+    
+    // Check if still mounted before updating state
+    if (isMounted.value) {
+      destinationsList.value = destinations
+    }
+  } catch (error) {
+    // Use fallback data on error
+    if (isMounted.value) {
+      destinationsList.value = LocationAPI.getFallbackDestinations(origin)
+    }
+  } finally {
+    if (isMounted.value) {
+      loadingDestinations.value = false
+    }
+  }
+}
+
+// Watch origin selection to load destinations
+watch(selectedFrom, async (newOrigin) => {
+  if (newOrigin) {
+    await loadDestinations(newOrigin.name)
+    // Clear destination if it's no longer valid
+    if (selectedTo.value && !destinationsList.value.find(dest => dest.name === selectedTo.value.name)) {
+      searchForm.value.to = ''
+      selectedTo.value = null
+    }
+  } else {
+    destinationsList.value = []
+    searchForm.value.to = ''
+    selectedTo.value = null
+  }
+})
+
 // Watch roundtrip change và emit về parent
 watch(
   () => searchForm.value.roundtrip,
@@ -69,7 +159,8 @@ watch(
     if (newValue) {
       await nextTick()
       setTimeout(() => {
-        if (returnDateSection.value) {
+        // Add null check to prevent DOM errors
+        if (returnDateSection.value && returnDateSection.value.scrollIntoView) {
           returnDateSection.value.scrollIntoView({ 
             behavior: 'smooth', 
             block: 'nearest' 
@@ -93,16 +184,13 @@ const swapLocations = () => {
 }
 
 // Handle dropdown selections
-const selectOrigin = (location) => {
+const selectOrigin = async (location) => {
   searchForm.value.from = location.name
   selectedFrom.value = location
   showFromDropdown.value = false
   
-  // Clear destination if it's no longer valid
-  if (selectedTo.value && !availableDestinations.value.find(dest => dest.id === selectedTo.value.id)) {
-    searchForm.value.to = ''
-    selectedTo.value = null
-  }
+  // Load destinations for selected origin
+  await loadDestinations(location.name)
 }
 
 const selectDestination = (location) => {
@@ -117,6 +205,10 @@ const handleFromFocus = () => {
 }
 
 const handleToFocus = () => {
+  // Load destinations if origin is selected but destinations not loaded
+  if (selectedFrom.value && destinationsList.value.length === 0 && !loadingDestinations.value) {
+    loadDestinations(selectedFrom.value.name)
+  }
   showToDropdown.value = true
 }
 
@@ -150,8 +242,18 @@ const handleSearch = () => {
     return
   }
 
-  // Emit search event
-  emit('search', { ...searchForm.value })
+  // Prepare search criteria for BusSearchAPI
+  const searchCriteria = {
+    from: searchForm.value.from,
+    to: searchForm.value.to,
+    departureDate: searchForm.value.departureDate,
+    returnDate: searchForm.value.returnDate,
+    seats: searchForm.value.seats,
+    roundtrip: searchForm.value.roundtrip
+  }
+
+  // Emit search event with real criteria
+  emit('search', searchCriteria)
 }
 
 // Set default date to today
@@ -181,7 +283,12 @@ searchForm.value.departureDate = today
       <div class="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:relative">
         <!-- From -->
         <div class="space-y-2 relative">
-          <label class="block text-xs sm:text-sm font-medium text-gray-700">Điểm đi</label>
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">
+            Điểm đi
+            <span v-if="loadingOrigins" class="text-blue-500 ml-1">
+              <i class="fas fa-spinner fa-spin text-xs"></i>
+            </span>
+          </label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <i class="fas fa-bus text-gray-400 text-sm"></i>
@@ -190,7 +297,8 @@ searchForm.value.departureDate = today
               v-model="searchForm.from"
               type="text"
               placeholder="Nhập thành phố, bến xe..."
-              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+              :disabled="loadingOrigins"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
               @focus="handleFromFocus"
               @blur="handleFromBlur"
               autocomplete="off"
@@ -202,11 +310,15 @@ searchForm.value.departureDate = today
               <div v-for="location in filteredOrigins" 
                    :key="location.id"
                    @click="selectOrigin(location)"
-                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
-                <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
-                <div>
-                  <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
-                  <div v-if="location.parentId" class="text-xs text-gray-500">TP. Hồ Chí Minh</div>
+                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center justify-between">
+                <div class="flex items-center">
+                  <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
+                  <div>
+                    <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
+                  </div>
+                </div>
+                <div v-if="location.count" class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {{ location.count }} chuyến
                 </div>
               </div>
             </div>
@@ -218,7 +330,8 @@ searchForm.value.departureDate = today
           <button
             type="button"
             @click="swapLocations"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
+            :disabled="!selectedFrom || !selectedTo"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
           >
             <i class="fas fa-exchange-alt rotate-90 text-sm"></i>
           </button>
@@ -229,7 +342,8 @@ searchForm.value.departureDate = today
           <button
             type="button"
             @click="swapLocations"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
+            :disabled="!selectedFrom || !selectedTo"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white p-2 rounded-full shadow-lg transition-colors duration-200"
           >
             <i class="fas fa-exchange-alt"></i>
           </button>
@@ -237,7 +351,12 @@ searchForm.value.departureDate = today
 
         <!-- To -->
         <div class="space-y-2 relative">
-          <label class="block text-xs sm:text-sm font-medium text-gray-700">Điểm đến</label>
+          <label class="block text-xs sm:text-sm font-medium text-gray-700">
+            Điểm đến
+            <span v-if="loadingDestinations" class="text-blue-500 ml-1">
+              <i class="fas fa-spinner fa-spin text-xs"></i>
+            </span>
+          </label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <i class="fas fa-bus text-gray-400 text-sm"></i>
@@ -245,8 +364,9 @@ searchForm.value.departureDate = today
             <input
               v-model="searchForm.to"
               type="text"
-              placeholder="Nhập thành phố, bến xe..."
-              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
+              placeholder="Chọn điểm đi trước..."
+              :disabled="!selectedFrom || loadingDestinations"
+              class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
               @focus="handleToFocus"
               @blur="handleToBlur"
               autocomplete="off"
@@ -258,13 +378,24 @@ searchForm.value.departureDate = today
               <div v-for="location in filteredDestinations" 
                    :key="location.id"
                    @click="selectDestination(location)"
-                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center">
-                <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
-                <div>
-                  <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
-                  <div v-if="location.parentId" class="text-xs text-gray-500">TP. Hồ Chí Minh</div>
+                   class="px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center justify-between">
+                <div class="flex items-center">
+                  <i class="fas fa-map-marker-alt text-gray-400 mr-2 sm:mr-3 text-sm"></i>
+                  <div>
+                    <div class="font-medium text-gray-900 text-sm">{{ location.name }}</div>
+                  </div>
+                </div>
+                <div v-if="location.count" class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {{ location.count }} chuyến
                 </div>
               </div>
+            </div>
+
+            <!-- No destinations available message -->
+            <div v-if="selectedFrom && showToDropdown && !loadingDestinations && filteredDestinations.length === 0"
+                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500 text-sm">
+              <i class="fas fa-info-circle mr-2"></i>
+              Không có điểm đến từ {{ selectedFrom.name }}
             </div>
           </div>
         </div>
@@ -282,6 +413,7 @@ searchForm.value.departureDate = today
             <input
               v-model="searchForm.departureDate"
               type="date"
+              :min="today"
               class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm"
             />
           </div>
@@ -325,7 +457,8 @@ searchForm.value.departureDate = today
           <label class="block text-xs sm:text-sm font-medium text-gray-700 invisible">Tìm</label>
           <button
             type="submit"
-            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 flex items-center justify-center text-sm"
+            :disabled="loadingOrigins || loadingDestinations || !selectedFrom || !selectedTo"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 flex items-center justify-center text-sm"
           >
             <i class="fas fa-search mr-2 text-sm"></i>
             Tìm kiếm
@@ -356,6 +489,7 @@ searchForm.value.departureDate = today
                 <input
                   v-model="searchForm.returnDate"
                   type="date"
+                  :min="searchForm.departureDate || today"
                   class="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-sm"
                   placeholder="Chọn ngày về"
                 />

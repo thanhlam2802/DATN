@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
@@ -22,6 +23,6 @@ public class RouteBusCategoryPriceResponse {
     private LocalDate validFrom;        // Thêm trường này
     private LocalDate validTo;          // Thêm trường này
     private String notes;               // Thêm trường này
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

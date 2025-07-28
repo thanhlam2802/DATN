@@ -1,8 +1,9 @@
 import { ref, computed, watch } from 'vue'
 import { BusSlotAPI, BusSlotStatus, DelayReason } from '@/api/busApi/busSlot'
 import { graphqlRequest, gql } from '@/api/graphqlClient'
+import { RouteAPI } from '@/api/busApi/route/api'
 
-// GraphQL queries cho buses và routes
+// GraphQL queries cho buses
 const GET_BUSES_BY_OWNER = gql`
   query GetBusesByOwner($ownerId: ID!) {
     findBusesByOwnerId(ownerId: $ownerId) {
@@ -11,18 +12,6 @@ const GET_BUSES_BY_OWNER = gql`
       licensePlate
       totalSeats
       categoryName
-    }
-  }
-`
-
-const GET_ALL_ROUTES = gql`
-  query GetAllRoutes {
-    findAllRoutes {
-      id
-      origin
-      destination
-      distanceKm
-      estimatedDurationMinutes
     }
   }
 `
@@ -198,28 +187,19 @@ export function useTripManagement() {
     try {
       loadingRoutes.value = true
       
-      const response = await graphqlRequest({
-        query: GET_ALL_ROUTES
-      })
-      
-      const routes = response.data.findAllRoutes || []
+      const routes = await RouteAPI.getAllRoutes()
       allRoutes.value = routes.map(route => ({
         id: route.id,
-        origin: route.origin,
-        destination: route.destination,
-        name: `${route.origin} - ${route.destination}`,
+        origin: route.originLocation.name,
+        destination: route.destinationLocation.name,
+        name: `${route.originLocation.name} - ${route.destinationLocation.name}`,
         distanceKm: route.distanceKm,
         estimatedDurationMinutes: route.estimatedDurationMinutes
       }))
       
     } catch (err) {
-      // Fallback to mock data
-      allRoutes.value = [
-        { id: '1', origin: 'Hà Nội', destination: 'TP.HCM', name: 'Hà Nội - TP.HCM', distanceKm: 1700, estimatedDurationMinutes: 720 },
-        { id: '2', origin: 'Hà Nội', destination: 'Đà Nẵng', name: 'Hà Nội - Đà Nẵng', distanceKm: 800, estimatedDurationMinutes: 480 },
-        { id: '3', origin: 'TP.HCM', destination: 'Đà Nẵng', name: 'TP.HCM - Đà Nẵng', distanceKm: 900, estimatedDurationMinutes: 540 }
-      ]
-      error.value = 'Đang dùng dữ liệu mẫu cho tuyến đường'
+      console.error('Error loading routes:', err)
+      error.value = 'Không thể tải danh sách tuyến đường'
     } finally {
       loadingRoutes.value = false
     }

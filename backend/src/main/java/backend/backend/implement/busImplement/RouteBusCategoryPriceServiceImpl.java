@@ -50,12 +50,8 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
                 .validFrom(priceRule.getValidFrom())
                 .validTo(priceRule.getValidTo())
                 .notes(priceRule.getNotes())
-                .createdAt(Optional.ofNullable(priceRule.getCreatedAt())
-                        .map(ldt -> ldt.atOffset(ZoneOffset.ofHours(7)))
-                        .orElse(null))
-                .updatedAt(Optional.ofNullable(priceRule.getUpdatedAt())
-                        .map(ldt -> ldt.atOffset(ZoneOffset.ofHours(7)))
-                        .orElse(null))
+                .createdAt(priceRule.getCreatedAt())
+                .updatedAt(priceRule.getUpdatedAt())
                 .build();
     }
 
@@ -72,7 +68,7 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
             }
         }
 
-        Route route = routeDAO.findById(request.routeId())
+        Route route = routeDAO.findByIdWithLocations(request.routeId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tuyến đường với ID: " + request.routeId()));
         BusCategory busCategory = busCategoryDAO.findById(request.busCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy loại xe buýt với ID: " + request.busCategoryId()));
@@ -98,6 +94,11 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
 
         RouteBusCategoryPrice savedPriceRule = routeBusCategoryPriceDAO.save(newPriceRule);
         log.info("Đã tạo quy tắc giá mới với ID: {}", savedPriceRule.getId());
+        
+        // ✅ FIX: Manually set the already-loaded entities to avoid lazy loading issues
+        savedPriceRule.setRoute(route);
+        savedPriceRule.setBusCategory(busCategory);
+        
         return convertToRouteBusCategoryPriceResponse(savedPriceRule);
     }
 
@@ -120,7 +121,7 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
         }
 
         Optional.ofNullable(request.routeId()).ifPresent(routeId -> {
-            Route route = routeDAO.findById(routeId)
+            Route route = routeDAO.findByIdWithLocations(routeId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tuyến đường với ID: " + routeId));
             existingPriceRule.setRoute(route);
         });
@@ -157,6 +158,15 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
 
         RouteBusCategoryPrice updatedPriceRule = routeBusCategoryPriceDAO.save(existingPriceRule);
         log.info("Đã cập nhật quy tắc giá với ID: {}", updatedPriceRule.getId());
+        
+        // ✅ FIX: Ensure route and busCategory are populated to avoid lazy loading issues
+        // Note: updatedPriceRule should already have these from existingPriceRule, but ensure they're accessible
+        if (updatedPriceRule.getRoute() != null && updatedPriceRule.getBusCategory() != null) {
+            // Force initialization if they are proxies
+            updatedPriceRule.getRoute().getId();
+            updatedPriceRule.getBusCategory().getId();
+        }
+        
         return convertToRouteBusCategoryPriceResponse(updatedPriceRule);
     }
 
@@ -172,17 +182,17 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<RouteBusCategoryPriceResponse> findRouteBusCategoryPriceById(Integer id) {
-        return routeBusCategoryPriceDAO.findById(id)
-                .map(this::convertToRouteBusCategoryPriceResponse);
+    public List<RouteBusCategoryPriceResponse> findAllRouteBusCategoryPrices() {
+        return routeBusCategoryPriceDAO.findAllWithDetails().stream()
+                .map(this::convertToRouteBusCategoryPriceResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RouteBusCategoryPriceResponse> findAllRouteBusCategoryPrices() {
-        return routeBusCategoryPriceDAO.findAll().stream()
-                .map(this::convertToRouteBusCategoryPriceResponse)
-                .collect(Collectors.toList());
+    public Optional<RouteBusCategoryPriceResponse> findRouteBusCategoryPriceById(Integer id) {
+        return routeBusCategoryPriceDAO.findByIdWithDetails(id)
+                .map(this::convertToRouteBusCategoryPriceResponse);
     }
 
     @Override
@@ -199,5 +209,7 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
                 .or(() -> activeRules.stream().findFirst())
                 .map(this::convertToRouteBusCategoryPriceResponse);
     }
+
+
 
 }

@@ -541,7 +541,7 @@
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getHotelById, getHotelReviews, searchHotels } from "@/api/hotelApi";
-import { getAllProvinces } from "@/api/provinceApi.js";
+import { getAllProvinces } from "@/api/provinceApi";
 import HotelCard from '@/components/Home/HotelCard.vue';
 
 const hotel = ref(null);

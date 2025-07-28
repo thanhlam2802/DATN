@@ -3,7 +3,7 @@ package backend.backend.controller.BusController;
 import backend.backend.dto.BusDTO.CreateRouteRequest;
 import backend.backend.dto.BusDTO.UpdateRouteRequest;
 import backend.backend.entity.Route;
-import backend.backend.implement.busImplement.RouteServiceImpl;
+import backend.backend.service.busService.RouteService; // Import interface RouteService
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -19,38 +19,31 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class RouteResolver {
 
-    private final RouteServiceImpl routeService;
+    private final RouteService routeService; // Sử dụng interface RouteService
 
     @QueryMapping
-    public List<Route> findAllRoutes(){
-        return routeService.findAllRoute();
+    public List<Route> findAllRoutes(){ // Trả về List<Route> entity
+        return routeService.findAllRoute(); // Gọi phương thức trả về Route entity
     }
 
     @MutationMapping
-    public Route createRoute(@Argument CreateRouteRequest input){
-        return routeService.createRoute(input);
+    public Route createRoute(@Argument CreateRouteRequest input){ // Trả về Route entity
+        return routeService.createRoute(input); // Trả về Route entity trực tiếp
     }
 
     @MutationMapping
-    public Route updateRoute(@Argument Integer id,@Argument UpdateRouteRequest input) {
-        return routeService.updateRoute(id, input);
+    public Route updateRoute(@Argument Integer id, @Argument UpdateRouteRequest input) { // Trả về Route entity
+        return routeService.updateRoute(id, input); // Trả về Route entity trực tiếp
     }
 
     @MutationMapping
     public boolean deleteRoute(@Argument Integer id) {
-         routeService.deleteRoute(id);
-         return true;
+        routeService.deleteRoute(id);
+        return true;
     }
 
     @QueryMapping
-    public Optional<Route> findByOriginAndDestination (@Argument String origin,@Argument String destination) {
-        return routeService.findByOriginAndDestination(origin, destination);
+    public Optional<Route> findRouteById(@Argument Integer id) { // Trả về Optional<Route> entity
+        return routeService.findRouteById(id); // Gọi phương thức trả về Route entity
     }
-
-    @QueryMapping
-    public Optional<Route> findRouteById(@Argument Integer id) {
-        return routeService.findRouteById(id);
-    }
-
-
 }

@@ -5,8 +5,22 @@
       <div>
         <h3 class="text-lg font-medium leading-6 text-gray-900">Quản lý Loại xe</h3>
         <p class="mt-1 text-sm text-gray-500">Tạo và quản lý các loại xe bus (Trung chuyển, Giường nằm, Limousine...)</p>
+        <div v-if="lastRefreshTime" class="mt-1 text-xs text-gray-400">
+          Cập nhật lần cuối: {{ lastRefreshTime.toLocaleTimeString('vi-VN') }}
+          <span v-if="isLoadingStats" class="ml-2 text-blue-500">🔄 Đang cập nhật...</span>
+        </div>
       </div>
-      <div class="mt-4 sm:mt-0">
+      <div class="mt-4 sm:mt-0 flex space-x-3">
+        <button 
+          @click="refreshStats" 
+          :disabled="isLoadingStats"
+          class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 00-12.562-9.06" />
+          </svg>
+          {{ isLoadingStats ? 'Đang cập nhật...' : 'Làm mới' }}
+        </button>
         <button @click="handleAddCategory" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
           <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -31,7 +45,10 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tổng loại xe</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ categories.length }}</dd>
+                <dd class="text-lg font-medium text-gray-900">
+                  <span v-if="isLoading" class="animate-pulse bg-gray-200 h-6 w-8 rounded"></span>
+                  <span v-else>{{ categories.length }}</span>
+                </dd>
               </dl>
             </div>
           </div>
@@ -51,8 +68,16 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Xe đang sử dụng</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ getTotalBusesCount() }}</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Xe của bạn</dt>
+                <dd class="text-lg font-medium text-gray-900">
+                  <span v-if="isLoadingStats" class="animate-pulse bg-gray-200 h-6 w-8 rounded"></span>
+                  <span v-else class="flex items-center">
+                    {{ getTotalBusesCount() }}
+                    <span v-if="getTotalBusesCount() > 0" class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                      Hoạt động
+                    </span>
+                  </span>
+                </dd>
               </dl>
             </div>
           </div>
@@ -72,7 +97,15 @@
             <div class="ml-5 w-0 flex-1">
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Phổ biến nhất</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ getMostPopularCategory() }}</dd>
+                <dd class="text-lg font-medium text-gray-900">
+                  <span v-if="isLoadingStats" class="animate-pulse bg-gray-200 h-6 w-16 rounded"></span>
+                  <span v-else class="flex flex-col">
+                    <span class="text-sm font-semibold">{{ getMostPopularCategory() }}</span>
+                    <span v-if="Object.keys(busStatsByCategory).length > 0" class="text-xs text-gray-500">
+                      {{ Object.values(busStatsByCategory).reduce((max, stat) => Math.max(max, stat.count), 0) }} xe
+                    </span>
+                  </span>
+                </dd>
               </dl>
             </div>
           </div>
@@ -91,8 +124,11 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Cập nhật gần đây</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ getRecentlyUpdated() }}</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Cập nhật hôm nay</dt>
+                <dd class="text-lg font-medium text-gray-900">
+                  <span v-if="isLoadingStats" class="animate-pulse bg-gray-200 h-6 w-12 rounded"></span>
+                  <span v-else class="text-sm">{{ getRecentlyUpdated() }}</span>
+                </dd>
               </dl>
             </div>
           </div>
@@ -216,21 +252,110 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import BusCategoryModal from './BusCategoryModal.vue'
 import { BusCategoryAPI } from '@/api/busApi'
+import { BusAPI } from '@/api/busApi/bus/api'
+import { BusSlotAPI } from '@/api/busApi/busSlot/api'
 import type { BusCategory } from '@/api/busApi/bus/types'
+import type { Bus, BusSlot, BusSlotResponse } from '@/api/busApi/types/common.types'
 // @ts-ignore
 import { toast, confirm, handleError } from '@/utils/notifications'
+// @ts-ignore
+import { CurrentUser } from '@/utils/auth'
 
 // State
 const categories = ref<BusCategory[]>([])
+const userBuses = ref<Bus[]>([])
+const userBusSlots = ref<BusSlotResponse[]>([])
 const isLoading = ref(false)
+const isLoadingStats = ref(false)
 const error = ref<string | null>(null)
 const activeDropdown = ref<string | null>(null)
+const lastRefreshTime = ref<Date | null>(null)
+const autoRefreshInterval = ref<NodeJS.Timeout | null>(null)
 
 // Modal ref
 const categoryModal = ref<InstanceType<typeof BusCategoryModal> | null>(null)
+
+// Computed stats
+const busStatsByCategory = computed(() => {
+  const stats: { [categoryId: string]: { count: number; categoryName: string } } = {}
+  
+  userBuses.value.forEach(bus => {
+    // Handle both Bus and BusResponse structures
+    let categoryId: string
+    let categoryName: string
+    
+    if ('category' in bus && bus.category) {
+      // Bus interface (has category object)
+      categoryId = (bus.category as any).id
+      categoryName = (bus.category as any).name
+    } else if ('categoryId' in bus) {
+      // BusResponse interface (has categoryId string)
+      categoryId = (bus as any).categoryId
+      categoryName = (bus as any).categoryName || 'Unknown'
+    } else {
+      console.warn('⚠️ [DEBUG] Unknown bus structure:', bus)
+      return
+    }
+    
+    if (!stats[categoryId]) {
+      stats[categoryId] = {
+        count: 0,
+        categoryName: categoryName
+      }
+    }
+    stats[categoryId].count++
+  })
+  
+  return stats
+})
+
+const activeRoutes = computed(() => {
+  const routeSet = new Set()
+  
+  userBusSlots.value.forEach((slot: BusSlotResponse) => {
+    if (slot.route?.id) {
+      routeSet.add(slot.route.id)
+    }
+  })
+  
+  return routeSet.size
+})
+
+const totalUserBuses = computed(() => {
+  const count = userBuses.value.length
+  return count
+})
+
+const mostPopularCategory = computed(() => {
+  let maxCount = 0
+  let popularCategory = 'N/A'
+  
+  Object.values(busStatsByCategory.value).forEach(stat => {
+    if (stat.count > maxCount) {
+      maxCount = stat.count
+      popularCategory = stat.categoryName
+    }
+  })
+  
+  return popularCategory
+})
+
+const recentlyUpdatedCount = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const count = userBuses.value.filter(bus => {
+    if (!bus.updatedAt) return false
+    const updatedDate = new Date(bus.updatedAt)
+    updatedDate.setHours(0, 0, 0, 0)
+    return updatedDate.getTime() >= today.getTime()
+  }).length
+  
+  return count
+})
 
 // Methods
 const loadCategories = async () => {
@@ -241,9 +366,65 @@ const loadCategories = async () => {
     categories.value = await BusCategoryAPI.getAllBusCategories()
   } catch (err) {
     error.value = 'Không thể tải danh sách loại xe'
+    console.error('Error loading categories:', err)
   } finally {
     isLoading.value = false
   }
+}
+
+const loadUserBusData = async () => {
+  isLoadingStats.value = true
+  
+  try {
+    const currentUserId = CurrentUser.getId()
+    
+    // Load user's buses
+    userBuses.value = await BusAPI.getBusesByOwnerId(currentUserId)
+    
+    // Load bus slots for route information
+    const busSlotPromises = userBuses.value.map(bus => 
+      BusSlotAPI.findBusSlotsByBusId(bus.id).catch(err => {
+        console.warn(`⚠️ [DEBUG] Failed to load slots for bus ${bus.id}:`, err)
+        return []
+      })
+    )
+    
+    const busSlotResults = await Promise.all(busSlotPromises)
+    userBusSlots.value = busSlotResults.flat()
+    
+    // Update last refresh time
+    lastRefreshTime.value = new Date()
+    
+  } catch (err) {
+    console.error('❌ [DEBUG] Error loading user bus data:', err)
+    // Don't show error to user for stats, just log it
+  } finally {
+    isLoadingStats.value = false
+  }
+}
+
+// Auto-refresh functionality
+const startAutoRefresh = () => {
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value)
+  }
+  
+  // Refresh every 30 seconds
+  autoRefreshInterval.value = setInterval(async () => {
+    await loadUserBusData()
+  }, 30000) // 30 seconds
+}
+
+const stopAutoRefresh = () => {
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value)
+    autoRefreshInterval.value = null
+  }
+}
+
+// Manual refresh
+const refreshStats = async () => {
+  await loadUserBusData()
 }
 
 const handleAddCategory = () => {
@@ -278,6 +459,8 @@ const handleDeleteCategory = async (categoryId: string) => {
     await BusCategoryAPI.deleteBusCategory(categoryId)
     // Refresh the list after deletion
     await loadCategories() 
+    // Refresh stats since category changed
+    await loadUserBusData()
     toast.deleted('loại xe')
   } catch (err) {
     console.error('Error deleting category:', err)
@@ -299,13 +482,15 @@ const toggleDropdown = (categoryId: string) => {
   activeDropdown.value = activeDropdown.value === categoryId ? null : categoryId
 }
 
-// Helper methods (can be improved with real data)
+// Helper methods
 const getCategoryIconClass = (name: string): string => {
   const iconClasses: { [key: string]: string } = {
     'Trung chuyển': 'bg-blue-500',
     'Giường nằm': 'bg-green-500',
     'Limousine': 'bg-purple-500',
-    'VIP': 'bg-yellow-500'
+    'VIP': 'bg-yellow-500',
+    'Ghế ngồi': 'bg-indigo-500',
+    'Xe khách': 'bg-gray-500'
   }
   return iconClasses[name] || 'bg-gray-500'
 }
@@ -315,7 +500,9 @@ const getCategoryBadgeClass = (name: string): string => {
     'Trung chuyển': 'bg-blue-100 text-blue-800',
     'Giường nằm': 'bg-green-100 text-green-800',
     'Limousine': 'bg-purple-100 text-purple-800',
-    'VIP': 'bg-yellow-100 text-yellow-800'
+    'VIP': 'bg-yellow-100 text-yellow-800',
+    'Ghế ngồi': 'bg-indigo-100 text-indigo-800',
+    'Xe khách': 'bg-gray-100 text-gray-800'
   }
   return badgeClasses[name] || 'bg-gray-100 text-gray-800'
 }
@@ -325,34 +512,41 @@ const getCategoryDisplayName = (name: string): string => {
     'Trung chuyển': 'Standard',
     'Giường nằm': 'Sleeper',
     'Limousine': 'Luxury',
-    'VIP': 'Premium'
+    'VIP': 'Premium',
+    'Ghế ngồi': 'Seat',
+    'Xe khách': 'Coach'
   }
   return displayNames[name] || name
 }
 
 const getBusCount = (category: BusCategory) => {
-  // TODO: Replace with actual data logic
-  return 0
+  return busStatsByCategory.value[category.id]?.count || 0
 }
 
 const getRouteCount = (category: BusCategory) => {
-  // TODO: Replace with actual data logic
-  return 0;
+  // Count unique routes for this category
+  const routeSet = new Set()
+  userBusSlots.value.forEach((slot: BusSlotResponse) => {
+    // BusResponse has categoryId, not category object
+    const slotCategoryId = slot.bus?.categoryId
+    if (slotCategoryId === category.id && slot.route?.id) {
+      routeSet.add(slot.route.id)
+    }
+  })
+  return routeSet.size
 }
 
 const getTotalBusesCount = () => {
-  // This cannot be accurately calculated on the frontend without bus counts.
-  return 'N/A';
+  return totalUserBuses.value
 }
 
 const getMostPopularCategory = () => {
-  if (categories.value.length === 0) return 'N/A'
-  // This logic is flawed without bus counts. Returning the first as a placeholder.
-  return categories.value[0].name;
+  return mostPopularCategory.value
 }
 
 const getRecentlyUpdated = () => {
-  return categories.value.length > 0 ? 'Hôm nay' : 'N/A'
+  const count = recentlyUpdatedCount.value
+  return count > 0 ? `${count} xe` : 'Không có'
 }
 
 // Click outside to close dropdown
@@ -363,12 +557,15 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 // Lifecycle
-onMounted(() => {
-  loadCategories()
+onMounted(async () => {
+  await loadCategories()
+  await loadUserBusData()
+  startAutoRefresh() // Start auto-refresh
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
+  stopAutoRefresh() // Stop auto-refresh
   document.removeEventListener('click', handleClickOutside)
 })
-</script> 
+</script>

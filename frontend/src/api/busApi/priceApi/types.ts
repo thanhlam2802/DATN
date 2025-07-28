@@ -4,7 +4,7 @@ import { Route, BusCategory } from '../types/common.types'
 
 export interface RouteBusCategoryPrice {
   id: string
-  route: Route
+  route: Route  // RESTORED: Sử dụng full Route interface với Location objects
   busCategory: BusCategory
   basePrice: number
   promotionPrice?: number | null

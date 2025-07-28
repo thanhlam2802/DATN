@@ -1,4 +1,5 @@
 import { gql } from '../../graphqlClient'
+import { ROUTE_FRAGMENT } from '../route/fragments'
 
 // Basic CRUD mutations
 export const CREATE_BUS_SLOT = gql`
@@ -12,9 +13,7 @@ export const CREATE_BUS_SLOT = gql`
         licensePlate
       }
       route {
-        id
-        origin
-        destination
+        ...RouteInfo
       }
       slotDate
       departureTime
@@ -31,6 +30,7 @@ export const CREATE_BUS_SLOT = gql`
       updatedAt
     }
   }
+  ${ROUTE_FRAGMENT}
 `
 
 export const UPDATE_BUS_SLOT = gql`
@@ -44,9 +44,7 @@ export const UPDATE_BUS_SLOT = gql`
         licensePlate
       }
       route {
-        id
-        origin
-        destination
+        ...RouteInfo
       }
       slotDate
       departureTime
@@ -70,6 +68,7 @@ export const UPDATE_BUS_SLOT = gql`
       updatedAt
     }
   }
+  ${ROUTE_FRAGMENT}
 `
 
 export const DELETE_BUS_SLOT = gql`

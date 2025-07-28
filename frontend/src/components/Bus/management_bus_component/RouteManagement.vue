@@ -4,7 +4,7 @@
     <div class="sm:flex sm:items-center sm:justify-between">
       <div>
         <h3 class="text-lg font-medium leading-6 text-gray-900">Quản lý Tuyến đường</h3>
-        <p class="mt-1 text-sm text-gray-500">Tạo và quản lý các tuyến đường cơ bản (điểm đi - điểm đến)</p>
+        <p class="mt-1 text-sm text-gray-500">Tạo và quản lý các tuyến đường chi tiết (điểm đi - điểm đến với thông tin địa chỉ)</p>
       </div>
       <div class="mt-4 sm:mt-0">
         <button @click="handleAddRoute" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -100,7 +100,7 @@
     </div>
 
     <!-- Routes Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
       <div v-if="isLoading" class="col-span-full text-center py-8">
         <svg class="animate-spin h-8 w-8 text-indigo-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 00-12.562-9.06" />
@@ -130,6 +130,7 @@
       
       <div v-else v-for="route in routes" :key="route.id" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200">
         <div class="p-6">
+          <!-- Header với route title -->
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-3">
               <div class="flex-shrink-0">
@@ -140,7 +141,7 @@
                 </div>
               </div>
               <div>
-                <h4 class="text-lg font-medium text-gray-900">{{ route.origin }} → {{ route.destination }}</h4>
+                <h4 class="text-lg font-medium text-gray-900">{{ formatRouteTitle(route) }}</h4>
                 <p class="text-sm text-gray-500">Tuyến số {{ route.id }}</p>
               </div>
             </div>
@@ -148,6 +149,41 @@
               <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                 Hoạt động
               </span>
+            </div>
+          </div>
+
+          <!-- Location Details Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <!-- Origin Location -->
+            <div class="bg-blue-50 p-3 rounded-lg">
+              <h5 class="text-sm font-medium text-blue-800 mb-2 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                </svg>
+                Điểm đi
+              </h5>
+              <div class="space-y-1 text-sm text-gray-700">
+                <div class="font-medium">{{ route.originLocation.name }}</div>
+                <div v-if="route.originLocation.district" class="text-gray-600">{{ route.originLocation.district }}</div>
+                <div v-if="route.originLocation.provinceCity" class="text-blue-700 font-medium">{{ route.originLocation.provinceCity }}</div>
+                <div v-if="route.originLocation.addressDetails" class="text-gray-600 text-xs">{{ route.originLocation.addressDetails }}</div>
+              </div>
+            </div>
+
+            <!-- Destination Location -->
+            <div class="bg-green-50 p-3 rounded-lg">
+              <h5 class="text-sm font-medium text-green-800 mb-2 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                </svg>
+                Điểm đến
+              </h5>
+              <div class="space-y-1 text-sm text-gray-700">
+                <div class="font-medium">{{ route.destinationLocation.name }}</div>
+                <div v-if="route.destinationLocation.district" class="text-gray-600">{{ route.destinationLocation.district }}</div>
+                <div v-if="route.destinationLocation.provinceCity" class="text-green-700 font-medium">{{ route.destinationLocation.provinceCity }}</div>
+                <div v-if="route.destinationLocation.addressDetails" class="text-gray-600 text-xs">{{ route.destinationLocation.addressDetails }}</div>
+              </div>
             </div>
           </div>
 
@@ -194,7 +230,7 @@
       </div>
     </div>
 
-    <!-- Route Modal - CHỈ TẠO ROUTE -->
+    <!-- Route Modal -->
     <RouteModal
       ref="routeModal"
       @route-created="handleRouteCreated"
@@ -234,12 +270,11 @@ const loadRoutes = async () => {
 };
 
 const handleAddRoute = () => {
-  
-  routeModal.value?.openModal()
+  routeModal.value?.openForCreate()
 }
 
 const handleEditRoute = (route: Route) => {
-  routeModal.value?.openModal(route)
+  routeModal.value?.openForEdit(route)
 }
 
 const handleRouteCreated = (newRoute: Route) => {
@@ -269,7 +304,7 @@ const deleteRoute = async (routeId: string) => {
   }
 }
 
-// Helper methods
+// Helper methods (UPDATED for Location objects)
 const formatDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString('vi-VN')
@@ -283,7 +318,22 @@ const getBusRouteCount = (routeId: string) => {
 const getMostPopularRoute = () => {
   if (routes.value.length === 0) return 'N/A'
   // TODO: This logic needs to be based on actual usage data.
-  return `${routes.value[0].origin} → ${routes.value[0].destination}`;
+  return formatRouteTitle(routes.value[0]);
+}
+
+// NEW: Format route title from Location objects
+const formatRouteTitle = (route: Route) => {
+  const origin = [
+    route.originLocation.name,
+    route.originLocation.provinceCity
+  ].filter(Boolean).join(', ')
+  
+  const destination = [
+    route.destinationLocation.name,
+    route.destinationLocation.provinceCity
+  ].filter(Boolean).join(', ')
+  
+  return `${origin} → ${destination}`
 }
 
 // Lifecycle

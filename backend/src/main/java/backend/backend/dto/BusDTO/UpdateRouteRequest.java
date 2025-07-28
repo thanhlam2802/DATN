@@ -3,8 +3,9 @@ package backend.backend.dto.BusDTO;
 import jakarta.validation.constraints.Size;
 
 public record UpdateRouteRequest(
-        @Size(max = 100) String origin,
-        @Size(max = 100) String destination,
+        // ĐÃ SỬA: Cho phép cập nhật thông tin location bằng CreateLocationInput (nếu null thì không cập nhật)
+        CreateLocationInput originLocationDetails,
+        CreateLocationInput destinationLocationDetails,
         Double distanceKm,
         Integer estimatedDurationMinutes
 ) {}

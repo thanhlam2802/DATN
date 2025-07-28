@@ -23,7 +23,8 @@ function toggleMobileMenu() {
 }
 
 function handleClickOutside(event) {
-  if (menuWrapperRef.value && !menuWrapperRef.value.contains(event.target)) {
+  // Simple null check to prevent parentNode error
+  if (menuWrapperRef.value && event.target && menuWrapperRef.value.contains && !menuWrapperRef.value.contains(event.target)) {
     isUserMenuVisible.value = false;
     isNotificationVisible.value = false;
   }
@@ -74,12 +75,7 @@ onBeforeUnmount(() => {
           :class="{ 'text-blue-700 font-bold': $route.path === '/bus' }"
           >Bus</router-link
         >
-        <router-link
-          to="/bus-management"
-          class="select-none hover:text-gray-900"
-          :class="{ 'text-blue-700 font-bold': $route.path.startsWith('/bus-management') }"
-          >Bus Admin</router-link
-        >
+      
         <router-link
           to="/plane"
           class="select-none hover:text-gray-900"

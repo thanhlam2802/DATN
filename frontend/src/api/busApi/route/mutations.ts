@@ -3,12 +3,12 @@
  */
 
 import { gql } from '../../graphqlClient';
-import { ROUTE_FRAGMENT } from '../fragments';
+import { ROUTE_FRAGMENT, LOCATION_FRAGMENT } from './fragments';
 
 export const CREATE_ROUTE = gql`
   mutation CreateRoute($input: CreateRouteInput!) {
     createRoute(input: $input) {
-      ...RouteFragment
+      ...RouteInfo
     }
   }
   ${ROUTE_FRAGMENT}
@@ -17,7 +17,7 @@ export const CREATE_ROUTE = gql`
 export const UPDATE_ROUTE = gql`
   mutation UpdateRoute($id: ID!, $input: UpdateRouteInput!) {
     updateRoute(id: $id, input: $input) {
-      ...RouteFragment
+      ...RouteInfo
     }
   }
   ${ROUTE_FRAGMENT}

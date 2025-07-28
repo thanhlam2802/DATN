@@ -3,6 +3,8 @@
 scalar BigDecimal
 scalar DateTime
 scalar Date
+scalar Instant
+
 # --- Kiểu dữ liệu cho Image Response (được sử dụng trong BusImageResponse) ---
 type ImageResponse {
     id: ID!

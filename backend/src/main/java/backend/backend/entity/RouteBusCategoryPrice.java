@@ -6,22 +6,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.math.BigDecimal; // Import nếu bạn sử dụng BigDecimal
+import java.time.Instant;    // ĐẢM BẢO IMPORT Instant
+import java.time.LocalDate;  // Import nếu bạn sử dụng LocalDate cho validFrom/validTo
 
 @Data
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "route_bus_category_prices", uniqueConstraints = {
-        // UniqueConstraint sẽ phức tạp hơn nếu có hiệu lực từ/đến.
-        // Tạm thời bỏ unique constraint nếu có hiệu lực để cho phép nhiều giá cho cùng cặp tuyến/loại xe
-        // trong các khoảng thời gian khác nhau.
-        // @UniqueConstraint(columnNames = {"route_id", "bus_category_id"})
-})
+@Table(name = "route_bus_category_prices")
 public class RouteBusCategoryPrice {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -34,35 +28,35 @@ public class RouteBusCategoryPrice {
     @JoinColumn(name = "bus_category_id", nullable = false)
     private BusCategory busCategory;
 
-    @Column(name = "base_price", nullable = false, precision = 12, scale = 2)
+    @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal basePrice;
 
-    @Column(name = "promotion_price", precision = 12, scale = 2) // Nullable
+    @Column(name = "promotion_price", precision = 10, scale = 2)
     private BigDecimal promotionPrice;
 
     @Column(name = "valid_from", nullable = false)
-    private LocalDate validFrom; // Ngày bắt đầu hiệu lực
+    private LocalDate validFrom; // Ví dụ, sử dụng LocalDate cho ngày
 
     @Column(name = "valid_to", nullable = false)
-    private LocalDate validTo; // Ngày kết thúc hiệu lực
+    private LocalDate validTo;   // Ví dụ, sử dụng LocalDate cho ngày
 
-    @Column(name = "notes", length = 500) // Nullable
+    @Column(name = "notes", length = 255)
     private String notes;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt; // ĐẢM BẢO LÀ Instant
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Instant updatedAt; // ĐẢM BẢO LÀ Instant
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = Instant.now();
     }
 }

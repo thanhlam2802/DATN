@@ -48,7 +48,7 @@ public class Bus {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
-    @OneToMany(mappedBy = "bus")
+    @OneToMany(mappedBy = "bus", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Include
     private List<BusSlot> busSlots; // Các chuyến đi mà xe này thực hiện
 

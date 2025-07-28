@@ -214,7 +214,7 @@ import { useRoute, useRouter } from 'vue-router'
 import HotelCard from '@/components/Hotel/HotelCard.vue'
 import FilterSidebar from '@/components/Hotel/FilterSidebar.vue'
 import { searchHotels } from '@/api/hotelApi.js'
-import { getAllProvinces } from '@/api/provinceApi.js'
+import { getAllProvinces } from '@/api/provinceApi'
 
 const route = useRoute()
 const router = useRouter()

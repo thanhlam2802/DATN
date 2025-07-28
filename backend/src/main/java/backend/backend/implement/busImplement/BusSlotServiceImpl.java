@@ -35,7 +35,6 @@ public class BusSlotServiceImpl implements BusSlotService {
     private final BusDAO busDAO;
     private final RouteDAO routeDAO;
     private final BusCategoryDAO busCategoryDAO;
-    private final RouteBusCategoryPriceDAO routeBusCategoryPriceDAO;
     // --- Helper Methods to Convert Entities to DTOs ---
 
     private BusResponse convertToBusResponse(Bus bus) {
@@ -109,13 +108,20 @@ public class BusSlotServiceImpl implements BusSlotService {
         LocalTime departureTime = LocalTime.parse(request.getDepartureTime()); // Parse thời gian khởi hành để kiểm tra
 
         // THÊM ĐOẠN MÃ KIỂM TRA TẠI ĐÂY:
-        Optional<BusSlot> existingBusSlot = busSlotDAO.findByBusAndRouteAndSlotDateAndDepartureTime(bus, route, slotDate, departureTime);
+        // ĐÃ SỬA: Truyền ID của Bus và Route
+        Optional<BusSlot> existingBusSlot = busSlotDAO.findByBusAndRouteAndSlotDateAndDepartureTime(
+                bus.getId(),
+                route.getId(),
+                slotDate,
+                departureTime
+        );
 
         if (existingBusSlot.isPresent()) {
             // Nếu BusSlot đã tồn tại, ném ra ngoại lệ
             throw new IllegalArgumentException(
                     String.format("Chuyến xe với xe bus '%s', tuyến đường '%s', ngày '%s' và thời gian khởi hành '%s' đã tồn tại.",
-                            bus.getName(), route.getOrigin() +"-"+ route.getDestination(), slotDate, departureTime)
+                            bus.getName(), route.getOriginLocation().getName() +"-"+ route.getDestinationLocation().getName()
+                            , slotDate, departureTime)
             );
 
         }
@@ -460,9 +466,4 @@ public class BusSlotServiceImpl implements BusSlotService {
         log.info("Archived BusSlot ID: {}", id);
         return convertToBusSlotResponse(updated);
     }
-
-
-
-
-
 }

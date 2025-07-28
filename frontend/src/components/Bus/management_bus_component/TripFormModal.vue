@@ -93,7 +93,7 @@
                             {{ loadingRoutes ? 'Đang tải tuyến đường...' : (availableRoutes.length === 0 ? 'Không có tuyến đường nào' : 'Chọn tuyến đường') }}
                           </option>
                           <option v-for="route in availableRoutes" :key="route.id" :value="route.id">
-                            {{ route.origin }} → {{ route.destination }} ({{ route.distanceKm }}km - {{ Math.round(route.estimatedDurationMinutes / 60) }}h)
+                            {{ route.name }} ({{ route.distanceKm }}km - {{ Math.round(route.estimatedDurationMinutes / 60) }}h)
                           </option>
                         </select>
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -307,6 +307,7 @@ import { ref, computed, watch, defineProps, defineEmits } from 'vue'
 // @ts-ignore
 import { toast } from '@/utils/notifications'
 import { useTripManagement } from '@/composables/useTripManagement'
+import { PriceAPI } from '@/api/busApi/priceApi'
 
 const props = defineProps({
   visible: {
@@ -411,6 +412,11 @@ watch(() => form.value.busId, (newBusId) => {
     if (selectedBus && selectedBus.totalSeats) {
       form.value.totalSeats = selectedBus.totalSeats
     }
+    
+    // Also refresh price when bus changes (for bus category matching)
+    if (form.value.routeId) {
+      checkAndFillPriceForRoute()
+    }
   }
 })
 
@@ -468,33 +474,68 @@ function calculateArrivalTime() {
 
 // New function to check and fill price from price management
 const checkAndFillPriceForRoute = async () => {
-  if (!form.value.routeId) {
-    return // Need routeId
-  }
-
+  if (!form.value.routeId) { return }
   try {
-    // Get the selected route
     const selectedRoute = props.availableRoutes.find(route => route.id === form.value.routeId)
-    
-    if (!selectedRoute) {
-      return // Need routeId
-    }
+    const selectedBus = props.availableBuses.find(bus => bus.id === form.value.busId)
+    if (!selectedRoute) { return }
 
-    let defaultPrice = 500000 // Base fallback
+    let defaultPrice = 500000
     let priceSource = 'mặc định hệ thống'
 
-    // Option 1: If route has a default price field
-    if (selectedRoute.defaultPrice && selectedRoute.defaultPrice > 0) {
-      defaultPrice = selectedRoute.defaultPrice
-      priceSource = 'giá mặc định của tuyến đường'
+    try {
+      const priceRules = await PriceAPI.findAllPrices()
+      let matchingRules = priceRules.filter(rule => rule.route && String(rule.route.id) === String(form.value.routeId))
+
+      if (selectedBus && selectedBus.categoryId && matchingRules.length > 1) {
+        const categoryFilteredRules = matchingRules.filter(rule => rule.busCategory && String(rule.busCategory.id) === String(selectedBus.categoryId))
+        if (categoryFilteredRules.length > 0) { matchingRules = categoryFilteredRules }
+      }
+
+      if (form.value.slotDate && matchingRules.length > 1) {
+        const currentDate = form.value.slotDate
+        const dateFilteredRules = matchingRules.filter(rule => {
+          if (!rule.validFrom || !rule.validTo) return true
+          return currentDate >= rule.validFrom && currentDate <= rule.validTo
+        })
+        if (dateFilteredRules.length > 0) { matchingRules = dateFilteredRules }
+      }
+
+      if (matchingRules.length > 0) {
+        const priceRule = matchingRules[0]
+        if (priceRule.promotionPrice && priceRule.promotionPrice > 0) {
+          defaultPrice = priceRule.promotionPrice
+          priceSource = `giá khuyến mãi cho tuyến đường (tiết kiệm ${(priceRule.basePrice - priceRule.promotionPrice).toLocaleString('vi-VN')} VND)`
+        } else if (priceRule.basePrice && priceRule.basePrice > 0) {
+          defaultPrice = priceRule.basePrice
+          priceSource = 'giá chuẩn cho tuyến đường'
+        }
+      } else {
+        await calculateFallbackPrice(selectedRoute) // Fallback if no rules found
+      }
+    } catch (priceApiError) {
+      console.error('❌ Error fetching price rules:', priceApiError)
+      await calculateFallbackPrice(selectedRoute) // Fallback on API error
     }
-    // Option 2: Calculate based on distance
-    else if (selectedRoute.distanceKm) {
+
+    form.value.price = defaultPrice
+    priceAutoFilled.value = true
+    priceAutoFillMessage.value = `💰 ${priceSource}: ${defaultPrice.toLocaleString('vi-VN')} VND - có thể điều chỉnh`
+  } catch (error) {
+    console.error('❌ Error in checkAndFillPriceForRoute:', error)
+    priceAutoFilled.value = false
+    priceAutoFillMessage.value = ''
+  }
+  
+  // Inner function for fallback price calculation
+  async function calculateFallbackPrice(selectedRoute) {
+    // Option 1: Calculate based on distance
+    if (selectedRoute.distanceKm) {
       // Simple calculation: 300 VND per km (can be adjusted)
       defaultPrice = Math.round(selectedRoute.distanceKm * 300)
       priceSource = `tính theo khoảng cách (${selectedRoute.distanceKm}km)`
     }
-    // Option 3: Route-specific pricing based on popular routes
+    // Option 2: Route-specific pricing based on popular routes
     else {
       const routeKey = `${selectedRoute.origin}-${selectedRoute.destination}`.toLowerCase()
       const routePricing = {
@@ -520,17 +561,6 @@ const checkAndFillPriceForRoute = async () => {
         priceSource = 'giá tham khảo cho tuyến đường phổ biến'
       }
     }
-
-    // Set the calculated price
-    form.value.price = defaultPrice
-    priceAutoFilled.value = true
-    priceAutoFillMessage.value = `Giá ${priceSource}: ${defaultPrice.toLocaleString('vi-VN')} VND - có thể điều chỉnh`
-    
-  } catch (error) {
-    console.error('❌ Error fetching route default price:', error)
-    // Don't change price on error, let user set manually
-    priceAutoFilled.value = false
-    priceAutoFillMessage.value = ''
   }
 }
 

@@ -171,7 +171,7 @@ export function useBusAvailability() {
   function generateConflictMessage(conflictSlot, conflictInfo) {
     const conflictTime = minutesToTime(timeToMinutes(conflictSlot.departureTime))
     const conflictRoute = conflictSlot.route ? 
-      `${conflictSlot.route.origin} - ${conflictSlot.route.destination}` : 
+      `${conflictSlot.route.originLocation.name} - ${conflictSlot.route.destinationLocation.name}` : 
       'Tuyến không xác định'
     
     return `Xe đã có lịch trình khác vào ${conflictTime} (${conflictRoute}). ` +

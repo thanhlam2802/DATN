@@ -3,7 +3,7 @@
     <transition name="modal-overlay" appear>
       <div v-if="isOpen" @click="closeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <transition name="modal-content" appear>
-          <div @click.stop class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+          <div @click.stop class="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="sm:flex sm:items-start">
                 <div class="w-full mt-3 text-center sm:mt-0 sm:text-left">
@@ -12,39 +12,178 @@
                   </h3>
                   
                   <!-- Form -->
-                  <form @submit.prevent="handleSubmit" class="space-y-4">
-                    <!-- Origin (Điểm đi) -->
-                    <div>
-                      <label for="origin" class="block text-sm font-medium text-gray-700 mb-1">
-                        Điểm đi <span class="text-red-500">*</span>
+                  <form @submit.prevent="handleSubmit" class="space-y-6">
+                    <!-- Grid Layout for Origin and Destination -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <!-- Origin Location (Điểm đi) -->
+                      <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="text-md font-medium text-gray-900 mb-4 flex items-center">
+                          <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                          Điểm đi
+                        </h4>
+                        
+                        <!-- Origin Name -->
+                        <div class="mb-4">
+                          <label for="originName" class="block text-sm font-medium text-gray-700 mb-1">
+                            Tên điểm đi <span class="text-red-500">*</span>
                       </label>
                       <input
-                        id="origin"
-                        v-model="form.origin"
+                            id="originName"
+                            v-model="form.originLocation.name"
                         type="text"
                         required
-                        placeholder="VD: Hà Nội"
+                            placeholder="VD: Bến xe Mỹ Đình"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                      <p v-if="errors.origin" class="text-red-500 text-xs mt-1">{{ errors.origin }}</p>
+                          <p v-if="errors.originName" class="text-red-500 text-xs mt-1">{{ errors.originName }}</p>
+                        </div>
+
+                        <!-- Origin Province -->
+                        <div class="mb-4">
+                          <label for="originProvince" class="block text-sm font-medium text-gray-700 mb-1">
+                            Tỉnh/Thành phố <span class="text-red-500">*</span>
+                          </label>
+                          <select
+                            id="originProvince"
+                            v-model="form.originLocation.provinceCity"
+                            @change="onOriginProvinceChange"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="">Chọn tỉnh/thành phố</option>
+                            <option v-for="province in provinces" :key="province.code" :value="province.name">
+                              {{ province.name }}
+                            </option>
+                          </select>
+                          <p v-if="errors.originProvince" class="text-red-500 text-xs mt-1">{{ errors.originProvince }}</p>
+                        </div>
+
+                        <!-- Origin District -->
+                        <div class="mb-4">
+                          <label for="originDistrict" class="block text-sm font-medium text-gray-700 mb-1">
+                            Quận/Huyện
+                          </label>
+                          <select
+                            id="originDistrict"
+                            v-model="form.originLocation.district"
+                            :disabled="!originDistricts.length"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
+                          >
+                            <option value="">Chọn quận/huyện</option>
+                            <option v-for="district in originDistricts" :key="district.code" :value="district.name">
+                              {{ district.name }}
+                            </option>
+                          </select>
                     </div>
 
-                    <!-- Destination (Điểm đến) -->
+                        <!-- Origin Address Details -->
                     <div>
-                      <label for="destination" class="block text-sm font-medium text-gray-700 mb-1">
-                        Điểm đến <span class="text-red-500">*</span>
+                          <label for="originAddress" class="block text-sm font-medium text-gray-700 mb-1">
+                            Địa chỉ chi tiết
+                          </label>
+                          <textarea
+                            id="originAddress"
+                            v-model="form.originLocation.addressDetails"
+                            rows="2"
+                            placeholder="VD: Số 123, Đường ABC..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <!-- Destination Location (Điểm đến) -->
+                      <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="text-md font-medium text-gray-900 mb-4 flex items-center">
+                          <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                          Điểm đến
+                        </h4>
+                        
+                        <!-- Destination Name -->
+                        <div class="mb-4">
+                          <label for="destinationName" class="block text-sm font-medium text-gray-700 mb-1">
+                            Tên điểm đến <span class="text-red-500">*</span>
                       </label>
                       <input
-                        id="destination"
-                        v-model="form.destination"
+                            id="destinationName"
+                            v-model="form.destinationLocation.name"
                         type="text"
                         required
-                        placeholder="VD: TP. Hồ Chí Minh"
+                            placeholder="VD: Bến xe Miền Đông"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                      <p v-if="errors.destination" class="text-red-500 text-xs mt-1">{{ errors.destination }}</p>
+                          <p v-if="errors.destinationName" class="text-red-500 text-xs mt-1">{{ errors.destinationName }}</p>
+                        </div>
+
+                        <!-- Destination Province -->
+                        <div class="mb-4">
+                          <label for="destinationProvince" class="block text-sm font-medium text-gray-700 mb-1">
+                            Tỉnh/Thành phố <span class="text-red-500">*</span>
+                          </label>
+                          <select
+                            id="destinationProvince"
+                            v-model="form.destinationLocation.provinceCity"
+                            @change="onDestinationProvinceChange"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="">Chọn tỉnh/thành phố</option>
+                            <option v-for="province in provinces" :key="province.code" :value="province.name">
+                              {{ province.name }}
+                            </option>
+                          </select>
+                          <p v-if="errors.destinationProvince" class="text-red-500 text-xs mt-1">{{ errors.destinationProvince }}</p>
+                        </div>
+
+                        <!-- Destination District -->
+                        <div class="mb-4">
+                          <label for="destinationDistrict" class="block text-sm font-medium text-gray-700 mb-1">
+                            Quận/Huyện
+                          </label>
+                          <select
+                            id="destinationDistrict"
+                            v-model="form.destinationLocation.district"
+                            :disabled="!destinationDistricts.length"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
+                          >
+                            <option value="">Chọn quận/huyện</option>
+                            <option v-for="district in destinationDistricts" :key="district.code" :value="district.name">
+                              {{ district.name }}
+                            </option>
+                          </select>
+                        </div>
+
+                        <!-- Destination Address Details -->
+                        <div>
+                          <label for="destinationAddress" class="block text-sm font-medium text-gray-700 mb-1">
+                            Địa chỉ chi tiết
+                          </label>
+                          <textarea
+                            id="destinationAddress"
+                            v-model="form.destinationLocation.addressDetails"
+                            rows="2"
+                            placeholder="VD: Số 456, Đường XYZ..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          ></textarea>
+                        </div>
+                      </div>
                     </div>
 
+                    <!-- Route Information -->
+                    <div class="border-t border-gray-200 pt-6">
+                      <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                        Thông tin tuyến đường
+                      </h4>
+
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Distance -->
                     <div>
                       <label for="distanceKm" class="block text-sm font-medium text-gray-700 mb-1">
@@ -94,7 +233,9 @@
                           <p class="text-xs text-gray-500 mt-1">Phút</p>
                         </div>
                       </div>
-                      <p v-if="errors.estimatedDurationMinutes" class="text-red-500 text-xs mt-1">{{ errors.estimatedDurationMinutes }}</p>
+                      <p v-if="errors.estimatedMinutes" class="text-red-500 text-xs mt-1">{{ errors.estimatedMinutes }}</p>
+                        </div>
+                      </div>
                     </div>
 
                     <!-- Price Section -->
@@ -207,10 +348,10 @@
                     </div>
 
                     <!-- Preview -->
-                    <div v-if="form.origin && form.destination" class="mt-4 p-3 bg-gray-50 rounded-md">
+                    <div v-if="form.originLocation.name && form.destinationLocation.name" class="mt-4 p-3 bg-gray-50 rounded-md">
                       <h4 class="text-sm font-medium text-gray-900 mb-2">Xem trước:</h4>
                       <div class="text-sm text-gray-600 space-y-1">
-                        <div>🛣️ <strong>{{ form.origin }}</strong> → <strong>{{ form.destination }}</strong></div>
+                        <div>🛣️ <strong>{{ getFullOriginName() }}</strong> → <strong>{{ getFullDestinationName() }}</strong></div>
                         <div>📏 Khoảng cách: <strong>{{ form.distanceKm || 0 }}km</strong></div>
                         <div>⏱️ Thời gian: <strong>{{ getFormattedDuration() }}</strong></div>
                         <div>🚌 Loại xe: <strong>{{ getSelectedCategoryNames() }}</strong></div>
@@ -256,6 +397,9 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
 import { RouteAPI } from '@/api/busApi/route/api';
+import { BusCategoryAPI } from '@/api/busApi';
+import { PriceAPI } from '@/api/busApi';
+import ProvinceAPI from '@/api/provinceApi';
 // @ts-ignore
 import { toast, handleError } from '@/utils/notifications'
 
@@ -264,7 +408,10 @@ const emit = defineEmits(['route-created', 'route-updated'])
 
 // Lifecycle
 onMounted(async () => {
-  await loadBusCategories()
+  await Promise.all([
+    loadBusCategories(),
+    loadProvinces()
+  ])
 })
 
 // State
@@ -273,50 +420,153 @@ const isEditing = ref(false)
 const isSubmitting = ref(false)
 const editingRouteId = ref(null)
 
-// New state for price management
+// Province data
+const provinces = ref([])
+const originDistricts = ref([])
+const destinationDistricts = ref([])
+
+// Existing state
 const busCategories = ref([])
 const today = new Date().toISOString().split('T')[0]
 const existingCategoryIds = ref([])
 
-// Form data
+// Form data (UPDATED for Location objects)
 const form = reactive({
-  origin: '',
-  destination: '',
+  originLocation: {
+    name: '',
+    provinceCity: '',
+    district: '',
+    addressDetails: ''
+  },
+  destinationLocation: {
+    name: '',
+    provinceCity: '',
+    district: '',
+    addressDetails: ''
+  },
   distanceKm: null,
   estimatedHours: null,
   estimatedMinutes: 0,
-  selectedCategories: [], // New for bus categories
+  selectedCategories: [],
   basePrice: null,
   promotionPrice: null,
-  validFrom: today, // Default to today
-  validTo: null,
+  validFrom: today,
+  validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   notes: ''
 })
 
-// Form errors
-const errors = ref({})
+// Errors (UPDATED)
+const errors = reactive({
+  originName: '',
+  originProvince: '',
+  destinationName: '',
+  destinationProvince: '',
+  distanceKm: '',
+  estimatedMinutes: '',
+  selectedCategories: '',
+  basePrice: '',
+  validFrom: '',
+  validTo: ''
+})
 
-// Computed
+// Helper computed properties
+const estimatedDurationMinutes = computed(() => {
+  const hours = form.estimatedHours || 0
+  const minutes = form.estimatedMinutes || 0
+  return hours * 60 + minutes
+})
+
+// Methods for provinces
+const loadProvinces = async () => {
+  try {
+    provinces.value = await ProvinceAPI.getProvinceList()
+  } catch (error) {
+    console.error('❌ Error loading provinces:', error)
+    handleError.api(error, 'tải danh sách tỉnh thành')
+  }
+}
+
+const onOriginProvinceChange = async () => {
+  form.originLocation.district = '' // Reset district
+  if (form.originLocation.provinceCity) {
+    try {
+      originDistricts.value = await ProvinceAPI.getDistrictsByProvince(form.originLocation.provinceCity)
+    } catch (error) {
+      console.error('❌ Error loading origin districts:', error)
+    }
+  } else {
+    originDistricts.value = []
+  }
+}
+
+const onDestinationProvinceChange = async () => {
+  form.destinationLocation.district = '' // Reset district
+  if (form.destinationLocation.provinceCity) {
+    try {
+      destinationDistricts.value = await ProvinceAPI.getDistrictsByProvince(form.destinationLocation.provinceCity)
+    } catch (error) {
+      console.error('❌ Error loading destination districts:', error)
+    }
+  } else {
+    destinationDistricts.value = []
+  }
+}
+
+// Helper display methods (UPDATED)
+const getFullOriginName = () => {
+  const parts = [
+    form.originLocation.name,
+    form.originLocation.district,
+    form.originLocation.provinceCity
+  ].filter(Boolean)
+  return parts.join(', ')
+}
+
+const getFullDestinationName = () => {
+  const parts = [
+    form.destinationLocation.name,
+    form.destinationLocation.district,
+    form.destinationLocation.provinceCity
+  ].filter(Boolean)
+  return parts.join(', ')
+}
+
 const getFormattedDuration = () => {
   const hours = form.estimatedHours || 0
   const minutes = form.estimatedMinutes || 0
   
-  if (hours === 0 && minutes === 0) return '0 phút'
-  if (hours === 0) return `${minutes} phút`
-  if (minutes === 0) return `${hours} giờ`
+  if (hours === 0 && minutes === 0) {
+    return 'Chưa xác định'
+  }
+  
+  if (hours === 0) {
+    return `${minutes} phút`
+  }
+  
+  if (minutes === 0) {
+    return `${hours} giờ`
+  }
   
   return `${hours} giờ ${minutes} phút`
 }
 
 const getSelectedCategoryNames = () => {
-  return busCategories.value
-    .filter(cat => form.selectedCategories.includes(cat.id))
-    .map(cat => cat.name)
-    .join(', ')
+  if (form.selectedCategories.length === 0) {
+    return 'Chưa chọn'
+  }
+  
+  const names = form.selectedCategories.map(categoryId => {
+    const category = busCategories.value.find(cat => cat.id === categoryId)
+    return category ? category.name : 'Không xác định'
+  })
+  
+  return names.join(', ')
 }
 
 const getFormattedPrice = () => {
-  if (!form.basePrice) return 'Chưa đặt giá'
+  if (!form.basePrice || form.basePrice <= 0) {
+    return 'Chưa xác định'
+  }
   
   const base = new Intl.NumberFormat('vi-VN').format(form.basePrice) + ' VND'
   if (form.promotionPrice && form.promotionPrice > 0) {
@@ -326,13 +576,14 @@ const getFormattedPrice = () => {
   return base
 }
 
-// Methods
+// Existing methods (keep but update for Location objects)
 const loadBusCategories = async () => {
   try {
     const categories = await BusCategoryAPI.getAllBusCategories()
     busCategories.value = categories
   } catch (error) {
     console.error('❌ Error loading bus categories:', error)
+    handleError.api(error, 'tải danh sách loại xe bus')
   }
 }
 
@@ -341,140 +592,252 @@ const loadExistingPriceRules = async (routeId) => {
   if (!routeId) return
   
   try {
-    const allPrices = await PriceAPI.getAllRouteBusCategoryPrices()
+    const routePrices = await PriceAPI.findAllPrices()
+    const filteredPrices = routePrices.filter(price => 
+      price.route && String(price.route.id) === String(routeId)
+    )
     
-    // Filter prices for this specific route
-    const routePrices = allPrices.filter(price => price.route?.id === routeId)
-    
-    if (routePrices.length > 0) {
-      // Extract category IDs and price data
-      const existingCategoryIds = routePrices.map(price => price.busCategory?.id).filter(Boolean)
-      const firstPrice = routePrices[0] // Use first price as template for common fields
-      
-      // Update form with existing data
-      form.selectedCategories = existingCategoryIds
-      form.basePrice = firstPrice.basePrice || 500000
-      form.promotionPrice = firstPrice.promotionPrice || null
-      form.promotionStartDate = firstPrice.promotionStartDate ? firstPrice.promotionStartDate.split('T')[0] : ''
-      form.promotionEndDate = firstPrice.promotionEndDate ? firstPrice.promotionEndDate.split('T')[0] : ''
-      form.notes = firstPrice.notes || ''
-      
-      // Store existing category IDs for comparison
-      existingCategoryIds.value = existingCategoryIds
-    } else {
-      // Reset to defaults
-      form.selectedCategories = []
-      existingCategoryIds.value = []
+    if (filteredPrices.length > 0) {
+      // Map existing prices to form
+      filteredPrices.forEach(price => {
+        if (price.busCategory && price.busCategory.id) {
+          const categoryId = String(price.busCategory.id)
+          if (form.selectedCategories.includes(categoryId)) {
+            form.priceRules[categoryId] = {
+              basePrice: price.basePrice || 0,
+              promotionPrice: price.promotionPrice || 0,
+              validFrom: price.validFrom || '',
+              validTo: price.validTo || '',
+              notes: price.notes || ''
+            }
+          }
+        }
+      })
     }
   } catch (error) {
-    console.error('❌ Error loading existing price rules:', error)
+    console.warn('⚠️ [RouteModal] Price loading failed, continuing without price data')
   }
 }
 
-const openModal = (routeData = null) => {
-  // Reset form
-  resetForm()
+// Validation (UPDATED for Location objects)
+const validateForm = () => {
+  let isValid = true
   
-  if (routeData) {
-    // Edit mode
-    isEditing.value = true
-    editingRouteId.value = routeData.id
-    form.origin = routeData.origin
-    form.destination = routeData.destination
-    form.distanceKm = routeData.distanceKm
-    
-    // Convert minutes to hours and minutes
-    const totalMinutes = routeData.estimatedDurationMinutes
-    form.estimatedHours = Math.floor(totalMinutes / 60)
-    form.estimatedMinutes = totalMinutes % 60
-
-    // Load existing price rules
-    loadExistingPriceRules(routeData.id)
-  } else {
-    // Create mode
-    isEditing.value = false
-    editingRouteId.value = null
-    existingCategoryIds.value = [] // Reset for create mode
+  // Reset errors
+  Object.keys(errors).forEach(key => {
+    errors[key] = ''
+  })
+  
+  // Origin validation
+  if (!form.originLocation.name.trim()) {
+    errors.originName = 'Tên điểm đi là bắt buộc'
+    isValid = false
   }
+  
+  if (!form.originLocation.provinceCity) {
+    errors.originProvince = 'Tỉnh/thành phố điểm đi là bắt buộc'
+    isValid = false
+  }
+  
+  // Destination validation
+  if (!form.destinationLocation.name.trim()) {
+    errors.destinationName = 'Tên điểm đến là bắt buộc'
+    isValid = false
+  }
+  
+  if (!form.destinationLocation.provinceCity) {
+    errors.destinationProvince = 'Tỉnh/thành phố điểm đến là bắt buộc'
+    isValid = false
+  }
+  
+  // Check if origin and destination are the same
+  if (form.originLocation.name.trim() && form.destinationLocation.name.trim() && 
+      form.originLocation.provinceCity === form.destinationLocation.provinceCity &&
+      form.originLocation.name.trim().toLowerCase() === form.destinationLocation.name.trim().toLowerCase()) {
+    errors.destinationName = 'Điểm đến phải khác điểm đi'
+    isValid = false
+  }
+  
+  // Other validations (unchanged)
+  if (!form.distanceKm || form.distanceKm <= 0) {
+    errors.distanceKm = 'Khoảng cách phải lớn hơn 0'
+    isValid = false
+  }
+  
+  if (estimatedDurationMinutes.value <= 0) {
+    errors.estimatedMinutes = 'Thời gian di chuyển phải lớn hơn 0'
+    isValid = false
+  }
+  
+  // Price validation
+  if (form.selectedCategories.length === 0) {
+    errors.selectedCategories = 'Vui lòng chọn ít nhất một loại xe'
+    isValid = false
+  }
+  
+  if (!form.basePrice || form.basePrice <= 0) {
+    errors.basePrice = 'Giá cơ bản phải lớn hơn 0'
+    isValid = false
+  }
+  
+  if (!form.validFrom) {
+    errors.validFrom = 'Ngày bắt đầu là bắt buộc'
+    isValid = false
+  }
+  
+  if (!form.validTo) {
+    errors.validTo = 'Ngày kết thúc là bắt buộc'
+    isValid = false
+  }
+  
+  if (form.validFrom && form.validTo && form.validFrom > form.validTo) {
+    errors.validTo = 'Ngày kết thúc phải sau ngày bắt đầu'
+    isValid = false
+  }
+  
+  return isValid
+}
+
+// Reset form (UPDATED for Location objects)
+const resetForm = () => {
+  Object.assign(form, {
+    originLocation: {
+      name: '',
+      provinceCity: '',
+      district: '',
+      addressDetails: ''
+    },
+    destinationLocation: {
+      name: '',
+      provinceCity: '',
+      district: '',
+      addressDetails: ''
+    },
+    distanceKm: null,
+    estimatedHours: null,
+    estimatedMinutes: 0,
+    selectedCategories: [],
+    basePrice: null,
+    promotionPrice: null,
+    validFrom: today,
+    validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    notes: ''
+  })
+  
+  Object.keys(errors).forEach(key => {
+    errors[key] = ''
+  })
+  
+  // Reset district lists
+  originDistricts.value = []
+  destinationDistricts.value = []
+  existingCategoryIds.value = []
+}
+
+// Open modal for create
+const openForCreate = () => {
+  resetForm()
+  isEditing.value = false
+  editingRouteId.value = null
+  isOpen.value = true
+  
+  nextTick(() => {
+    const firstInput = document.querySelector('#originName')
+    if (firstInput) {
+      firstInput.focus()
+    }
+  })
+}
+
+// Open modal for edit (UPDATED for Location objects)
+const openForEdit = async (route) => {
+  resetForm()
+  isEditing.value = true
+  editingRouteId.value = route.id
+  
+  // Fill basic location data (WITHOUT district first)
+  form.originLocation.name = route.originLocation.name
+  form.originLocation.provinceCity = route.originLocation.provinceCity || ''
+  form.originLocation.addressDetails = route.originLocation.addressDetails || ''
+  
+  form.destinationLocation.name = route.destinationLocation.name
+  form.destinationLocation.provinceCity = route.destinationLocation.provinceCity || ''
+  form.destinationLocation.addressDetails = route.destinationLocation.addressDetails || ''
+  
+  // Load districts FIRST (this will populate the dropdowns)
+  if (form.originLocation.provinceCity) {
+    try {
+      originDistricts.value = await ProvinceAPI.getDistrictsByProvince(form.originLocation.provinceCity)
+    } catch (error) {
+      console.error('❌ Error loading origin districts:', error)
+      originDistricts.value = []
+    }
+  }
+  if (form.destinationLocation.provinceCity) {
+    try {
+      destinationDistricts.value = await ProvinceAPI.getDistrictsByProvince(form.destinationLocation.provinceCity)
+    } catch (error) {
+      console.error('❌ Error loading destination districts:', error)
+      destinationDistricts.value = []
+    }
+  }
+  
+  // ✅ THEN set district values (after districts are loaded)
+  form.originLocation.district = route.originLocation.district || ''
+  form.destinationLocation.district = route.destinationLocation.district || ''
+  
+  // Fill route data
+  form.distanceKm = route.distanceKm
+  
+  if (route.estimatedDurationMinutes) {
+    form.estimatedHours = Math.floor(route.estimatedDurationMinutes / 60)
+    form.estimatedMinutes = route.estimatedDurationMinutes % 60
+  }
+  
+  // Load existing price rules
+  await loadExistingPriceRules(route.id)
   
   isOpen.value = true
+  
+  nextTick(() => {
+    const firstInput = document.querySelector('#originName')
+    if (firstInput) {
+      firstInput.focus()
+    }
+  })
 }
 
+// Close modal
 const closeModal = () => {
   isOpen.value = false
-  isSubmitting.value = false
-  resetForm()
-  
-  // Reset editing state
   setTimeout(() => {
+    resetForm()
     isEditing.value = false
     editingRouteId.value = null
   }, 300)
 }
 
-const resetForm = () => {
-  form.origin = ''
-  form.destination = ''
-  form.distanceKm = null
-  form.estimatedHours = null
-  form.estimatedMinutes = 0
-  form.selectedCategories = [] // Reset selected categories
-  form.basePrice = null
-  form.promotionPrice = null
-  form.validFrom = today // Reset to today
-  form.validTo = null
-  form.notes = ''
-  errors.value = {}
-  existingCategoryIds.value = [] // Reset existing categories tracking
+// Create price rule for each selected category
+const createPriceRule = async (routeId, categoryId) => {
+  const priceData = {
+    routeId: routeId,
+    busCategoryId: categoryId,
+    basePrice: form.basePrice,
+    promotionPrice: form.promotionPrice || null,
+    validFrom: form.validFrom,
+    validTo: form.validTo,
+    notes: form.notes || null
+  }
+  
+  try {
+    return await PriceAPI.createPrice(priceData)
+  } catch (error) {
+    console.error(`❌ Error creating price rule for category ${categoryId}:`, error)
+    throw error
+  }
 }
 
-const validateForm = () => {
-  const newErrors = {}
-  
-  if (!form.origin?.trim()) {
-    newErrors.origin = 'Vui lòng nhập điểm đi'
-  }
-  
-  if (!form.destination?.trim()) {
-    newErrors.destination = 'Vui lòng nhập điểm đến'
-  }
-  
-  if (form.origin?.trim() === form.destination?.trim()) {
-    newErrors.destination = 'Điểm đến phải khác điểm đi'
-  }
-  
-  if (!form.distanceKm || form.distanceKm <= 0) {
-    newErrors.distanceKm = 'Vui lòng nhập khoảng cách hợp lệ'
-  }
-  
-  if (!form.estimatedHours || form.estimatedHours <= 0) {
-    newErrors.estimatedDurationMinutes = 'Vui lòng nhập thời gian di chuyển'
-  }
-
-  if (form.selectedCategories.length === 0) {
-    newErrors.selectedCategories = 'Vui lòng chọn ít nhất một loại xe'
-  }
-
-  if (!form.basePrice || form.basePrice <= 0) {
-    newErrors.basePrice = 'Vui lòng nhập giá cơ sở hợp lệ'
-  }
-
-  if (form.validFrom === null) {
-    newErrors.validFrom = 'Vui lòng chọn ngày áp dụng từ'
-  }
-
-  if (form.validTo === null) {
-    newErrors.validTo = 'Vui lòng chọn ngày áp dụng đến'
-  }
-
-  if (form.validTo < form.validFrom) {
-    newErrors.validTo = 'Ngày áp dụng đến phải sau ngày áp dụng từ'
-  }
-  
-  errors.value = newErrors
-  return Object.keys(newErrors).length === 0
-}
-
+// Submit form (UPDATED for Location objects)
 const handleSubmit = async () => {
   if (!validateForm()) {
     return
@@ -483,90 +846,84 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
-    const totalMinutes = (form.estimatedHours * 60) + (form.estimatedMinutes || 0)
-    
-    const routeInput = {
-      origin: form.origin.trim(),
-      destination: form.destination.trim(),
+    const routeData = {
+      originLocationDetails: {
+        name: form.originLocation.name.trim(),
+        provinceCity: form.originLocation.provinceCity,
+        district: form.originLocation.district || null,
+        addressDetails: form.originLocation.addressDetails || null
+      },
+      destinationLocationDetails: {
+        name: form.destinationLocation.name.trim(),
+        provinceCity: form.destinationLocation.provinceCity,
+        district: form.destinationLocation.district || null,
+        addressDetails: form.destinationLocation.addressDetails || null
+      },
       distanceKm: form.distanceKm,
-      estimatedDurationMinutes: totalMinutes
+      estimatedDurationMinutes: estimatedDurationMinutes.value
     }
     
-    let routeResponse
+    let route
+    
     if (isEditing.value) {
-      routeResponse = await RouteAPI.updateRoute(editingRouteId.value, routeInput)
-      emit('route-updated', routeResponse)
-    } else {
-      // Create route first
-      routeResponse = await RouteAPI.createRoute(routeInput)
-      emit('route-created', routeResponse)
-    }
-
-    // Create price rules after route is created/updated
-    if (form.selectedCategories.length > 0) {
-      // For editing: only create prices for NEW categories (not existing ones)
-      const categoriesToCreatePrices = isEditing.value 
-        ? form.selectedCategories.filter(categoryId => !existingCategoryIds.value.includes(categoryId))
-        : form.selectedCategories
-
-      if (categoriesToCreatePrices.length > 0) {
-        // Create price rules for each selected category
-        const pricePromises = categoriesToCreatePrices.map(async (categoryId) => {
-          const priceData = {
-            routeId: routeResponse.id,
-            busCategoryId: categoryId,
-            basePrice: form.basePrice,
-            promotionPrice: form.promotionPrice || undefined,
-            promotionStartDate: form.promotionStartDate || undefined,
-            promotionEndDate: form.promotionEndDate || undefined,
-            notes: form.notes || undefined
-          }
-          
-          return await PriceAPI.createRouteBusCategoryPrice(priceData)
-        })
-
-        const priceResults = await Promise.all(pricePromises)
+      // Update route
+      route = await RouteAPI.updateRoute(editingRouteId.value, routeData)
+      
+      // Create price rules only for newly selected categories
+      const newCategoryIds = form.selectedCategories.filter(
+        categoryId => !existingCategoryIds.value.includes(categoryId)
+      )
+      
+      if (newCategoryIds.length > 0) {
+        try {
+        const pricePromises = newCategoryIds.map(categoryId => 
+          createPriceRule(route.id, categoryId)
+        )
+        
+        await Promise.all(pricePromises)
+        } catch (priceError) {
+          console.warn('⚠️ [RouteModal] Price creation failed for update, but route was saved')
+          toast.warning('Route đã được cập nhật thành công, nhưng không thể tạo quy tắc giá. Vui lòng thiết lập giá riêng.')
+        }
       }
+      
+      toast.updated('tuyến đường')
+      emit('route-updated', route)
+    } else {
+      // Create route
+      route = await RouteAPI.createRoute(routeData)
+      
+      // Create price rules for all selected categories
+      if (form.selectedCategories.length > 0) {
+        try {
+      const pricePromises = form.selectedCategories.map(categoryId => 
+        createPriceRule(route.id, categoryId)
+      )
+      
+      await Promise.all(pricePromises)
+        } catch (priceError) {
+          console.warn('⚠️ [RouteModal] Price creation failed for new route, but route was created')
+          toast.warning('Route đã được tạo thành công, nhưng không thể tạo quy tắc giá. Vui lòng thiết lập giá riêng.')
+        }
+      }
+      
+      toast.created('tuyến đường')
+      emit('route-created', route)
     }
     
-    closeModal(); // Đóng modal sau khi thành công
+    closeModal()
+    
   } catch (error) {
-    console.error('❌ Error creating route:', error)
-    const action = isEditing.value ? 'cập nhật' : 'tạo'
-    handleError.api(error, `${action} tuyến đường`)
+    console.error('❌ Error saving route:', error)
+    handleError.api(error, isEditing.value ? 'cập nhật tuyến đường' : 'tạo tuyến đường')
   } finally {
     isSubmitting.value = false
   }
 }
 
-// Expose methods for parent component
+// Export methods
 defineExpose({
-  openModal
-})
-
-// Watch for distance changes to auto-suggest price
-watch(() => form.distanceKm, (newDistance) => {
-  if (newDistance && newDistance > 0 && !form.basePrice) {
-    // Auto-suggest price based on distance (300 VND per km)
-    form.basePrice = Math.round(newDistance * 300)
-  }
-})
-
-// Watch for ESC key
-watch(isOpen, (newValue) => {
-  if (newValue) {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape') {
-        closeModal()
-      }
-    }
-    
-    document.addEventListener('keydown', handleEsc)
-    
-    // Cleanup
-    return () => {
-      document.removeEventListener('keydown', handleEsc)
-    }
-  }
+  openForCreate,
+  openForEdit
 })
 </script> 

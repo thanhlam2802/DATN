@@ -21,18 +21,16 @@ public class Route {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Size(max = 100)
+    // Thêm vào trong class Route.java, bên dưới các trường khác
     @NotNull
-    @Nationalized
-    @Column(name = "origin", nullable = false, length = 100)
-    private String origin;
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "origin_location_id", nullable = false) // Đây là khóa ngoại trỏ tới bảng 'locations'
+    private Location originLocation; // Điểm xuất phát của tuyến đường
 
-    @Size(max = 100)
     @NotNull
-    @Nationalized
-    @Column(name = "destination", nullable = false, length = 100)
-    private String destination;
-
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "destination_location_id", nullable = false) // Đây là khóa ngoại trỏ tới bảng 'locations'
+    private Location destinationLocation; // Điểm đến của tuyến đường
     @Column(name = "distance_km")
     private Double distanceKm;
 

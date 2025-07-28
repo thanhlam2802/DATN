@@ -70,7 +70,6 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
   try {
     const queryString = getQueryString(query);
     
-    
     const response = await graphqlAxios.post('', {
       query: queryString,
       variables
@@ -80,7 +79,7 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
-      
+      console.error('❌ [GraphQL] Server returned errors:', result.errors)
       throw new Error(result.errors[0].message);
     }
 
@@ -116,8 +115,13 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
   try {
     const queryString = getQueryString(query);
     
+    // 🔍 DEBUG: Log BusSlot mutations
+    if (queryString.includes('createBusSlot')) {
+      console.log('🔍 [DEBUG] CreateBusSlot Mutation:')
+      console.log('Query:', queryString)
+      console.log('Variables:', JSON.stringify(variables, null, 2))
+    }
     
-
     const response = await graphqlAxios.post('', {
       query: queryString,
       variables
@@ -127,11 +131,24 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
+      console.error('❌ [GraphQL] Server returned errors:', result.errors)
+      
+      // 🔍 DEBUG: Log detailed error info for BusSlot operations
+      if (queryString.includes('createBusSlot')) {
+        console.error('🔍 [DEBUG] CreateBusSlot Error Details:')
+        result.errors.forEach((error, index) => {
+          console.error(`🔍 [DEBUG] Error ${index + 1}:`, {
+            message: error.message,
+            locations: error.locations,
+            path: error.path,
+            extensions: error.extensions
+          })
+        })
+      }
       
       throw new Error(result.errors[0].message);
     }
 
-    
     
     // Return in consistent format
     return {
@@ -141,7 +158,7 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
     };
     
   } catch (error: any) {
-    
+    console.error('❌ [GraphQL] Request failed:', error?.message || error)
     
     // Handle network errors
     if (error.response) {

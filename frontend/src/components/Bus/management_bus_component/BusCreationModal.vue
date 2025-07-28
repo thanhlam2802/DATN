@@ -1,11 +1,11 @@
 <template>
   <teleport to="body">
     <transition name="modal-overlay" appear>
-      <div v-if="isOpen" @click="closeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div v-if="isOpen" @click="closeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
         <transition name="modal-content" appear>
-          <div @click.stop class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+          <div @click.stop class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
             <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex-shrink-0">
               <div class="flex items-center justify-between">
                 <h3 class="text-xl font-semibold text-white">
                   {{ isEditMode ? 'Chỉnh sửa xe buýt' : 'Tạo xe buýt mới' }}
@@ -19,7 +19,7 @@
             </div>
 
             <!-- Content -->
-            <div class="overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div class="flex-1 overflow-y-auto">
               <form @submit.prevent="handleSubmit" class="p-6 space-y-8">
                 
                 <!-- Section 1: Image Upload -->
@@ -31,38 +31,46 @@
                   
                   <div @dragover.prevent @drop.prevent="handleDrop" 
                        class="border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors duration-200">
-                    <div class="p-6">
+        <div class="p-6">
                       <!-- Image Previews -->
                       <div v-if="existingImages.length > 0 || imagePreviews.length > 0" class="mb-6">
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                          <!-- Existing images -->
-                          <div v-for="(image, index) in existingImages" :key="'existing-' + image.id" 
-                               class="relative group">
-                            <img :src="image.image.url" 
-                                 class="w-full h-20 object-cover rounded-lg border-2 border-blue-200 shadow-sm" />
-                            <button @click.prevent="removeExistingImage(index)" 
-                                    class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
+                        <div class="relative">
+                          <div class="text-sm text-gray-600 mb-2 flex items-center justify-between">
+                            <span>{{ existingImages.length + imagePreviews.length }} ảnh đã chọn</span>
+                            <span class="text-xs text-gray-400" v-if="existingImages.length + imagePreviews.length > 6">Cuộn để xem thêm</span>
+                          </div>
+                          <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                      <!-- Existing images -->
+                                <div v-for="(image, index) in existingImages" :key="'existing-' + image.id" 
+                                     class="relative group">
+                                  <img :src="image.image.url" 
+                                       class="w-full h-20 object-cover rounded-lg border-2 border-blue-200 shadow-sm" />
+                                  <button @click.prevent="removeExistingImage(index)" 
+                                          class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
                               ×
                             </button>
-                            <div class="absolute bottom-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
-                              Có sẵn
-                            </div>
+                                  <div class="absolute bottom-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
+                                    Có sẵn
+                                  </div>
                           </div>
                           <!-- New uploaded images -->
-                          <div v-for="(src, index) in imagePreviews" :key="'new-' + index" 
-                               class="relative group">
-                            <img :src="src" 
-                                 class="w-full h-20 object-cover rounded-lg border-2 border-green-200 shadow-sm" />
-                            <button @click.prevent="removeNewImage(index)" 
-                                    class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
+                                <div v-for="(src, index) in imagePreviews" :key="'new-' + index" 
+                                     class="relative group">
+                                  <img :src="src" 
+                                       class="w-full h-20 object-cover rounded-lg border-2 border-green-200 shadow-sm" />
+                                  <button @click.prevent="removeNewImage(index)" 
+                                          class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
                               ×
                             </button>
-                            <div class="absolute bottom-1 left-1 bg-green-600 text-white text-xs px-2 py-0.5 rounded">
-                              Mới
+                                  <div class="absolute bottom-1 left-1 bg-green-600 text-white text-xs px-2 py-0.5 rounded">
+                                    Mới
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
                       
                       <!-- Upload Area -->
                       <div class="text-center">
@@ -187,11 +195,11 @@
                               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
                           </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                  
+                </div>
+              </div>
+            </div>
+
                   <!-- Selected amenities summary -->
                   <div v-if="selectedAmenities.length > 0" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h5 class="text-sm font-medium text-blue-800 mb-3">
@@ -214,9 +222,9 @@
                 
               </form>
             </div>
-
+            
             <!-- Footer Actions -->
-            <div class="border-t bg-gray-50 px-6 py-4">
+            <div class="border-t bg-gray-50 px-6 py-4 flex-shrink-0">
               <div class="flex justify-end space-x-4">
                 <button type="button" @click="closeModal" 
                         class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
@@ -237,7 +245,7 @@
                 </button>
               </div>
             </div>
-          </div>
+        </div>
         </transition>
       </div>
     </transition>

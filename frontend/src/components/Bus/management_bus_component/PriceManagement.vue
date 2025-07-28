@@ -53,7 +53,7 @@
           <div class="relative">
             <select v-model="priceManager.filters.value.route" class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
               <option value="">Tất cả tuyến</option>
-              <option v-for="route in priceManager.allRoutes.value" :key="route.id" :value="route.id">{{ route.origin }} → {{ route.destination }}</option>
+              <option v-for="route in priceManager.allRoutes.value" :key="route.id" :value="route.id">{{ route.originLocation.name }} → {{ route.destinationLocation.name }}</option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,7 +234,7 @@
             
             <!-- Data Rows -->
             <tr v-else v-for="price in priceManager.filteredPrices.value" :key="price.id">
-                              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ price.route.origin }} → {{ price.route.destination }}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ price.route.originLocation.name }} → {{ price.route.destinationLocation.name }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 <span :class="getBusCategoryBadgeClass(price.busCategory)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
                   {{ price.busCategory.name }}
@@ -265,8 +265,8 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <div v-if="showAddModal" class="fixed inset-0 bg-gray-200 bg-opacity-20 backdrop-blur-md overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+    <div v-if="showAddModal" class="fixed inset-0  backdrop-blur-md w-full z-50">
+      <div class="relative top-20 mx-auto p-5  w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
         <div class="mt-3">
           <h3 class="text-lg font-medium text-gray-900 mb-4">{{ priceManager.editingPriceId.value ? 'Sửa quy tắc giá' : 'Thêm quy tắc giá mới' }}</h3>
           <form @submit.prevent="savePrice" class="space-y-4">
@@ -276,7 +276,7 @@
                 <div class="relative">
                   <select v-model="priceManager.priceForm.value.routeId" required class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                     <option value="">Chọn tuyến đường</option>
-                    <option v-for="route in priceManager.allRoutes.value" :key="route.id" :value="route.id">{{ route.origin }} → {{ route.destination }}</option>
+                    <option v-for="route in priceManager.allRoutes.value" :key="route.id" :value="route.id">{{ route.originLocation.name }} → {{ route.destinationLocation.name }}</option>
                   </select>
                   <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,7 +393,7 @@
               <div class="relative">
                 <select v-model="priceManager.bulkUpdate.value.routeId" required class="appearance-none w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                   <option value="">Chọn tuyến đường</option>
-                  <option v-for="route in priceManager.allRoutes.value" :key="route.id" :value="route.id">{{ route.origin }} → {{ route.destination }}</option>
+                  <option v-for="route in priceManager.allRoutes.value" :key="route.id" :value="route.id">{{ route.originLocation.name }} → {{ route.destinationLocation.name }}</option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -425,7 +425,7 @@
               </p>
               <ul class="text-xs text-blue-700 space-y-1 max-h-32 overflow-y-auto">
                 <li v-for="price in priceManager.getBulkUpdateTargets.value.slice(0, 10)" :key="price.id">
-                  {{ price.route.origin }} → {{ price.route.destination }} - {{ price.busCategory.name }}
+                  {{ price.route.originLocation.name }} → {{ price.route.destinationLocation.name }} - {{ price.busCategory.name }}
                 </li>
                 <li v-if="priceManager.getBulkUpdateTargets.value.length > 10" class="font-medium">
                   ... và {{ priceManager.getBulkUpdateTargets.value.length - 10 }} quy tắc khác
@@ -526,7 +526,7 @@ const editPrice = (price) => {
 
 const deletePrice = async (price) => {
   const confirmed = await confirm.delete(
-    `quy tắc giá cho "${price.route.origin} → ${price.route.destination} - ${price.busCategory.name}"`,
+    `quy tắc giá cho "${price.route.originLocation.name} → ${price.route.destinationLocation.name} - ${price.busCategory.name}"`,
     {
       details: 'Hành động này sẽ xóa quy tắc giá và có thể ảnh hưởng đến việc tính giá vé.'
     }

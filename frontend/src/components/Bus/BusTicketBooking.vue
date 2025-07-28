@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { SeatAPI, BookingAPI } from '@/api/busAPI_Client'
 
 // DEV MODE: No auth required for booking
 
@@ -20,6 +21,17 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'step-change', 'booking-complete'])
 
+// Loading states
+const loadingSeatData = ref(false)
+const seatDataError = ref('')
+
+// Component lifecycle tracking
+const isMounted = ref(false)
+
+// Real seat data from API
+const seatOccupancy = ref(null)
+const realSeatLayout = ref(null)
+
 // Booking state
 const bookingData = ref({
   selectedSeats: [],
@@ -34,39 +46,6 @@ const bookingData = ref({
   discount: 0
 })
 
-// Seat layouts
-const seatLayouts = {
-  'shuttle-bus': {
-    total: 16,
-    rows: 4,
-    seatsPerRow: 4,
-    layout: 'single' // Single level
-  },
-  'sleeping-bus': {
-    total: 36,
-    rows: 6,
-    seatsPerRow: 3,
-    layout: 'double', // Double level (upper/lower)
-    levels: ['Tầng trên', 'Tầng dưới']
-  }
-}
-
-// Mock seat availability (in real app, this comes from API)
-const seatAvailability = ref({
-  // For shuttle bus (16 seats)
-  'shuttle-bus': {
-    available: [1, 2, 3, 5, 7, 8, 10, 12, 13, 15, 16], // Green seats
-    occupied: [4, 6, 9, 11, 14], // Red seats  
-    pending: [] // Yellow seats (being booked by others)
-  },
-  // For sleeping bus (36 seats)
-  'sleeping-bus': {
-    available: [1, 2, 3, 5, 7, 8, 10, 12, 13, 15, 16, 19, 20, 21, 23, 25, 26, 28, 30, 31, 33, 35, 36], // Green seats
-    occupied: [4, 6, 9, 11, 14, 17, 18, 22, 24, 27, 29, 32, 34], // Red seats  
-    pending: [] // Yellow seats (being booked by others)
-  }
-})
-
 // Payment methods
 const paymentMethods = [
   { id: 'credit-card', name: 'Thẻ tín dụng', icon: 'fas fa-credit-card' },
@@ -74,24 +53,90 @@ const paymentMethods = [
   { id: 'bank-transfer', name: 'Chuyển khoản', icon: 'fas fa-university' }
 ]
 
-// Computed properties
-const currentLayout = computed(() => {
-  // Map activeTab to seat layout type
-  let busType = 'shuttle-bus' // default
-  
-  // Priority order: type > activeTab > default
-  if (props.selectedTrip.type) {
-    busType = props.selectedTrip.type
-  } else if (props.selectedTrip.activeTab) {
-    busType = props.selectedTrip.activeTab
-  }
-  
-  
-  
-  return seatLayouts[busType] || seatLayouts['shuttle-bus']
+// Mount/unmount tracking
+onMounted(() => {
+  isMounted.value = true
 })
 
-const totalSeats = computed(() => currentLayout.value.total)
+onUnmounted(() => {
+  isMounted.value = false
+})
+
+// Load real seat data when component mounts or trip changes
+const loadSeatData = async () => {
+  if (!isMounted.value || !props.selectedTrip?.busSlotId) {
+    return
+  }
+
+  try {
+    loadingSeatData.value = true
+    seatDataError.value = ''
+
+    // Get real seat occupancy from API
+    const occupancy = await SeatAPI.getSeatOccupancy(props.selectedTrip.busSlotId)
+    
+    // Check if still mounted before updating state
+    if (isMounted.value) {
+      seatOccupancy.value = occupancy
+      // Generate dynamic layout based on total seats
+      const layout = SeatAPI.generateSeatLayout(occupancy.totalSeats)
+      realSeatLayout.value = layout
+    }
+
+  } catch (error) {
+    console.error('❌ Error loading seat data:', error)
+    
+    if (isMounted.value) {
+      seatDataError.value = 'Không thể tải thông tin ghế. Sử dụng dữ liệu mẫu.'
+      
+      // Fallback to mock data
+      const mockOccupancy = SeatAPI.generateMockSeatMap(props.selectedTrip)
+      seatOccupancy.value = {
+        busSlotId: props.selectedTrip.busSlotId,
+        totalSeats: props.selectedTrip.totalSeats || 16,
+        availableSeats: props.selectedTrip.availableSeats || 10,
+        occupiedSeats: (props.selectedTrip.totalSeats || 16) - (props.selectedTrip.availableSeats || 10),
+        pendingSeats: 0,
+        seatMap: mockOccupancy
+      }
+      
+      realSeatLayout.value = SeatAPI.generateSeatLayout(props.selectedTrip.totalSeats || 16)
+    }
+  } finally {
+    if (isMounted.value) {
+      loadingSeatData.value = false
+    }
+  }
+}
+
+// Watch for trip changes
+watch(() => props.selectedTrip, async (newTrip) => {
+  if (newTrip?.busSlotId && isMounted.value) {
+    await loadSeatData()
+  }
+}, { immediate: true })
+
+// Watch when component becomes visible
+watch(() => props.show, async (isVisible) => {
+  if (isVisible && props.selectedTrip?.busSlotId && isMounted.value) {
+    await loadSeatData()
+  }
+})
+
+// Computed properties using real data
+const currentLayout = computed(() => {
+  if (realSeatLayout.value) {
+    return realSeatLayout.value
+  }
+  
+  // Fallback layout
+  const totalSeats = props.selectedTrip?.totalSeats || 16
+  return SeatAPI.generateSeatLayout(totalSeats)
+})
+
+const totalSeats = computed(() => {
+  return seatOccupancy.value?.totalSeats || currentLayout.value.total || 16
+})
 
 const selectedSeatsCount = computed(() => bookingData.value.selectedSeats.length)
 
@@ -106,28 +151,23 @@ const finalAmount = computed(() => {
   return total - discountAmount
 })
 
-// Seat selection functions
+// Real seat status using API data
 const getSeatStatus = (seatNumber) => {
-  const busType = currentLayout.value.layout === 'single' ? 'shuttle-bus' : 'sleeping-bus'
-  const availability = seatAvailability.value[busType]
-  
-  
-  if (bookingData.value.selectedSeats.includes(seatNumber)) return 'selected'
-  if (availability.available.includes(seatNumber)) return 'available'
-  if (availability.occupied.includes(seatNumber)) return 'occupied'
-  if (availability.pending.includes(seatNumber)) return 'pending'
-  return 'available'
+  if (!seatOccupancy.value) {
+    return 'available'
+  }
+
+  return SeatAPI.getSeatStatus(
+    seatNumber, 
+    seatOccupancy.value.seatMap, 
+    bookingData.value.selectedSeats
+  )
 }
 
+// Real seat styling using API helper
 const getSeatClass = (seatNumber) => {
   const status = getSeatStatus(seatNumber)
-  const classes = {
-    available: 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200',
-    occupied: 'bg-red-100 border-red-300 text-red-700 cursor-not-allowed',
-    pending: 'bg-yellow-100 border-yellow-300 text-yellow-700 cursor-not-allowed',
-    selected: 'bg-indigo-600 border-indigo-700 text-white'
-  }
-  return `${classes[status]} border-2 rounded-lg w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-200`
+  return SeatAPI.getSeatDisplayClass(status)
 }
 
 const toggleSeat = (seatNumber) => {
@@ -154,21 +194,45 @@ const validatePayment = () => {
   return bookingData.value.paymentMethod && selectedSeatsCount.value > 0
 }
 
-// Voucher functions
-const applyVoucher = () => {
-  // Mock voucher validation (in real app, call API)
-  const vouchers = {
-    'GIAM10': 10,
-    'GIAM20': 20,
-    'NEWUSER': 15
+// Enhanced voucher functions using API
+const applyVoucher = async () => {
+  if (!isMounted.value || !bookingData.value.voucherCode.trim()) {
+    return
   }
-  
-  const code = bookingData.value.voucherCode.toUpperCase()
-  if (vouchers[code]) {
-    bookingData.value.discount = vouchers[code]
-    updateTotalAmount()
-  } else {
-    bookingData.value.discount = 0
+
+  try {
+    const result = await BookingAPI.applyVoucher(
+      bookingData.value.voucherCode, 
+      basePrice.value * selectedSeatsCount.value
+    )
+    
+    if (isMounted.value) {
+      if (result.valid) {
+        bookingData.value.discount = result.discountPercentage
+        updateTotalAmount()
+        // Show success message
+        alert(`✅ ${result.message}`)
+      } else {
+        bookingData.value.discount = 0
+        alert(`❌ ${result.message}`)
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error applying voucher:', error)
+    
+    if (isMounted.value) {
+      // Fallback to mock voucher validation
+      const mockResult = BookingAPI.getMockVoucherDiscount(bookingData.value.voucherCode)
+      
+      if (mockResult.valid) {
+        bookingData.value.discount = mockResult.discountPercentage
+        updateTotalAmount()
+        alert(`✅ ${mockResult.message}`)
+      } else {
+        bookingData.value.discount = 0
+        alert(`❌ ${mockResult.message}`)
+      }
+    }
   }
 }
 
@@ -212,27 +276,84 @@ const canProceedToNext = () => {
   }
 }
 
-// Booking completion
-const completeBooking = () => {
-  const booking = {
-    trip: props.selectedTrip,
-    seats: bookingData.value.selectedSeats,
-    passenger: bookingData.value.passengerInfo,
-    payment: {
-      method: bookingData.value.paymentMethod,
-      amount: bookingData.value.totalAmount,
-      voucher: bookingData.value.voucherCode,
-      discount: bookingData.value.discount
-    },
-    bookingTime: new Date().toISOString()
+// Enhanced booking completion with API
+const completeBooking = async () => {
+  if (!isMounted.value) {
+    return
   }
-  
-  emit('booking-complete', booking)
+
+  try {
+    // Validate data before submission
+    const bookingInput = {
+      busSlotId: props.selectedTrip.busSlotId,
+      seatNumbers: bookingData.value.selectedSeats,
+      passengerInfo: bookingData.value.passengerInfo,
+      paymentMethod: bookingData.value.paymentMethod,
+      totalAmount: bookingData.value.totalAmount,
+      voucherCode: bookingData.value.voucherCode || undefined
+    }
+
+    const validation = BookingAPI.validateBookingData(bookingInput)
+    if (!validation.valid) {
+      alert(`❌ Dữ liệu không hợp lệ:\n${validation.errors.join('\n')}`)
+      return
+    }
+
+    // Create booking via API
+    const booking = await BookingAPI.createBooking(bookingInput)
+    
+    // Check if still mounted before emitting
+    if (isMounted.value) {
+      // Emit successful booking
+      emit('booking-complete', {
+        bookingId: booking.bookingId,
+        trip: props.selectedTrip,
+        seats: booking.seats,
+        passenger: booking.passenger,
+        payment: {
+          method: bookingData.value.paymentMethod,
+          amount: booking.totalAmount,
+          voucher: bookingData.value.voucherCode,
+          discount: bookingData.value.discount
+        },
+        qrCode: booking.qrCode,
+        bookingTime: new Date().toISOString()
+      })
+    }
+
+  } catch (error) {
+    console.error('❌ Error completing booking:', error)
+    if (isMounted.value) {
+      alert(`❌ ${error.message}`)
+    }
+  }
 }
 
 // Close modal
 const closeModal = () => {
   emit('close')
+}
+
+// Utility function to generate seat numbers for display
+const generateSeatNumbers = () => {
+  if (!currentLayout.value) return []
+  
+  const seats = []
+  const totalSeats = seatOccupancy.value?.totalSeats || currentLayout.value.total
+  
+  for (let i = 1; i <= totalSeats; i++) {
+    seats.push(i)
+  }
+  
+  return seats
+}
+
+// Get seats for specific level (for double-decker buses)
+const getSeatsForLevel = (levelIndex) => {
+  const seats = generateSeatNumbers()
+  const seatsPerLevel = Math.ceil(seats.length / 2)
+  const startIndex = levelIndex * seatsPerLevel
+  return seats.slice(startIndex, startIndex + seatsPerLevel)
 }
 </script>
 
@@ -265,8 +386,18 @@ const closeModal = () => {
           {{ selectedTrip.company }} - {{ selectedTrip.busType }}
         </p>
         <!-- Debug info -->
-        <div class="text-xs text-red-500 mt-2">
-          DEBUG: activeTab={{ selectedTrip.activeTab }}, type={{ selectedTrip.type }}, layout={{ currentLayout.layout }}, total={{ currentLayout.total }}
+        <div class="text-xs text-gray-500 mt-2">
+          <span v-if="loadingSeatData" class="text-blue-500">
+            <i class="fas fa-spinner fa-spin mr-1"></i>
+            Đang tải thông tin ghế...
+          </span>
+          <span v-else-if="seatDataError" class="text-red-500">
+            <i class="fas fa-exclamation-triangle mr-1"></i>
+            {{ seatDataError }}
+          </span>
+          <span v-else>
+            Layout: {{ currentLayout.layout }}, Tổng ghế: {{ totalSeats }}, Còn trống: {{ seatOccupancy?.availableSeats || 'N/A' }}
+          </span>
         </div>
       </div>
 
@@ -303,33 +434,45 @@ const closeModal = () => {
             <p class="text-xs text-gray-500 mt-1">Tài xế</p>
           </div>
 
-          <!-- Shuttle Bus Layout (16 seats) -->
-          <div v-if="currentLayout.layout === 'single'" class="space-y-3">
+          <!-- Loading State -->
+          <div v-if="loadingSeatData" class="flex justify-center items-center py-8">
+            <div class="text-center">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+              <p class="text-sm text-gray-600">Đang tải sơ đồ ghế...</p>
+            </div>
+          </div>
+
+          <!-- Single Level Bus Layout (Dynamic) -->
+          <div v-else-if="currentLayout.layout === 'single'" class="space-y-3">
             <div v-for="row in currentLayout.rows" :key="row" class="flex justify-center space-x-2">
               <button
                 v-for="seat in currentLayout.seatsPerRow"
                 :key="(row - 1) * currentLayout.seatsPerRow + seat"
                 @click="toggleSeat((row - 1) * currentLayout.seatsPerRow + seat)"
                 :class="getSeatClass((row - 1) * currentLayout.seatsPerRow + seat)"
+                :disabled="getSeatStatus((row - 1) * currentLayout.seatsPerRow + seat) === 'occupied' || getSeatStatus((row - 1) * currentLayout.seatsPerRow + seat) === 'pending'"
+                v-show="(row - 1) * currentLayout.seatsPerRow + seat <= totalSeats"
               >
                 {{ (row - 1) * currentLayout.seatsPerRow + seat }}
               </button>
             </div>
           </div>
 
-          <!-- Sleeping Bus Layout (36 seats - 2 levels side by side) -->
+          <!-- Double Level Bus Layout (Dynamic) -->
           <div v-else-if="currentLayout.layout === 'double'" class="flex justify-center space-x-6">
-            <div v-for="(level, levelIndex) in currentLayout.levels" :key="level" class="border rounded-lg p-3">
+            <div v-for="(level, levelIndex) in (currentLayout.levels || ['Tầng trên', 'Tầng dưới'])" :key="level" class="border rounded-lg p-3">
               <h4 class="text-sm font-medium text-gray-700 mb-2 text-center">{{ level }}</h4>
               <div class="space-y-2">
-                <div v-for="row in currentLayout.rows" :key="row" class="flex justify-center space-x-2">
+                <div v-for="row in Math.ceil(currentLayout.rows / 2)" :key="row" class="flex justify-center space-x-2">
                   <button
                     v-for="seat in currentLayout.seatsPerRow"
-                    :key="levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat"
-                    @click="toggleSeat(levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat)"
-                    :class="getSeatClass(levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat)"
+                    :key="levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat"
+                    @click="toggleSeat(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat)"
+                    :class="getSeatClass(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat)"
+                    :disabled="getSeatStatus(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat) === 'occupied' || getSeatStatus(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat) === 'pending'"
+                    v-show="levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat <= totalSeats"
                   >
-                    {{ levelIndex * 18 + (row - 1) * currentLayout.seatsPerRow + seat }}
+                    {{ levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat }}
                   </button>
                 </div>
               </div>

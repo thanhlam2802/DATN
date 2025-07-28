@@ -4,8 +4,11 @@ import backend.backend.dto.*;
 import backend.backend.dto.Hotel.HotelDetailDto;
 import backend.backend.dto.Hotel.HotelDto;
 import backend.backend.dto.Hotel.HotelSearchRequestDto;
+import backend.backend.dto.Hotel.HotelBookingRequestDto;
+import backend.backend.dto.OrderDto;
 import backend.backend.entity.ApiResponse;
 import backend.backend.service.HotelService;
+import backend.backend.service.HotelBookingService;
 import backend.backend.utils.ResponseFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +36,8 @@ class CreateReviewRequest {
 public class HotelPublicController {
     @Autowired
     private HotelService hotelService;
+    @Autowired
+    private HotelBookingService hotelBookingService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageDto<HotelDto>>> searchHotels(
@@ -66,5 +71,15 @@ public class HotelPublicController {
         String email = authentication.getName();
         hotelService.createHotelReview(id, email, req.rating, req.content);
         return ResponseFactory.success(null, "Đánh giá đã được gửi thành công");
+    }
+
+    @PostMapping("/book")
+    public ResponseEntity<ApiResponse<OrderDto>> bookHotel(@RequestBody HotelBookingRequestDto dto, Authentication authentication) {
+        // if (authentication == null) {
+        //     return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để đặt phòng!", null);
+        // }
+        // Pass null for authentication, and set userId=1 in service if authentication is null
+        OrderDto order = hotelBookingService.bookHotel(dto, null);
+        return ResponseFactory.success(order, "Đặt phòng thành công. Vui lòng thanh toán để xác nhận.");
     }
 }

@@ -20,5 +20,6 @@ public class OrderDto {
     
     private List<BookingTourDto> tourBookings;
     private List<FlightBookingDto> flightBookings;
+    private List<HotelBookingDto> hotelBookings;
 
 }

@@ -1,6 +1,40 @@
 <template>
-  <aside class="w-full md:w-80 shrink-0">
-    <div class="mb-6">
+  <aside class="w-full md:w-80 shrink-0 space-y-6 p-4 md:p-0">
+    <div class="filter-group border-b pb-4 mb-4">
+      <button
+        @click="resetFilters"
+        class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors duration-200"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-rotate-ccw"
+        >
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+        <span>Xóa bộ lọc</span>
+      </button>
+    </div>
+
+    <div class="filter-group">
+      <h3 class="text-lg font-medium mb-3">Điểm đến</h3>
+      <input
+        type="text"
+        v-model.lazy="destination"
+        placeholder="Nhập tên thành phố, khu vực..."
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+      />
+    </div>
+
+    <div class="filter-group">
       <h3 class="text-lg font-medium mb-3">Khoảng giá</h3>
       <div class="relative p-4 border rounded-lg">
         <div class="flex justify-between items-center text-sm mb-2">
@@ -32,12 +66,36 @@
       </div>
     </div>
 
-    <div class="mb-6">
+    <div class="filter-group">
+      <h3 class="text-lg font-medium mb-3">Đánh giá</h3>
+      <div
+        class="flex items-center justify-center space-x-1 p-4 border rounded-lg"
+      >
+        <span
+          v-for="star in 5"
+          :key="star"
+          @click="minRating = star"
+          class="cursor-pointer"
+        >
+          <svg
+            class="w-8 h-8"
+            :class="star <= minRating ? 'text-yellow-400' : 'text-gray-300'"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.368 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.368-2.448a1 1 0 00-1.176 0l-3.368 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69L9.049 2.927z"
+            />
+          </svg>
+        </span>
+      </div>
+    </div>
+
+    <div class="filter-group">
       <h3 class="text-lg font-medium mb-3">Tags</h3>
       <div class="space-y-3 p-4 border rounded-lg max-h-60 overflow-y-auto">
         <p v-if="tagsLoading">Đang tải danh sách tags...</p>
         <p v-else-if="tags.length === 0">Không tìm thấy tags.</p>
-
         <label
           v-for="tag in tags"
           :key="tag.id"
@@ -59,66 +117,70 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
 
-// 1. Định nghĩa sự kiện mà component sẽ phát ra
 const emit = defineEmits(["update-filters"]);
 
-// --- State cho Bộ lọc ---
-const minPrice = ref(0);
-const maxPrice = ref(5000000);
-const selectedTags = ref([]); // Chỉ lưu tên của các tag được chọn
+// --- Giá trị mặc định cho các bộ lọc ---
+const DEFAULT_MIN_PRICE = 0;
+const DEFAULT_MAX_PRICE = 5000000;
+
+// --- State cho tất cả bộ lọc ---
+const destination = ref("");
+const minPrice = ref(DEFAULT_MIN_PRICE);
+const maxPrice = ref(DEFAULT_MAX_PRICE);
+const minRating = ref(0);
+const selectedTags = ref([]);
 
 // --- State cho việc tải dữ liệu tags ---
 const tags = ref([]);
 const tagsLoading = ref(false);
 
-// 2. Theo dõi sự thay đổi của các bộ lọc và phát sự kiện
+// --- HÀM MỚI: Reset tất cả các bộ lọc về giá trị mặc định ---
+const resetFilters = () => {
+  destination.value = "";
+  minPrice.value = DEFAULT_MIN_PRICE;
+  maxPrice.value = DEFAULT_MAX_PRICE;
+  minRating.value = 0;
+  selectedTags.value = [];
+  // Việc thay đổi các ref này sẽ tự động kích hoạt `watch` bên dưới
+};
+
+// --- Theo dõi tất cả các bộ lọc ---
 watch(
-  [minPrice, maxPrice, selectedTags],
+  [destination, minPrice, maxPrice, selectedTags, minRating],
   () => {
-    // Đảm bảo minPrice luôn nhỏ hơn hoặc bằng maxPrice
     if (minPrice.value > maxPrice.value) {
-      // Hoán đổi giá trị nếu người dùng kéo slider min vượt qua max
       [minPrice.value, maxPrice.value] = [maxPrice.value, minPrice.value];
     }
 
-    console.log("Filters changed, emitting:", {
-      minPrice: minPrice.value,
-      maxPrice: maxPrice.value,
-      tags: selectedTags.value,
-    });
-
-    // Gửi đối tượng chứa tất cả các giá trị lọc hiện tại
     emit("update-filters", {
+      destination: destination.value,
       minPrice: minPrice.value,
       maxPrice: maxPrice.value,
-      // Gửi danh sách tên các tag đã chọn
+      minRating: minRating.value,
       tags: selectedTags.value,
     });
   },
   { deep: true }
-); // `deep: true` cần thiết để theo dõi thay đổi trong mảng selectedTags
+);
 
-// Hàm fetchTags không thay đổi, vẫn gọi API để lấy danh sách tags
+// --- Hàm fetchTags và onMounted không đổi ---
 const fetchTags = async () => {
   tagsLoading.value = true;
   try {
     const response = await fetch("http://localhost:8080/api/tags");
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
     const dataFromApi = await response.json();
-    tags.value = dataFromApi; // Không cần thêm 'checked' nữa
+    tags.value = dataFromApi;
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu tags:", error);
-    tags.value = []; // Reset về mảng rỗng nếu có lỗi
   } finally {
     tagsLoading.value = false;
   }
 };
 
-onMounted(() => {
-  fetchTags();
-});
+onMounted(fetchTags);
 
-// Style cho thanh slider để hiển thị vùng đã chọn
+// --- Style cho slider không đổi ---
 const sliderStyle = computed(() => {
   const max = 5000000;
   const leftPercent = (minPrice.value / max) * 100;

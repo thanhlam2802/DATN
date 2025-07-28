@@ -23,4 +23,7 @@ public interface OrderService {
     List<OrderDto> getOrdersByUserId(Integer userId);
 
 	OrderDto paidOrder(Integer id,String transactionId);
+	
+	OrderDto applyVoucherToOrder(Integer orderId, String voucherCode);
+	
 }

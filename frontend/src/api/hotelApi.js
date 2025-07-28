@@ -34,6 +34,64 @@ export const createHotelReview = (hotelId, data) => {
     return axios.post(`${API_BASE_URL}/${hotelId}/reviews`, data, { headers });
 };
 
+export const bookHotel = (data) => {
+    const token = getAccessToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axios.post(`${API_BASE_URL}/book`, data, { headers });
+};
+
+export const addItemToCart = (orderId, data) => {
+    return axios.post(`/api/v1/cart/${orderId}/items`, data);
+};
+
+export const getHotelCustomers = (hotelId) => {
+    return axios.get(`${API_ADMIN_BASE_URL}/${hotelId}/customers`);
+};
+
+export const getAllHotelCustomers = () => {
+    return axios.get(`${API_ADMIN_BASE_URL}/customers`);
+};
+
+export const getCustomerBookedRooms = (customerId) => {
+    return axios.get(`${API_ADMIN_BASE_URL}/customers/${customerId}/booked-rooms`);
+};
+
+export const getAllHotelBookings = () => {
+    return axios.get(`${API_ADMIN_BASE_URL}/bookings`);
+};
+
+export const getDashboardStatistics = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/dashboard-statistics`, {
+    params: { timePeriod }
+  });
+};
+
+export const getHotelRevenueChart = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/revenue-chart`, {
+    params: { timePeriod }
+  });
+};
+
+export const getHotelRevenuePieChart = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/revenue-pie-chart`, {
+    params: { timePeriod }
+  });
+};
+
+export const getTopRoomsChart = (timePeriod = 'this_month') => {
+  return axios.get(`${API_ADMIN_BASE_URL}/top-rooms-chart`, {
+    params: { timePeriod }
+  });
+};
+
+export const getAllHotelReviews = () => {
+  return axios.get(`${API_ADMIN_BASE_URL}/reviews`);
+};
+
+export const deleteHotelReview = (reviewId) => {
+  return axios.delete(`${API_ADMIN_BASE_URL}/reviews/${reviewId}`);
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -41,5 +99,17 @@ export default {
     createHotel,
     updateHotel,
     deleteHotel,
-    createHotelReview
+    createHotelReview,
+    bookHotel,
+    addItemToCart,
+    getHotelCustomers,
+    getAllHotelCustomers,
+    getCustomerBookedRooms,
+    getAllHotelBookings,
+    getDashboardStatistics,
+    getHotelRevenueChart,
+    getHotelRevenuePieChart,
+    getTopRoomsChart,
+    getAllHotelReviews,
+    deleteHotelReview
 };

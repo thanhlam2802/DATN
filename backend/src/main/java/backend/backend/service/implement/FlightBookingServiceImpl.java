@@ -186,10 +186,14 @@ public class FlightBookingServiceImpl implements FlightBookingService {
 
     @Override
     public void cancelBooking(Integer bookingId) {
+        log.info("bookingid: 22572 {}", bookingId);
         FlightBooking fb =  flightBookingDAO.findById(bookingId).orElse(null);
-        flightBookingDAO.delete(fb);
-        Customer customer = fb.getCustomer();
-        customerDAO.delete(customer);
+        log.info("info: {}", fb.getTotalPrice());
+        FlightSlot flightSlot = flightSlotDAO.findById(fb.getFlightSlot().getId()).orElse(null);
+        log.info("flight slot : {}", flightSlot.getCarryOnLuggage());
+        flightSlot.setStatus("AVAILABLE");
+        FlightSlot bg = flightSlotDAO.save(flightSlot);
+        log.info("flight slot sau update: {}", bg.getStatus());
     }
 
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking booking, Flight flight) {

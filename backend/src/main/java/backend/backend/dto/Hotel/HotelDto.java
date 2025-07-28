@@ -20,6 +20,7 @@ public class HotelDto {
     private double rating;
     private int reviewCount;
     private BigDecimal startingPrice;
+    private BigDecimal minDiscountedPrice;
     private List<AmenityDto> amenities;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
@@ -36,6 +37,7 @@ public class HotelDto {
         this.startingPrice = startingPrice;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.minDiscountedPrice = null;
     }
 
     public HotelDto(Integer id, String name, String imageUrl, List<String> imageUrls, String address,

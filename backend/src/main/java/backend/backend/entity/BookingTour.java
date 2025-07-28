@@ -38,11 +38,14 @@ public class BookingTour {
 
     @Column(name = "booking_date")
     private LocalDate bookingDate;
-
+    
+    @Column(length = 255)
+    private String email;
+    
     @Lob
     private String notes;
 
- 
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")

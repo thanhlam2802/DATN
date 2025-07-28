@@ -9,45 +9,38 @@
         <nav class="p-6 flex-grow space-y-4">
             <router-link to="/hotel/admin/dashboard"
                 class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/dashboard')
-                    ? 'text-blue-600 bg-slate-100 font-semibold'
+                    ? 'text-orange-600 bg-orange-50 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
                 <i class="fas fa-tachometer-alt w-5 text-center"></i>
-                <span>Dashboard</span>
+                <span>Thống kê</span>
             </router-link>
             <router-link to="/hotel/admin/hotelform"
                 class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/hotelform')
-                    ? 'text-blue-600 bg-slate-100 font-semibold'
+                    ? 'text-orange-600 bg-orange-50 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
                 <i class="fas fa-building w-5 text-center"></i>
-                <span>Hotels</span>
+                <span>Khách sạn</span>
             </router-link>
-            <router-link to="/hotel/admin/bookings"
-                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/bookings')
-                    ? 'text-blue-600 bg-slate-100 font-semibold'
+            <router-link to="/hotel/admin/booking"
+                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/booking')
+                    ? 'text-orange-600 bg-orange-50 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
                 <i class="fas fa-calendar-alt w-5 text-center"></i>
-                <span>Bookings</span>
+                <span>Đặt phòng</span>
             </router-link>
-            <router-link to="/hotel/admin/customers"
-                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/customers')
-                    ? 'text-blue-600 bg-slate-100 font-semibold'
+            <router-link to="/hotel/admin/customer"
+                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/customer')
+                    ? 'text-orange-600 bg-orange-50 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
                 <i class="fas fa-users w-5 text-center"></i>
-                <span>Customers</span>
+                <span>Khách hàng</span>
             </router-link>
-            <router-link to="/hotel/admin/reviews"
-                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/reviews')
-                    ? 'text-blue-600 bg-slate-100 font-semibold'
+            <router-link to="/hotel/admin/review"
+                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/review')
+                    ? 'text-orange-600 bg-orange-50 font-semibold'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
                 <i class="fas fa-star w-5 text-center"></i>
-                <span>Reviews</span>
-            </router-link>
-            <router-link to="/hotel/admin/settings"
-                class="flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200" :class="isActive('/hotel/admin/settings')
-                    ? 'text-blue-600 bg-slate-100 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'">
-                <i class="fas fa-cog w-5 text-center"></i>
-                <span>Settings</span>
+                <span>Đánh giá</span>
             </router-link>
         </nav>
     </aside>

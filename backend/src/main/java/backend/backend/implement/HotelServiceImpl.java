@@ -49,6 +49,7 @@ import backend.backend.entity.HotelRoomImageId;
 import backend.backend.dao.UserDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import backend.backend.dao.HotelBookingDAO;
 
 @Service
 public class HotelServiceImpl implements HotelService {
@@ -77,6 +78,8 @@ public class HotelServiceImpl implements HotelService {
     private HotelRoomImageDAO hotelRoomImageDAO;
     @Autowired
     private UserDAO userDAO;
+    @Autowired
+    private HotelBookingDAO hotelBookingDAO;
 
     @Override
     @Transactional(readOnly = true)
@@ -193,21 +196,24 @@ public class HotelServiceImpl implements HotelService {
                 }
                 if (roomDto.getImageUrls() != null && !roomDto.getImageUrls().isEmpty()) {
                     for (String url : roomDto.getImageUrls()) {
-                        boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
-                        if (exists)
-                            continue;
-                        Image img = new Image();
-                        img.setUrl(url);
-                        img.setAltText(room.getRoomType());
-                        img = imageDAO.save(img);
-                        HotelRoomImage hri = new HotelRoomImage();
+                        Image img = imageDAO.findAll().stream().filter(i -> url.equals(i.getUrl())).findFirst().orElse(null);
+                        if (img == null) {
+                            img = new Image();
+                            img.setUrl(url);
+                            img.setAltText(room.getRoomType());
+                            img = imageDAO.save(img);
+                        }
                         HotelRoomImageId hriId = new HotelRoomImageId();
                         hriId.setRoomId(room.getId());
                         hriId.setImageId(img.getId());
-                        hri.setId(hriId);
-                        hri.setRoom(room);
-                        hri.setImage(img);
-                        hotelRoomImageDAO.save(hri);
+                        boolean linkExists = hotelRoomImageDAO.findById(hriId).isPresent();
+                        if (!linkExists) {
+                            HotelRoomImage hri = new HotelRoomImage();
+                            hri.setId(hriId);
+                            hri.setRoom(room);
+                            hri.setImage(img);
+                            hotelRoomImageDAO.save(hri);
+                        }
                     }
                 }
                 if (roomDto.getAvailableVariants() != null) {
@@ -220,6 +226,8 @@ public class HotelServiceImpl implements HotelService {
                         variant.setCancellable(variantDto.getCancellable());
                         variant.setPayAtHotel(variantDto.getPayAtHotel());
                         variant.setTaxAndFeeAmount(variantDto.getTaxAndFeeAmount());
+                        variant.setDiscountType(variantDto.getDiscountType());
+                        variant.setDiscountValue(variantDto.getDiscountValue());
                         hotelRoomVariantDAO.save(variant);
                     }
                 }
@@ -252,21 +260,24 @@ public class HotelServiceImpl implements HotelService {
         }
         if (hotelDto.getImageUrls() != null && !hotelDto.getImageUrls().isEmpty()) {
             for (String url : hotelDto.getImageUrls()) {
-                boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
-                if (exists)
-                    continue;
-                Image img = new Image();
-                img.setUrl(url);
-                img.setAltText(hotel.getName());
-                img = imageDAO.save(img);
-                HotelImage hi = new HotelImage();
+                Image img = imageDAO.findAll().stream().filter(i -> url.equals(i.getUrl())).findFirst().orElse(null);
+                if (img == null) {
+                    img = new Image();
+                    img.setUrl(url);
+                    img.setAltText(hotel.getName());
+                    img = imageDAO.save(img);
+                }
                 HotelImageId hiId = new HotelImageId();
                 hiId.setHotelId(hotel.getId());
                 hiId.setImageId(img.getId());
-                hi.setId(hiId);
-                hi.setHotel(hotel);
-                hi.setImage(img);
-                hotelImageDAO.save(hi);
+                boolean linkExists = hotelImageDAO.findById(hiId).isPresent();
+                if (!linkExists) {
+                    HotelImage hi = new HotelImage();
+                    hi.setId(hiId);
+                    hi.setHotel(hotel);
+                    hi.setImage(img);
+                    hotelImageDAO.save(hi);
+                }
             }
         }
         hotel = hotelDAO.findById(hotel.getId()).orElse(hotel);
@@ -308,7 +319,11 @@ public class HotelServiceImpl implements HotelService {
                     hiId.setHotelId(hotel.getId());
                     hiId.setImageId(img.getId());
                     hotelImageDAO.deleteById(hiId);
-                    imageDAO.deleteById(img.getId());
+                    long count1 = hotelImageDAO.countByIdImageId(img.getId());
+                    long count2 = hotelRoomImageDAO.countByIdImageId(img.getId());
+                    if (count1 + count2 == 0) {
+                        imageDAO.deleteById(img.getId());
+                    }
                 }
             }
         }
@@ -338,21 +353,24 @@ public class HotelServiceImpl implements HotelService {
         }
         if (hotelDto.getImageUrls() != null && !hotelDto.getImageUrls().isEmpty()) {
             for (String url : hotelDto.getImageUrls()) {
-                boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
-                if (exists)
-                    continue;
-                Image img = new Image();
-                img.setUrl(url);
-                img.setAltText(hotel.getName());
-                img = imageDAO.save(img);
-                HotelImage hi = new HotelImage();
+                Image img = imageDAO.findAll().stream().filter(i -> url.equals(i.getUrl())).findFirst().orElse(null);
+                if (img == null) {
+                    img = new Image();
+                    img.setUrl(url);
+                    img.setAltText(hotel.getName());
+                    img = imageDAO.save(img);
+                }
                 HotelImageId hiId = new HotelImageId();
                 hiId.setHotelId(hotel.getId());
                 hiId.setImageId(img.getId());
-                hi.setId(hiId);
-                hi.setHotel(hotel);
-                hi.setImage(img);
-                hotelImageDAO.save(hi);
+                boolean linkExists = hotelImageDAO.findById(hiId).isPresent();
+                if (!linkExists) {
+                    HotelImage hi = new HotelImage();
+                    hi.setId(hiId);
+                    hi.setHotel(hotel);
+                    hi.setImage(img);
+                    hotelImageDAO.save(hi);
+                }
             }
         }
         if (deleteRoomImageUrlsMap != null && !deleteRoomImageUrlsMap.isEmpty()) {
@@ -375,7 +393,11 @@ public class HotelServiceImpl implements HotelService {
                             for (HotelRoomImage hri : links) {
                                 hotelRoomImageDAO.delete(hri);
                             }
-                            imageDAO.deleteById(img.getId());
+                            long count1 = hotelImageDAO.countByIdImageId(img.getId());
+                            long count2 = hotelRoomImageDAO.countByIdImageId(img.getId());
+                            if (count1 + count2 == 0) {
+                                imageDAO.deleteById(img.getId());
+                            }
                         }
                     }
                 }
@@ -406,6 +428,9 @@ public class HotelServiceImpl implements HotelService {
                 }
                 if (oldRoom.getRoomVariants() != null) {
                     for (HotelRoomVariant variant : oldRoom.getRoomVariants()) {
+                        if (hotelBookingDAO.existsByRoomVariantId(variant.getId())) {
+                            throw new IllegalStateException("Không thể xóa gói phòng/phòng đã có booking!");
+                        }
                         hotelRoomVariantDAO.delete(variant);
                     }
                 }
@@ -474,21 +499,24 @@ public class HotelServiceImpl implements HotelService {
             }
             if (roomDto.getImageUrls() != null && !roomDto.getImageUrls().isEmpty()) {
                 for (String url : roomDto.getImageUrls()) {
-                    boolean exists = imageDAO.findAll().stream().anyMatch(i -> url.equals(i.getUrl()));
-                    if (exists)
-                        continue;
-                    Image img = new Image();
-                    img.setUrl(url);
-                    img.setAltText(room.getRoomType());
-                    img = imageDAO.save(img);
-                    HotelRoomImage hri = new HotelRoomImage();
+                    Image img = imageDAO.findAll().stream().filter(i -> url.equals(i.getUrl())).findFirst().orElse(null);
+                    if (img == null) {
+                        img = new Image();
+                        img.setUrl(url);
+                        img.setAltText(room.getRoomType());
+                        img = imageDAO.save(img);
+                    }
                     HotelRoomImageId hriId = new HotelRoomImageId();
                     hriId.setRoomId(room.getId());
                     hriId.setImageId(img.getId());
-                    hri.setId(hriId);
-                    hri.setRoom(room);
-                    hri.setImage(img);
-                    hotelRoomImageDAO.save(hri);
+                    boolean linkExists = hotelRoomImageDAO.findById(hriId).isPresent();
+                    if (!linkExists) {
+                        HotelRoomImage hri = new HotelRoomImage();
+                        hri.setId(hriId);
+                        hri.setRoom(room);
+                        hri.setImage(img);
+                        hotelRoomImageDAO.save(hri);
+                    }
                 }
             }
             List<HotelRoomVariant> currentVariants = hotelRoomVariantDAO.findByRoomId(room.getId());
@@ -497,6 +525,9 @@ public class HotelServiceImpl implements HotelService {
                 boolean stillExists = newVariants.stream()
                         .anyMatch(v -> v.getId() != null && v.getId().equals(oldVar.getId()));
                 if (!stillExists) {
+                    if (hotelBookingDAO.existsByRoomVariantId(oldVar.getId())) {
+                        throw new IllegalStateException("Không thể xóa gói phòng/phòng đã có booking!");
+                    }
                     hotelRoomVariantDAO.delete(oldVar);
                 }
             }
@@ -518,6 +549,8 @@ public class HotelServiceImpl implements HotelService {
                 variant.setCancellable(variantDto.getCancellable());
                 variant.setPayAtHotel(variantDto.getPayAtHotel());
                 variant.setTaxAndFeeAmount(variantDto.getTaxAndFeeAmount());
+                variant.setDiscountType(variantDto.getDiscountType());
+                variant.setDiscountValue(variantDto.getDiscountValue());
                 hotelRoomVariantDAO.save(variant);
             }
             roomIdx++;
@@ -547,12 +580,19 @@ public class HotelServiceImpl implements HotelService {
                                 e.printStackTrace();
                             }
                             hotelRoomImageDAO.delete(hri);
-                            imageDAO.delete(img);
+                            long count1 = hotelImageDAO.countByIdImageId(img.getId());
+                            long count2 = hotelRoomImageDAO.countByIdImageId(img.getId());
+                            if (count1 + count2 == 0) {
+                                imageDAO.delete(img);
+                            }
                         }
                     }
                 }
                 if (room.getRoomVariants() != null) {
                     for (HotelRoomVariant variant : room.getRoomVariants()) {
+                        if (hotelBookingDAO.existsByRoomVariantId(variant.getId())) {
+                            throw new IllegalStateException("Không thể xóa gói phòng/phòng đã có booking!");
+                        }
                         hotelRoomVariantDAO.delete(variant);
                     }
                 }
@@ -571,7 +611,11 @@ public class HotelServiceImpl implements HotelService {
                         e.printStackTrace();
                     }
                     hotelImageDAO.delete(hi);
-                    imageDAO.delete(img);
+                    long count1 = hotelImageDAO.countByIdImageId(img.getId());
+                    long count2 = hotelRoomImageDAO.countByIdImageId(img.getId());
+                    if (count1 + count2 == 0) {
+                        imageDAO.delete(img);
+                    }
                 }
             }
         }

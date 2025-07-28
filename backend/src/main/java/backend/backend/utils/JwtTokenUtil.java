@@ -56,6 +56,11 @@ public class JwtTokenUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public Integer extractUserId(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("userId", Integer.class);
+    }
+
     /**
      * Trích xuất ngày hết hạn từ JWT token.
      *
@@ -125,6 +130,7 @@ public class JwtTokenUtil {
         claims.put("userId", user.getId());
         claims.put("name", user.getName());
         claims.put("email", user.getEmail());
+        claims.put("isVerified", user.getIsVerified());
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .addClaims(claims)

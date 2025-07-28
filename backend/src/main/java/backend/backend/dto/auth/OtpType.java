@@ -1,6 +1,6 @@
 package backend.backend.dto.auth;
 
 public enum OtpType {
-    REGISTER_ACCOUNT,
-    FORGOT_PASSWORD,
+    VERIFY_ACCOUNT,
+    RESET_PASSWORD,
 }

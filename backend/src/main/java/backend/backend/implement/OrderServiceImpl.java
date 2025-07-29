@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,8 +59,6 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
             order.setVoucher(voucher);
         }
-        
-
         order.setStatus("PAID");
         order.setPayDate(LocalDateTime.now());
         orderDAO.save(order);
@@ -126,11 +125,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
         // 1. Lấy user từ context (chuẩn):
-        // String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        // User user = userDAO.findByUsername(username).orElseThrow(...);
-        // Tạm thời hardcode:
-        User user = userDAO.findById(1)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+         User user = userDAO.findByEmail(username).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
 
         // 2. Lấy slot và flight
         FlightSlot slot = flightSlotDAO.findById(directRequest.getFlightSlotId())
@@ -180,7 +176,8 @@ public class OrderServiceImpl implements OrderService {
         booking.setCustomer(savedCustomer);
         flightBookingDAO.save(booking);
         slot.setStatus("USED");
-        flightSlotDAO.save(slot);
+        FlightSlot fl =  flightSlotDAO.save(slot);
+        logger.info("fl status sau khi save: {}",fl.getStatus());
         return flightBookingDAO.save(booking).getId();
     }
 

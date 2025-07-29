@@ -272,32 +272,12 @@ onUnmounted(() => {
 <template>
   <div class="bg-gray-50 min-h-screen flex items-center justify-center py-12 px-4">
     <div class="max-w-lg w-full bg-white p-8 rounded-2xl shadow-lg">
-
-      <!-- Phần 1: Đơn hàng + Countdown -->
-      <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Thanh toán Đơn hàng #{{ orderDetails?.id }}</h1>
-        <p class="text-gray-500 mt-1">Vui lòng thanh toán trước khi hết thời gian giữ chỗ.</p>
-      </div>
       <div class="p-4 border border-red-200 bg-red-50 rounded-lg text-center mb-6">
         <p v-if="!hasExpired" class="text-sm text-red-700">Thời gian giữ chỗ còn lại:</p>
         <p v-else class="text-sm font-semibold text-red-700">Đã hết thời gian giữ chỗ!</p>
         <p class="text-3xl font-mono font-bold text-red-600 tracking-wider mt-1">
           {{ String(minutes).padStart(2,'0') }}<span class="animate-pulse">:</span>{{ String(seconds).padStart(2,'0') }}
         </p>
-      </div>
-      <div v-if="orderDetails" class="mb-8 border-t pt-6 text-sm space-y-2">
-        <div class="flex justify-between">
-          <span>Tổng tiền:</span>
-          <span class="font-medium text-blue-600">{{ formatPrice(orderDetails.amount) }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span>Trạng thái:</span>
-          <span class="font-medium text-yellow-600 bg-yellow-100 px-2 rounded-full">{{ orderDetails.status }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span>Ngày tạo:</span>
-          <span>{{ new Date(orderDetails.createdAt).toLocaleString("vi-VN") }}</span>
-        </div>
       </div>
 
       <!-- Phần 3: Thanh toán qua chuyển khoản ngân hàng -->

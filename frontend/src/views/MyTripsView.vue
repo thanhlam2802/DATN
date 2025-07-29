@@ -30,6 +30,8 @@ const fetchMyOrders = async () => {
   try {
     // 2. LẤY USERID ĐỘNG TỪ USER ĐÃ ĐĂNG NHẬP
     const userId = user.value.userId;
+    console.log(userId);
+    
     const response = await fetch(
       `http://localhost:8080/api/v1/orders/my-orders?userId=${userId}`,
       {

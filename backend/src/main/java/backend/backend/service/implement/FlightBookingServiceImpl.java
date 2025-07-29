@@ -139,23 +139,23 @@ public class FlightBookingServiceImpl implements FlightBookingService {
             throw e;
         }
     }
-
+    @Transactional
     @Override
-    public PaymentStatusDto cancelFlightBooking(Integer bookingId) {
+    public void cancelFlightBooking(Integer bookingId) {
         String requestId = UUID.randomUUID().toString();
         log.info("CANCEL_BOOKING_REQUEST   - RequestId: {}, bookingId: {}", requestId, bookingId);
         try {
             FlightBooking booking = flightBookingDAO.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt vé máy bay với ID: " + bookingId));
-
-            PaymentStatusDto status = new PaymentStatusDto();
-            status.setBookingId(booking.getId());
-            status.setStatus("CANCELLED");
-            status.setMessage("Đã hủy vé thành công");
-            log.info("CANCEL_BOOKING_SUCCESS   - RequestId: {}, bookingId: {}, status: {}", requestId, bookingId, status.getStatus());
-            return status;
+            Customer customer = booking.getCustomer();
+            FlightSlot flightSlot = booking.getFlightSlot();
+            flightBookingDAO.delete(booking);
+            customerDAO.delete(customer);
+            flightSlot.setStatus("AVAILABLE");
+            flightSlotDAO.save(flightSlot);
+            log.info("CANCEL_BOOKING_SUCCESS" );
         } catch (Exception e) {
-            log.error("CANCEL_BOOKING_FAILED    - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
+            log.error("CANCEL_BOOKING_FAILED    error: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -176,13 +176,14 @@ public class FlightBookingServiceImpl implements FlightBookingService {
     public FlightBooking createFlightBooking(Integer orderId,AddItemRequestDto genericRequest) {
         Customer customer = customerDAO.findById(genericRequest.getCustomerId()).orElse(null);
         FlightSlot flightSlot = flightSlotDAO.findById(genericRequest.getFlightSlotId()).orElse(null);
+        flightSlot.setStatus("used");
         FlightBooking booking = new FlightBooking();
         booking.setCustomer(customer);
         booking.setFlightSlot(flightSlot);
         booking.setTotalPrice(flightSlot.getPrice());
         booking.setOrder(orderDAO.findById(orderId).orElse(null));
         booking.setBookingDate(LocalDateTime.now());
-
+        flightSlotDAO.save(flightSlot);
         return flightBookingDAO.save(booking);
     }
 

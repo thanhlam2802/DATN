@@ -91,21 +91,21 @@ public class FlightBookingController {
         }
     }
 
-    @PostMapping("/bookings/flights/{bookingId}/cancel")
-    public ResponseEntity<PaymentStatusDto> cancelFlightBooking(@PathVariable Integer bookingId) {
+    @GetMapping("/bookings/flights/{bookingId}/cancel")
+    public void cancelFlightBooking(@PathVariable Integer bookingId) {
         String requestId = UUID.randomUUID().toString();
         log.info("CANCEL_BOOKING_REQUEST - RequestId: {}, BookingId: {}", requestId, bookingId);
         try {
-            PaymentStatusDto status = flightBookingService.cancelFlightBooking(bookingId);
-            log.info("CANCEL_BOOKING_SUCCESS - RequestId: {}, BookingId: {}, Status: {}",
-                    requestId, bookingId, status.getStatus());
-            return ResponseEntity.ok(status);
+            flightBookingService.cancelFlightBooking(bookingId);
+            log.info("CANCEL_BOOKING_SUCCESS - RequestId: {}, BookingId: {}",
+                    requestId, bookingId);
         } catch (Exception e) {
             log.error("CANCEL_BOOKING_FAILED - RequestId: {}, BookingId: {}, Error: {}",
                     requestId, bookingId, e.getMessage(), e);
             throw e;
         }
     }
+
 
     // API tổng hợp: Lấy thông tin giữ chỗ chuyến bay (reservation summary) theo orderId
     @GetMapping("/bookings/flights/reservation-summary/{bookingId}")

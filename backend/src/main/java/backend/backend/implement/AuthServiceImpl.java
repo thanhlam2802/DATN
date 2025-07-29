@@ -163,6 +163,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public JwtResultDto updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
         String email = SecurityUtil.getCurrentUserEmail();
         User user = getUserByEmail(email);
@@ -179,6 +180,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public JwtResultDto resetPassword(ResetPasswordRequestDto resetPasswordRequestDto) {
         Integer userId = jwtTokenUtil.extractUserId(resetPasswordRequestDto.getResetToken());
 
@@ -201,6 +203,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void resetPasswordVerifyLink(ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto) {
         Integer userId = jwtTokenUtil.extractUserId(resetPasswordVerifyLinkDto.getResetToken());
         otpTransactionService.verifyAcquiredOtp(userId, OtpType.RESET_PASSWORD, resetPasswordVerifyLinkDto.getOtpCode());
@@ -227,6 +230,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public JwtResultDto verifyAccount(VerifyAccountRequestDto verifyAccountRequestDto) {
         User user = getUserByEmail(verifyAccountRequestDto.getEmail());
         otpTransactionService.verifyOtp(user.getId(), OtpType.VERIFY_ACCOUNT, verifyAccountRequestDto.getCode());
@@ -271,6 +275,33 @@ public class AuthServiceImpl implements AuthService {
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
         jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));
+        return jwtResultDto;
+    }
+
+    @Override
+    @Transactional
+    public JwtResultDto loginOAuth2(OAuth2LoginRequestDto requestDto) {
+        Optional<User> user = userRepository.findByEmail(requestDto.getEmail());
+        if (user.isPresent()) {
+            if (!user.get().getAuthProvider().equals(requestDto.getAuthProvider())) {
+                throw new BadRequestException("User already existed", ErrorCode.AUTH_001);
+            }
+            JwtResultDto jwtResultDto = new JwtResultDto();
+            jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user.get()));
+            jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user.get()));
+            return jwtResultDto;
+        }
+        User newUser = new User();
+        newUser.setEmail(requestDto.getEmail());
+        newUser.setName(requestDto.getName());
+        newUser.setIsVerified(false);
+        newUser.setPasswordHash("no-password");
+        newUser.setAuthProvider(requestDto.getAuthProvider());
+        userRepository.save(newUser);
+        JwtResultDto jwtResultDto = new JwtResultDto();
+        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
+        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(newUser));
+        verifyAccountResend(newUser.getEmail());
         return jwtResultDto;
     }
 

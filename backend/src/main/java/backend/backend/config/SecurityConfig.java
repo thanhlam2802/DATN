@@ -1,5 +1,8 @@
 package backend.backend.config;
 
+import backend.backend.config.filters.OAuth2LoginSuccessHandler;
+import backend.backend.service.OAuth2UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 import backend.backend.config.filters.JwtAuthenticationFilter;
@@ -18,13 +21,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableMethodSecurity
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    private final OAuth2UserService oAuth2UserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -32,12 +33,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()
                 )
+                .oauth2Login(oauth2Login -> oauth2Login
+                        .userInfoEndpoint((userInfo) -> {
+                            userInfo.userService(oAuth2UserService);
+                        })
+                        .successHandler(oAuth2LoginSuccessHandler)
+                        .failureUrl("/error")
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-    @Bean
-    public ModelMapper modelMapper() {
-        return new ModelMapper();
-    }
+
 }

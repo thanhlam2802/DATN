@@ -12,13 +12,18 @@ const apiClient = axios.create({
 });
 
 export const AccountApi = {
-    getProfile: async (request) => {
-        return apiClient.get("/v1/account/profile", {
-            headers: {
-                Authorization: getBearerToken()
+    getProfile: async () => {
+        try {
+            const res = await apiClient.get("/v1/account/profile", {
+                headers: {
+                    Authorization: getBearerToken()
+                }
+            })
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response.data.errorCode
             }
-        }).then(res => {
-            return res.data
-        })
+        }
     },
 }

@@ -28,4 +28,6 @@ public interface AuthService {
     void verifyAccountResend(String email);
 
     JwtResultDto refreshToken(RefreshTokenRequestDto refreshTokenRequestDto);
+
+    JwtResultDto loginOAuth2(OAuth2LoginRequestDto requestDto);
 }

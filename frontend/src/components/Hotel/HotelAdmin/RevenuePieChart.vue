@@ -1,13 +1,10 @@
 <template>
   <div class="bg-white rounded-lg shadow-sm p-3">
-    <div class="font-medium text-sm mb-2 text-gray-700">Doanh thu theo khách sạn</div>
     <div :style="{ height: height + 'px', overflow: 'hidden' }">
       <canvas
-        v-if="dataKey"
         ref="canvas"
         :height="height"
         style="width: 100%"
-        :key="dataKey"
       />
     </div>
   </div>
@@ -24,7 +21,6 @@ const props = defineProps({
   }
 });
 const canvas = ref(null);
-const dataKey = computed(() => JSON.stringify(props.data));
 
 const COLORS = [
   '#FFB300', '#42A5F5', '#66BB6A', '#AB47BC', '#FFA726', '#26C6DA', '#EC407A', '#7E57C2', '#FF7043', '#8D6E63', '#789262', '#D4E157', '#FF8A65', '#BA68C8', '#4DD0E1', '#9575CD', '#AED581', '#FFD54F', '#90A4AE', '#F06292'
@@ -44,15 +40,10 @@ async function renderChart() {
   if (!canvas.value) return;
   
   if (chartInstance) {
-    try {
-      chartInstance.destroy();
-      chartInstance = null;
-    } catch (error) {
-      console.log('Error destroying chart:', error);
-    }
+    chartInstance.destroy();
+    chartInstance = null;
   }
-  
-  canvas.value.height = props.height;
+
   const Chart = (await import("chart.js/auto")).default;
   
   let ChartDataLabels = null;
@@ -114,6 +105,10 @@ async function renderChart() {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1000,
+      easing: 'easeInOutQuart'
+    },
     plugins: {
       legend: { 
         display: true, 

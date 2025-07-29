@@ -186,6 +186,18 @@ public class FlightBookingServiceImpl implements FlightBookingService {
         return flightBookingDAO.save(booking);
     }
 
+    @Override
+    public void cancelBooking(Integer bookingId) {
+        log.info("bookingid: 22572 {}", bookingId);
+        FlightBooking fb =  flightBookingDAO.findById(bookingId).orElse(null);
+        log.info("info: {}", fb.getTotalPrice());
+        FlightSlot flightSlot = flightSlotDAO.findById(fb.getFlightSlot().getId()).orElse(null);
+        log.info("flight slot : {}", flightSlot.getCarryOnLuggage());
+        flightSlot.setStatus("AVAILABLE");
+        FlightSlot bg = flightSlotDAO.save(flightSlot);
+        log.info("flight slot sau update: {}", bg.getStatus());
+    }
+
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking booking, Flight flight) {
         log.debug("MAPPING_BOOKING_TO_DTO    - bookingId: {}, flightId: {}", booking.getId(), flight.getId());
         FlightBookingDetailDto dto = new FlightBookingDetailDto();

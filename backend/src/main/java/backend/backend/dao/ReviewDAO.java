@@ -30,6 +30,11 @@ public interface ReviewDAO extends JpaRepository<Review, Integer> {
 
     List<Review> findByEntityTypeAndEntityId(String entityType, Integer entityId);
 
+    List<Review> findByEntityType(String entityType);
+    
+    @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE r.entityType = :entityType")
+    List<Review> findByEntityTypeWithUser(@Param("entityType") String entityType);
+
     List<Review> findByUserId(Integer userId);
 
     @Query("SELECT COUNT(r.id) FROM Review r WHERE r.entityType = 'Hotel'")

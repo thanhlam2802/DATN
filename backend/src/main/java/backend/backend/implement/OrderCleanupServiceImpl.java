@@ -1,6 +1,12 @@
 package backend.backend.implement;
 
+import backend.backend.dao.FlightBookingDAO;
 import backend.backend.dao.OrderDAO;
+
+import backend.backend.entity.FlightBooking;
+import backend.backend.entity.Order;
+import backend.backend.service.FlightBookingService;
+
 import backend.backend.dao.BookingTourDAO;
 import backend.backend.dao.DepartureDAO;
 import backend.backend.dao.HotelBookingDAO;
@@ -11,6 +17,7 @@ import backend.backend.entity.Departure;
 import backend.backend.entity.HotelBooking;
 import backend.backend.entity.HotelRoomVariant;
 import backend.backend.entity.HotelRoom;
+
 import backend.backend.service.OrderCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,6 +33,11 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
     @Autowired
     private OrderDAO orderDAO;
     @Autowired
+
+    private FlightBookingDAO flightBookingDAO;
+    @Autowired
+    private FlightBookingService flightBookingService;
+
     private HotelBookingDAO hotelBookingDAO;
     @Autowired
     private HotelRoomDAO hotelRoomDAO;
@@ -44,6 +56,14 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
         
         if (!expiredOrders.isEmpty()) {
             for (Order order : expiredOrders) {
+
+                List<FlightBooking> flightBooking = flightBookingDAO.findByOrderId(order.getId());
+                for (FlightBooking flightBooking1 : flightBooking) {
+
+                    flightBookingService.cancelBooking(flightBooking1.getId());
+                }
+            
+
                 System.out.println("Expired order: " + order.getId());
                 List<HotelBooking> hotelBookings = hotelBookingDAO.findByOrderId(order.getId());
                 for (HotelBooking booking : hotelBookings) {
@@ -73,6 +93,7 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
                             System.out.println("  Order " + order.getId() + " restored " + totalPeopleToRestore + " seat(s) for departureId=" + departure.getId());
                         }
                     }
+
                 }
                 order.setStatus("CANCELLED");
             }
@@ -81,3 +102,4 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
         }
     }
 }
+    

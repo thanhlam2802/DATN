@@ -1,11 +1,7 @@
 <template>
   <div class="bg-white rounded-lg shadow-sm p-3">
     <div :style="{ height: height + 'px', overflow: 'hidden' }">
-      <canvas
-        ref="canvas"
-        :height="height"
-        style="width: 100%"
-      />
+      <canvas ref="canvas" :height="height" style="width: 100%" />
     </div>
   </div>
 </template>
@@ -31,7 +27,7 @@ onMounted(() => {
 });
 
 watch(() => props.data, (newData) => {
-  console.log('RevenueChart data changed, re-rendering chart');
+  console.log('TopRoomsChart data changed, re-rendering chart');
   console.log('New data:', newData);
   renderChart();
 }, { deep: true });
@@ -39,9 +35,13 @@ watch(() => props.data, (newData) => {
 async function renderChart() {
   if (!canvas.value) return;
 
-  console.log('RevenueChart renderChart - data:', props.data);
-  console.log('RevenueChart renderChart - labels:', props.data?.labels);
-  console.log('RevenueChart renderChart - datasets:', props.data?.datasets);
+  console.log('TopRoomsChart renderChart - data:', props.data);
+  console.log('TopRoomsChart renderChart - labels:', props.data?.labels);
+  console.log('TopRoomsChart renderChart - data:', props.data?.data);
+  console.log('TopRoomsChart renderChart - hotels:', props.data?.hotels);
+  console.log('TopRoomsChart renderChart - data length:', props.data?.data?.length);
+  console.log('TopRoomsChart renderChart - labels length:', props.data?.labels?.length);
+  console.log('TopRoomsChart renderChart - hotels length:', props.data?.hotels?.length);
 
   if (chartInstance) {
     chartInstance.destroy();
@@ -52,57 +52,57 @@ async function renderChart() {
 
   let chartData;
 
-  if (props.data && props.data.datasets && Array.isArray(props.data.datasets) && props.data.datasets.length > 0) {
-    console.log('Using datasets format');
-    const datasets = (props.data.datasets || []).map((ds, idx) => ({
-      ...ds,
-      backgroundColor: COLORS[idx % COLORS.length],
-      borderColor: COLORS[idx % COLORS.length],
-      borderWidth: 1,
-      barPercentage: 0.3,
-      categoryPercentage: 0.8,
-    }));
+  if (props.data && props.data.data && Array.isArray(props.data.data) && props.data.data.length > 0) {
+    console.log('Using top rooms data format');
+
+    const hotels = props.data.hotels || [];
+    const labels = props.data.labels || [];
+    const data = props.data.data || [];
+
+    const hotelDatasets = {};
+
+    for (let i = 0; i < labels.length; i++) {
+      const hotelName = hotels[i] || 'Unknown Hotel';
+      if (!hotelDatasets[hotelName]) {
+        hotelDatasets[hotelName] = {
+          label: hotelName,
+          data: new Array(labels.length).fill(0),
+          backgroundColor: COLORS[Object.keys(hotelDatasets).length % COLORS.length],
+          borderColor: COLORS[Object.keys(hotelDatasets).length % COLORS.length],
+          borderWidth: 1,
+        };
+      }
+      hotelDatasets[hotelName].data[i] = data[i];
+    }
+
     chartData = {
-      labels: props.data.labels || [],
-      datasets,
-    };
-  } else if (props.data && props.data.data && Array.isArray(props.data.data) && props.data.data.length > 0) {
-    console.log('Using simple data format');
-    chartData = {
-      labels: props.data.labels || [],
-      datasets: [{
-        label: 'Doanh thu',
-        data: props.data.data || [],
-        backgroundColor: COLORS[0],
-        borderColor: COLORS[0],
-        borderWidth: 1,
-        barPercentage: 0.3,
-        categoryPercentage: 0.8,
-      }]
+      labels: labels,
+      datasets: Object.values(hotelDatasets),
     };
   } else {
     console.log('No valid data, using fallback');
     chartData = {
       labels: ['Không có dữ liệu'],
       datasets: [{
-        label: 'Doanh thu',
+        label: 'Số đặt phòng',
         data: [0],
         backgroundColor: COLORS[0],
         borderColor: COLORS[0],
         borderWidth: 1,
-        barPercentage: 0.3,
-        categoryPercentage: 0.8,
       }]
     };
   }
 
   console.log('Final chartData:', chartData);
+  console.log('Datasets:', chartData.datasets);
+  console.log('First dataset data:', chartData.datasets[0]?.data);
 
   try {
     chartInstance = new Chart(canvas.value, {
       type: "bar",
       data: chartData,
       options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
         animation: {
@@ -110,8 +110,8 @@ async function renderChart() {
           easing: 'easeInOutQuart'
         },
         plugins: {
-          legend: { 
-            display: true, 
+          legend: {
+            display: true,
             position: 'bottom',
             labels: {
               usePointStyle: true,
@@ -129,22 +129,30 @@ async function renderChart() {
               size: 10
             },
             callbacks: {
-              title: function(context) {
-                return context[0].dataset.label || 'Khách sạn';
+              title: function (context) {
+                return context.label || 'Tên phòng';
               },
-              label: function(context) {
-                let v = context.parsed.y;
-                return v.toLocaleString('vi-VN') + ' VND';
+              label: function (context) {
+                console.log('Tooltip context:', context);
+                console.log('Context.parsed:', context?.parsed);
+
+                if (!context || context.parsed === undefined) {
+                  return 'Không có dữ liệu';
+                }
+
+                const bookingCount = context.parsed.x;
+                console.log('Booking count:', bookingCount);
+                return `${bookingCount} đặt phòng`;
               }
             }
           }
         },
         scales: {
           x: {
-            stacked: false,
-            title: { 
-              display: true, 
-              text: props.data?.datasets ? 'Ngày' : 'Khách sạn',
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Số đặt phòng',
               font: {
                 size: 10
               }
@@ -166,10 +174,9 @@ async function renderChart() {
             }
           },
           y: {
-            beginAtZero: true,
-            title: { 
-              display: true, 
-              text: 'Doanh thu (VNĐ)',
+            title: {
+              display: true,
+              text: 'Tên phòng',
               font: {
                 size: 10
               }
@@ -177,9 +184,6 @@ async function renderChart() {
             ticks: {
               font: {
                 size: 9
-              },
-              callback: function(value) {
-                return value >= 1e9 ? (value/1e9)+ ' tỷ' : value >= 1e6 ? (value/1e6) + ' triệu' : value;
               }
             },
             grid: {
@@ -196,9 +200,9 @@ async function renderChart() {
         },
       },
     });
-    console.log('Bar chart created successfully');
+    console.log('Horizontal bar chart created successfully');
   } catch (error) {
-    console.error('Error creating bar chart:', error);
+    console.error('Error creating horizontal bar chart:', error);
   }
 }
 </script>

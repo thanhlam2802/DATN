@@ -110,9 +110,11 @@
                 </button>
                 <button
                   @click="deleteFlight(flight)"
-                  class="text-red-600 hover:text-red-900"
+                  :disabled="loadingDelete[flight.id]"
+                  class="text-red-600 hover:text-red-900 flex items-center"
                 >
-                  <i class="fas fa-trash"></i>
+                  <i v-if="!loadingDelete[flight.id]" class="fas fa-trash"></i>
+                  <span v-else class="fa fa-spinner fa-spin"></span>
                 </button>
               </div>
             </td>
@@ -149,7 +151,7 @@
 
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
-import { getAdminFlights } from '@/api/flightApi'
+import { getAdminFlights, deleteAdminFlight } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import { useRouter } from 'vue-router'
 
@@ -163,6 +165,7 @@ const pageSize = 10
 const flights = ref([])
 const loading = ref(false)
 const error = ref('')
+const loadingDelete = ref({})
 
 onMounted(async () => {
   loading.value = true
@@ -247,9 +250,18 @@ function editFlight(flight) {
   console.log('Edit flight:', flight)
 }
 
-function deleteFlight(flight) {
-  // Implement delete functionality
-  console.log('Delete flight:', flight)
+async function deleteFlight(flight) {
+  if (!confirm('Bạn có chắc chắn muốn xóa chuyến bay này?')) return;
+  loadingDelete.value[flight.id] = true;
+  try {
+    await deleteAdminFlight(flight.id);
+    flights.value = flights.value.filter(f => f.id !== flight.id);
+    window.$toast('Xóa chuyến bay thành công!', 'success');
+  } catch (e) {
+    window.$toast('Xóa chuyến bay thất bại!', 'error');
+  } finally {
+    loadingDelete.value[flight.id] = false;
+  }
 }
 
 const router = useRouter()

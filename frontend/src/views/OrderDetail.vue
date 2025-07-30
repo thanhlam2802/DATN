@@ -656,19 +656,29 @@ const closeEditHotelModal = () => {
 
 const updateHotelBookingData = async () => {
   if (!editingHotel.value) return;
+  if (!editHotelForm.value.rooms || editHotelForm.value.rooms === '' || editHotelForm.value.rooms === null || editHotelForm.value.rooms === undefined) {
+    window.$toast && window.$toast("Vui lòng nhập số phòng!", "error");
+    return;
+  }
+  const rooms = parseInt(editHotelForm.value.rooms);
+  
+  if (isNaN(rooms) || rooms < 1) {
+    window.$toast && window.$toast("Số phòng phải là số và ít nhất là 1!", "error");
+    return;
+  }
   
   if (editHotelForm.value.numAdults < 1) {
     window.$toast && window.$toast("Số người lớn phải ít nhất là 1!", "error");
     return;
   }
   
-  if (editHotelForm.value.numAdults + editHotelForm.value.numChildren > 4 * editHotelForm.value.rooms) {
-    window.$toast && window.$toast("Tổng số người không được vượt quá 4 người/phòng!", "error");
+  if (rooms > editHotelForm.value.numAdults) {
+    window.$toast && window.$toast("Số phòng không thể nhiều hơn số người lớn!", "error");
     return;
   }
   
-  if (editHotelForm.value.rooms < 1) {
-    window.$toast && window.$toast("Số phòng phải ít nhất là 1!", "error");
+  if (editHotelForm.value.numAdults + editHotelForm.value.numChildren > 4 * rooms) {
+    window.$toast && window.$toast("Tổng số người không được vượt quá 4 người/phòng!", "error");
     return;
   }
   
@@ -678,7 +688,7 @@ const updateHotelBookingData = async () => {
       bookingId: editingHotel.value.id,
       numAdults: editHotelForm.value.numAdults,
       numChildren: editHotelForm.value.numChildren,
-      rooms: editHotelForm.value.rooms,
+      rooms: rooms,
       totalPrice: editHotelForm.value.totalPrice
     });
     
@@ -700,9 +710,34 @@ const updateHotelBookingData = async () => {
 const recalculateHotelTotalPrice = () => {
   if (!editingHotel.value) return;
   
-  const originalPricePerRoom = editingHotel.value.totalPrice / (editingHotel.value.rooms || editingHotel.value.numberOfRooms || 1);
+  if (editHotelForm.value.rooms && !isNaN(parseInt(editHotelForm.value.rooms))) {
+    const rooms = parseInt(editHotelForm.value.rooms);
+    const originalPricePerRoom = editingHotel.value.totalPrice / (editingHotel.value.rooms || editingHotel.value.numberOfRooms || 1);
+    editHotelForm.value.totalPrice = originalPricePerRoom * rooms;
+  } else {
+    editHotelForm.value.totalPrice = 0;
+  }
+};
+
+const adjustRoomsBasedOnAdults = () => {
+  if (editHotelForm.value.rooms && editHotelForm.value.numAdults < editHotelForm.value.rooms) {
+    editHotelForm.value.rooms = editHotelForm.value.numAdults;
+    recalculateHotelTotalPrice();
+  }
+};
+
+const validateAndRecalculateRooms = () => {
+  if (editHotelForm.value.rooms !== null && editHotelForm.value.rooms !== undefined && editHotelForm.value.rooms !== '') {
+    if (editHotelForm.value.rooms > editHotelForm.value.numAdults) {
+      editHotelForm.value.rooms = editHotelForm.value.numAdults;
+    }
+    
+    if (editHotelForm.value.rooms < 1) {
+      editHotelForm.value.rooms = 1;
+    }
+  }
   
-  editHotelForm.value.totalPrice = originalPricePerRoom * editHotelForm.value.rooms;
+  recalculateHotelTotalPrice();
 };
 
 // --- Hotel Image Slider Functions ---
@@ -993,97 +1028,9 @@ function prevHotelImage(hotel) {
                           class="bg-white/80 hover:bg-indigo-100 rounded-full p-1 shadow border border-indigo-200">
                           <i class="fa-solid fa-chevron-right text-indigo-600"></i>
                         </button>
-                          </div>
-
-    <div v-if="showEditHotelModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold">Sửa thông tin booking khách sạn</h3>
-          <button @click="closeEditHotelModal" class="text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div v-if="editingHotel" class="mb-4 p-3 bg-gray-50 rounded-md">
-          <p class="text-sm text-gray-600">
-            <strong>Khách sạn:</strong> {{ editingHotel.hotelName }}
-          </p>
-          <p class="text-sm text-gray-600">
-            <strong>Loại phòng:</strong> {{ editingHotel.roomType }} - {{ editingHotel.variantName }}
-          </p>
-          <p class="text-sm text-gray-600">
-            <strong>Ngày nhận/trả:</strong> {{ formatDate(editingHotel.checkInDate) }} - {{ formatDate(editingHotel.checkOutDate) }}
-          </p>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Số người lớn</label>
-            <input
-              v-model.number="editHotelForm.numAdults"
-              type="number"
-              min="1"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Số trẻ em</label>
-            <input
-              v-model.number="editHotelForm.numChildren"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Số phòng</label>
-            <input
-              v-model.number="editHotelForm.rooms"
-              @input="recalculateHotelTotalPrice"
-              type="number"
-              min="1"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tổng tiền (VND)</label>
-            <input
-              v-model.number="editHotelForm.totalPrice"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p class="text-sm text-gray-500 mt-1">
-              {{ formatPrice(editHotelForm.totalPrice) }}
-            </p>
-          </div>
-        </div>
-
-        <div class="flex justify-end space-x-3 mt-6">
-          <button
-            @click="closeEditHotelModal"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Hủy
-          </button>
-          <button
-            @click="updateHotelBookingData"
-            :disabled="isUpdatingHotel"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            <span v-if="isUpdatingHotel">
-              <i class="fas fa-spinner fa-spin mr-2"></i>Đang cập nhật...
-            </span>
-            <span v-else>Cập nhật</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
+                      </div>
+                    </div>
+                  </template>
                 </div>
                 <div class="flex justify-between items-start">
                   <div class="flex-1 flex flex-col justify-between">
@@ -1374,6 +1321,116 @@ function prevHotelImage(hotel) {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showEditHotelModal" class="fixed inset-0 z-[9999] flex items-center justify-center" style="background-color: rgba(0, 0, 0, 0.6);" @click="closeEditHotelModal">
+      <div class="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 mt-20" @click.stop>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Sửa thông tin booking khách sạn</h3>
+          <button @click="closeEditHotelModal" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div v-if="editingHotel" class="mb-4 p-3 bg-gray-50 rounded-md">
+          <p class="text-sm text-gray-600">
+            <strong>Khách sạn:</strong> {{ editingHotel.hotelName }}
+          </p>
+          <p class="text-sm text-gray-600">
+            <strong>Loại phòng:</strong> {{ editingHotel.roomType }} - {{ editingHotel.variantName }}
+          </p>
+          <p class="text-sm text-gray-600">
+            <strong>Ngày nhận/trả:</strong> {{ formatDate(editingHotel.checkInDate) }} - {{ formatDate(editingHotel.checkOutDate) }}
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <i class="fas fa-user text-blue-500"></i>
+              Số người lớn
+            </label>
+            <input
+              v-model.number="editHotelForm.numAdults"
+              @input="adjustRoomsBasedOnAdults"
+              type="number"
+              min="1"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Nhập số người lớn"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <i class="fas fa-child text-blue-500"></i>
+              Số trẻ em
+            </label>
+            <input
+              v-model.number="editHotelForm.numChildren"
+              type="number"
+              min="0"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Nhập số trẻ em"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <i class="fas fa-bed text-blue-500"></i>
+              Số phòng
+            </label>
+            <input
+              v-model.number="editHotelForm.rooms"
+              @input="validateAndRecalculateRooms"
+              type="number"
+              :min="1"
+              :max="editHotelForm.numAdults"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Nhập số phòng"
+            />
+            <p v-if="editHotelForm.rooms > editHotelForm.numAdults" class="text-sm text-red-500 flex items-center gap-1">
+              <i class="fas fa-exclamation-triangle"></i>
+              Số phòng không thể nhiều hơn số người lớn!
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <i class="fas fa-coins text-blue-500"></i>
+              Tổng tiền
+            </label>
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-lg font-bold text-blue-700">
+                  {{ formatPrice(editHotelForm.totalPrice) }}
+                </span>
+              </div>
+              <p class="text-xs text-blue-600 mt-1">
+                Tự động tính dựa trên số phòng
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-3 mt-6">
+          <button
+            @click="closeEditHotelModal"
+            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Hủy
+          </button>
+          <button
+            @click="updateHotelBookingData"
+            :disabled="isUpdatingHotel"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            <span v-if="isUpdatingHotel">
+              <i class="fas fa-spinner fa-spin mr-2"></i>Đang cập nhật...
+            </span>
+            <span v-else>Cập nhật</span>
+          </button>
         </div>
       </div>
     </div>

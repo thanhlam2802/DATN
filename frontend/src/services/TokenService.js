@@ -19,5 +19,6 @@ export const clearToken = () => {
 
 export const getBearerToken = () => {
     const token = "Bearer " + getAccessToken();
-    console.log("Bearer token", token)
+    console.log("Bearer token", token);
+    return token;
 }

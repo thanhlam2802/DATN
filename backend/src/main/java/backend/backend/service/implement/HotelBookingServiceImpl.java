@@ -18,6 +18,7 @@ import backend.backend.entity.User;
 import backend.backend.service.HotelBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,9 +26,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class HotelBookingServiceImpl implements HotelBookingService {
@@ -43,10 +46,14 @@ public class HotelBookingServiceImpl implements HotelBookingService {
     private UserDAO userDAO;
     @Autowired
     private HotelRoomDAO hotelRoomDAO;
+    
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     private static final Logger log = LoggerFactory.getLogger(HotelBookingServiceImpl.class);
 
     @Override
+    @Transactional
     public OrderDto bookHotel(HotelBookingRequestDto dto, Authentication authentication) {
         log.info("[BOOK_HOTEL] Nhận booking DTO: {}", dto);
         try {
@@ -124,6 +131,21 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             hotelRoomDAO.save(variant.getRoom());
             log.info("[BOOK_HOTEL] Đã trừ {} phòng, còn lại {} cho roomId={}", roomsBooked, variant.getRoom().getRoomQuantity(), variant.getRoom().getId());
 
+            try {
+                Integer hotelId = variant.getRoom().getHotel().getId();
+                Map<String, Object> roomUpdate = Map.of(
+                    "hotelId", hotelId,
+                    "roomId", variant.getRoom().getId(),
+                    "previousQuantity", currentQty,
+                    "newQuantity", variant.getRoom().getRoomQuantity(),
+                    "action", "ROOM_BOOKED"
+                );
+                messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
+                log.info("[BOOK_HOTEL] Đã gửi WebSocket notification cho hotelId={}, roomId={}", hotelId, variant.getRoom().getId());
+            } catch (Exception e) {
+                log.warn("[BOOK_HOTEL] Không thể gửi WebSocket notification: {}", e.getMessage());
+            }
+
             OrderDto orderDto = new OrderDto();
             orderDto.setId(order.getId());
             orderDto.setAmount(order.getAmount());
@@ -138,6 +160,7 @@ public class HotelBookingServiceImpl implements HotelBookingService {
     }
 
     @Override
+    @Transactional
     public OrderDto updateHotelBooking(UpdateHotelBookingRequestDto dto, Authentication authentication) {
         log.info("[UPDATE_HOTEL_BOOKING] Nhận update DTO: {}", dto);
         try {
@@ -209,6 +232,21 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             orderDAO.save(orderWithUser);
 
             log.info("[UPDATE_HOTEL_BOOKING] Đã cập nhật booking với id: {}", booking.getId());
+
+            try {
+                Integer hotelId = hotelRoom.getHotel().getId();
+                Map<String, Object> roomUpdate = Map.of(
+                    "hotelId", hotelId,
+                    "roomId", hotelRoom.getId(),
+                    "previousQuantity", hotelRoom.getRoomQuantity() + (roomDifference > 0 ? roomDifference : -roomDifference),
+                    "newQuantity", hotelRoom.getRoomQuantity(),
+                    "action", roomDifference > 0 ? "ROOM_BOOKED" : "ROOM_RESTORED"
+                );
+                messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
+                log.info("[UPDATE_HOTEL_BOOKING] Đã gửi WebSocket notification cho hotelId={}, roomId={}", hotelId, hotelRoom.getId());
+            } catch (Exception e) {
+                log.warn("[UPDATE_HOTEL_BOOKING] Không thể gửi WebSocket notification: {}", e.getMessage());
+            }
 
             OrderDto orderDto = new OrderDto();
             orderDto.setId(orderWithUser.getId());

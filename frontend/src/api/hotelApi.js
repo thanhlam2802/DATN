@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "@/services/TokenService.js";
+import { getBearerToken } from "@/services/TokenService.js";
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/hotels`;
 const API_ADMIN_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/admin/hotels`;
@@ -29,20 +29,17 @@ export const deleteHotel = (id) => {
 };
 
 export const createHotelReview = (hotelId, data) => {
-    const token = getAccessToken();
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = { Authorization: getBearerToken() };
     return axios.post(`${API_BASE_URL}/${hotelId}/reviews`, data, { headers });
 };
 
 export const bookHotel = (data) => {
-    const token = getAccessToken();
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = { Authorization: getBearerToken() };
     return axios.post(`${API_BASE_URL}/book`, data, { headers });
 };
 
 export const updateHotelBooking = (data) => {
-    const token = getAccessToken();
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = { Authorization: getBearerToken() };
     return axios.put(`${API_BASE_URL}/bookings/update`, data, { headers });
 };
 

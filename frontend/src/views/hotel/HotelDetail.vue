@@ -365,11 +365,15 @@
                 <td class="text-center align-middle py-4 px-4">
                   <div class="relative inline-block">
                     <template v-if="showVariantDiscount(variant)">
-                      <span class="text-gray-400 font-semibold text-xs line-through block">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
-                      <span class="text-orange-500 font-bold text-lg block peer">{{ formatPrice(getDiscountedPrice(variant)) }}</span>
+                      <span class="text-gray-400 font-semibold text-xs line-through block">{{
+                        formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) :
+                          variant.price) }}</span>
+                      <span class="text-orange-500 font-bold text-lg block peer">{{
+                        formatPrice(getDiscountedPrice(variant)) }}</span>
                     </template>
                     <template v-else>
-                      <span class="text-orange-500 font-bold text-lg block peer">{{ formatPrice(priceDisplayMode === 'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
+                      <span class="text-orange-500 font-bold text-lg block peer">{{ formatPrice(priceDisplayMode ===
+                        'totalPrice' ? (variant.totalPrice ?? variant.price) : variant.price) }}</span>
                     </template>
                     <p class="text-xs text-gray-400 font-normal mt-1">
                       {{ priceDisplayMode === 'totalPrice' ? 'Đã bao gồm thuế và phí' : 'Chưa bao gồm thuế và phí' }}
@@ -380,10 +384,12 @@
                         <span class="font-medium text-gray-300">Giá phòng:</span>
                         <span class="text-right font-semibold">{{ formatPrice(getDiscountedBasePrice(variant)) }}</span>
                         <span class="font-medium text-gray-300">Thuế và phí:</span>
-                        <span class="text-right font-semibold">{{ formatPrice(getDiscountedTaxesAndFees(variant)) }}</span>
+                        <span class="text-right font-semibold">{{ formatPrice(getDiscountedTaxesAndFees(variant))
+                        }}</span>
                         <div class="col-span-2 border-t border-gray-600 my-1"></div>
                         <span class="font-bold text-gray-100">Tổng cộng:</span>
-                        <span class="text-right font-bold text-gray-100">{{ formatPrice(getDiscountedTotalPrice(variant)) }}</span>
+                        <span class="text-right font-bold text-gray-100">{{
+                          formatPrice(getDiscountedTotalPrice(variant)) }}</span>
                       </div>
                       <div
                         class="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800">
@@ -397,9 +403,11 @@
                     @click="goToBooking(room, variant)">
                     Chọn
                   </button>
-                  <div v-if="room.roomQuantity !== undefined && room.roomQuantity !== null && room.roomQuantity <= 5 && room.roomQuantity > 0"
-                      class="mt-2 flex justify-center items-center">
-                    <span class="inline-block px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold text-xs whitespace-nowrap border border-red-200">
+                  <div
+                    v-if="room.roomQuantity !== undefined && room.roomQuantity !== null && room.roomQuantity <= 5 && room.roomQuantity > 0"
+                    class="mt-2 flex justify-center items-center">
+                    <span
+                      class="inline-block px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold text-xs whitespace-nowrap border border-red-200">
                       Chỉ còn {{ room.roomQuantity }} phòng
                     </span>
                   </div>
@@ -441,21 +449,13 @@
           <div class="flex items-center gap-8">
             <div class="flex items-center gap-2">
               <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Sắp xếp theo:</span>
-              <CustomSelect
-                v-model="selectedSortOption"
-                :options="sortOptions"
-                class="w-44 min-w-[235px]"
-                @update:modelValue="val => selectedSortOption = val"
-              />
+              <CustomSelect v-model="selectedSortOption" :options="sortOptions" class="w-44 min-w-[235px]"
+                @update:modelValue="val => selectedSortOption = val" />
             </div>
             <div class="flex items-center gap-2">
               <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Lọc theo mức độ:</span>
-              <CustomSelect
-                v-model="selectedLevelFilter"
-                :options="levelOptions"
-                class="w-44 min-w-[200px]"
-                @update:modelValue="val => selectedLevelFilter = val"
-              />
+              <CustomSelect v-model="selectedLevelFilter" :options="levelOptions" class="w-44 min-w-[200px]"
+                @update:modelValue="val => selectedLevelFilter = val" />
             </div>
           </div>
         </div>
@@ -464,10 +464,12 @@
         <div v-for="review in paginatedReviews" :key="review.id"
           class="flex items-start gap-6 bg-white p-6 rounded-2xl border border-gray-200 shadow mb-4">
           <div class="flex-shrink-0">
-            <div v-if="review.avatar" class="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+            <div v-if="review.avatar"
+              class="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
               <img :src="review.avatar" :alt="review.author" class="w-full h-full object-cover" />
             </div>
-            <div v-else class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+            <div v-else
+              class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
               {{ getInitials(review.author) }}
             </div>
           </div>
@@ -475,14 +477,16 @@
             <div class="flex flex-row items-start justify-between gap-2">
               <div class="flex items-center gap-3 flex-wrap">
                 <span class="font-bold text-lg text-gray-900">{{ review.author }}</span>
-                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-base">
+                <span
+                  class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-base">
                   <i class="fas fa-crow text-blue-400"></i> {{ review.rating?.toFixed(1) || review.rating }}/5
                 </span>
               </div>
               <span class="text-gray-500 text-sm font-medium whitespace-nowrap">{{ formatRelativeTime(review) }}</span>
             </div>
             <div class="mt-2 text-base text-gray-900 font-normal whitespace-pre-line">{{ review.content }}</div>
-            <div v-if="review.translated" class="text-xs text-gray-400 italic mt-1">translated by Google <a href="#" class="text-blue-500 underline ml-1">Xem bản gốc</a></div>
+            <div v-if="review.translated" class="text-xs text-gray-400 italic mt-1">translated by Google <a href="#"
+                class="text-blue-500 underline ml-1">Xem bản gốc</a></div>
           </div>
         </div>
       </div>
@@ -515,12 +519,8 @@
       <div v-if="reviewsList.length > 0" class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Hiển thị:</span>
-          <CustomSelect
-            v-model="reviewsPerPage"
-            :options="reviewsPerPageOptions"
-            class="w-44 min-w-[140px]"
-            @update:modelValue="val => reviewsPerPage = val"
-          />
+          <CustomSelect v-model="reviewsPerPage" :options="reviewsPerPageOptions" class="w-44 min-w-[140px]"
+            @update:modelValue="val => reviewsPerPage = val" />
         </div>
         <div class="flex items-center gap-4">
           <span class="text-sm font-medium text-gray-700">Trang {{ currentPage }} / {{ totalPages }}</span>
@@ -655,6 +655,8 @@ import { getAllProvinces } from "@/api/provinceApi.js";
 import HotelCard from '@/components/Home/HotelCard.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
 import CustomSelect from '@/components/CustomSelect.vue';
+import SockJS from "sockjs-client/dist/sockjs.min.js";
+import Stomp from "stompjs";
 
 const hotel = ref(null);
 const reviewsList = ref([]);
@@ -697,6 +699,10 @@ const debounceTimer = ref(null);
 const showDescriptionModal = ref(false);
 const thumbsContainer = ref(null);
 
+const stompClient = ref(null);
+const isSocketConnected = ref(false);
+const refreshInterval = ref(null);
+
 const newReview = ref({ rating: 0, content: '' });
 const submittingReview = ref(false);
 const reviewError = ref('');
@@ -708,6 +714,18 @@ const goToBooking = (room, variant) => {
     if (window.$toast) window.$toast(`Hiện tại không đủ phòng`, 'error');
     return;
   }
+
+  if (stompClient.value && isSocketConnected.value) {
+    const bookingNotification = {
+      hotelId: hotel.value.id,
+      roomId: room.id,
+      variantId: variant.id,
+      quantity: searchParams.value.rooms,
+      action: 'BOOKING_STARTED'
+    };
+    stompClient.value.send('/app/hotel/room-booking', {}, JSON.stringify(bookingNotification));
+  }
+
   router.push({
     name: 'HotelBooking',
     query: {
@@ -764,6 +782,13 @@ const fetchHotelData = async (hotelId) => {
       searchParams.value.location = hotel.value.name;
       locationBeforeEdit.value = hotel.value.name;
       initializeRoomImageIndices();
+
+      setTimeout(() => {
+        connectWebSocket();
+
+        startAutoRefresh();
+      }, 500);
+
       if (hotel.value.provinceId) {
         fetchOtherHotels(hotel.value.provinceId, hotelId);
       }
@@ -794,6 +819,114 @@ const fetchOtherHotels = async (provinceId, currentHotelId) => {
     otherHotels.value = [];
   }
 }
+
+const connectWebSocket = () => {
+  const hotelId = route.params.id;
+  if (!hotelId || (stompClient.value && isSocketConnected.value)) return;
+
+  const socket = new SockJS("http://localhost:8080/ws");
+  stompClient.value = Stomp.over(socket);
+  stompClient.value.debug = null;
+
+    stompClient.value.connect({}, (frame) => {
+    console.log("WebSocket Connected for Hotel Detail:", frame);
+    isSocketConnected.value = true;
+
+    stompClient.value.subscribe(`/topic/hotels/${hotelId}/room-updates`, (response) => {
+      handleRoomUpdate(JSON.parse(response.body));
+    });
+
+    stompClient.value.subscribe(`/topic/hotels/${hotelId}/booking-notifications`, (response) => {
+      handleBookingNotification(JSON.parse(response.body));
+    });
+
+    stompClient.value.send('/app/hotel/viewer-notification', {}, JSON.stringify({
+      hotelId: hotelId,
+      action: 'USER_VIEWING'
+    }));
+  });
+};
+
+const handleRoomUpdate = (update) => {
+  if (!hotel.value?.availableRooms) return;
+  
+  const room = hotel.value.availableRooms.find(r => r.id === update.roomId);
+  if (room) {
+    room.roomQuantity = update.newQuantity;
+    
+    if (update.previousQuantity !== update.newQuantity) {
+      const change = update.previousQuantity - update.newQuantity;
+      if (change > 0) {
+        if (window.$toast) {
+          window.$toast(
+            `${change} phòng vừa được đặt bởi người khác!`, 
+            'warning'
+          );
+        }
+      }
+    }
+  }
+};
+
+const handleBookingNotification = (notification) => {
+};
+
+const disconnectWebSocket = () => {
+  if (stompClient.value && isSocketConnected.value) {
+    stompClient.value.disconnect();
+    console.log("WebSocket Disconnected from Hotel Detail.");
+    isSocketConnected.value = false;
+  }
+};
+
+const refreshRoomData = async () => {
+  if (!hotel.value?.id) return;
+
+  try {
+    const apiParams = {
+      checkInDate: searchParams.value.checkin,
+      checkOutDate: searchParams.value.checkout,
+    };
+
+    const response = await getHotelById(hotel.value.id, apiParams);
+    if (response.data?.statusCode === 200) {
+      hotel.value.availableRooms = response.data.data.availableRooms;
+      window.$toast && window.$toast('Đã cập nhật số lượng phòng!', 'success');
+    }
+  } catch (error) {
+    window.$toast && window.$toast('Không thể cập nhật số lượng phòng!', 'error');
+  }
+};
+
+const startAutoRefresh = () => {
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value);
+  }
+  refreshInterval.value = setInterval(async () => {
+    if (hotel.value?.id && !loading.value) {
+      try {
+        const apiParams = {
+          checkInDate: searchParams.value.checkin,
+          checkOutDate: searchParams.value.checkout,
+        };
+
+        const response = await getHotelById(hotel.value.id, apiParams);
+        if (response.data?.statusCode === 200) {
+          hotel.value.availableRooms = response.data.data.availableRooms;
+        }
+      } catch (error) {
+        console.log('Auto refresh failed:', error);
+      }
+    }
+  }, 30000);
+};
+
+const stopAutoRefresh = () => {
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value);
+    refreshInterval.value = null;
+  }
+};
 
 const minCheckOut = computed(() => {
   if (!searchParams.value.checkin) return today;
@@ -851,10 +984,10 @@ const filteredRoomTypes = computed(() => {
     });
 
     return sortedRooms.sort((a, b) => {
-      const minPriceA = Math.min(...a.availableVariants.map(v => 
+      const minPriceA = Math.min(...a.availableVariants.map(v =>
         priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
       ));
-      const minPriceB = Math.min(...b.availableVariants.map(v => 
+      const minPriceB = Math.min(...b.availableVariants.map(v =>
         priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
       ));
       return minPriceA - minPriceB;
@@ -865,21 +998,21 @@ const filteredRoomTypes = computed(() => {
     const matchingVariants = room.availableVariants.filter(variant => {
       return selectedAmenities.value.every(amenityKey => variant[amenityKey] === true);
     });
-    
+
     const sortedVariants = matchingVariants.sort((a, b) => {
       const priceA = priceDisplayMode.value === 'totalPrice' ? (a.totalPrice ?? a.price) : a.price;
       const priceB = priceDisplayMode.value === 'totalPrice' ? (b.totalPrice ?? b.price) : b.price;
       return priceA - priceB;
     });
-    
+
     return { ...room, availableVariants: sortedVariants };
   }).filter(room => room.availableVariants.length > 0);
 
   return filteredRooms.sort((a, b) => {
-    const minPriceA = Math.min(...a.availableVariants.map(v => 
+    const minPriceA = Math.min(...a.availableVariants.map(v =>
       priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
     ));
-    const minPriceB = Math.min(...b.availableVariants.map(v => 
+    const minPriceB = Math.min(...b.availableVariants.map(v =>
       priceDisplayMode.value === 'totalPrice' ? (v.totalPrice ?? v.price) : v.price
     ));
     return minPriceA - minPriceB;
@@ -1188,6 +1321,8 @@ watch(() => searchParams.value.location, (newKeyword) => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  disconnectWebSocket();
+  stopAutoRefresh();
 });
 
 const selectPriceOption = (value) => {

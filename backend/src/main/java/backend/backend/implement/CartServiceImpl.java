@@ -7,7 +7,6 @@ import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.mapper.OrderMapper;
 import backend.backend.service.BookingTourService;
 import backend.backend.service.CartService;
-import backend.backend.entity.VoucherType; 
 
 import backend.backend.service.FlightBookingService;
 
@@ -17,11 +16,15 @@ import backend.backend.dto.Hotel.HotelBookingRequestDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.util.stream.Stream;
 
 @Service
 public class CartServiceImpl implements CartService {
+    
+    private static final Logger log = LoggerFactory.getLogger(CartServiceImpl.class);
 
     @Autowired private OrderDAO orderDAO;
     @Autowired private UserDAO userDAO;
@@ -225,9 +228,11 @@ public class CartServiceImpl implements CartService {
             case HOTEL: {
                 HotelBookingRequestDto hotelRequest = new HotelBookingRequestDto();
                 User user = order.getUser();
-                hotelRequest.setFullName(user != null ? user.getName() : "");
-                hotelRequest.setEmail(user != null ? user.getEmail() : "");
-                hotelRequest.setPhone(user != null ? user.getPhone() : "");
+                
+                hotelRequest.setFullName(genericRequest.getFullName());
+                hotelRequest.setEmail(genericRequest.getEmail());
+                hotelRequest.setPhone(genericRequest.getPhone());
+                
                 hotelRequest.setRoomVariantId(genericRequest.getRoomId());
                 hotelRequest.setCheckInDate(genericRequest.getCheckInDate() != null ? genericRequest.getCheckInDate().toString() : null);
                 hotelRequest.setCheckOutDate(genericRequest.getCheckOutDate() != null ? genericRequest.getCheckOutDate().toString() : null);

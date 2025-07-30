@@ -36,4 +36,8 @@ public class AddItemRequestDto {
 
     // Dành cho Bus
     private Integer busSlotId;
+    
+    private String fullName;
+    private String email;
+    private String phone;
 }

@@ -40,6 +40,12 @@ export const bookHotel = (data) => {
     return axios.post(`${API_BASE_URL}/book`, data, { headers });
 };
 
+export const updateHotelBooking = (data) => {
+    const token = getAccessToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axios.put(`${API_BASE_URL}/bookings/update`, data, { headers });
+};
+
 export const addItemToCart = (orderId, data) => {
     return axios.post(`/api/v1/cart/${orderId}/items`, data);
 };

@@ -545,7 +545,10 @@ export default {
         const activeCartId = localStorage.getItem('activeCartId');
 
         const addRoomToOrder = async () => {
-            if (!validateForm()) return;
+            if (!validateForm()) {
+                window.$toast && window.$toast('Vui lòng kiểm tra lại thông tin!', 'error');
+                return;
+            }
             if (!roomVariantId) {
                 window.$toast && window.$toast('Không xác định được loại phòng!', 'error');
                 return;
@@ -554,6 +557,7 @@ export default {
                 window.$toast && window.$toast('Không tìm thấy đơn hàng!', 'error');
                 return;
             }
+            
             try {
                 await addItemToCart(activeCartId, {
                     itemId: roomVariantId,

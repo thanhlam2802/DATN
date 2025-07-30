@@ -5,6 +5,18 @@ const API_BASE_URL = 'http://localhost:8080/api';
 const api = axios.create({
   baseURL: API_BASE_URL
 });
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('t_'); 
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Flights
 export const searchFlights = (params) => api.post('/flights/search', params );
@@ -27,7 +39,7 @@ export const getCustomerFlightBookings = (customerId) =>
 export const getFlightBookingDetail = (bookingId) =>
   api.get(`/bookings/flights/${bookingId}`);
 export const cancelFlightBooking = (bookingId) =>
-  api.post(`/bookings/flights/${bookingId}/cancel`);
+  api.get(`/bookings/flights/${bookingId}/cancel`);
 
 // Admin – Flights
 export const getAdminFlights = (params) =>
@@ -118,3 +130,5 @@ export const getFlightReservationSummary = (bookingId) =>
 
 export const updateGroupSeat = (flightId,dto) =>
   api.put(`/admin/updateGroupSeat/${flightId}`,dto);
+export const updateCustomer = (id,customerDto) =>
+  api.put(`/flights/update-customer/${id}`,customerDto);

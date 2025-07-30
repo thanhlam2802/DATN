@@ -20,6 +20,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; 
+import backend.backend.controller.AdminWebSocketController;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,6 +45,9 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
     private DepartureDAO departureDAO;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private AdminWebSocketController adminWebSocketController;
     
     @Scheduled(fixedRate = 300000)
     @Transactional
@@ -75,15 +79,16 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
                         
                         try {
                             Integer hotelId = room.getHotel().getId();
-                            Map<String, Object> roomUpdate = Map.of(
-                                "hotelId", hotelId,
-                                "roomId", room.getId(),
-                                "previousQuantity", currentQty,
-                                "newQuantity", room.getRoomQuantity(),
-                                "action", "ROOM_RESTORED"
-                            );
+                            Map<String, Object> roomUpdate = new java.util.HashMap<>();
+                            roomUpdate.put("hotelId", hotelId);
+                            roomUpdate.put("roomId", room.getId());
+                            roomUpdate.put("previousQuantity", currentQty);
+                            roomUpdate.put("newQuantity", room.getRoomQuantity());
+                            roomUpdate.put("action", "ROOM_RESTORED");
                             messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
                             System.out.println("Đã gửi WebSocket notification cho hotelId=" + hotelId + ", roomId=" + room.getId());
+                            
+                            adminWebSocketController.sendExpiredOrderNotification(order.getId().toString());
                         } catch (Exception e) {
                             System.out.println("Không thể gửi WebSocket notification: " + e.getMessage());
                         }

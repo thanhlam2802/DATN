@@ -12,6 +12,7 @@ import backend.backend.service.FlightBookingService;
 
 import backend.backend.service.HotelBookingService;
 import backend.backend.dto.Hotel.HotelBookingRequestDto;
+import backend.backend.controller.AdminWebSocketController;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,7 +38,9 @@ public class CartServiceImpl implements CartService {
     @Autowired
     private HotelBookingService hotelBookingService;
     @Autowired
-    private OrderMapper orderMapper; 
+    private OrderMapper orderMapper;
+    @Autowired
+    private AdminWebSocketController adminWebSocketController; 
    
 
     @Override
@@ -99,6 +102,12 @@ public class CartServiceImpl implements CartService {
                     }
                  }
                 hotelBookingDAO.delete(hotel);
+                
+                try {
+                    adminWebSocketController.sendCancellationNotification(orderToUpdate.getId().toString());
+                } catch (Exception e) {
+                    log.warn("Không thể gửi thông báo hủy booking: {}", e.getMessage());
+                }
                 break;
             }
             case "BUS": {

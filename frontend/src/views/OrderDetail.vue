@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, reactive, onUnmounted, onBeforeUnmount, watch } from "vue"; // Import thêm onUnmounted
 import { useRoute, useRouter } from "vue-router";
 import { getBearerToken } from "@/services/TokenService";
-import { updateHotelBooking } from "@/api/hotelApi";
+import { updateHotelBooking, notifyPaymentSuccess, notifyHotelCancellation } from "@/api/hotelApi";
 import { updateCustomer, cancelFlightBooking } from '@/api/flightApi'
 import { servicePaymentMake, servicePaymentConfirm, accountLookup } from '@/api/coreBankingApi';
 
@@ -493,11 +493,12 @@ async function confirmOtp() {
       showOtpDialog.value = false;
 
       try {
-        await markOrderSuccess(orderId, res.data.transactionId);
-        console.log(orderId, res.data.transactionId);
-      } catch (e) {
-        window.$toast(e.message || 'Cập nhật trạng thái đơn hàng thất bại!', 'error');
-      }
+         await markOrderSuccess(orderId, res.data.transactionId);
+         console.log(orderId, res.data.transactionId);
+         await notifyPaymentSuccess(orderId, order.value.amount);
+       } catch (e) {
+         window.$toast(e.message || 'Cập nhật trạng thái đơn hàng thất bại!', 'error');
+       }
     } else {
       otpError.value = 'OTP không đúng hoặc đã hết hạn.';
     }
@@ -583,6 +584,14 @@ const handleDeleteItem = async (itemId, itemType) => {
       { method: "DELETE", headers: { Authorization: getBearerToken() } }
     );
     if (!response.ok) throw new Error("Xóa dịch vụ thất bại.");
+
+    if (itemType === 'HOTEL') {
+      try {
+        await notifyHotelCancellation(order.value.id, itemId);
+      } catch (e) {
+        console.error('Failed to send cancellation notification:', e);
+      }
+    }
 
     window.$toast && window.$toast("Đã xóa dịch vụ thành công.", "success");
     await fetchOrderDetails();

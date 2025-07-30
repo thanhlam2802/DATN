@@ -38,7 +38,9 @@ public class WebSocketController {
             return bookingNotification;
         } catch (Exception e) {
             logger.error("Error handling hotel room booking notification", e);
-            return Map.of("error", "Failed to process booking notification");
+            Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Failed to process booking notification");
+            return errorResponse;
         }
     }
 
@@ -58,7 +60,9 @@ public class WebSocketController {
             return roomUpdate;
         } catch (Exception e) {
             logger.error("Error handling room update notification", e);
-            return Map.of("error", "Failed to process room update");
+            Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", "Failed to process room update");
+            return errorResponse;
         }
     }
 

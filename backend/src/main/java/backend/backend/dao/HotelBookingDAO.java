@@ -112,6 +112,30 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
     @Query(value = "SELECT COUNT(*) FROM hotel_bookings WHERE YEAR(created_at) = YEAR(DATEADD(MONTH, -2, GETDATE())) AND MONTH(created_at) = MONTH(DATEADD(MONTH, -2, GETDATE()))", nativeQuery = true)
     Long countTotalBookings2MonthsAgo();
 
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsToday();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsYesterday();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) >= CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsLast7Days();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE YEAR(b.created_at) = YEAR(GETDATE()) AND MONTH(b.created_at) = MONTH(GETDATE()) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsThisMonth();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE YEAR(b.created_at) = YEAR(DATEADD(MONTH, -1, GETDATE())) AND MONTH(b.created_at) = MONTH(DATEADD(MONTH, -1, GETDATE())) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsLastMonth();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -2, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookings2DaysAgo();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) >= CAST(DATEADD(DAY, -14, GETDATE()) AS DATE) AND CAST(b.created_at AS DATE) < CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsPrevious7Days();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE YEAR(b.created_at) = YEAR(DATEADD(MONTH, -2, GETDATE())) AND MONTH(b.created_at) = MONTH(DATEADD(MONTH, -2, GETDATE())) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookings2MonthsAgo();
+
     @Query(value = "SELECT COALESCE(SUM(b.total_price), 0) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
     java.math.BigDecimal sumTotalRevenueToday();
 
@@ -180,6 +204,29 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
                 return countTotalBookings2MonthsAgo();
             default:
                 return countTotalBookingsThisMonth();
+        }
+    }
+
+    default Long countPaidBookingsByPeriod(String period) {
+        switch (period) {
+            case "today":
+                return countPaidBookingsToday();
+            case "yesterday":
+                return countPaidBookingsYesterday();
+            case "last_7_days":
+                return countPaidBookingsLast7Days();
+            case "this_month":
+                return countPaidBookingsThisMonth();
+            case "last_month":
+                return countPaidBookingsLastMonth();
+            case "2_days_ago":
+                return countPaidBookings2DaysAgo();
+            case "previous_7_days":
+                return countPaidBookingsPrevious7Days();
+            case "2_months_ago":
+                return countPaidBookings2MonthsAgo();
+            default:
+                return countPaidBookingsThisMonth();
         }
     }
 

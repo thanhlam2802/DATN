@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, onUnmounted, watch
 import { useRoute } from "vue-router";
 import { servicePaymentMake, servicePaymentConfirm, accountLookup } from '@/api/coreBankingApi';
 import { markOrderSuccess } from '@/api/OrderApi'
+import { notifyPaymentSuccess } from '@/api/hotelApi';
 
 /// — Route & Order details + Countdown —
 const route = useRoute();
@@ -223,6 +224,7 @@ async function confirmOtp() {
       try {
         await markOrderSuccess(orderId, res.data.transactionId);
         console.log(orderId,res.data.transactionId);
+        await notifyPaymentSuccess(orderId, orderDetails.value.amount);
       } catch (e) {
         window.$toast(e.message || 'Cập nhật trạng thái đơn hàng thất bại!', 'error');
       }

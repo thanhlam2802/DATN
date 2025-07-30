@@ -650,7 +650,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { getHotelById, getHotelReviews, searchHotels, createHotelReview } from "@/api/hotelApi";
+import { getHotelById, getHotelReviews, searchHotels, createHotelReview, notifyNewReview } from "@/api/hotelApi";
 import { getAllProvinces } from "@/api/provinceApi.js";
 import HotelCard from '@/components/Home/HotelCard.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
@@ -1404,6 +1404,12 @@ const submitReview = async () => {
       content: newReview.value.content.trim()
     });
     reviewSuccess.value = 'Đánh giá của bạn đã được gửi!';
+    try {
+      await notifyNewReview(hotel.value.name, newReview.value.rating);
+    } catch (e) {
+      console.error('Failed to send review notification:', e);
+    }
+    
     newReview.value.rating = 0;
     newReview.value.content = '';
     await fetchHotelData(hotel.value.id);

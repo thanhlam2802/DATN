@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import backend.backend.controller.AdminWebSocketController;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,6 +50,9 @@ public class HotelBookingServiceImpl implements HotelBookingService {
     
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private AdminWebSocketController adminWebSocketController;
 
     private static final Logger log = LoggerFactory.getLogger(HotelBookingServiceImpl.class);
 
@@ -133,15 +137,20 @@ public class HotelBookingServiceImpl implements HotelBookingService {
 
             try {
                 Integer hotelId = variant.getRoom().getHotel().getId();
-                Map<String, Object> roomUpdate = Map.of(
-                    "hotelId", hotelId,
-                    "roomId", variant.getRoom().getId(),
-                    "previousQuantity", currentQty,
-                    "newQuantity", variant.getRoom().getRoomQuantity(),
-                    "action", "ROOM_BOOKED"
-                );
+                Map<String, Object> roomUpdate = new java.util.HashMap<>();
+                roomUpdate.put("hotelId", hotelId);
+                roomUpdate.put("roomId", variant.getRoom().getId());
+                roomUpdate.put("previousQuantity", currentQty);
+                roomUpdate.put("newQuantity", variant.getRoom().getRoomQuantity());
+                roomUpdate.put("action", "ROOM_BOOKED");
                 messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
                 log.info("[BOOK_HOTEL] Đã gửi WebSocket notification cho hotelId={}, roomId={}", hotelId, variant.getRoom().getId());
+                
+                adminWebSocketController.sendBookingNotification(
+                    customer.getFullName(),
+                    variant.getRoom().getHotel().getName(),
+                    dto.getRooms()
+                );
             } catch (Exception e) {
                 log.warn("[BOOK_HOTEL] Không thể gửi WebSocket notification: {}", e.getMessage());
             }
@@ -235,13 +244,12 @@ public class HotelBookingServiceImpl implements HotelBookingService {
 
             try {
                 Integer hotelId = hotelRoom.getHotel().getId();
-                Map<String, Object> roomUpdate = Map.of(
-                    "hotelId", hotelId,
-                    "roomId", hotelRoom.getId(),
-                    "previousQuantity", hotelRoom.getRoomQuantity() + (roomDifference > 0 ? roomDifference : -roomDifference),
-                    "newQuantity", hotelRoom.getRoomQuantity(),
-                    "action", roomDifference > 0 ? "ROOM_BOOKED" : "ROOM_RESTORED"
-                );
+                Map<String, Object> roomUpdate = new java.util.HashMap<>();
+                roomUpdate.put("hotelId", hotelId);
+                roomUpdate.put("roomId", hotelRoom.getId());
+                roomUpdate.put("previousQuantity", hotelRoom.getRoomQuantity() + (roomDifference > 0 ? roomDifference : -roomDifference));
+                roomUpdate.put("newQuantity", hotelRoom.getRoomQuantity());
+                roomUpdate.put("action", roomDifference > 0 ? "ROOM_BOOKED" : "ROOM_RESTORED");
                 messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
                 log.info("[UPDATE_HOTEL_BOOKING] Đã gửi WebSocket notification cho hotelId={}, roomId={}", hotelId, hotelRoom.getId());
             } catch (Exception e) {

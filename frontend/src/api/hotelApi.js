@@ -95,6 +95,27 @@ export const deleteHotelReview = (reviewId) => {
   return axios.delete(`${API_ADMIN_BASE_URL}/reviews/${reviewId}`);
 };
 
+export const notifyPaymentSuccess = (orderId, amount) => {
+  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/payment-notifications/success`, {
+    orderId,
+    amount
+  });
+};
+
+export const notifyNewReview = (hotelName, rating) => {
+  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/review-notifications/new`, {
+    hotelName,
+    rating
+  });
+};
+
+export const notifyHotelCancellation = (orderId, bookingId) => {
+  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/hotel-notifications/cancellation`, {
+    orderId,
+    bookingId
+  });
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -114,5 +135,8 @@ export default {
     getHotelRevenuePieChart,
     getTopRoomsChart,
     getAllHotelReviews,
-    deleteHotelReview
+    deleteHotelReview,
+    notifyPaymentSuccess,
+    notifyNewReview,
+    notifyHotelCancellation
 };

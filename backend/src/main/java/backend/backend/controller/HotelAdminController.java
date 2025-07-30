@@ -161,28 +161,33 @@ public class HotelAdminController {
         Map<String, Object> stats = new java.util.HashMap<>();
 
         Long currentBookings = hotelBookingDAO.countTotalBookingsByPeriod(timePeriod);
+        Long currentPaidBookings = hotelBookingDAO.countPaidBookingsByPeriod(timePeriod);
         java.math.BigDecimal currentRevenue = hotelBookingDAO.sumTotalRevenueByPeriod(timePeriod);
         Long currentCustomers = hotelBookingDAO.countTotalCustomersByPeriod(timePeriod);
         Long currentReviews = reviewDAO.countTotalHotelReviewsByPeriod(timePeriod);
 
         String comparisonPeriod = getComparisonPeriod(timePeriod);
         Long comparisonBookings = hotelBookingDAO.countTotalBookingsByPeriod(comparisonPeriod);
+        Long comparisonPaidBookings = hotelBookingDAO.countPaidBookingsByPeriod(comparisonPeriod);
         java.math.BigDecimal comparisonRevenue = hotelBookingDAO.sumTotalRevenueByPeriod(comparisonPeriod);
         Long comparisonCustomers = hotelBookingDAO.countTotalCustomersByPeriod(comparisonPeriod);
         Long comparisonReviews = reviewDAO.countTotalHotelReviewsByPeriod(comparisonPeriod);
 
         double bookingGrowth = comparisonBookings > 0 ? ((currentBookings - comparisonBookings) * 100.0 / comparisonBookings) : 0;
+        double paidBookingGrowth = comparisonPaidBookings > 0 ? ((currentPaidBookings - comparisonPaidBookings) * 100.0 / comparisonPaidBookings) : 0;
         double revenueGrowth = comparisonRevenue.compareTo(java.math.BigDecimal.ZERO) > 0 ?
             (currentRevenue.subtract(comparisonRevenue).multiply(java.math.BigDecimal.valueOf(100)).divide(comparisonRevenue, 2, java.math.RoundingMode.HALF_UP)).doubleValue() : 0;
         double customerGrowth = comparisonCustomers > 0 ? ((currentCustomers - comparisonCustomers) * 100.0 / comparisonCustomers) : 0;
         double reviewGrowth = comparisonReviews > 0 ? ((currentReviews - comparisonReviews) * 100.0 / comparisonReviews) : 0;
 
         stats.put("totalBookings", currentBookings);
+        stats.put("totalPaidBookings", currentPaidBookings);
         stats.put("totalRevenue", currentRevenue);
         stats.put("totalCustomers", currentCustomers);
         stats.put("totalReviews", currentReviews);
 
         stats.put("bookingGrowth", Math.round(bookingGrowth * 10.0) / 10.0);
+        stats.put("paidBookingGrowth", Math.round(paidBookingGrowth * 10.0) / 10.0);
         stats.put("revenueGrowth", Math.round(revenueGrowth * 10.0) / 10.0);
         stats.put("customerGrowth", Math.round(customerGrowth * 10.0) / 10.0);
         stats.put("reviewGrowth", Math.round(reviewGrowth * 10.0) / 10.0);

@@ -66,6 +66,7 @@ public class AuthServiceImpl implements AuthService {
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
         newUser.setIsVerified(false);
+        newUser.setAuthProvider(AuthProvider.INTERNAL);
 
         newUser = userRepository.save(newUser);
 

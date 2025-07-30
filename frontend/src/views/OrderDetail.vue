@@ -180,6 +180,16 @@ const fetchOrderDetails = async () => {
     const data = await orderResponse.json();
     order.value = data.data;
 
+    if (order.value && order.value.status !== "PENDING_PAYMENT") {
+      const activeCartId = localStorage.getItem("activeCartId");
+      if (activeCartId && parseInt(activeCartId) === order.value.id) {
+        localStorage.removeItem("activeCartId");
+        console.log(
+          `Đã xóa activeCartId (${activeCartId}) vì đơn hàng đã ở trạng thái cuối cùng.`
+        );
+      }
+    }
+
     // THAY ĐỔI: Nếu đơn hàng có thể sửa, kết nối WebSocket và tải voucher
     if (order.value && isEditable.value) {
       connectWebSocket();

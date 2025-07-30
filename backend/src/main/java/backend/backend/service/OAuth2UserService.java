@@ -37,6 +37,7 @@ public class OAuth2UserService extends DefaultOAuth2UserService {
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("token", jwtResultDto);
         attributes.put("username", name);
+        attributes.put("email", email);
         return new CustomOAuth2User(attributes);
     }
 }

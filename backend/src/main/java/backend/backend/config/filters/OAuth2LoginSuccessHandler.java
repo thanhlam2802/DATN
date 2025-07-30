@@ -25,8 +25,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                                         Authentication authentication) throws IOException, ServletException {
         CustomOAuth2User user = (CustomOAuth2User) authentication.getPrincipal();
         JwtResultDto jwtResultDto = user.getAttribute("token");
+        String email = user.getAttribute("email");
         assert jwtResultDto != null;
-        String redirectUrl = webDomain + "/oauth2/login/success?t=" + jwtResultDto.getAccessToken() + "&rt=" + jwtResultDto.getRefreshToken();
+        String redirectUrl = webDomain + "/oauth2/login/success?t=" + jwtResultDto.getAccessToken() + "&rt=" + jwtResultDto.getRefreshToken() + "&email=" + email;
         response.sendRedirect(redirectUrl);
     }
 }

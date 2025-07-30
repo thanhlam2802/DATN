@@ -5,12 +5,8 @@ import backend.backend.dao.OrderDAO;
 import backend.backend.entity.FlightBooking;
 import backend.backend.entity.Order;
 import backend.backend.service.FlightBookingService;
-import backend.backend.dao.BookingTourDAO;
-import backend.backend.dao.DepartureDAO;
 import backend.backend.dao.HotelBookingDAO;
 import backend.backend.dao.Hotel.HotelRoomDAO;
-import backend.backend.entity.BookingTour;
-import backend.backend.entity.Departure;
 import backend.backend.entity.HotelBooking;
 import backend.backend.entity.HotelRoomVariant;
 import backend.backend.entity.HotelRoom;
@@ -39,10 +35,6 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
     private HotelBookingDAO hotelBookingDAO;
     @Autowired
     private HotelRoomDAO hotelRoomDAO;
-    @Autowired
-    private BookingTourDAO bookingTourDAO;
-    @Autowired
-    private DepartureDAO departureDAO;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
     
@@ -93,23 +85,6 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
                             System.out.println("Không thể gửi WebSocket notification: " + e.getMessage());
                         }
                     }
-                }
-                List<BookingTour> tourBookings = bookingTourDAO.findByOrderId(order.getId());
-                for (BookingTour booking : tourBookings) {
-                    Departure departure = booking.getDeparture();
-                    if (departure != null) {
-                        int adults = booking.getNumberOfAdults() != null ? booking.getNumberOfAdults() : 0;
-                        int children = booking.getNumberOfChildren() != null ? booking.getNumberOfChildren() : 0;
-                        int totalPeopleToRestore = adults + children;
-
-                        if (totalPeopleToRestore > 0) {
-                            Integer currentBookedSeats = departure.getBookedSeats();
-                            departure.setBookedSeats(currentBookedSeats - totalPeopleToRestore);
-                            departureDAO.save(departure);
-                            System.out.println("  Order " + order.getId() + " restored " + totalPeopleToRestore + " seat(s) for departureId=" + departure.getId());
-                        }
-                    }
-
                 }
                 order.setStatus("CANCELLED");
             }

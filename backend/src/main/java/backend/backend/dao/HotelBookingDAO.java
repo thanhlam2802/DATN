@@ -112,6 +112,30 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
     @Query(value = "SELECT COUNT(*) FROM hotel_bookings WHERE YEAR(created_at) = YEAR(DATEADD(MONTH, -2, GETDATE())) AND MONTH(created_at) = MONTH(DATEADD(MONTH, -2, GETDATE()))", nativeQuery = true)
     Long countTotalBookings2MonthsAgo();
 
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsToday();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsYesterday();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) >= CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsLast7Days();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE YEAR(b.created_at) = YEAR(GETDATE()) AND MONTH(b.created_at) = MONTH(GETDATE()) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsThisMonth();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE YEAR(b.created_at) = YEAR(DATEADD(MONTH, -1, GETDATE())) AND MONTH(b.created_at) = MONTH(DATEADD(MONTH, -1, GETDATE())) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsLastMonth();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -2, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookings2DaysAgo();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) >= CAST(DATEADD(DAY, -14, GETDATE()) AS DATE) AND CAST(b.created_at AS DATE) < CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookingsPrevious7Days();
+
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE YEAR(b.created_at) = YEAR(DATEADD(MONTH, -2, GETDATE())) AND MONTH(b.created_at) = MONTH(DATEADD(MONTH, -2, GETDATE())) AND o.status = 'PAID'", nativeQuery = true)
+    Long countPaidBookings2MonthsAgo();
+
     @Query(value = "SELECT COALESCE(SUM(b.total_price), 0) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
     java.math.BigDecimal sumTotalRevenueToday();
 
@@ -180,6 +204,29 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
                 return countTotalBookings2MonthsAgo();
             default:
                 return countTotalBookingsThisMonth();
+        }
+    }
+
+    default Long countPaidBookingsByPeriod(String period) {
+        switch (period) {
+            case "today":
+                return countPaidBookingsToday();
+            case "yesterday":
+                return countPaidBookingsYesterday();
+            case "last_7_days":
+                return countPaidBookingsLast7Days();
+            case "this_month":
+                return countPaidBookingsThisMonth();
+            case "last_month":
+                return countPaidBookingsLastMonth();
+            case "2_days_ago":
+                return countPaidBookings2DaysAgo();
+            case "previous_7_days":
+                return countPaidBookingsPrevious7Days();
+            case "2_months_ago":
+                return countPaidBookings2MonthsAgo();
+            default:
+                return countPaidBookingsThisMonth();
         }
     }
 
@@ -489,6 +536,107 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
         java.util.Map<String, Object> chartData = new java.util.HashMap<>();
         chartData.put("labels", labels);
         chartData.put("data", data);
+        return chartData;
+    }
+
+    @Query(value = "SELECT rv.variant_name as roomName, h.name as hotelName, COUNT(b.id) as bookingCount " +
+                   "FROM hotel_bookings b " +
+                   "JOIN hotel_room_variants rv ON b.room_variant_id = rv.id " +
+                   "JOIN hotel_rooms r ON rv.room_id = r.id " +
+                   "JOIN hotels h ON r.hotel_id = h.id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY rv.id, rv.variant_name, h.name " +
+                   "ORDER BY bookingCount DESC", nativeQuery = true)
+    List<Object[]> getTopRoomsToday();
+
+    @Query(value = "SELECT rv.variant_name as roomName, h.name as hotelName, COUNT(b.id) as bookingCount " +
+                   "FROM hotel_bookings b " +
+                   "JOIN hotel_room_variants rv ON b.room_variant_id = rv.id " +
+                   "JOIN hotel_rooms r ON rv.room_id = r.id " +
+                   "JOIN hotels h ON r.hotel_id = h.id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY rv.id, rv.variant_name, h.name " +
+                   "ORDER BY bookingCount DESC", nativeQuery = true)
+    List<Object[]> getTopRoomsYesterday();
+
+    @Query(value = "SELECT rv.variant_name as roomName, h.name as hotelName, COUNT(b.id) as bookingCount " +
+                   "FROM hotel_bookings b " +
+                   "JOIN hotel_room_variants rv ON b.room_variant_id = rv.id " +
+                   "JOIN hotel_rooms r ON rv.room_id = r.id " +
+                   "JOIN hotels h ON r.hotel_id = h.id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) >= CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY rv.id, rv.variant_name, h.name " +
+                   "ORDER BY bookingCount DESC", nativeQuery = true)
+    List<Object[]> getTopRoomsLast7Days();
+
+    @Query(value = "SELECT rv.variant_name as roomName, h.name as hotelName, COUNT(b.id) as bookingCount " +
+                   "FROM hotel_bookings b " +
+                   "JOIN hotel_room_variants rv ON b.room_variant_id = rv.id " +
+                   "JOIN hotel_rooms r ON rv.room_id = r.id " +
+                   "JOIN hotels h ON r.hotel_id = h.id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE YEAR(b.created_at) = YEAR(GETDATE()) AND MONTH(b.created_at) = MONTH(GETDATE()) AND o.status = 'PAID' " +
+                   "GROUP BY rv.id, rv.variant_name, h.name " +
+                   "ORDER BY bookingCount DESC", nativeQuery = true)
+    List<Object[]> getTopRoomsThisMonth();
+
+    @Query(value = "SELECT rv.variant_name as roomName, h.name as hotelName, COUNT(b.id) as bookingCount " +
+                   "FROM hotel_bookings b " +
+                   "JOIN hotel_room_variants rv ON b.room_variant_id = rv.id " +
+                   "JOIN hotel_rooms r ON rv.room_id = r.id " +
+                   "JOIN hotels h ON r.hotel_id = h.id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE YEAR(b.created_at) = YEAR(DATEADD(MONTH, -1, GETDATE())) AND MONTH(b.created_at) = MONTH(DATEADD(MONTH, -1, GETDATE())) AND o.status = 'PAID' " +
+                   "GROUP BY rv.id, rv.variant_name, h.name " +
+                   "ORDER BY bookingCount DESC", nativeQuery = true)
+    List<Object[]> getTopRoomsLastMonth();
+
+    default Map<String, Object> getTopRoomsChartData(String period) {
+        List<Object[]> results;
+        switch (period) {
+            case "today":
+                results = getTopRoomsToday();
+                break;
+            case "yesterday":
+                results = getTopRoomsYesterday();
+                break;
+            case "last_7_days":
+                results = getTopRoomsLast7Days();
+                break;
+            case "this_month":
+                results = getTopRoomsThisMonth();
+                break;
+            case "last_month":
+                results = getTopRoomsLastMonth();
+                break;
+            default:
+                results = getTopRoomsThisMonth();
+                break;
+        }
+
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        java.util.List<Number> data = new java.util.ArrayList<>();
+        java.util.List<String> hotels = new java.util.ArrayList<>();
+
+        int limit = Math.min(results.size(), 10);
+        for (int i = 0; i < limit; i++) {
+            Object[] row = results.get(i);
+            String roomName = (String) row[0];
+            String hotelName = (String) row[1];
+            Number bookingCount = (Number) row[2];
+            
+            labels.add(roomName);
+            data.add(bookingCount);
+            hotels.add(hotelName);
+        }
+
+        java.util.Map<String, Object> chartData = new java.util.HashMap<>();
+        chartData.put("labels", labels);
+        chartData.put("data", data);
+        chartData.put("hotels", hotels);
         return chartData;
     }
 }

@@ -88,7 +88,7 @@
       </div>
       <div class="flex flex-col items-center mt-8">
         <router-link
-          :to="`/plane/pay?orderId=${order.id}`"
+          :to="`/orders/${order.id}`"
           class="bg-gradient-to-tr from-indigo-500 via-sky-400 to-cyan-300 hover:from-indigo-600 hover:to-sky-500 text-white font-bold py-4 px-16 rounded-2xl text-xl transition-all duration-300 "
         >
           <i class="fa-solid fa-credit-card mr-2"></i> Thanh toán ngay

@@ -15,9 +15,10 @@
       </div>
       <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
         <div class="overflow-x-auto">
-          <table class="min-w-[900px] w-full divide-y divide-slate-200">
+          <table class="min-w-[1000px] w-full divide-y divide-slate-200">
             <thead class="bg-slate-100">
               <tr>
+                <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
                 <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách hàng</th>
                 <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Email</th>
                 <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện thoại</th>
@@ -28,9 +29,14 @@
             </thead>
             <tbody class="bg-white divide-y divide-slate-100">
               <tr v-if="paginatedCustomers.length === 0">
-                <td colspan="6" class="px-6 py-12 text-center text-slate-500">Không tìm thấy khách hàng nào</td>
+                <td colspan="7" class="px-6 py-12 text-center text-slate-500">Không tìm thấy khách hàng nào</td>
               </tr>
-              <tr v-for="c in paginatedCustomers" :key="c.id" class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer" @click="viewCustomer(c)">
+              <tr v-for="(c, index) in paginatedCustomers" :key="c.id" class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer" @click="viewCustomer(c)">
+                <td class="px-3 py-5 whitespace-nowrap">
+                  <div class="text-sm font-medium text-slate-700 text-center">
+                    {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                  </div>
+                </td>
                 <td class="px-3 py-5 whitespace-nowrap font-semibold text-slate-900">{{ c.fullName }}</td>
                 <td class="px-3 py-5 whitespace-nowrap">{{ c.email }}</td>
                 <td class="px-3 py-5 whitespace-nowrap">{{ c.phone }}</td>

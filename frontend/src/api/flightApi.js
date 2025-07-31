@@ -5,11 +5,24 @@ const API_BASE_URL = 'http://localhost:8080/api';
 const api = axios.create({
   baseURL: API_BASE_URL
 });
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('t_'); 
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Flights
-export const searchFlights = (params) => api.get('/flights/search', { params });
+export const searchFlights = (params) => api.post('/flights/search', params );
 export const getFlightDetail = (flightId) => api.get(`/admin/flights/${flightId}`);
 export const getFlightDetailPublic = (flightId) => api.get(`/flights/${flightId}`);
+export const flightBooked = (flightId) => api.get(`/admin/flight-booked/${flightId}`);
 export function getAvailableSeats(flightId) {
   return api.get(`/flights/${flightId}/available-seats`);
 }
@@ -26,7 +39,7 @@ export const getCustomerFlightBookings = (customerId) =>
 export const getFlightBookingDetail = (bookingId) =>
   api.get(`/bookings/flights/${bookingId}`);
 export const cancelFlightBooking = (bookingId) =>
-  api.post(`/bookings/flights/${bookingId}/cancel`);
+  api.get(`/bookings/flights/${bookingId}/cancel`);
 
 // Admin – Flights
 export const getAdminFlights = (params) =>
@@ -67,8 +80,8 @@ export const getAdminSeats = (flightId) =>
   api.get(`/admin/flights/${flightId}/seats`);
 export const updateAdminSeats = (flightId, data) =>
   api.put(`/admin/flights/${flightId}/seats`, data);
-export const updateAdminSeat = (flightId, slotId, data) =>
-  api.put(`/admin/flights/${flightId}/seats/${slotId}`, data);
+export const updateAdminSeat = ( slotId, data) =>
+  api.put(`/admin/flights/seats/${slotId}`, data);
 export const deleteAdminSeat = (flightId, slotId) =>
   api.delete(`/admin/flights/${flightId}/seats/${slotId}`);
 
@@ -113,3 +126,9 @@ export const reserveFlightDirect = (dto) =>
 // Lấy thông tin tổng hợp giữ chỗ chuyến bay (reservation summary)
 export const getFlightReservationSummary = (bookingId) =>
   api.get(`/bookings/flights/reservation-summary/${bookingId}`);
+
+
+export const updateGroupSeat = (flightId,dto) =>
+  api.put(`/admin/updateGroupSeat/${flightId}`,dto);
+export const updateCustomer = (id,customerDto) =>
+  api.put(`/flights/update-customer/${id}`,customerDto);

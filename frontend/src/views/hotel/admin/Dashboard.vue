@@ -405,6 +405,9 @@ onMounted(() => {
   fetchRevenueChart();
   fetchRevenuePieChart();
   fetchTopRoomsChart();
+  
+  // Tự động yêu cầu quyền notification khi vào trang admin
+  requestNotificationPermission();
 });
 
 const fetchDashboardStatistics = async () => {
@@ -530,4 +533,35 @@ function formatCurrency(val) {
   if (val == null) return '--';
   return Number(val).toLocaleString('vi-VN') + ' VND';
 }
+
+// Tự động yêu cầu quyền notification
+const requestNotificationPermission = async () => {
+  try {
+    // Kiểm tra browser có hỗ trợ notification không
+    if (!('Notification' in window)) {
+      console.log('Browser không hỗ trợ notifications');
+      return;
+    }
+
+    // Kiểm tra quyền hiện tại
+    if (Notification.permission === 'default') {
+      // Yêu cầu quyền notification
+      const permission = await Notification.requestPermission();
+      console.log('Notification permission:', permission);
+      
+      if (permission === 'granted') {
+        console.log('Đã được cấp quyền notification');
+        // Có thể thêm logic subscribe push notification ở đây
+      } else {
+        console.log('Quyền notification bị từ chối');
+      }
+    } else if (Notification.permission === 'granted') {
+      console.log('Đã có quyền notification');
+    } else {
+      console.log('Quyền notification bị từ chối');
+    }
+  } catch (error) {
+    console.error('Lỗi khi yêu cầu quyền notification:', error);
+  }
+};
 </script>

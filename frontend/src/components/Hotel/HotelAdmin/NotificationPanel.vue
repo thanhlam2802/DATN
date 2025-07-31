@@ -1,5 +1,7 @@
 <template>
   <div class="w-80 bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+    
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
         <h3 class="font-semibold text-slate-800 text-sm">Thông Báo</h3>
@@ -40,17 +42,7 @@
       </div>
     </div>
 
-    <div class="mt-4 pt-3 border-t border-slate-200">
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-slate-500">Trạng thái kết nối:</span>
-        <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full" :class="isConnected ? 'bg-green-500' : 'bg-red-500'"></div>
-          <span :class="isConnected ? 'text-green-600' : 'text-red-600'">
-            {{ isConnected ? 'Đã kết nối' : 'Đang kết nối...' }}
-          </span>
-        </div>
-      </div>
-    </div>
+    <!-- Bỏ trạng thái kết nối -->
   </div>
 </template>
 
@@ -169,9 +161,7 @@ const addNotification = (type, title, message) => {
 
   saveNotificationsToStorage();
 
-  if (window.$toast) {
-    window.$toast(message, type === 'payment' ? 'success' : type === 'cancellation' ? 'error' : 'info');
-  }
+  showWindowNotification(type, title, message);
 };
 
 const removeNotification = (id) => {
@@ -269,8 +259,228 @@ const disconnectWebSocket = () => {
   }
 };
 
+const showWindowNotification = (type, title, message) => {
+  showDesktopNotification(type, title, message);
+  
+  sendPushNotification(type, title, message);
+  
+  // Tắt toast notifications - chỉ giữ lại desktop và push notifications
+  // showToastNotification(type, title, message);
+};
+
+const showDesktopNotification = (type, title, message) => {
+  if (!("Notification" in window)) {
+    console.log("This browser does not support desktop notification");
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    createDesktopNotification(type, title, message);
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        createDesktopNotification(type, title, message);
+      }
+    });
+  }
+};
+
+const sendPushNotification = async (type, title, message) => {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.log('Push notifications are not supported');
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('Push notification permission denied');
+      return;
+    }
+
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('YOUR_VAPID_PUBLIC_KEY') 
+      });
+    }
+
+    await registration.showNotification(title, {
+      body: message,
+      icon: getNotificationIcon(type),
+      badge: '/favicon.ico',
+      tag: 'hotel-admin-notification',
+      requireInteraction: false,
+      silent: false,
+      data: {
+        type: type,
+        timestamp: new Date().toISOString()
+      },
+      actions: [
+        {
+          action: 'view',
+          title: 'Xem chi tiết',
+          icon: '/icons/view.png'
+        },
+        {
+          action: 'dismiss',
+          title: 'Đóng',
+          icon: '/icons/close.png'
+        }
+      ]
+    });
+
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+  }
+};
+
+const showToastNotification = (type, title, message) => {
+  if (window.$toast) {
+    const toastType = type === 'payment' ? 'success' : 
+                     type === 'cancellation' ? 'error' : 
+                     type === 'review' ? 'warning' : 'info';
+    window.$toast(message, toastType);
+  } else {
+    showCustomToast(type, title, message);
+  }
+};
+
+const urlBase64ToUint8Array = (base64String) => {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
+
+const createNotification = (type, title, message) => {
+  const notification = new Notification(title, {
+    body: message,
+    icon: getNotificationIcon(type),
+    badge: '/favicon.ico',
+    tag: 'hotel-admin-notification',
+    requireInteraction: false,
+    silent: false
+  });
+
+  setTimeout(() => {
+    notification.close();
+  }, 5000);
+
+  notification.onclick = () => {
+    window.focus();
+    notification.close();
+  };
+};
+
+const getNotificationIcon = (type) => {
+  switch (type) {
+    case 'booking':
+      return '/icons/booking.png';
+    case 'payment':
+      return '/icons/payment.png'; 
+    case 'review':
+      return '/icons/review.png'; 
+    case 'cancellation':
+      return '/icons/cancellation.png'; 
+    case 'system':
+      return '/icons/system.png'; 
+    default:
+      return '/favicon.ico';
+  }
+};
+
+const showCustomToast = (type, title, message) => {
+  let toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) {
+    createToastContainer();
+    toastContainer = document.getElementById('toast-container');
+  }
+
+  const toast = document.createElement('div');
+  const toastId = 'toast-' + Date.now();
+  toast.id = toastId;
+  
+  const bgColor = type === 'payment' ? 'bg-green-500' : 
+                  type === 'cancellation' ? 'bg-red-500' : 
+                  type === 'review' ? 'bg-yellow-500' : 
+                  type === 'booking' ? 'bg-blue-500' : 'bg-gray-500';
+  
+  const icon = type === 'payment' ? 'fas fa-check-circle' : 
+               type === 'cancellation' ? 'fas fa-times-circle' : 
+               type === 'review' ? 'fas fa-star' : 
+               type === 'booking' ? 'fas fa-calendar-check' : 'fas fa-bell';
+
+  toast.className = `${bgColor} text-white p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 translate-x-full opacity-0`;
+  toast.innerHTML = `
+    <div class="flex items-start">
+      <div class="flex-shrink-0">
+        <i class="${icon} text-lg"></i>
+      </div>
+      <div class="ml-3 flex-1">
+        <p class="text-sm font-medium">${title}</p>
+        <p class="text-sm opacity-90 mt-1">${message}</p>
+      </div>
+      <div class="ml-4 flex-shrink-0">
+        <button class="text-white hover:text-gray-200 close-toast-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+  toastContainer.appendChild(toast);
+
+  const closeBtn = toast.querySelector('.close-toast-btn');
+  closeBtn.addEventListener('click', () => {
+    removeToast(toast);
+  });
+
+  setTimeout(() => {
+    toast.classList.remove('translate-x-full', 'opacity-0');
+  }, 100);
+
+  setTimeout(() => {
+    removeToast(toast);
+  }, 5000);
+};
+
+const removeToast = (toast) => {
+  if (toast && toast.parentNode) {
+    toast.classList.add('translate-x-full', 'opacity-0');
+    setTimeout(() => {
+      if (toast && toast.parentNode) {
+        toast.remove();
+      }
+    }, 300);
+  }
+};
+
+function createDesktopNotification(type, title, message) {
+  const icon = '/favicon.ico';
+  new Notification(title, {
+    body: message,
+    icon,
+    tag: 'hotel-admin-notification',
+    requireInteraction: false
+  });
+}
+
 onMounted(() => {
   loadNotificationsFromStorage();
+
+  createToastContainer();
 
   connectWebSocket();
 
@@ -295,6 +505,17 @@ onMounted(() => {
   }
 });
 
+const createToastContainer = () => {
+  let toastContainer = document.getElementById('toast-container');
+  
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.className = 'fixed top-4 right-4 z-50 space-y-2';
+    document.body.appendChild(toastContainer);
+  }
+};
+
 onUnmounted(() => {
   disconnectWebSocket();
 });
@@ -314,6 +535,26 @@ onUnmounted(() => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+#toast-container {
+  pointer-events: none;
+}
+
+#toast-container > div {
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  #toast-container {
+    top: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+  
+  #toast-container > div {
+    max-width: none;
   }
 }
 </style>

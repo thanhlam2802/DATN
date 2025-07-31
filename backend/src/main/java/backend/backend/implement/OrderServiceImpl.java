@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,8 +59,6 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
             order.setVoucher(voucher);
         }
-        
-
         order.setStatus("PAID");
         order.setPayDate(LocalDateTime.now());
         orderDAO.save(order);
@@ -126,11 +125,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
         // 1. Lấy user từ context (chuẩn):
-        // String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        // User user = userDAO.findByUsername(username).orElseThrow(...);
-        // Tạm thời hardcode:
-        User user = userDAO.findById(1)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+         User user = userDAO.findByEmail(username).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
 
         // 2. Lấy slot và flight
         FlightSlot slot = flightSlotDAO.findById(directRequest.getFlightSlotId())
@@ -138,7 +134,7 @@ public class OrderServiceImpl implements OrderService {
         Flight flight = slot.getFlight();
 
         // 3. Kiểm tra slot đã được đặt chưa
-        boolean slotBooked = flightBookingDAO.findByFlightSlotId(slot.getId()).size() > 0;
+        boolean slotBooked = slot.getStatus().equalsIgnoreCase("used");
         if (slotBooked) {
             throw new IllegalStateException("Vé này đã có người khác đặt. Bạn đã thao tác chậm, vui lòng chọn vé khác!");
         }
@@ -180,7 +176,8 @@ public class OrderServiceImpl implements OrderService {
         booking.setCustomer(savedCustomer);
         flightBookingDAO.save(booking);
         slot.setStatus("USED");
-        flightSlotDAO.save(slot);
+        FlightSlot fl =  flightSlotDAO.save(slot);
+        logger.info("fl status sau khi save: {}",fl.getStatus());
         return flightBookingDAO.save(booking).getId();
     }
 
@@ -431,7 +428,34 @@ public class OrderServiceImpl implements OrderService {
     }
     
     private OrderDto convertToDto(Order order) {
-      
-        return new OrderDto();
+    	if (order == null) return null;
+
+        // This method combines the logic of toOrderDTO and toDetailedOrderDto,
+        // and also maps the 'originalAmount' which is crucial after applying a voucher.
+        OrderDto dto = new OrderDto();
+        dto.setId(order.getId());
+        dto.setAmount(order.getAmount());
+        dto.setOriginalAmount(order.getOriginalAmount());
+        dto.setStatus(order.getStatus());
+        dto.setPayDate(order.getPayDate());
+        dto.setCreatedAt(order.getCreatedAt());
+        dto.setExpiresAt(order.getExpiresAt());
+
+        if (order.getUser() != null) {
+            dto.setUserId(order.getUser().getId());
+        }
+        if (order.getVoucher() != null) {
+            dto.setVoucherId(order.getVoucher().getId());
+        }
+        if (order.getDestination() != null) {
+            dto.setDestinationId(order.getDestination().getId());
+        }
+
+        // Add all booking details for a complete response, similar to toDetailedOrderDto
+        dto.setTourBookings(bookingTourDAO.findByOrderId(order.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
+        dto.setFlightBookings(flightBookingDAO.findByOrderId(order.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
+        dto.setHotelBookings(hotelBookingDAO.findByOrderId(order.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
+
+        return dto;
     }
 }

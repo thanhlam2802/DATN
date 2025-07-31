@@ -1,12 +1,24 @@
 <script setup>
-import { ref, onMounted, computed, reactive, onUnmounted } from "vue"; // Import thêm onUnmounted
+import {
+  ref,
+  onMounted,
+  computed,
+  reactive,
+  onUnmounted,
+  nextTick,
+  watch,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getBearerToken } from "@/services/TokenService";
-
-// --- START: Thư viện WebSocket ---
+import { updateCustomer, cancelFlightBooking } from "@/api/flightApi";
+import {
+  servicePaymentMake,
+  servicePaymentConfirm,
+  accountLookup,
+} from "@/api/coreBankingApi";
 import SockJS from "sockjs-client/dist/sockjs.min.js";
+import { markOrderSuccess } from "@/api/OrderApi";
 import Stomp from "stompjs";
-// --- END: Thư viện WebSocket ---
 
 const route = useRoute();
 const router = useRouter();
@@ -20,21 +32,132 @@ const processingItemId = ref(null);
 
 // --- STATE CHO VOUCHER ---
 const voucherCode = ref("");
-const isApplyingVoucher = ref(false);
+const isApplyingVoucher = ref(false); // Now used for the FINAL application before payment
 const suggestedVouchers = ref([]);
 const isLoadingVouchers = ref(false);
+const orderId = route.params.id;
 
-// --- START: STATE CHO WEBSOCKET ---
+// --- START: NEW STATE FOR VOUCHER PREVIEW ---
+const previewedVoucher = reactive({
+  code: "",
+  discountAmount: 0,
+  newTotal: 0,
+  error: null,
+});
+const isAwaitingPaymentAfterVoucher = ref(false); // Flag to chain payment after voucher application
+// --- END: NEW STATE FOR VOUCHER PREVIEW ---
+
+// --- STATE CHO WEBSOCKET ---
 const stompClient = ref(null);
 const isSocketConnected = ref(false);
-// --- END: STATE CHO WEBSOCKET ---
 
-// Reactive state for hotel image sliders
+const timeLeft = ref(0);
+const timerInterval = ref(null);
+const hasExpired = ref(false);
+const minutes = computed(() => Math.floor(timeLeft.value / 60));
+const seconds = computed(() => timeLeft.value % 60);
+
 const hotelImageIndices = reactive({});
 const slideDirectionMap = reactive({});
+const customer = ref({
+  fullName: "",
+  gender: null,
+  dob: "",
+  passport: "",
+  email: "",
+  phone: "",
+  id: null,
+});
+
+const startCountdown = (expiresAt) => {
+  if (!expiresAt) return;
+  const expireMs = new Date(expiresAt).getTime();
+  timerInterval.value = setInterval(() => {
+    const rem = Math.round((expireMs - Date.now()) / 1000);
+    if (rem > 0) timeLeft.value = rem;
+    else {
+      timeLeft.value = 0;
+      hasExpired.value = true;
+      clearInterval(timerInterval.value);
+    }
+  }, 1000);
+};
+
+const showDropdown = ref(false);
+const selectedBank = ref(null);
+const banks = [
+  {
+    code: "VCB",
+    name: "Vietcombank",
+    logo: "https://hienlaptop.com/wp-content/uploads/2024/12/logo-vietcombank-vector-11.png",
+  },
+  {
+    code: "VIB",
+    name: "Vietinbank",
+    logo: "https://cdn.haitrieu.com/wp-content/uploads/2022/01/Logo-VietinBank-CTG-Ori.png",
+  },
+  {
+    code: "BIDV",
+    name: "BIDV",
+    logo: "https://bidv.com.vn/wps/wcm/connect/674b6448-d23b-484e-b4d3-1e86fa68bd0d/Logo+Nguyen+ban+nen+trang.png?MOD=AJPERES&CACHEID=ROOTWORKSPACE-674b6448-d23b-484e-b4d3-1e86fa68bd0d-pfdjkOq",
+  },
+  {
+    code: "Techcombank",
+    name: "Techcombank",
+    logo: "https://plus.vtc.edu.vn/wp-content/uploads/2020/09/techcombank.png",
+  },
+  {
+    code: "ACB",
+    name: "ACB",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Asia_Commercial_Bank_logo.svg/2560px-Asia_Commercial_Bank_logo.svg.png",
+  },
+  {
+    code: "Sacombank",
+    name: "Sacombank",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Logo-Sacombank-new.png",
+  },
+  {
+    code: "VP Bank",
+    name: "VPBank",
+    logo: "https://cdn.haitrieu.com/wp-content/uploads/2022/01/Icon-VPBank.png",
+  },
+  {
+    code: "MB Bank",
+    name: "MB Bank",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/2/25/Logo_MB_new.png",
+  },
+  {
+    code: "TCB",
+    name: "TPBank",
+    logo: "https://cdn.haitrieu.com/wp-content/uploads/2022/02/Icon-TPBank.png",
+  },
+  {
+    code: "Agri Bank",
+    name: "Agribank",
+    logo: "https://cdn.haitrieu.com/wp-content/uploads/2022/01/Icon-Agribank.png",
+  },
+];
+
+const bankTransfer = reactive({
+  bankCode: "",
+  accountNumber: "",
+  accountName: "",
+  availableBalance: 0,
+  amount: 0,
+  currency: "VND",
+});
 
 // --- COMPUTED PROPERTIES ---
 const isEditable = computed(() => order.value?.status === "PENDING_PAYMENT");
+const finalTotal = computed(() => {
+  if (!order.value) return 0;
+  // If a voucher is previewed and not yet permanently applied, show the previewed total
+  if (!order.value.voucher && previewedVoucher.newTotal > 0) {
+    return previewedVoucher.newTotal;
+  }
+  // Otherwise, show the actual amount from the order object
+  return order.value.amount;
+});
 
 // --- HELPER FUNCTIONS ---
 const formatPrice = (price) =>
@@ -48,6 +171,80 @@ const formatDate = (dateString) =>
     month: "2-digit",
     year: "numeric",
   });
+
+function handleEdittem(data) {
+  const div = document.getElementById("modeledit");
+  customer.value = data;
+  div.classList.remove("hidden");
+}
+
+const notFound = ref(false);
+const found = ref(false);
+const isPaying = ref(false);
+const isLoadingLK = ref(false);
+const showOtpDialog = ref(false);
+const paymentId = ref(null);
+const otp = ref("");
+const isConfirming = ref(false);
+const otpError = ref("");
+const otpSuccess = ref(false);
+const amountError = ref(false);
+const amountValidationMessage = ref("");
+const otpCountdown = ref(600);
+const otpCountdownDisplay = ref("10:00");
+const otpExpired = ref(false);
+let otpTimer = null;
+
+function resetAccountInfo() {
+  bankTransfer.accountName = "";
+  bankTransfer.availableBalance = 0;
+  bankTransfer.amount = 0;
+  notFound.value = false;
+  found.value = false;
+}
+
+function selectBank(bank) {
+  selectedBank.value = bank;
+  bankTransfer.bankCode = bank.code;
+  showDropdown.value = false;
+}
+
+function handleClickOutside(e) {
+  const dd = document.querySelector(".bank-dropdown");
+  if (dd && !dd.contains(e.target)) showDropdown.value = false;
+}
+
+function exit() {
+  const div = document.getElementById("modeledit");
+  customer.value = {
+    fullName: "",
+    gender: null,
+    dob: "",
+    passport: "",
+    email: "",
+    phone: "",
+    id: null,
+  };
+  div.classList.add("hidden");
+}
+
+let isloadingUpdateC = ref();
+async function UpdateCustomer() {
+  isloadingUpdateC.value = true;
+  const response = await updateCustomer(customer.value.id, customer.value);
+  if (response.status === 200 && response.data) {
+    window.$toast &&
+      window.$toast(response.message || "Cập nhập thành công!", "success");
+    isloadingUpdateC.value = false;
+  } else {
+    window.$toast &&
+      window.$toast(
+        response.message || "Có lỗi xảy ra, vui lòng thử lại.",
+        "error"
+      );
+    isloadingUpdateC.value = false;
+  }
+}
 
 const formatDateTime = (dateString) =>
   new Date(dateString).toLocaleString("vi-VN", {
@@ -98,33 +295,24 @@ const getVoucherDiscountText = (voucher) => {
 };
 
 const connectWebSocket = () => {
-  const orderId = route.params.id;
   if (!orderId || (stompClient.value && isSocketConnected.value)) return;
-
   const socket = new SockJS("http://localhost:8080/ws");
   stompClient.value = Stomp.over(socket);
-  stompClient.value.debug = null; // Tắt log không cần thiết
-
+  stompClient.value.debug = null;
   stompClient.value.connect({}, (frame) => {
     console.log("WebSocket Connected:", frame);
     isSocketConnected.value = true;
-
-    // Kênh riêng cho đơn hàng này (giữ nguyên)
     stompClient.value.subscribe(`/topic/orders/${orderId}`, (response) => {
       handleVoucherResponse(JSON.parse(response.body));
     });
-
-    // MỚI: Lắng nghe trên kênh cập nhật voucher công khai
     stompClient.value.subscribe(`/topic/vouchers/updates`, (response) => {
       const update = JSON.parse(response.body);
       if (update.status === "UNAVAILABLE") {
         console.log(`Voucher ${update.voucherCode} đã hết! Cập nhật UI.`);
-        // Tìm voucher trong danh sách gợi ý và vô hiệu hóa nó
         const usedVoucher = suggestedVouchers.value.find(
           (v) => v.code === update.voucherCode
         );
         if (usedVoucher) {
-          // Bạn có thể thêm một thuộc tính 'disabled' hoặc xóa nó khỏi danh sách
           usedVoucher.disabled = true;
         }
       }
@@ -133,39 +321,63 @@ const connectWebSocket = () => {
 };
 
 /**
- * Xử lý phản hồi voucher từ server qua WebSocket.
+ * Handles voucher responses from the server.
+ * This is now also responsible for triggering the payment flow after a successful voucher application.
  */
 const handleVoucherResponse = (response) => {
-  isApplyingVoucher.value = false; // Tắt loading
+  isApplyingVoucher.value = false;
   if (response.statusCode === 200 && response.data) {
-    // Thành công
     order.value = response.data;
+    bankTransfer.amount = order.value.amount;
+    validateAmount();
+    window.$toast && window.$toast("Áp dụng voucher thành công!", "success");
+
+    // If payment was waiting for this, proceed now.
+    if (isAwaitingPaymentAfterVoucher.value) {
+      isAwaitingPaymentAfterVoucher.value = false;
+      window.$toast &&
+        window.$toast("Đang tiếp tục đến thanh toán...", "success");
+      nextTick(() => {
+        proceedToPaymentGateway();
+      });
+    }
+  } else {
     window.$toast &&
       window.$toast(
-        response.message || "Áp dụng voucher thành công!",
-        "success"
+        response.message || "Có lỗi xảy ra, vui lòng thử lại.",
+        "error"
       );
-    voucherCode.value = "";
+    // If the process fails, stop the payment flow.
+    if (isAwaitingPaymentAfterVoucher.value) {
+      isAwaitingPaymentAfterVoucher.value = false;
+      isPaying.value = false;
+    }
+  }
+};
+
+async function CancelFlightBooking(id) {
+  const response = await cancelFlightBooking(id);
+  if (response.status === 200) {
+    await fetchOrderDetails();
+    window.$toast &&
+      window.$toast(response.message || "Xóa thành công!", "success");
   } else {
-    // Thất bại
     window.$toast &&
       window.$toast(
         response.message || "Có lỗi xảy ra, vui lòng thử lại.",
         "error"
       );
   }
-};
+}
 
 onUnmounted(() => {
   if (stompClient.value && isSocketConnected.value) {
     stompClient.value.disconnect();
     console.log("WebSocket Disconnected.");
   }
+  clearInterval(timerInterval.value);
 });
 
-// --- END: Logic WebSocket ---
-
-// --- API CALLS ---
 const fetchOrderDetails = async () => {
   isLoading.value = true;
   error.value = null;
@@ -176,7 +388,6 @@ const fetchOrderDetails = async () => {
       { headers: { Authorization: getBearerToken() } }
     );
     if (!orderResponse.ok) throw new Error("Không thể tải chi tiết đơn hàng.");
-
     const data = await orderResponse.json();
     order.value = data.data;
 
@@ -184,32 +395,23 @@ const fetchOrderDetails = async () => {
       const activeCartId = localStorage.getItem("activeCartId");
       if (activeCartId && parseInt(activeCartId) === order.value.id) {
         localStorage.removeItem("activeCartId");
-        console.log(
-          `Đã xóa activeCartId (${activeCartId}) vì đơn hàng đã ở trạng thái cuối cùng.`
-        );
       }
     }
-
-    // THAY ĐỔI: Nếu đơn hàng có thể sửa, kết nối WebSocket và tải voucher
+    startCountdown(data.data.expiresAt);
     if (order.value && isEditable.value) {
       connectWebSocket();
       await fetchSuggestedVouchers();
     }
-
     flightBookingDetails.value = [];
     if (order.value.flightBookings && order.value.flightBookings.length > 0) {
       for (const booking of order.value.flightBookings) {
-        try {
-          const detailRes = await fetch(
-            `http://localhost:8080/api/bookings/flights/reservation-summary/${booking.id}`,
-            { headers: { Authorization: getBearerToken() } }
-          );
-          if (detailRes.ok) {
-            const detail = await detailRes.json();
-            flightBookingDetails.value.push({ ...detail, showDetail: false });
-          }
-        } catch (e) {
-          console.error(`Lỗi tải chi tiết chuyến bay ${booking.id}:`, e);
+        const detailRes = await fetch(
+          `http://localhost:8080/api/bookings/flights/reservation-summary/${booking.id}`,
+          { headers: { Authorization: getBearerToken() } }
+        );
+        if (detailRes.ok) {
+          const detail = await detailRes.json();
+          flightBookingDetails.value.push({ ...detail, showDetail: false });
         }
       }
     }
@@ -225,9 +427,7 @@ const fetchSuggestedVouchers = async () => {
   try {
     const response = await fetch(
       `http://localhost:8080/api/vouchers/suggested?orderAmount=${order.value.amount}`,
-      {
-        headers: { Authorization: getBearerToken() },
-      }
+      { headers: { Authorization: getBearerToken() } }
     );
     if (response.ok) {
       suggestedVouchers.value = await response.json();
@@ -239,39 +439,257 @@ const fetchSuggestedVouchers = async () => {
   }
 };
 
-onMounted(fetchOrderDetails);
+onMounted(() => {
+  fetchOrderDetails();
+  document.addEventListener("click", handleClickOutside);
+});
 
-// --- EVENT HANDLERS ---
+async function onAccountNumberBlur() {
+  if (!selectedBank.value || !bankTransfer.accountNumber) {
+    resetAccountInfo();
+    return;
+  }
+  isLoadingLK.value = true;
+  notFound.value = false;
+  found.value = false;
+  try {
+    const res = await accountLookup({
+      bankCode: selectedBank.value.code,
+      accountNumber: bankTransfer.accountNumber,
+    });
+    bankTransfer.accountName = res.data.accountHolderName || "";
+    bankTransfer.availableBalance = res.data.availableBalance || 0;
+    bankTransfer.currency = res.data.currency || "VND";
+    if (bankTransfer.accountName) {
+      found.value = true;
+      if (order.value?.amount) {
+        // Use the finalTotal computed property which accounts for previews
+        bankTransfer.amount = finalTotal.value;
+        validateAmount();
+      }
+    } else notFound.value = true;
+  } catch (e) {
+    resetAccountInfo();
+    notFound.value = true;
+  } finally {
+    isLoadingLK.value = false;
+  }
+}
+
+function validateAmount() {
+  amountValidationMessage.value = "";
+  // Use finalTotal computed property for validation
+  const requiredAmount = finalTotal.value;
+
+  if (!requiredAmount) {
+    amountError.value = true;
+    amountValidationMessage.value = "Chưa có thông tin số tiền cần thanh toán.";
+    return;
+  }
+
+  if (bankTransfer.amount !== requiredAmount) {
+    amountError.value = true;
+    amountValidationMessage.value = `Vui lòng nhập đúng số tiền thanh toán: ${formatPrice(
+      requiredAmount
+    )}`;
+  } else if (bankTransfer.amount > bankTransfer.availableBalance) {
+    amountError.value = true;
+    amountValidationMessage.value = `Số dư không đủ. Cần ${formatPrice(
+      requiredAmount
+    )}.`;
+  } else {
+    amountError.value = false;
+  }
+}
 
 /**
- * THAY ĐỔI: Gửi yêu cầu áp dụng voucher qua WebSocket thay vì HTTP fetch.
+ * Contains the core logic for making the payment after all checks and voucher applications are done.
  */
-const handleApplyVoucher = () => {
-  const code = voucherCode.value.trim();
+async function proceedToPaymentGateway() {
+  try {
+    const res = await servicePaymentMake({
+      customerAccountNumber: bankTransfer.accountNumber,
+      customerBankCode: selectedBank.value.code,
+      amount: bankTransfer.amount,
+      currency: bankTransfer.currency,
+      remittanceInfo: "Thanh toán dịch vụ",
+      idempotencyKey: Date.now().toString(),
+    });
+    if (res.data?.paymentId) {
+      paymentId.value = res.data.paymentId;
+      showOtpDialog.value = true;
+      otp.value = "";
+      otpError.value = "";
+      otpSuccess.value = false;
+      window.$toast("Đã gửi OTP qua email.", "success");
+    } else {
+      window.$toast("Không nhận được paymentId.", "error");
+      isPaying.value = false; // Stop loading on failure
+    }
+  } catch {
+    window.$toast("Gửi thanh toán thất bại!", "error");
+    isPaying.value = false; // Stop loading on failure
+  }
+}
+
+/**
+ * The main payment handler. It orchestrates applying the voucher first, then paying.
+ */
+async function submitPayment() {
+  validateAmount();
+  if (amountError.value || !bankTransfer.amount) return;
+
+  isPaying.value = true;
+
+  // If a valid voucher is being previewed, apply it for real first.
+  if (
+    previewedVoucher.code &&
+    previewedVoucher.discountAmount > 0 &&
+    !order.value.voucher
+  ) {
+    if (!stompClient.value || !isSocketConnected.value) {
+      window.$toast("Lỗi kết nối real-time. Vui lòng thử lại.", "error");
+      isPaying.value = false;
+      return;
+    }
+    isAwaitingPaymentAfterVoucher.value = true;
+    isApplyingVoucher.value = true; // Show loading state
+    stompClient.value.send(
+      `/app/orders/${order.value.id}/apply-voucher`,
+      {},
+      JSON.stringify({ voucherCode: previewedVoucher.code })
+    );
+    // The flow will now wait for handleVoucherResponse to continue.
+  } else {
+    // No voucher to apply, go straight to payment.
+    await proceedToPaymentGateway();
+  }
+}
+
+async function confirmOtp() {
+  if (!otp.value || !paymentId.value) return;
+  isConfirming.value = true;
+  otpError.value = "";
+  otpSuccess.value = false;
+  try {
+    const res = await servicePaymentConfirm({
+      paymentId: paymentId.value,
+      otp: otp.value,
+    });
+    if (res.data?.transactionId) {
+      otpSuccess.value = true;
+      onAccountNumberBlur();
+      order.value.status = "PAID";
+      window.$toast("Thanh toán hoàn tất!", "success");
+      showOtpDialog.value = false;
+      try {
+        await markOrderSuccess(orderId, res.data.transactionId);
+      } catch (e) {
+        window.$toast(
+          e.message || "Cập nhật trạng thái đơn hàng thất bại!",
+          "error"
+        );
+      }
+    } else {
+      otpError.value = "OTP không đúng hoặc đã hết hạn.";
+    }
+  } catch {
+    otpError.value = "Xác nhận OTP thất bại!";
+  } finally {
+    isConfirming.value = false;
+    isPaying.value = false;
+  }
+}
+
+function startOtpCountdown() {
+  otpCountdown.value = 600;
+  otpExpired.value = false;
+  updateOtpCountdownDisplay();
+  if (otpTimer) clearInterval(otpTimer);
+  otpTimer = setInterval(() => {
+    if (otpCountdown.value > 0) {
+      otpCountdown.value--;
+      updateOtpCountdownDisplay();
+    } else {
+      otpExpired.value = true;
+      clearInterval(otpTimer);
+    }
+  }, 1000);
+}
+
+function updateOtpCountdownDisplay() {
+  const m = Math.floor(otpCountdown.value / 60);
+  const s = otpCountdown.value % 60;
+  otpCountdownDisplay.value = `${m.toString().padStart(2, "0")}:${s
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+watch(showOtpDialog, (val) => {
+  if (val) startOtpCountdown();
+  else clearInterval(otpTimer);
+});
+
+/**
+ * Calculates the discount for preview purposes without calling the server.
+ */
+const previewVoucherDiscount = () => {
+  const code = voucherCode.value.trim().toUpperCase();
   if (!code) {
-    window.$toast && window.$toast("Vui lòng nhập mã giảm giá.", "info");
+    previewedVoucher.code = "";
+    previewedVoucher.discountAmount = 0;
+    previewedVoucher.newTotal = 0;
+    previewedVoucher.error = null;
     return;
   }
 
-  if (!stompClient.value || !isSocketConnected.value) {
-    window.$toast &&
-      window.$toast("Lỗi kết nối real-time. Đang thử kết nối lại...", "error");
-    connectWebSocket(); // Thử kết nối lại
+  const voucherData = suggestedVouchers.value.find(
+    (v) => v.code.toUpperCase() === code && !v.disabled
+  );
+  if (!voucherData) {
+    previewedVoucher.error =
+      "Mã voucher không hợp lệ hoặc đã hết lượt sử dụng.";
+    previewedVoucher.code = code;
+    previewedVoucher.discountAmount = 0;
+    previewedVoucher.newTotal = 0;
+    window.$toast(previewedVoucher.error, "error");
     return;
   }
 
-  isApplyingVoucher.value = true;
-  const payload = { voucherCode: code };
+  let discount = 0;
+  const originalAmount = order.value.originalAmount || order.value.amount;
 
-  stompClient.value.send(
-    `/app/orders/${order.value.id}/apply-voucher`,
-    {},
-    JSON.stringify(payload)
+  if (voucherData.type === "FIXED_AMOUNT") {
+    discount = voucherData.discountAmount;
+  } else if (voucherData.type === "PERCENTAGE") {
+    discount = originalAmount * (voucherData.discountPercentage / 100);
+    if (
+      voucherData.maxDiscountAmount &&
+      discount > voucherData.maxDiscountAmount
+    ) {
+      discount = voucherData.maxDiscountAmount;
+    }
+  }
+
+  discount = Math.min(discount, originalAmount);
+  previewedVoucher.code = code;
+  previewedVoucher.discountAmount = discount;
+  previewedVoucher.newTotal = originalAmount - discount;
+  previewedVoucher.error = null;
+
+  // Update the payment amount field automatically for better UX
+  bankTransfer.amount = previewedVoucher.newTotal;
+  validateAmount();
+
+  window.$toast(
+    "Đã tính thử giảm giá. Tổng mới: " + formatPrice(previewedVoucher.newTotal),
+    "info"
   );
 };
 
 const selectVoucher = (code) => {
   voucherCode.value = code;
+  previewVoucherDiscount(); // Preview automatically when selected
 };
 
 const addMoreServices = () => {
@@ -281,7 +699,6 @@ const addMoreServices = () => {
 
 const handleDeleteItem = async (itemId, itemType) => {
   if (!confirm(`Bạn có chắc chắn muốn xóa dịch vụ này khỏi đơn hàng?`)) return;
-
   processingItemId.value = `${itemType}-${itemId}`;
   try {
     const response = await fetch(
@@ -289,7 +706,6 @@ const handleDeleteItem = async (itemId, itemType) => {
       { method: "DELETE", headers: { Authorization: getBearerToken() } }
     );
     if (!response.ok) throw new Error("Xóa dịch vụ thất bại.");
-
     window.$toast && window.$toast("Đã xóa dịch vụ thành công.", "success");
     await fetchOrderDetails();
   } catch (e) {
@@ -299,10 +715,6 @@ const handleDeleteItem = async (itemId, itemType) => {
   }
 };
 
-const getPay = () => {
-  router.push(`/payment/${order.value.id}`);
-};
-
 const handleEditItem = async (item, itemType) => {
   if (
     !confirm(
@@ -310,7 +722,6 @@ const handleEditItem = async (item, itemType) => {
     )
   )
     return;
-
   processingItemId.value = `${itemType}-${item.id}`;
   try {
     const deleteResponse = await fetch(
@@ -318,7 +729,6 @@ const handleEditItem = async (item, itemType) => {
       { method: "DELETE", headers: { Authorization: getBearerToken() } }
     );
     if (!deleteResponse.ok) throw new Error("Lỗi khi xóa dịch vụ cũ.");
-
     localStorage.setItem("activeCartId", order.value.id);
     const paths = {
       TOUR: `/tours/${item.tourId}`,
@@ -333,7 +743,6 @@ const handleEditItem = async (item, itemType) => {
   }
 };
 
-// --- Hotel Image Slider Functions ---
 function nextHotelImage(hotel) {
   if (!hotel.imageUrls || hotel.imageUrls.length <= 1) return;
   if (!(hotel.id in hotelImageIndices)) hotelImageIndices[hotel.id] = 0;
@@ -352,7 +761,7 @@ function prevHotelImage(hotel) {
 }
 </script>
 
-<template>
+<template class="relative">
   <div class="bg-gray-50 w-full min-h-screen">
     <div class="container mx-auto px-4 py-10">
       <div v-if="isLoading" class="text-center py-20">
@@ -499,20 +908,20 @@ function prevHotelImage(hotel) {
                     {{ flightDetail.booking.flight.name }} -
                     {{ flightDetail.booking.flight.airline?.name }}
                   </h3>
-                  <div
-                    v-if="isEditable"
-                    class="flex items-center gap-2 flex-shrink-0"
-                  >
+                  <div class="flex items-center gap-2 flex-shrink-0">
                     <button
                       @click="
-                        handleDeleteItem(
-                          flightDetail.booking.bookingId,
-                          'FLIGHT'
-                        )
+                        CancelFlightBooking(flightDetail.booking.bookingId)
                       "
                       class="text-sm text-red-600 hover:text-red-800"
                     >
                       <i class="fa-solid fa-trash"></i> Xóa
+                    </button>
+                    <button
+                      @click="handleEdittem(flightDetail.customer)"
+                      class="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      <i class="fas fa-pencil-alt"></i> Sửa
                     </button>
                   </div>
                 </div>
@@ -806,9 +1215,27 @@ function prevHotelImage(hotel) {
               <div
                 class="bg-white p-6 rounded-xl shadow-lg border border-gray-200"
               >
-                <h2 class="text-xl font-semibold mb-4 border-b pb-3">
-                  Tóm tắt đơn hàng
-                </h2>
+                <div class="mb-4 border-b flex justify-between">
+                  <h2 class="text-xl font-semibold">Tóm tắt đơn hàng</h2>
+                  <div
+                    class="px-2 border border-red-200 bg-red-50 rounded-lg text-center mb-6 flex items-center justify-center gap-2"
+                  >
+                    <p v-if="!hasExpired" class="text-sm text-red-700">
+                      Thời gian giữ chỗ còn lại:
+                    </p>
+                    <p v-else class="text-sm font-semibold text-red-700">
+                      Đã hết thời gian giữ chỗ!
+                    </p>
+                    <p
+                      class="text-sm font-mono font-bold text-red-600 tracking-wider mt-1"
+                    >
+                      {{ String(minutes).padStart(2, "0")
+                      }}<span class="animate-pulse">:</span
+                      >{{ String(seconds).padStart(2, "0") }}
+                    </p>
+                  </div>
+                </div>
+
                 <div class="space-y-3 text-gray-600">
                   <div class="flex justify-between items-center">
                     <span>Trạng thái:</span>
@@ -838,26 +1265,46 @@ function prevHotelImage(hotel) {
                     }}</strong>
                   </div>
 
-                  <div
-                    v-if="order.voucher"
-                    class="flex justify-between items-center"
-                  >
-                    <span>Tạm tính:</span>
-                    <strong class="text-gray-800 line-through">{{
-                      formatPrice(order.originalAmount)
-                    }}</strong>
-                  </div>
-                  <div
-                    v-if="order.voucher"
-                    class="flex justify-between items-center text-green-600"
-                  >
-                    <span>Giảm giá ({{ order.voucher.code }}):</span>
-                    <strong class="font-semibold"
-                      >-
-                      {{
-                        formatPrice(order.originalAmount - order.amount)
-                      }}</strong
+                  <div v-if="order.voucher">
+                    <div class="flex justify-between items-center">
+                      <span>Tạm tính:</span>
+                      <strong class="text-gray-800 line-through">{{
+                        formatPrice(order.originalAmount)
+                      }}</strong>
+                    </div>
+                    <div
+                      class="flex justify-between items-center text-green-600"
                     >
+                      <span>Giảm giá ({{ order.voucher.code }}):</span>
+                      <strong class="font-semibold"
+                        >-
+                        {{
+                          formatPrice(order.originalAmount - order.amount)
+                        }}</strong
+                      >
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="!order.voucher && previewedVoucher.discountAmount > 0"
+                  >
+                    <div class="flex justify-between items-center">
+                      <span>Tạm tính:</span>
+                      <strong class="text-gray-800">{{
+                        formatPrice(order.amount)
+                      }}</strong>
+                    </div>
+                    <div
+                      class="flex justify-between items-center text-green-600"
+                    >
+                      <span>Giảm giá ({{ previewedVoucher.code }}):</span>
+                      <strong class="font-semibold"
+                        >-
+                        {{
+                          formatPrice(previewedVoucher.discountAmount)
+                        }}</strong
+                      >
+                    </div>
                   </div>
                 </div>
 
@@ -865,7 +1312,7 @@ function prevHotelImage(hotel) {
                   <div class="flex justify-between items-center text-lg">
                     <span class="font-bold text-gray-800">Tổng cộng</span>
                     <span class="text-2xl font-bold text-blue-600">{{
-                      formatPrice(order.amount)
+                      formatPrice(finalTotal)
                     }}</span>
                   </div>
                 </div>
@@ -921,32 +1368,256 @@ function prevHotelImage(hotel) {
                   <div class="flex gap-2 mt-3" v-if="!order.voucher">
                     <input
                       v-model="voucherCode"
-                      @keyup.enter="handleApplyVoucher"
+                      @keyup.enter="previewVoucherDiscount"
                       type="text"
                       class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       placeholder="Hoặc nhập mã khác"
                     />
                     <button
-                      @click="handleApplyVoucher"
-                      :disabled="isApplyingVoucher"
-                      class="flex-shrink-0 bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-black disabled:opacity-50"
+                      @click="previewVoucherDiscount"
+                      class="flex-shrink-0 bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-black"
                     >
-                      <i
-                        v-if="isApplyingVoucher"
-                        class="fas fa-spinner fa-spin"
-                      ></i>
-                      <span v-else>Áp dụng</span>
+                      Áp dụng
                     </button>
                   </div>
+                  <p
+                    v-if="previewedVoucher.error"
+                    class="text-red-500 text-sm mt-1"
+                  >
+                    {{ previewedVoucher.error }}
+                  </p>
                 </div>
 
-                <button
-                  @click="getPay"
-                  v-if="isEditable"
-                  class="mt-6 w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition"
-                >
-                  <i class="fa-solid fa-credit-card mr-2"></i> Thanh toán ngay
-                </button>
+                <div v-if="isEditable" class="max-w-lg w-full mt-4">
+                  <div>
+                    <h3 class="text-lg font-semibold mb-4">
+                      Thanh toán chuyển khoản
+                    </h3>
+                    <div class="space-y-6">
+                      <div>
+                        <label
+                          class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"
+                        >
+                          <i class="fas fa-university text-blue-400"></i> Ngân
+                          hàng
+                        </label>
+                        <div class="relative">
+                          <button
+                            type="button"
+                            @click="showDropdown = !showDropdown"
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white hover:border-indigo-400 transition"
+                          >
+                            <img
+                              v-if="selectedBank && selectedBank.logo"
+                              :src="selectedBank.logo"
+                              class="w-6 h-6 mr-2 object-contain"
+                            />
+                            <span class="font-medium">{{
+                              selectedBank
+                                ? selectedBank.name
+                                : "Chọn ngân hàng"
+                            }}</span>
+                            <svg
+                              class="ml-auto w-4 h-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </button>
+                          <ul
+                            v-if="showDropdown"
+                            class="absolute z-20 bg-white border w-full mt-1 rounded shadow max-h-60 overflow-auto animate-fade-in"
+                          >
+                            <li
+                              v-for="bank in banks"
+                              :key="bank.code"
+                              @click="selectBank(bank)"
+                              class="flex items-center px-4 py-2 hover:bg-indigo-50 cursor-pointer transition"
+                            >
+                              <img
+                                v-if="bank.logo"
+                                :src="bank.logo"
+                                class="w-6 h-6 mr-2 object-contain"
+                              />
+                              <span>{{ bank.name }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"
+                        >
+                          <i class="fas fa-id-card text-green-400"></i> Số tài
+                          khoản
+                        </label>
+                        <input
+                          v-model="bankTransfer.accountNumber"
+                          type="text"
+                          placeholder="Nhập số tài khoản"
+                          maxlength="20"
+                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition placeholder-gray-400"
+                          @blur="onAccountNumberBlur"
+                          @input="resetAccountInfo"
+                        />
+                        <div
+                          v-if="isLoadingLK"
+                          class="flex items-center mt-2 text-blue-500"
+                        >
+                          <span
+                            class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400 mr-2"
+                          ></span
+                          >Đang kiểm tra...
+                        </div>
+                        <div
+                          v-if="notFound && !isLoadingLK"
+                          class="text-red-500 text-sm mt-2"
+                        >
+                          Không tìm thấy thông tin số tài khoản
+                        </div>
+                      </div>
+                      <div
+                        v-if="found"
+                        class="bg-indigo-50 rounded-lg p-4 flex flex-col gap-2 border border-indigo-100"
+                      >
+                        <div class="flex items-center gap-2">
+                          <i class="fas fa-user-circle text-indigo-400"></i>
+                          <span class="font-semibold text-gray-700"
+                            >Tên tài khoản:</span
+                          >
+                          <span class="ml-auto font-bold text-indigo-700">{{
+                            bankTransfer.accountName
+                          }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <i class="fas fa-wallet text-green-400"></i>
+                          <span class="font-semibold text-gray-700"
+                            >Số dư khả dụng:</span
+                          >
+                          <span class="ml-auto font-bold text-green-600"
+                            >{{ formatPrice(bankTransfer.availableBalance) }}
+                            {{ bankTransfer.currency }}</span
+                          >
+                        </div>
+                      </div>
+                      <div v-if="found">
+                        <label
+                          class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"
+                        >
+                          <i class="fas fa-coins text-yellow-400"></i> Số tiền
+                          thanh toán
+                        </label>
+                        <input
+                          v-model.number="bankTransfer.amount"
+                          type="number"
+                          min="0"
+                          :max="bankTransfer.availableBalance"
+                          placeholder="Nhập số tiền"
+                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder-gray-400"
+                          @input="validateAmount"
+                        />
+                        <div
+                          v-if="amountError"
+                          class="text-red-500 text-sm mt-1"
+                        >
+                          {{ amountValidationMessage }}
+                        </div>
+                      </div>
+                      <div class="flex justify-end" v-if="found">
+                        <button
+                          @click="submitPayment"
+                          :disabled="
+                            isPaying || amountError || !bankTransfer.amount
+                          "
+                          class="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white px-8 py-2 rounded-lg font-semibold flex items-center shadow-lg transition disabled:opacity-60"
+                        >
+                          <span
+                            v-if="isPaying"
+                            class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"
+                          ></span>
+                          <i class="fas fa-paper-plane mr-2"></i> Thanh toán
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <transition name="modal" appear>
+                    <div
+                      v-if="showOtpDialog"
+                      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40"
+                    >
+                      <div
+                        class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+                      >
+                        <div
+                          class="bg-gradient-to-r from-indigo-500 to-blue-400 px-6 py-4 flex justify-between items-center"
+                        >
+                          <h3 class="text-white flex items-center gap-2">
+                            <i class="fas fa-shield-alt"></i> Xác thực OTP
+                          </h3>
+                          <button @click="showOtpDialog = false">
+                            <i class="fas fa-times text-white"></i>
+                          </button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                          <p>
+                            OTP đã gửi qua email. Nhập để xác nhận thanh toán.
+                          </p>
+                          <div class="flex items-center gap-2">
+                            <i class="fas fa-clock"></i>
+                            <span>Thời gian còn lại:</span>
+                            <span class="font-mono">{{
+                              otpCountdownDisplay
+                            }}</span>
+                          </div>
+                          <input
+                            v-model="otp"
+                            maxlength="6"
+                            :disabled="otpExpired"
+                            placeholder="Nhập OTP"
+                            class="w-full border rounded-lg px-4 py-2 text-center"
+                          />
+                          <div v-if="otpError" class="text-red-500">
+                            {{ otpError }}
+                          </div>
+                          <div v-if="otpSuccess" class="text-green-600">
+                            Xác thực thành công!
+                          </div>
+                          <div v-if="otpExpired" class="text-red-500">
+                            OTP đã hết hạn.
+                          </div>
+                          <div class="flex justify-end gap-2">
+                            <button
+                              @click="showOtpDialog = false"
+                              class="px-4 py-2 rounded bg-gray-200"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              @click="confirmOtp"
+                              :disabled="isConfirming || !otp || otpExpired"
+                              class="px-4 py-2 rounded text-white bg-gradient-to-r from-indigo-500 to-blue-500 disabled:opacity-50 flex items-center"
+                            >
+                              <span
+                                v-if="isConfirming"
+                                class="animate-spin inline-block h-5 w-5 border-t-2 border-white mr-2 rounded-full"
+                              ></span>
+                              Xác nhận
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </transition>
+                </div>
+
                 <button
                   v-else
                   class="mt-6 w-full bg-gray-800 text-white font-medium py-3 rounded-lg hover:bg-black transition"
@@ -960,20 +1631,121 @@ function prevHotelImage(hotel) {
       </div>
     </div>
   </div>
+  <div id="modeledit" class="w-full h-full absolute inset-0 hidden z-50">
+    <div class="absolute inset-0 bg-black opacity-50 z-40"></div>
+    <section
+      class="relative w-6/12 m-auto mt-20 bg-white rounded-lg shadow-md p-6 overflow-hidden z-50"
+    >
+      <div
+        class="absolute bottom-4 -right-40 w-34 h-34 bg-sky-300 rounded-full blur-xl [box-shadow:-100px_50px_30px_100px_#7dd3fc] z-0"
+      ></div>
+      <h2 class="relative text-lg font-medium text-gray-700 mb-4 z-60">
+        Thông tin khách hàng
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-50">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1"
+            >Họ và tên</label
+          >
+          <input
+            v-model="customer.fullName"
+            type="text"
+            placeholder="Nhập họ tên đầy đủ"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1"
+            >Giới tính</label
+          >
+          <select
+            v-model="customer.gender"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option :value="true">Nam</option>
+            <option :value="false">Nữ</option>
+            <option :value="null">Khác</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1"
+            >Ngày sinh</label
+          >
+          <input
+            v-model="customer.dob"
+            type="date"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1"
+            >Số hộ chiếu</label
+          >
+          <input
+            v-model="customer.passport"
+            type="text"
+            placeholder="Nhập số hộ chiếu"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1"
+            >Email</label
+          >
+          <input
+            v-model="customer.email"
+            type="email"
+            placeholder="Nhập email"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1"
+            >Số điện thoại</label
+          >
+          <input
+            v-model="customer.phone"
+            type="text"
+            placeholder="Nhập số điện thoại"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+      <div class="mt-6 flex justify-start space-x-4 relative z-60">
+        <button
+          @click="UpdateCustomer"
+          :disabled="isloadingUpdateC"
+          class="mt-3 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center justify-center min-w-[100px]"
+        >
+          <span
+            v-if="isloadingUpdateC"
+            class="animate-spin mr-2 w-4 h-4 border-2 border-white border-t-indigo-500 rounded-full"
+          ></span>
+          <span>{{ isloadingUpdateC ? "Đang lưu..." : "Cập nhập" }}</span>
+        </button>
+        <button
+          @click="exit"
+          class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
+        >
+          Hủy
+        </button>
+      </div>
+    </section>
+  </div>
 </template>
 
 <style scoped>
-/* Transition for flight detail dropdown */
+/* Styles remain the same */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
 
-/* Transitions for hotel image slider */
 .slide-left-enter-active,
 .slide-left-leave-active,
 .slide-right-enter-active,
@@ -983,20 +1755,57 @@ function prevHotelImage(hotel) {
   width: 100%;
   height: 100%;
 }
+
 .slide-left-enter-from {
   transform: translateX(100%);
   opacity: 0.7;
 }
+
 .slide-left-leave-to {
   transform: translateX(-100%);
   opacity: 0.7;
 }
+
 .slide-right-enter-from {
   transform: translateX(-100%);
   opacity: 0.7;
 }
+
 .slide-right-leave-to {
   transform: translateX(100%);
   opacity: 0.7;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.modal-enter-to,
+.modal-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 </style>

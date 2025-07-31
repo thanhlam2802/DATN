@@ -64,10 +64,6 @@
                         </div>
                     </div>
                 </section>
-                <!-- Passenger #2 -->
-                <!-- Đã tách phần thanh toán sang component khác -->
-                <!-- <BankTransferForm @submit="(data) => { console.log('Bank transfer submit:', data) }" /> -->
-
                 
             </div>
 
@@ -351,7 +347,15 @@ async function addFlightToCart() {
 }
 
     const response = await addItemToCart(activeCartId, data)
-    console.log(response);
+    const result = response.data
+    if (result.statusCode === 200 || result.statusCode === 201) {
+            localStorage.removeItem('activeCartId');
+            window.$toast('Giữ chỗ thành công! Vui lòng thanh toán trong thời gian quy định.', 'success')
+            router.push({ name: 'order-detail',params: {id :result.data.id}})
+            console.log(result.data);
+        } else {
+            window.$toast(result.message || 'Không thể giữ chỗ. Vé có thể đã bị đặt bởi người khác.', 'error')
+        }
 
 };
 
@@ -362,7 +366,6 @@ async function confirmAndPay() {
         window.$toast('Vui lòng điền đầy đủ thông tin hành khách.', 'error')
         return
     }
-
     if (!availableSlot.value) {
         window.$toast('Không tìm thấy thông tin ghế.', 'error')
             return
@@ -388,7 +391,6 @@ async function confirmAndPay() {
             window.$toast('Giữ chỗ thành công! Vui lòng thanh toán trong thời gian quy định.', 'success')
             router.push({ name: 'SuccessHold', params: { id: result.data } })
             console.log(result.data);
-            
         } else {
             window.$toast(result.message || 'Không thể giữ chỗ. Vé có thể đã bị đặt bởi người khác.', 'error')
         }

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "@/services/TokenService.js";
+import { getBearerToken } from "@/services/TokenService.js";
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/hotels`;
 const API_ADMIN_BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1/admin/hotels`;
@@ -29,15 +29,18 @@ export const deleteHotel = (id) => {
 };
 
 export const createHotelReview = (hotelId, data) => {
-    const token = getAccessToken();
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = { Authorization: getBearerToken() };
     return axios.post(`${API_BASE_URL}/${hotelId}/reviews`, data, { headers });
 };
 
 export const bookHotel = (data) => {
-    const token = getAccessToken();
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = { Authorization: getBearerToken() };
     return axios.post(`${API_BASE_URL}/book`, data, { headers });
+};
+
+export const updateHotelBooking = (data) => {
+    const headers = { Authorization: getBearerToken() };
+    return axios.put(`${API_BASE_URL}/bookings/update`, data, { headers });
 };
 
 export const addItemToCart = (orderId, data) => {
@@ -92,6 +95,27 @@ export const deleteHotelReview = (reviewId) => {
   return axios.delete(`${API_ADMIN_BASE_URL}/reviews/${reviewId}`);
 };
 
+export const notifyPaymentSuccess = (orderId, amount) => {
+  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/payment-notifications/success`, {
+    orderId,
+    amount
+  });
+};
+
+export const notifyNewReview = (hotelName, rating) => {
+  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/review-notifications/new`, {
+    hotelName,
+    rating
+  });
+};
+
+export const notifyHotelCancellation = (orderId, bookingId) => {
+  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/hotel-notifications/cancellation`, {
+    orderId,
+    bookingId
+  });
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -111,5 +135,8 @@ export default {
     getHotelRevenuePieChart,
     getTopRoomsChart,
     getAllHotelReviews,
-    deleteHotelReview
+    deleteHotelReview,
+    notifyPaymentSuccess,
+    notifyNewReview,
+    notifyHotelCancellation
 };

@@ -7,24 +7,31 @@ import backend.backend.dao.OrderDAO;
 import backend.backend.dao.UserDAO;
 import backend.backend.dao.Hotel.HotelRoomDAO;
 import backend.backend.dto.Hotel.HotelBookingRequestDto;
+import backend.backend.dto.Hotel.UpdateHotelBookingRequestDto;
 import backend.backend.dto.OrderDto;
 import backend.backend.entity.Customer;
 import backend.backend.entity.HotelBooking;
+import backend.backend.entity.HotelRoom;
 import backend.backend.entity.HotelRoomVariant;
 import backend.backend.entity.Order;
 import backend.backend.entity.User;
 import backend.backend.service.HotelBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import backend.backend.controller.AdminWebSocketController;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class HotelBookingServiceImpl implements HotelBookingService {
@@ -40,10 +47,17 @@ public class HotelBookingServiceImpl implements HotelBookingService {
     private UserDAO userDAO;
     @Autowired
     private HotelRoomDAO hotelRoomDAO;
+    
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private AdminWebSocketController adminWebSocketController;
 
     private static final Logger log = LoggerFactory.getLogger(HotelBookingServiceImpl.class);
 
     @Override
+    @Transactional
     public OrderDto bookHotel(HotelBookingRequestDto dto, Authentication authentication) {
         log.info("[BOOK_HOTEL] Nhận booking DTO: {}", dto);
         try {
@@ -84,17 +98,10 @@ public class HotelBookingServiceImpl implements HotelBookingService {
                 order.setStatus("PENDING_PAYMENT");
                 order.setCreatedAt(LocalDateTime.now());
                 order.setExpiresAt(order.getCreatedAt().plus(30, ChronoUnit.MINUTES));
-                if (authentication == null) {
-                    User defaultUser = userDAO.findById(1).orElse(null);
-                    if (defaultUser != null) {
-                        order.setUser(defaultUser);
-                    }
-                } else {
-                    String email = authentication.getName();
-                    User user = userDAO.findByEmail(email).orElse(null);
-                    if (user != null) {
-                        order.setUser(user);
-                    }
+                String email = authentication.getName();
+                User user = userDAO.findByEmail(email).orElse(null);
+                if (user != null) {
+                    order.setUser(user);
                 }
                 order = orderDAO.save(order);
                 log.info("[BOOK_HOTEL] Đã tạo order: {}", order);
@@ -128,6 +135,26 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             hotelRoomDAO.save(variant.getRoom());
             log.info("[BOOK_HOTEL] Đã trừ {} phòng, còn lại {} cho roomId={}", roomsBooked, variant.getRoom().getRoomQuantity(), variant.getRoom().getId());
 
+            try {
+                Integer hotelId = variant.getRoom().getHotel().getId();
+                Map<String, Object> roomUpdate = new java.util.HashMap<>();
+                roomUpdate.put("hotelId", hotelId);
+                roomUpdate.put("roomId", variant.getRoom().getId());
+                roomUpdate.put("previousQuantity", currentQty);
+                roomUpdate.put("newQuantity", variant.getRoom().getRoomQuantity());
+                roomUpdate.put("action", "ROOM_BOOKED");
+                messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
+                log.info("[BOOK_HOTEL] Đã gửi WebSocket notification cho hotelId={}, roomId={}", hotelId, variant.getRoom().getId());
+                
+                adminWebSocketController.sendBookingNotification(
+                    customer.getFullName(),
+                    variant.getRoom().getHotel().getName(),
+                    dto.getRooms()
+                );
+            } catch (Exception e) {
+                log.warn("[BOOK_HOTEL] Không thể gửi WebSocket notification: {}", e.getMessage());
+            }
+
             OrderDto orderDto = new OrderDto();
             orderDto.setId(order.getId());
             orderDto.setAmount(order.getAmount());
@@ -137,6 +164,108 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             return orderDto;
         } catch (Exception e) {
             log.error("[BOOK_HOTEL] Lỗi khi xử lý booking: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public OrderDto updateHotelBooking(UpdateHotelBookingRequestDto dto, Authentication authentication) {
+        log.info("[UPDATE_HOTEL_BOOKING] Nhận update DTO: {}", dto);
+        try {
+            if (dto.getBookingId() == null) {
+                throw new IllegalArgumentException("Thiếu bookingId");
+            }
+            if (dto.getNumAdults() == null || dto.getNumChildren() == null) {
+                throw new IllegalArgumentException("Thiếu số lượng người");
+            }
+            if (dto.getRooms() == null || dto.getRooms() <= 0) {
+                throw new IllegalArgumentException("Thiếu hoặc sai số lượng phòng");
+            }
+            if (dto.getTotalPrice() == null) {
+                throw new IllegalArgumentException("Thiếu tổng giá");
+            }
+
+            HotelBooking booking = hotelBookingDAO.findById(dto.getBookingId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy booking với ID: " + dto.getBookingId()));
+            
+            HotelRoomVariant roomVariant = hotelRoomVariantDAO.findById(booking.getRoomVariant().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin phòng!"));
+            
+            HotelRoom hotelRoom = hotelRoomDAO.findById(roomVariant.getRoom().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin phòng!"));
+
+            if (authentication == null) {
+                throw new IllegalArgumentException("Bạn cần đăng nhập để cập nhật booking!");
+            }
+            String email = authentication.getName();
+            User user = userDAO.findByEmail(email).orElse(null);
+            if (user == null) {
+                throw new IllegalArgumentException("Không tìm thấy thông tin người dùng!");
+            }
+            
+            Order orderWithUser = orderDAO.findById(booking.getOrder().getId()).orElse(null);
+            if (orderWithUser == null || orderWithUser.getUser() == null || orderWithUser.getUser().getId() != user.getId()) {
+                throw new IllegalArgumentException("Bạn không có quyền cập nhật booking này!");
+            }
+
+            if (!"PENDING_PAYMENT".equals(orderWithUser.getStatus())) {
+                throw new IllegalArgumentException("Chỉ có thể cập nhật booking khi đơn hàng đang chờ thanh toán!");
+            }
+            Short oldRooms = booking.getRooms();
+            Short newRooms = dto.getRooms();
+            int roomDifference = newRooms - oldRooms;
+
+            if (roomDifference > 0) {
+                if (hotelRoom.getRoomQuantity() < roomDifference) {
+                    throw new IllegalArgumentException("Không đủ phòng để tăng số lượng. Chỉ còn lại " + hotelRoom.getRoomQuantity() + " phòng.");
+                }
+                hotelRoom.setRoomQuantity((short) (hotelRoom.getRoomQuantity() - roomDifference));
+                hotelRoomDAO.save(hotelRoom);
+            } else if (roomDifference < 0) {
+                hotelRoom.setRoomQuantity((short) (hotelRoom.getRoomQuantity() + Math.abs(roomDifference)));
+                hotelRoomDAO.save(hotelRoom);
+            }
+
+            booking.setNumAdults(dto.getNumAdults());
+            booking.setNumChildren(dto.getNumChildren());
+            booking.setRooms(dto.getRooms());
+            booking.setTotalPrice(dto.getTotalPrice());
+            hotelBookingDAO.save(booking);
+
+            List<HotelBooking> hotelBookings = hotelBookingDAO.findByOrderId(orderWithUser.getId());
+            BigDecimal newTotalAmount = hotelBookings.stream()
+                    .map(HotelBooking::getTotalPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            orderWithUser.setAmount(newTotalAmount);
+            orderDAO.save(orderWithUser);
+
+            log.info("[UPDATE_HOTEL_BOOKING] Đã cập nhật booking với id: {}", booking.getId());
+
+            try {
+                Integer hotelId = hotelRoom.getHotel().getId();
+                Map<String, Object> roomUpdate = new java.util.HashMap<>();
+                roomUpdate.put("hotelId", hotelId);
+                roomUpdate.put("roomId", hotelRoom.getId());
+                roomUpdate.put("previousQuantity", hotelRoom.getRoomQuantity() + (roomDifference > 0 ? roomDifference : -roomDifference));
+                roomUpdate.put("newQuantity", hotelRoom.getRoomQuantity());
+                roomUpdate.put("action", roomDifference > 0 ? "ROOM_BOOKED" : "ROOM_RESTORED");
+                messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
+                log.info("[UPDATE_HOTEL_BOOKING] Đã gửi WebSocket notification cho hotelId={}, roomId={}", hotelId, hotelRoom.getId());
+            } catch (Exception e) {
+                log.warn("[UPDATE_HOTEL_BOOKING] Không thể gửi WebSocket notification: {}", e.getMessage());
+            }
+
+            OrderDto orderDto = new OrderDto();
+            orderDto.setId(orderWithUser.getId());
+            orderDto.setAmount(orderWithUser.getAmount());
+            orderDto.setStatus(orderWithUser.getStatus());
+            orderDto.setCreatedAt(orderWithUser.getCreatedAt());
+            orderDto.setExpiresAt(orderWithUser.getExpiresAt());
+            return orderDto;
+
+        } catch (Exception e) {
+            log.error("[UPDATE_HOTEL_BOOKING] Lỗi khi cập nhật booking: {}", e.getMessage(), e);
             throw e;
         }
     }

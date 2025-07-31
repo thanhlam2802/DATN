@@ -15,7 +15,7 @@
 
             <div class="flex gap-6">
                 <div class="flex-1 max-w-4xl">
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
                         <div
                             class="bg-white rounded-lg shadow-sm p-3 border border-slate-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
                             <div class="flex items-start justify-between mb-2">
@@ -35,6 +35,28 @@
                                 ]" class="mr-1 text-xs"></i>
                                 <span>
                                     {{ stats.bookingGrowth > 0 ? '+' : '' }}{{ stats.bookingGrowth }}% so với {{ comparisonLabel }}
+                                </span>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-white rounded-lg shadow-sm p-3 border border-slate-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="text-slate-600 font-medium text-xs">Tổng đặt phòng đã thanh toán</div>
+                                <div class="bg-green-50 p-1.5 rounded-full">
+                                    <i class="fas fa-check-circle text-green-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="text-lg font-bold text-slate-900">{{ loading ? '--' : formatNumber(stats.totalPaidBookings) }}</div>
+                            <div :class="[
+                                stats.paidBookingGrowth > 0 ? 'text-green-600' : 
+                                stats.paidBookingGrowth < 0 ? 'text-red-600' : 'text-gray-500'
+                            ]" class="text-xs mt-1 flex items-center">
+                                <i :class="[
+                                    stats.paidBookingGrowth > 0 ? 'fas fa-arrow-up' : 
+                                    stats.paidBookingGrowth < 0 ? 'fas fa-arrow-down' : 'fas fa-minus'
+                                ]" class="mr-1 text-xs"></i>
+                                <span>
+                                    {{ stats.paidBookingGrowth > 0 ? '+' : '' }}{{ stats.paidBookingGrowth }}% so với {{ comparisonLabel }}
                                 </span>
                             </div>
                         </div>
@@ -192,50 +214,7 @@
                     </div>
                 </div>
 
-                <div class="w-80 bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-slate-800 text-sm">Thông Báo</h3>
-                        <button class="text-blue-500 text-xs hover:text-blue-700">Xem tất cả</button>
-                    </div>
-                    
-                    <div class="space-y-3">
-                        <div class="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-                            <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                            <div class="flex-1">
-                                <p class="text-xs font-medium text-slate-800">Đặt phòng mới</p>
-                                <p class="text-xs text-slate-600 mt-1">Khách hàng Nguyễn Văn A vừa đặt phòng tại Grand Hotel</p>
-                                <p class="text-xs text-slate-400 mt-1">2 phút trước</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                            <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                            <div class="flex-1">
-                                <p class="text-xs font-medium text-slate-800">Thanh toán thành công</p>
-                                <p class="text-xs text-slate-600 mt-1">Đơn hàng #12345 đã được thanh toán</p>
-                                <p class="text-xs text-slate-400 mt-1">5 phút trước</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-                            <div class="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                            <div class="flex-1">
-                                <p class="text-xs font-medium text-slate-800">Đánh giá mới</p>
-                                <p class="text-xs text-slate-600 mt-1">Khách hàng đã đánh giá 5 sao cho Seaside Resort</p>
-                                <p class="text-xs text-slate-400 mt-1">10 phút trước</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-start space-x-3 p-3 bg-red-50 rounded-lg">
-                            <div class="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                            <div class="flex-1">
-                                <p class="text-xs font-medium text-slate-800">Hủy đặt phòng</p>
-                                <p class="text-xs text-slate-600 mt-1">Đơn hàng #12340 đã bị hủy</p>
-                                <p class="text-xs text-slate-400 mt-1">15 phút trước</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <NotificationPanel />
             </div>
         </div>
     </main>
@@ -248,14 +227,17 @@ import CustomSelect from '@/components/CustomSelect.vue';
 import RevenueChart from '@/components/Hotel/HotelAdmin/RevenueChart.vue';
 import RevenuePieChart from '@/components/Hotel/HotelAdmin/RevenuePieChart.vue';
 import TopRoomsChart from '@/components/Hotel/HotelAdmin/TopRoomsChart.vue';
+import NotificationPanel from '@/components/Hotel/HotelAdmin/NotificationPanel.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
 
 const stats = ref({
   totalBookings: 0,
+  totalPaidBookings: 0,
   totalRevenue: 0,
   totalCustomers: 0,
   totalReviews: 0,
   bookingGrowth: 0,
+  paidBookingGrowth: 0,
   revenueGrowth: 0,
   customerGrowth: 0,
   reviewGrowth: 0

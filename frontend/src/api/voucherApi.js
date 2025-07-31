@@ -1,7 +1,5 @@
 import axios from "axios";
 
-// Cấu hình một axios instance với baseURL trỏ đến API của bạn.
-// Điều này giúp bạn không cần lặp lại 'http://localhost:8080' ở mọi nơi.
 const apiClient = axios.create({
   baseURL: "http://localhost:8080/api", // Đảm bảo đây là địa chỉ backend của bạn
   headers: {

@@ -428,7 +428,34 @@ public class OrderServiceImpl implements OrderService {
     }
     
     private OrderDto convertToDto(Order order) {
-      
-        return new OrderDto();
+    	if (order == null) return null;
+
+        // This method combines the logic of toOrderDTO and toDetailedOrderDto,
+        // and also maps the 'originalAmount' which is crucial after applying a voucher.
+        OrderDto dto = new OrderDto();
+        dto.setId(order.getId());
+        dto.setAmount(order.getAmount());
+        dto.setOriginalAmount(order.getOriginalAmount());
+        dto.setStatus(order.getStatus());
+        dto.setPayDate(order.getPayDate());
+        dto.setCreatedAt(order.getCreatedAt());
+        dto.setExpiresAt(order.getExpiresAt());
+
+        if (order.getUser() != null) {
+            dto.setUserId(order.getUser().getId());
+        }
+        if (order.getVoucher() != null) {
+            dto.setVoucherId(order.getVoucher().getId());
+        }
+        if (order.getDestination() != null) {
+            dto.setDestinationId(order.getDestination().getId());
+        }
+
+        // Add all booking details for a complete response, similar to toDetailedOrderDto
+        dto.setTourBookings(bookingTourDAO.findByOrderId(order.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
+        dto.setFlightBookings(flightBookingDAO.findByOrderId(order.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
+        dto.setHotelBookings(hotelBookingDAO.findByOrderId(order.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
+
+        return dto;
     }
 }

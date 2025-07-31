@@ -10,6 +10,7 @@ public class OrderDto {
     private Integer id;
     private Integer userId;
     private BigDecimal amount;
+    private BigDecimal originalAmount;
     private String status;
     private LocalDateTime payDate;
     private Integer voucherId; 

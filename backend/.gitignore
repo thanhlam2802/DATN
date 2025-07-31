@@ -30,5 +30,7 @@ build/
 !**/src/test/**/build/
 
 ### VS Code ###
+
+backend/src/main/resources/application.properties
 .vscode/
 .env

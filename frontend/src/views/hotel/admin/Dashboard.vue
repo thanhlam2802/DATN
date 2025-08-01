@@ -222,13 +222,15 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue';
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi } from '@/api/adminApi';
 import CustomSelect from '@/components/CustomSelect.vue';
 import RevenueChart from '@/components/Hotel/HotelAdmin/RevenueChart.vue';
 import RevenuePieChart from '@/components/Hotel/HotelAdmin/RevenuePieChart.vue';
 import TopRoomsChart from '@/components/Hotel/HotelAdmin/TopRoomsChart.vue';
 import NotificationPanel from '@/components/Hotel/HotelAdmin/NotificationPanel.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 
 const stats = ref({
   totalBookings: 0,
@@ -397,6 +399,27 @@ const onTopRoomsTimePeriodChange = (value) => {
 };
 
 onMounted(() => {
+  const userStore = useUserStore();
+  console.log('UserStore:', userStore);
+  console.log('User:', userStore.user);
+  console.log('User roles:', userStore.user?.roles);
+  
+  if (!userStore.user) {
+    console.log('No user data, trying to restore...');
+    userStore.restoreUserFromToken().then(() => {
+      console.log('After restore - User:', userStore.user);
+      console.log('After restore - User roles:', userStore.user?.roles);
+    });
+  }
+  
+  const { requireAdmin } = useAdminAuth();
+  if (!requireAdmin('hotel')) {
+    console.log('Không có quyền admin hotel');
+    return;
+  }
+  
+  console.log('Có quyền admin hotel, loading data...');
+  
   const breadcrumbStore = useAdminBreadcrumbStore();
   breadcrumbStore.setBreadcrumb([
     { label: 'Thống kê', active: true }
@@ -406,7 +429,6 @@ onMounted(() => {
   fetchRevenuePieChart();
   fetchTopRoomsChart();
   
-  // Tự động yêu cầu quyền notification khi vào trang admin
   requestNotificationPermission();
 });
 
@@ -414,7 +436,7 @@ const fetchDashboardStatistics = async () => {
   loading.value = true;
   try {
     console.log('Calling dashboard statistics API with period:', selectedTimePeriod.value);
-    const res = await hotelApi.getDashboardStatistics(selectedTimePeriod.value);
+            const res = await hotelAdminApi.getDashboardStatistics(selectedTimePeriod.value);
     console.log('API Response:', res);
     console.log('Response data:', res.data);
     if (res.data && res.data.data) {
@@ -434,7 +456,7 @@ const fetchRevenueChart = async () => {
   try {
     console.log('=== REVENUE CHART DEBUG ===');
     console.log('Calling revenue chart API with period:', selectedChartTimePeriod.value);
-    const res = await hotelApi.getHotelRevenueChart(selectedChartTimePeriod.value);
+            const res = await hotelAdminApi.getHotelRevenueChart(selectedChartTimePeriod.value);
     console.log('Revenue chart API Response:', res);
     console.log('Revenue chart data:', res.data);
     console.log('Revenue chart data.data:', res.data?.data);
@@ -462,7 +484,7 @@ const fetchRevenuePieChart = async () => {
   try {
     console.log('=== REVENUE PIE CHART DEBUG ===');
     console.log('Calling revenue pie chart API with period:', selectedPieChartTimePeriod.value);
-    const res = await hotelApi.getHotelRevenuePieChart(selectedPieChartTimePeriod.value);
+            const res = await hotelAdminApi.getHotelRevenuePieChart(selectedPieChartTimePeriod.value);
     console.log('Revenue pie chart API Response:', res);
     console.log('Revenue pie chart data:', res.data);
     console.log('Revenue pie chart data.data:', res.data?.data);
@@ -489,7 +511,7 @@ const fetchTopRoomsChart = async () => {
   try {
     console.log('=== TOP ROOMS CHART DEBUG ===');
     console.log('Calling top rooms chart API with period:', selectedTopRoomsTimePeriod.value);
-    const res = await hotelApi.getTopRoomsChart(selectedTopRoomsTimePeriod.value);
+            const res = await hotelAdminApi.getTopRoomsChart(selectedTopRoomsTimePeriod.value);
     console.log('Top rooms chart API Response:', res);
     console.log('Top rooms chart data:', res.data);
     console.log('Top rooms chart data.data:', res.data?.data);
@@ -534,24 +556,19 @@ function formatCurrency(val) {
   return Number(val).toLocaleString('vi-VN') + ' VND';
 }
 
-// Tự động yêu cầu quyền notification
 const requestNotificationPermission = async () => {
   try {
-    // Kiểm tra browser có hỗ trợ notification không
     if (!('Notification' in window)) {
       console.log('Browser không hỗ trợ notifications');
       return;
     }
 
-    // Kiểm tra quyền hiện tại
     if (Notification.permission === 'default') {
-      // Yêu cầu quyền notification
       const permission = await Notification.requestPermission();
       console.log('Notification permission:', permission);
       
       if (permission === 'granted') {
         console.log('Đã được cấp quyền notification');
-        // Có thể thêm logic subscribe push notification ở đây
       } else {
         console.log('Quyền notification bị từ chối');
       }

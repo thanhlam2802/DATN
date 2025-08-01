@@ -82,9 +82,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi } from '@/api/adminApi';
 import CustomSelect from '@/components/CustomSelect.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 
 const searchQuery = ref('');
 const currentPage = ref(1);
@@ -94,13 +96,34 @@ const itemsPerPage = computed(() => itemsPerPageStr.value === 'Tất cả' ? fil
 
 const bookings = ref([]);
 
+const { requireAdmin } = useAdminAuth();
+
 onMounted(async () => {
+  const userStore = useUserStore();
+  console.log('UserStore:', userStore);
+  console.log('User:', userStore.user);
+  console.log('User roles:', userStore.user?.roles);
+  
+  if (!userStore.user) {
+    console.log('No user data, trying to restore...');
+    await userStore.restoreUserFromToken();
+    console.log('After restore - User:', userStore.user);
+    console.log('After restore - User roles:', userStore.user?.roles);
+  }
+  
+  if (!requireAdmin('hotel')) {
+    console.log('Không có quyền admin hotel');
+    return;
+  }
+  
+  console.log('Có quyền admin hotel, loading data...');
+
   const breadcrumbStore = useAdminBreadcrumbStore();
   breadcrumbStore.setBreadcrumb([
     { label: 'Booking', active: true }
   ]);
   try {
-    const res = await hotelApi.getAllHotelBookings();
+    const res = await hotelAdminApi.getAllHotelBookings();
     if (res.data && res.data.data) {
       bookings.value = res.data.data;
     } else {

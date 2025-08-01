@@ -17,15 +17,24 @@ export const getHotelReviews = (hotelId) => {
 };
 
 export const createHotel = (formData) => {
-    return axios.post(API_ADMIN_BASE_URL, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    const headers = { 
+        'Content-Type': 'multipart/form-data',
+        Authorization: getBearerToken()
+    };
+    return axios.post(API_ADMIN_BASE_URL, formData, { headers });
 };
 
 export const updateHotel = (id, formData) => {
-    return axios.put(`${API_ADMIN_BASE_URL}/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    const headers = { 
+        'Content-Type': 'multipart/form-data',
+        Authorization: getBearerToken()
+    };
+    return axios.put(`${API_ADMIN_BASE_URL}/${id}`, formData, { headers });
 };
 
 export const deleteHotel = (id) => {
-    return axios.delete(`${API_ADMIN_BASE_URL}/${id}`);
+    const headers = { Authorization: getBearerToken() };
+    return axios.delete(`${API_ADMIN_BASE_URL}/${id}`, { headers });
 };
 
 export const createHotelReview = (hotelId, data) => {
@@ -48,72 +57,86 @@ export const addItemToCart = (orderId, data) => {
 };
 
 export const getHotelCustomers = (hotelId) => {
-    return axios.get(`${API_ADMIN_BASE_URL}/${hotelId}/customers`);
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/${hotelId}/customers`, { headers });
 };
 
 export const getAllHotelCustomers = () => {
-    return axios.get(`${API_ADMIN_BASE_URL}/customers`);
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/customers`, { headers });
 };
 
 export const getCustomerBookedRooms = (customerId) => {
-    return axios.get(`${API_ADMIN_BASE_URL}/customers/${customerId}/booked-rooms`);
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/customers/${customerId}/booked-rooms`, { headers });
 };
 
 export const getAllHotelBookings = () => {
-    return axios.get(`${API_ADMIN_BASE_URL}/bookings`);
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/bookings`, { headers });
 };
 
 export const getDashboardStatistics = (timePeriod = 'this_month') => {
-  return axios.get(`${API_ADMIN_BASE_URL}/dashboard-statistics`, {
-    params: { timePeriod }
-  });
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/dashboard-statistics`, {
+        params: { timePeriod },
+        headers
+    });
 };
 
 export const getHotelRevenueChart = (timePeriod = 'this_month') => {
-  return axios.get(`${API_ADMIN_BASE_URL}/revenue-chart`, {
-    params: { timePeriod }
-  });
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/revenue-chart`, {
+        params: { timePeriod },
+        headers
+    });
 };
 
 export const getHotelRevenuePieChart = (timePeriod = 'this_month') => {
-  return axios.get(`${API_ADMIN_BASE_URL}/revenue-pie-chart`, {
-    params: { timePeriod }
-  });
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/revenue-pie-chart`, {
+        params: { timePeriod },
+        headers
+    });
 };
 
 export const getTopRoomsChart = (timePeriod = 'this_month') => {
-  return axios.get(`${API_ADMIN_BASE_URL}/top-rooms-chart`, {
-    params: { timePeriod }
-  });
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/top-rooms-chart`, {
+        params: { timePeriod },
+        headers
+    });
 };
 
 export const getAllHotelReviews = () => {
-  return axios.get(`${API_ADMIN_BASE_URL}/reviews`);
+    const headers = { Authorization: getBearerToken() };
+    return axios.get(`${API_ADMIN_BASE_URL}/reviews`, { headers });
 };
 
 export const deleteHotelReview = (reviewId) => {
-  return axios.delete(`${API_ADMIN_BASE_URL}/reviews/${reviewId}`);
+    const headers = { Authorization: getBearerToken() };
+    return axios.delete(`${API_ADMIN_BASE_URL}/reviews/${reviewId}`, { headers });
 };
 
 export const notifyPaymentSuccess = (orderId, amount) => {
-  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/payment-notifications/success`, {
-    orderId,
-    amount
-  });
+    return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/payment-notifications/success`, {
+        orderId,
+        amount
+    });
 };
 
 export const notifyNewReview = (hotelName, rating) => {
-  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/review-notifications/new`, {
-    hotelName,
-    rating
-  });
+    return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/review-notifications/new`, {
+        hotelName,
+        rating
+    });
 };
 
 export const notifyHotelCancellation = (orderId, bookingId) => {
-  return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/hotel-notifications/cancellation`, {
-    orderId,
-    bookingId
-  });
+    return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/hotel-notifications/cancellation`, {
+        orderId,
+        bookingId
+    });
 };
 
 export default {

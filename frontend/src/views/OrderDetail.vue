@@ -157,6 +157,9 @@ const editHotelForm = ref({
 });
 const isUpdatingHotel = ref(false);
 
+const showDeleteConfirmModal = ref(false);
+const itemToDelete = ref(null);
+
 // --- COMPUTED PROPERTIES ---
 const isEditable = computed(() => order.value?.status === "PENDING_PAYMENT");
 const finalTotal = computed(() => {
@@ -708,16 +711,28 @@ const addMoreServices = () => {
   router.push("/");
 };
 
-const handleDeleteItem = async (itemId, itemType) => {
-  if (!confirm(`Bạn có chắc chắn muốn xóa dịch vụ này khỏi đơn hàng?`)) return;
+const openDeleteConfirmModal = (itemId, itemType) => {
+  itemToDelete.value = { id: itemId, type: itemType };
+  showDeleteConfirmModal.value = true;
+};
+
+const closeDeleteConfirmModal = () => {
+  showDeleteConfirmModal.value = false;
+  itemToDelete.value = null;
+};
+
+const handleDeleteItem = async () => {
+  if (!itemToDelete.value) return;
+  
+  const { id: itemId, type: itemType } = itemToDelete.value;
   processingItemId.value = `${itemType}-${itemId}`;
+  
   try {
     const response = await fetch(
       `http://localhost:8080/api/v1/cart/items?orderId=${order.value.id}&itemId=${itemId}&itemType=${itemType}`,
       { method: "DELETE", headers: { Authorization: getBearerToken() } }
     );
     if (!response.ok) throw new Error("Xóa dịch vụ thất bại.");
-
 
     if (itemType === 'HOTEL') {
       try {
@@ -728,6 +743,30 @@ const handleDeleteItem = async (itemId, itemType) => {
     }
 
     window.$toast && window.$toast("Đã xóa dịch vụ thành công.", "success");
+    await fetchOrderDetails();
+  } catch (e) {
+    window.$toast && window.$toast(e.message, "error");
+  } finally {
+    processingItemId.value = null;
+    closeDeleteConfirmModal();
+  }
+};
+
+const handleDeleteTour = async (tourId) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa tour này khỏi đơn hàng?")) {
+    return;
+  }
+  
+  processingItemId.value = `TOUR-${tourId}`;
+  
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/v1/cart/items?orderId=${order.value.id}&itemId=${tourId}&itemType=TOUR`,
+      { method: "DELETE", headers: { Authorization: getBearerToken() } }
+    );
+    if (!response.ok) throw new Error("Xóa tour thất bại.");
+
+    window.$toast && window.$toast("Đã xóa tour thành công.", "success");
     await fetchOrderDetails();
   } catch (e) {
     window.$toast && window.$toast(e.message, "error");
@@ -975,7 +1014,7 @@ function prevHotelImage(hotel) {
                     </button>
                     <button
                       :disabled="processingItemId === `TOUR-${tour.id}`"
-                      @click="handleDeleteItem(tour.id, 'TOUR')"
+                      @click="handleDeleteTour(tour.id)"
                       class="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
                     >
                       <i
@@ -1335,7 +1374,7 @@ function prevHotelImage(hotel) {
                       <i class="fa-solid fa-pencil mr-1"></i> Sửa
                     </button>
                     <button
-                      @click="handleDeleteItem(hotel.id, 'HOTEL')"
+                      @click="openDeleteConfirmModal(hotel.id, 'HOTEL')"
                       class="text-sm text-red-600 hover:text-red-800 flex items-center"
                     >
                       <i class="fa-solid fa-trash mr-1"></i> Xóa
@@ -1977,6 +2016,46 @@ function prevHotelImage(hotel) {
         </button>
       </div>
     </section>
+  </div>
+
+  <div v-if="showDeleteConfirmModal" class="fixed inset-0 z-[9999] flex items-center justify-center" style="background-color: rgba(0, 0, 0, 0.6);" @click="closeDeleteConfirmModal">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4" @click.stop>
+      <div class="flex items-center gap-3 mb-4">
+        <div class="flex-shrink-0">
+          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Xác nhận xóa</h3>
+          <p class="text-sm text-gray-500">Hành động này không thể hoàn tác</p>
+        </div>
+      </div>
+      
+      <div class="mb-6">
+        <p class="text-gray-700">
+          Bạn có chắc chắn muốn xóa dịch vụ này khỏi đơn hàng?
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <button
+          @click="closeDeleteConfirmModal"
+          class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+        >
+          Hủy
+        </button>
+        <button
+          @click="handleDeleteItem"
+          :disabled="processingItemId"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+        >
+          <span v-if="processingItemId" class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+          <i v-else class="fas fa-trash"></i>
+          {{ processingItemId ? 'Đang xóa...' : 'Xóa' }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 

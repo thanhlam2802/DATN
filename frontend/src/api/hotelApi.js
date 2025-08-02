@@ -139,6 +139,27 @@ export const notifyHotelCancellation = (orderId, bookingId) => {
     });
 };
 
+export const notifyHotelCreated = (hotelName, userName) => {
+    return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/hotel-notifications/created`, {
+        hotelName,
+        userName
+    });
+};
+
+export const notifyHotelUpdated = (hotelName, userName) => {
+    return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/hotel-notifications/updated`, {
+        hotelName,
+        userName
+    });
+};
+
+export const notifyHotelDeleted = (hotelName, userName) => {
+    return axios.post(`${import.meta.env.VITE_API_URL}/api/v1/hotel-notifications/deleted`, {
+        hotelName,
+        userName
+    });
+};
+
 export default {
     searchHotels,
     getHotelById,
@@ -161,5 +182,8 @@ export default {
     deleteHotelReview,
     notifyPaymentSuccess,
     notifyNewReview,
-    notifyHotelCancellation
+    notifyHotelCancellation,
+    notifyHotelCreated,
+    notifyHotelUpdated,
+    notifyHotelDeleted
 };

@@ -715,6 +715,7 @@
 
 <script>
 import { hotelAdminApi } from '@/api/adminApi';
+import { notifyHotelCreated, notifyHotelUpdated, notifyHotelDeleted } from '@/api/hotelApi';
 import HotelDetailModal from './HotelDetailModal.vue';
 import provinceApi from '@/api/provinceApi';
 import AmenityApi from '@/api/AmenityApi';
@@ -1129,7 +1130,12 @@ export default {
         async onConfirmDelete() {
             this.showConfirmDialog = false;
             try {
+                const hotelToDelete = this.hotels.find(h => h.id === this.hotelIdToDelete);
+                const hotelName = hotelToDelete ? hotelToDelete.name : 'Khách sạn';
                 await hotelAdminApi.deleteHotel(this.hotelIdToDelete);
+                const userStore = useUserStore();
+                const userName = userStore.user?.name || userStore.user?.email || 'Admin';
+                await notifyHotelDeleted(hotelName, userName);
                 window.$toast('Xóa khách sạn thành công!', 'success');
                 this.backToList();
                 this.fetchHotels();
@@ -1488,11 +1494,15 @@ export default {
             }
             try {
                 let res;
+                const userStore = useUserStore();
+                const userName = userStore.user?.name || userStore.user?.email || 'Admin';
                 if (this.modalMode === 'add') {
                     res = await hotelAdminApi.createHotel(formData);
+                    await notifyHotelCreated(this.newHotel.name, userName);
                     window.$toast('Thêm khách sạn thành công!', 'success');
                 } else {
                     res = await hotelAdminApi.updateHotel(hotelData.id, formData);
+                    await notifyHotelUpdated(this.newHotel.name, userName);
                     window.$toast('Cập nhật khách sạn thành công!', 'success');
                 }
                 this.backToList();

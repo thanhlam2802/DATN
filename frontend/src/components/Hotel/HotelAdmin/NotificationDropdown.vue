@@ -50,27 +50,33 @@
           >
             <div class="flex items-start space-x-3">
               <div class="flex-shrink-0">
-                <div 
-                  :class="[
-                    'w-8 h-8 rounded-full flex items-center justify-center',
-                    notification.type === 'booking' ? 'bg-blue-100 text-blue-600' :
-                    notification.type === 'payment' ? 'bg-green-100 text-green-600' :
-                    notification.type === 'review' ? 'bg-yellow-100 text-yellow-600' :
-                    notification.type === 'cancellation' ? 'bg-red-100 text-red-600' :
-                    'bg-gray-100 text-gray-600'
-                  ]"
-                >
-                  <i 
+                                  <div 
                     :class="[
-                      notification.type === 'booking' ? 'fas fa-calendar-check' :
-                      notification.type === 'payment' ? 'fas fa-credit-card' :
-                      notification.type === 'review' ? 'fas fa-star' :
-                      notification.type === 'cancellation' ? 'fas fa-times-circle' :
-                      'fas fa-info-circle'
+                      'w-8 h-8 rounded-full flex items-center justify-center',
+                      notification.type === 'booking' ? 'bg-blue-100 text-blue-600' :
+                      notification.type === 'payment' ? 'bg-green-100 text-green-600' :
+                      notification.type === 'review' ? 'bg-yellow-100 text-yellow-600' :
+                      notification.type === 'cancellation' ? 'bg-red-100 text-red-600' :
+                      notification.type === 'hotel-created' ? 'bg-green-100 text-green-600' :
+                      notification.type === 'hotel-updated' ? 'bg-blue-100 text-blue-600' :
+                      notification.type === 'hotel-deleted' ? 'bg-red-100 text-red-600' :
+                      'bg-gray-100 text-gray-600'
                     ]"
-                    class="text-sm"
-                  ></i>
-                </div>
+                  >
+                    <i 
+                      :class="[
+                        notification.type === 'booking' ? 'fas fa-calendar-check' :
+                        notification.type === 'payment' ? 'fas fa-credit-card' :
+                        notification.type === 'review' ? 'fas fa-star' :
+                        notification.type === 'cancellation' ? 'fas fa-times-circle' :
+                        notification.type === 'hotel-created' ? 'fas fa-plus-circle' :
+                        notification.type === 'hotel-updated' ? 'fas fa-edit' :
+                        notification.type === 'hotel-deleted' ? 'fas fa-trash' :
+                        'fas fa-info-circle'
+                      ]"
+                      class="text-sm"
+                    ></i>
+                  </div>
               </div>
               
               <div class="flex-1 min-w-0">
@@ -136,87 +142,75 @@ const connectWebSocket = () => {
       console.log('Connected to WebSocket for notifications:', frame);
       isConnected.value = true;
       
-      stompClient.value.subscribe('/topic/admin/hotel/bookings', (response) => {
-        handleBookingNotification(JSON.parse(response.body));
-      });
-      
-      stompClient.value.subscribe('/topic/admin/hotel/payments', (response) => {
-        handlePaymentNotification(JSON.parse(response.body));
-      });
-      
-      stompClient.value.subscribe('/topic/admin/hotel/reviews', (response) => {
-        handleReviewNotification(JSON.parse(response.body));
-      });
-      
-      stompClient.value.subscribe('/topic/admin/hotel/cancellations', (response) => {
-        handleCancellationNotification(JSON.parse(response.body));
+      stompClient.value.subscribe('/topic/admin/hotel/actions', (response) => {
+        handleHotelActionNotification(JSON.parse(response.body));
       });
       
       loadNotificationsFromStorage();
       loading.value = false;
     }, (error) => {
       console.error('WebSocket connection error:', error);
+      loadNotificationsFromStorage();
       loading.value = false;
     });
   } catch (error) {
     console.error('Error connecting to WebSocket:', error);
+    loadNotificationsFromStorage();
     loading.value = false;
   }
 };
 
-const handleBookingNotification = (data) => {
-  console.log('Received booking notification:', data);
-  const notification = {
-    id: Date.now(),
-    type: 'booking',
-    title: 'Đặt phòng mới',
-    message: `Khách hàng ${data.customerName} đã đặt ${data.rooms} phòng tại ${data.hotelName}`,
-    timestamp: data.timestamp || Date.now(),
-    read: false
-  };
-  addNotification(notification);
-};
-
-const handlePaymentNotification = (data) => {
-  console.log('Received payment notification:', data);
-  const notification = {
-    id: Date.now(),
-    type: 'payment',
-    title: 'Thanh toán thành công',
-    message: `Đơn hàng #${data.orderId} đã được thanh toán thành công với số tiền ${data.amount}`,
-    timestamp: data.timestamp || Date.now(),
-    read: false
-  };
-  addNotification(notification);
-};
-
-const handleReviewNotification = (data) => {
-  console.log('Received review notification:', data);
-  const notification = {
-    id: Date.now(),
-    type: 'review',
-    title: 'Đánh giá mới',
-    message: `Khách hàng đã để lại đánh giá ${data.rating} sao cho ${data.hotelName}`,
-    timestamp: data.timestamp || Date.now(),
-    read: false
-  };
-  addNotification(notification);
-};
-
-const handleCancellationNotification = (data) => {
-  console.log('Received cancellation notification:', data);
-  const notification = {
-    id: Date.now(),
-    type: 'cancellation',
-    title: 'Hủy đặt phòng',
-    message: `Đơn hàng #${data.orderId} đã được hủy`,
-    timestamp: data.timestamp || Date.now(),
-    read: false
-  };
-  addNotification(notification);
-};
-
-const addNotification = (notification) => {
+const handleHotelActionNotification = (data) => {
+  console.log('Received hotel action notification:', data);
+  let notification;
+  
+  switch (data.type) {
+    case 'HOTEL_CREATED':
+      notification = {
+        id: Date.now(),
+        type: 'hotel-created',
+        title: 'Khách sạn mới',
+        message: `Khách sạn "${data.hotelName}" đã được tạo bởi ${data.userName}`,
+        timestamp: data.timestamp || Date.now(),
+        read: false
+      };
+      break;
+    case 'HOTEL_UPDATED':
+      notification = {
+        id: Date.now(),
+        type: 'hotel-updated',
+        title: 'Khách sạn đã cập nhật',
+        message: `Khách sạn "${data.hotelName}" đã được cập nhật bởi ${data.userName}`,
+        timestamp: data.timestamp || Date.now(),
+        read: false
+      };
+      break;
+    case 'HOTEL_DELETED':
+      notification = {
+        id: Date.now(),
+        type: 'hotel-deleted',
+        title: 'Khách sạn đã xóa',
+        message: `Khách sạn "${data.hotelName}" đã được xóa bởi ${data.userName}`,
+        timestamp: data.timestamp || Date.now(),
+        read: false
+      };
+      break;
+    default:
+      return;
+  }
+  
+  const existingNotification = notifications.value.find(n => 
+    n.type === notification.type && 
+    n.title === notification.title && 
+    n.message === notification.message &&
+    Math.abs(new Date(n.timestamp) - new Date(notification.timestamp)) < 5000
+  );
+  
+  if (existingNotification) {
+    console.log('Hotel action notification already exists, skipping...');
+    return;
+  }
+  
   notifications.value.unshift(notification);
   
   if (notifications.value.length > 50) {
@@ -225,12 +219,9 @@ const addNotification = (notification) => {
   
   saveNotificationsToStorage();
   
-  if (Notification.permission === 'granted') {
-    new Notification(notification.title, {
-      body: notification.message,
-      icon: '/favicon.ico'
-    });
-  }
+  window.dispatchEvent(new CustomEvent('notificationsUpdated', { 
+    detail: { notifications: notifications.value, nextId: Date.now() }
+  }));
 };
 
 const loadNotificationsFromStorage = () => {
@@ -262,7 +253,8 @@ const loadNotificationsFromStorage = () => {
 const saveNotificationsToStorage = () => {
   try {
     const data = {
-      notifications: notifications.value
+      notifications: notifications.value,
+      nextId: Date.now()
     };
     localStorage.setItem('hotelAdminNotifications', JSON.stringify(data));
   } catch (e) {
@@ -312,6 +304,30 @@ const formatTime = (timestamp) => {
   return date.toLocaleDateString('vi-VN');
 };
 
+const handleNotificationsUpdate = (event) => {
+  if (event.detail) {
+    const newNotifications = event.detail.notifications || [];
+    const currentIds = notifications.value.map(n => n.id);
+    
+    const newNotificationsToAdd = newNotifications.filter(n => !currentIds.includes(n.id));
+    
+    if (newNotificationsToAdd.length > 0) {
+      notifications.value.unshift(...newNotificationsToAdd);
+      
+      if (notifications.value.length > 50) {
+        notifications.value = notifications.value.slice(0, 50);
+      }
+    } else {
+      notifications.value.forEach(notification => {
+        const updatedNotification = newNotifications.find(n => n.id === notification.id);
+        if (updatedNotification) {
+          notification.read = updatedNotification.read;
+        }
+      });
+    }
+  }
+};
+
 const handleClickOutside = (event) => {
   if (isOpen.value && !event.target.closest('.relative')) {
     closeDropdown();
@@ -322,6 +338,8 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   connectWebSocket();
   
+  window.addEventListener('notificationsUpdated', handleNotificationsUpdate);
+  
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
@@ -329,6 +347,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('notificationsUpdated', handleNotificationsUpdate);
   if (stompClient.value) {
     stompClient.value.disconnect();
   }

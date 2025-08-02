@@ -62,44 +62,56 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tên chuyến bay</label>
               <input v-model="flight.name" type="text" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.name ? 'border-red-500' : 'border-gray-300'}`"
                 placeholder="VD: Hà Nội - Đà Nẵng" />
+              <div v-if="validationErrors.name" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.name[0] }}
+              </div>
             </div>
 
             <!-- Hãng hàng không -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Hãng hàng không</label>
               <select v-model="flight.airline" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.airline ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn hãng</option>
                 <option v-for="airline in airlines" :key="airline.id" :value="airline">
                   {{ airline.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.airline" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.airline[0] }}
+              </div>
             </div>
 
             <!-- Departure Airport -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Sân bay đi</label>
               <select v-model="flight.departureAirport" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.departureAirport ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn sân bay đi</option>
                 <option v-for="airport in airports" :key="airport.id" :value="airport">
                   {{ airport.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.departureAirport" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.departureAirport[0] }}
+              </div>
             </div>
 
             <!-- Arrival Airport -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Sân bay đến</label>
               <select v-model="flight.arrivalAirport" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.arrivalAirport ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn sân bay đến</option>
                 <option v-for="airport in airports" :key="airport.id" :value="airport">
                   {{ airport.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.arrivalAirport" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.arrivalAirport[0] }}
+              </div>
             </div>
 
             <!-- Departure Time -->
@@ -322,6 +334,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { createAdminFlight, updateAdminFlight, getAdminAirports, getAllAirlines, getAllAirports, getAllFlightCategories, uploadFlightImages } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
+import { validateForm, flightFormSchema } from '@/utils/validation'
 
 const flight = ref({ ...Flight })
 const airports = ref([])
@@ -330,6 +343,9 @@ const flightCategories = ref([])
 const isEdit = ref(false)
 const loading = ref(false)
 const error = ref('')
+
+// Validation errors
+const validationErrors = ref({})
 
 // Thông tin vé
 const ticketForm = ref({
@@ -496,6 +512,15 @@ onMounted(async () => {
 })
 
 async function submitFlight() {
+  // Validate form before submit
+  const { isValid, errors } = validateForm(flight.value, flightFormSchema)
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin chuyến bay!', 'error')
+    return
+  }
+  
   loading.value = true
 
   // Sinh mã chuyến bay tự động

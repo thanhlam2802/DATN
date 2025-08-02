@@ -3,6 +3,7 @@ package backend.backend.controller;
 import backend.backend.dto.*;
 import backend.backend.service.AdminFlightService;
 import backend.backend.service.ImageStorageService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -55,7 +56,7 @@ public class AdminFlightController {
     }
 
     @PostMapping("/flights")
-    public ResponseEntity<FlightDto> createFlight(@RequestBody CreateFlightRequestDto requestDto) {
+    public ResponseEntity<FlightDto> createFlight(@Valid @RequestBody CreateFlightRequestDto requestDto) {
         String requestId = UUID.randomUUID().toString();
         log.info("CREATE_FLIGHT_REQUEST - RequestId: {}, Payload: {}", requestId, requestDto);
         try {
@@ -87,7 +88,7 @@ public class AdminFlightController {
     @PutMapping("/flights/{flightId}")
     public ResponseEntity<FlightDto> updateFlight(
             @PathVariable Integer flightId,
-            @RequestBody FlightDto flightDto) {
+            @Valid @RequestBody FlightDto flightDto) {
         String requestId = UUID.randomUUID().toString();
         log.info("UPDATE_FLIGHT_REQUEST - RequestId: {}, flightId: {}, Payload: {}", requestId, flightId, flightDto);
         try {
@@ -131,7 +132,7 @@ public class AdminFlightController {
     @PutMapping("/flights/{flightId}/seats")
     public ResponseEntity<List<FlightSlotDto>> updateSeats(
             @PathVariable String flightId,
-            @RequestBody List<FlightSlotDto> seats) {
+            @Valid @RequestBody List<FlightSlotDto> seats) {
         String requestId = UUID.randomUUID().toString();
         log.info("UPDATE_SEATS_REQUEST - RequestId: {}, flightId: {}, PayloadCount: {}", requestId, flightId, seats.size());
         try {
@@ -147,7 +148,7 @@ public class AdminFlightController {
     @PutMapping("/flights/seats/{slotId}")
     public ResponseEntity<FlightSlotDto> updateSeat(
             @PathVariable Integer slotId,
-            @RequestBody FlightSlotDto slotDto) {
+            @Valid @RequestBody FlightSlotDto slotDto) {
         String requestId = UUID.randomUUID().toString();
         log.info("UPDATE_SEAT_REQUEST - RequestId: {},  slotId: {}, Payload: {}", requestId, slotId, slotDto);
         try {
@@ -265,6 +266,57 @@ public class AdminFlightController {
         }
     }
 
+        @GetMapping("/flights/monthly-statistics")
+    public ResponseEntity<MonthlyFlightStatisticsDto> getMonthlyFlightStatistics(
+            @RequestParam Integer year,
+            @RequestParam Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_MONTHLY_STATISTICS_REQUEST - RequestId: {}, year: {}, month: {}", requestId, year, month);
+        try {
+            MonthlyFlightStatisticsDto stats = adminFlightService.getMonthlyFlightStatistics(year, month);
+            log.info("GET_MONTHLY_STATISTICS_SUCCESS - RequestId: {}, year: {}, month: {}", requestId, year, month);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("GET_MONTHLY_STATISTICS_FAILED - RequestId: {}, year: {}, month: {}, Error: {}",
+                     requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/flights/bookings-by-destination")
+    public ResponseEntity<List<BookingByDestinationDto>> getBookingsByDestination(
+            @RequestParam Integer year,
+            @RequestParam Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_BOOKINGS_BY_DESTINATION_REQUEST - RequestId: {}, year: {}, month: {}", requestId, year, month);
+        try {
+            List<BookingByDestinationDto> stats = adminFlightService.getBookingsByDestination(year, month);
+            log.info("GET_BOOKINGS_BY_DESTINATION_SUCCESS - RequestId: {}, year: {}, month: {}", requestId, year, month);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("GET_BOOKINGS_BY_DESTINATION_FAILED - RequestId: {}, year: {}, month: {}, Error: {}",
+                     requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/flights/revenue-by-seat-class")
+    public ResponseEntity<List<RevenueBySeatClassDto>> getRevenueBySeatClass(
+            @RequestParam Integer year,
+            @RequestParam Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_REVENUE_BY_SEAT_CLASS_REQUEST - RequestId: {}, year: {}, month: {}", requestId, year, month);
+        try {
+            List<RevenueBySeatClassDto> stats = adminFlightService.getRevenueBySeatClass(year, month);
+            log.info("GET_REVENUE_BY_SEAT_CLASS_SUCCESS - RequestId: {}, year: {}, month: {}", requestId, year, month);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("GET_REVENUE_BY_SEAT_CLASS_FAILED - RequestId: {}, year: {}, month: {}, Error: {}",
+                     requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
+    }
+
     @GetMapping("/airports")
     public ResponseEntity<List<AirportDto>> getAirports() {
         String requestId = UUID.randomUUID().toString();
@@ -280,7 +332,7 @@ public class AdminFlightController {
     }
 
     @PostMapping("/airports")
-    public ResponseEntity<AirportDto> createAirport(@RequestBody AirportDto airportDto) {
+    public ResponseEntity<AirportDto> createAirport(@Valid @RequestBody AirportDto airportDto) {
         String requestId = UUID.randomUUID().toString();
         log.info("CREATE_AIRPORT_REQUEST - RequestId: {}, Payload: {}", requestId, airportDto);
         try {
@@ -296,7 +348,7 @@ public class AdminFlightController {
     @PutMapping("/airports/{airportId}")
     public ResponseEntity<AirportDto> updateAirport(
             @PathVariable Integer airportId,
-            @RequestBody AirportDto airportDto) {
+            @Valid @RequestBody AirportDto airportDto) {
         String requestId = UUID.randomUUID().toString();
         log.info("UPDATE_AIRPORT_REQUEST - RequestId: {}, airportId: {}, Payload: {}", requestId, airportId, airportDto);
         try {

@@ -16,7 +16,7 @@
             <div class="text-gray-600 text-sm flex items-center space-x-4">
                 <div class="flex items-center space-x-1">
                     <i class="fas fa-plane-departure text-blue-500"></i>
-                    <span>{{ formatTime(flight.departureTime) }} - {{ formatTime(flight.arrivalTime) }}</span>
+                    <span>{{ formatDate(flight.departureTime)+ ' ' +formatTime(flight.departureTime) }}</span>
                 </div>
                 <div class="flex items-center space-x-1">
                 <span class="block">Số ghế còn: {{ flight.totalAvailableSeats }}</span>
@@ -63,6 +63,11 @@ export default {
             const d = new Date(val);
             return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         },
+        formatDate(val) {
+            if (!val) return '';
+            const d = new Date(val);
+            return d.toLocaleDateString('vi-VN');
+        }
     },
 };
 </script>

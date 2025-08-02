@@ -27,7 +27,10 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">Họ và tên</label>
                             <input v-model="customer.fullName" type="text" placeholder="Nhập họ tên đầy đủ"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                :class="`w-full border rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.fullName ? 'border-red-500' : 'border-gray-300'}`" />
+                            <div v-if="validationErrors.fullName" class="text-red-500 text-sm mt-1">
+                                {{ validationErrors.fullName[0] }}
+                            </div>
                         </div>
                         <!-- Giới tính -->
                         <div>
@@ -42,25 +45,37 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">Ngày sinh</label>
                             <input v-model="customer.dob" type="date"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                :class="`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.dob ? 'border-red-500' : 'border-gray-300'}`" />
+                            <div v-if="validationErrors.dob" class="text-red-500 text-sm mt-1">
+                                {{ validationErrors.dob[0] }}
+                            </div>
                         </div>
                         <!-- Số hộ chiếu -->
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">Số hộ chiếu</label>
                             <input v-model="customer.passport" type="text" placeholder="Nhập số hộ chiếu"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
+                                :class="`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.passport ? 'border-red-500' : 'border-gray-300'}`" />
+                            <div v-if="validationErrors.passport" class="text-red-500 text-sm mt-1">
+                                {{ validationErrors.passport[0] }}
+                            </div>
+                        </div>
                         <!-- Email -->
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
                             <input v-model="customer.email" type="email" placeholder="Nhập email"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                :class="`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.email ? 'border-red-500' : 'border-gray-300'}`" />
+                            <div v-if="validationErrors.email" class="text-red-500 text-sm mt-1">
+                                {{ validationErrors.email[0] }}
+                            </div>
                         </div>
                         <!-- Số điện thoại -->
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">Số điện thoại</label>
                             <input v-model="customer.phone" type="text" placeholder="Nhập số điện thoại"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                :class="`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.phone ? 'border-red-500' : 'border-gray-300'}`" />
+                            <div v-if="validationErrors.phone" class="text-red-500 text-sm mt-1">
+                                {{ validationErrors.phone[0] }}
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -243,6 +258,7 @@ import { payForFlight, getFlightDetailPublic, findFirstAvailableSlot, reserveFli
 import BankTransferForm from './BankTransferForm.vue'
 import { addItemToCart } from '@/api/OrderApi'
 import { createCustomer } from '@/api/CustomerApi'
+import { validateForm, customerInfoSchema } from '@/utils/validation'
 const router = useRouter()
 const route = useRoute()
 
@@ -312,6 +328,9 @@ const customer = ref({
     phone: '',
 })
 
+// Validation errors
+const validationErrors = ref({})
+
 
 function formatCurrency(value) {
     if (!value) return '0'
@@ -360,15 +379,18 @@ async function addFlightToCart() {
 };
 
 async function confirmAndPay() {
-    // Validate: chắc chắn điền đúng thông tin hành khách + payment
-    const invalidCustomer = !customer.value.fullName || !customer.value.phone || !customer.value.email
-    if (invalidCustomer) {
-        window.$toast('Vui lòng điền đầy đủ thông tin hành khách.', 'error')
+    // Validate customer information
+    const { isValid, errors } = validateForm(customer.value, customerInfoSchema)
+    validationErrors.value = errors
+    
+    if (!isValid) {
+        window.$toast('Vui lòng kiểm tra lại thông tin hành khách.', 'error')
         return
     }
+    
     if (!availableSlot.value) {
         window.$toast('Không tìm thấy thông tin ghế.', 'error')
-            return
+        return
     }
     loading.value = true
     error.value = ''

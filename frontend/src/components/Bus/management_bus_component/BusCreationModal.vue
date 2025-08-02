@@ -40,37 +40,37 @@
                             <span class="text-xs text-gray-400" v-if="existingImages.length + imagePreviews.length > 6">Cuộn để xem thêm</span>
                           </div>
                           <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      <!-- Existing images -->
-                                <div v-for="(image, index) in existingImages" :key="'existing-' + image.id" 
-                                     class="relative group">
-                                  <img :src="image.image.url" 
-                                       class="w-full h-20 object-cover rounded-lg border-2 border-blue-200 shadow-sm" />
-                                  <button @click.prevent="removeExistingImage(index)" 
-                                          class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
-                              ×
-                            </button>
-                                  <div class="absolute bottom-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
-                                    Có sẵn
-                                  </div>
-                          </div>
-                          <!-- New uploaded images -->
-                                <div v-for="(src, index) in imagePreviews" :key="'new-' + index" 
-                                     class="relative group">
-                                  <img :src="src" 
-                                       class="w-full h-20 object-cover rounded-lg border-2 border-green-200 shadow-sm" />
-                                  <button @click.prevent="removeNewImage(index)" 
-                                          class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
-                              ×
-                            </button>
-                                  <div class="absolute bottom-1 left-1 bg-green-600 text-white text-xs px-2 py-0.5 rounded">
-                                    Mới
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <!-- Existing images -->
+                          <div v-for="(image, index) in existingImages" :key="'existing-' + image.id" 
+                               class="relative group">
+                            <img :src="image.image.url" 
+                                 class="w-full h-20 object-cover rounded-lg border-2 border-blue-200 shadow-sm" />
+                            <button @click.prevent="removeExistingImage(index)" 
+                                    class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
+                        ×
+                      </button>
+                            <div class="absolute bottom-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
+                              Có sẵn
+                            </div>
+                    </div>
+                    <!-- New uploaded images -->
+                          <div v-for="(src, index) in imagePreviews" :key="'new-' + index" 
+                               class="relative group">
+                            <img :src="src" 
+                                 class="w-full h-20 object-cover rounded-lg border-2 border-green-200 shadow-sm" />
+                            <button @click.prevent="removeNewImage(index)" 
+                                    class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors opacity-0 group-hover:opacity-100">
+                        ×
+                      </button>
+                            <div class="absolute bottom-1 left-1 bg-green-600 text-white text-xs px-2 py-0.5 rounded">
+                              Mới
                                   </div>
                                 </div>
-                              </div>
                             </div>
                           </div>
                         </div>
+                      </div>
                       
                       <!-- Upload Area -->
                       <div class="text-center">
@@ -225,7 +225,7 @@
             
             <!-- Footer Actions -->
             <div class="border-t bg-gray-50 px-6 py-4 flex-shrink-0">
-              <div class="flex justify-end space-x-4">
+            <div class="flex justify-end space-x-4">
                 <button type="button" @click="closeModal" 
                         class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
                   Hủy bỏ
@@ -242,7 +242,7 @@
                   <span v-else>
                     {{ isEditMode ? 'Cập nhật xe buýt' : 'Tạo xe buýt' }}
                   </span>
-                </button>
+              </button>
               </div>
             </div>
         </div>

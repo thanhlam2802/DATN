@@ -41,42 +41,32 @@ enum RealTimeStatus {
     DELAYED          # Trễ hơn dự kiến
     UNKNOWN          # Chưa xác định
 }
-# --- Kiểu dữ liệu cho BusSlot (Chuyến đi) ---
 type BusSlot {
     id: ID!
-    bus: Bus!           # Xe bus được phân công cho chuyến này
-    route: Route!       # Lộ trình của chuyến đi
-    slotDate: String!   # Ngày chuyến đi (YYYY-MM-DD)
-    
-    # Scheduled vs Actual Times
-    departureTime: DateTime! # Thời gian khởi hành dự kiến
-    arrivalTime: DateTime!   # Thời gian đến dự kiến
-    actualDepartureTime: DateTime # Thời gian khởi hành thực tế
-    actualArrivalTime: DateTime # Thời gian đến thực tế
-    
-    # Basic Info
-    price: BigDecimal!  
-    totalSeats: Int!    
-    availableSeats: Int! 
+    bus: Bus!
+    route: Route!
+    slotDate: Date!
+    departureTime: DateTime!
+    arrivalTime: DateTime!
+    actualDepartureTime: DateTime
+    actualArrivalTime: DateTime
+    price: BigDecimal!
+    totalSeats: Int!
+    availableSeats: Int!
     status: BusSlotStatus!
-    
-    # Real-time Management Fields
-    delayReason: DelayReason        # Lý do delay/sớm
-    currentLocation: String         # Vị trí hiện tại
-    driverContactInfo: String       # Thông tin liên hệ tài xế
-    allowManualOverride: Boolean!   # Cho phép manual override
-    timeToleranceMinutes: Int!      # Grace period (±30 phút)
-    
-    # Auto-management Fields
-    tripType: TripType!                    # ONE_TIME hoặc RECURRING
-    recurringPattern: RecurringPattern     # DAILY, WEEKLY, WEEKDAYS, WEEKENDS
-    recurringEndDate: String               # Ngày kết thúc recurring (YYYY-MM-DD)
-    autoStatusUpdate: Boolean!             # Tự động update status
-        autoResetSeats: Boolean!               # Tự động reset ghế cho chuyến tiếp theo
-    
-    # Timestamps
-    createdAt: DateTime
-    updatedAt: DateTime
+    delayReason: DelayReason
+    currentLocation: String
+    driverContactInfo: String
+    allowManualOverride: Boolean!
+    timeToleranceMinutes: Int!
+    tripType: TripType!
+    recurringPattern: RecurringPattern
+    recurringEndDate: Date
+    autoStatusUpdate: Boolean!
+    autoResetSeats: Boolean!
+    seats: [BusSeat!]! # Thêm field này
+    createdAt: DateTime!
+    updatedAt: DateTime!
 }
 
 
@@ -147,17 +137,18 @@ extend type Query {
     findBusSlotsByBusId(busId: ID!): [BusSlot!]!
     findBusSlotsByRouteId(routeId: ID!): [BusSlot!]!
     findBusSlotsByStatus(status: BusSlotStatus!): [BusSlot!]!
-    
-    # Advanced Search
-    searchBusSlots(
-        departureLocationId: String! # ID của điểm đi (từ Route)
-        arrivalLocationId: String!   # ID của điểm đến (từ Route)
-        slotDate: String!            # Ngày khởi hành (dạng "YYYY-MM-DD")
-        busCategoryId: ID            # Tùy chọn: ID loại xe
-        minPrice: BigDecimal         # Tùy chọn: Giá tối thiểu
-        maxPrice: BigDecimal         # Tùy chọn: Giá tối đa
-        minAvailableSeats: Int       # Tùy chọn: Số ghế trống tối thiểu
-        status: BusSlotStatus        # Tùy chọn: Trạng thái
+
+    searchBusSlotsDetailed(
+        departureProvince: String!
+        departureDistrict: String
+        arrivalProvince: String!
+        arrivalDistrict: String
+        slotDate: String!
+        minAvailableSeats: Int
+        busCategoryId: ID
+        minPrice: BigDecimal
+        maxPrice: BigDecimal
+        status: BusSlotStatus
     ): [BusSlot!]!
     
     # Real-time Management Queries

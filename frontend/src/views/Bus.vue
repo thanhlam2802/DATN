@@ -107,22 +107,21 @@ const whyChooseUsData = [
 
 // Handle search from BusSearchForm
 const handleBusSearch = (searchData) => {
-  isRoundtrip.value = searchData.roundtrip
+  console.log('🔍 Search data received:', searchData)
   
-  // Store search params and show modal
+  // Store search results and params  
   lastSearchParams.value = { 
-    ...searchData,
+    ...searchData.searchParams,
     busType: activeTab.value // Pass current bus type
   }
+  
+  // Store search results từ GraphQL API
+  searchResults.value = searchData.busSlots || []
+  
+  // Show modal with results
   showSearchModal.value = true
   
-  // In real app, this would trigger API call
-  // searchResults.value = await searchBuses(searchData)
-}
-
-// Handle roundtrip state change
-const handleRoundtripChange = (roundtripState) => {
-  isRoundtrip.value = roundtripState
+  console.log('📊 Search results:', searchResults.value)
 }
 
 // Handle destination click
@@ -185,8 +184,7 @@ const handleImageLoad = (event) => {
           <div class="rounded-lg mt-[80px]">
             <BusSearchForm 
               :activeTab="activeTab"
-              @search="handleBusSearch" 
-              @roundtrip-change="handleRoundtripChange"
+              @search="handleBusSearch"
             />
           </div>
         </div>
@@ -255,6 +253,7 @@ const handleImageLoad = (event) => {
     <BusSearchModal 
       :show="showSearchModal"
       :searchParams="lastSearchParams"
+      :searchResults="{ busSlots: searchResults, searchParams: lastSearchParams }"
       @close="handleModalClose"
     />
   </div>

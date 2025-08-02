@@ -1,4 +1,3 @@
-// backend.backend.entity.BusSlot.java
 package backend.backend.entity;
 
 import backend.backend.entity.enumBus.BusSlotStatus;
@@ -11,7 +10,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime; // Import LocalTime cho thời gian cụ thể
 import java.time.LocalDateTime; // Import LocalDateTime cho created_at/updated_at
+import java.util.ArrayList;
 import java.util.List;
+
+import backend.backend.converter.LocalTimeAttributeConverter; // <-- THÊM IMPORT NÀY
 
 @Data
 @Entity
@@ -32,65 +34,70 @@ public class BusSlot {
     @Column(name = "slot_date", nullable = false)
     private LocalDate slotDate;
 
+    @Convert(converter = LocalTimeAttributeConverter.class)
     @Column(name = "departure_time", nullable = false)
     private LocalTime departureTime;
 
+    @Convert(converter = LocalTimeAttributeConverter.class)
     @Column(name = "arrival_time", nullable = false)
     private LocalTime arrivalTime;
 
-    @Column(name = "actual_departure_time") // <-- THÊM TRƯỜNG MỚI
+    @Column(name = "actual_departure_time")
     private LocalDateTime actualDepartureTime;
 
-    @Column(name = "actual_arrival_time") // <-- THÊM TRƯỜNG MỚI
+    @Column(name = "actual_arrival_time")
     private LocalDateTime actualArrivalTime;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 
     @Column(name = "total_seats")
-    private Integer totalSeats;
+    private Integer totalSeats; // Có thể được suy ra từ số lượng ghế trong collection 'seats'
 
     @Column(name = "available_seats")
-    private Integer availableSeats;
+    private Integer availableSeats; // Có thể được suy ra từ số lượng ghế 'isBooked = false' trong collection 'seats'
 
-    @Enumerated(EnumType.STRING) // <-- THAY ĐỔI: Sử dụng EnumType.STRING để lưu enum dưới dạng chuỗi
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private BusSlotStatus status = BusSlotStatus.SCHEDULED; // <-- THAY ĐỔI: Sử dụng enum
+    private BusSlotStatus status = BusSlotStatus.SCHEDULED;
 
     // --- Real-time Management Fields ---
-    @Enumerated(EnumType.STRING) // <-- THÊM TRƯỜNG MỚI
+    @Enumerated(EnumType.STRING)
     @Column(name = "delay_reason", length = 50)
     private DelayReason delayReason;
 
-    @Column(name = "current_location", length = 255) // <-- THÊM TRƯỜNG MỚI
+    @Column(name = "current_location", length = 255)
     private String currentLocation;
 
-    @Column(name = "driver_contact_info", length = 255) // <-- THÊM TRƯỜNG MỚI
+    @Column(name = "driver_contact_info", length = 255)
     private String driverContactInfo;
 
-    @Column(name = "allow_manual_override", nullable = false) // <-- THÊM TRƯỜNG MỚI
-    private Boolean allowManualOverride = false; // Giá trị mặc định
+    @Column(name = "allow_manual_override", nullable = false)
+    private Boolean allowManualOverride = false;
 
-    @Column(name = "time_tolerance_minutes", nullable = false) // <-- THÊM TRƯỜNG MỚI
-    private Integer timeToleranceMinutes = 30; // Giá trị mặc định
+    @Column(name = "time_tolerance_minutes", nullable = false)
+    private Integer timeToleranceMinutes = 30;
 
     // --- Auto-management Fields ---
-    @Enumerated(EnumType.STRING) // <-- THÊM TRƯỜNG MỚI
+    @Enumerated(EnumType.STRING)
     @Column(name = "trip_type", length = 20, nullable = false)
-    private TripType tripType = TripType.ONE_TIME; // Giá trị mặc định
+    private TripType tripType = TripType.ONE_TIME;
 
-    @Enumerated(EnumType.STRING) // <-- THÊM TRƯỜNG MỚI
+    @Enumerated(EnumType.STRING)
     @Column(name = "recurring_pattern", length = 20)
     private RecurringPattern recurringPattern;
 
-    @Column(name = "recurring_end_date") // <-- THÊM TRƯỜNG MỚI
+    @Column(name = "recurring_end_date")
     private LocalDate recurringEndDate;
 
-    @Column(name = "auto_status_update", nullable = false) // <-- THÊM TRƯỜNG MỚI
-    private Boolean autoStatusUpdate = false; // Giá trị mặc định
+    @Column(name = "auto_status_update", nullable = false)
+    private Boolean autoStatusUpdate = false;
 
-    @Column(name = "auto_reset_seats", nullable = false) // <-- THÊM TRƯỜNG MỚI
-    private Boolean autoResetSeats = false; // Giá trị mặc định
+    @Column(name = "auto_reset_seats", nullable = false)
+    private Boolean autoResetSeats = false;
+
+    @OneToMany(mappedBy = "busSlot", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BusSeat> seats = new ArrayList<>(); // <-- Đã đổi từ Seat thành BusSeat
 
     @OneToMany(mappedBy = "busSlot")
     private List<BusBooking> busBookings;

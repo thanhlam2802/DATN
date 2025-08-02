@@ -6,7 +6,7 @@ import Bus from "@/views/Bus.vue";
 import Hotel from "@/views/hotel/Hotel.vue";
 import Plane from "@/components/Flight/FlightHome.vue";
 import TourDetail from "@/views/TourDetail.vue";
-
+import FlightDetail from "@/components/Flight/FlightDetail.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import BusManagement from "@/components/Bus/management_bus_component/BusManagement.vue";
 import BusCategoryManagement from "@/components/Bus/management_bus_component/BusCategoryManagement.vue";
@@ -62,9 +62,19 @@ const routes = [
       { path: "", name: "Home", component: Home },
       { path: "register", name: "Register", component: Register },
       { path: "login", name: "Login", component: Login },
+      { path: "forgot-password", name: "ForgotPassword", component: ForgotPassword },
+      { path: "reset-password", name: "ResetPassword", component: ResetPassword },
+      { path: "expired-link", name: "ExpiredLink", component: ExpiredLink },
+      { path: "verify-email", name: "VerifyEmail", component: VerifyEmail },
       { path: "tour", name: "Tour", component: Tour },
       { path: "bus", name: "Bus", component: Bus },
       { path: "plane", name: "Plane", component: Plane },
+      {
+        path: "plane/:id",
+        name: "FlightDetail",
+        component: FlightDetail,
+        props: true,
+      },
       {
         path: "hotel",
         name: "Hotel",
@@ -102,53 +112,6 @@ const routes = [
         path: "booking",
         name: "BookingPage",
         component: BookingPage,
-      },
-      {
-        path: "/account",
-        component: AccountView,
-        children: [
-          { path: "", redirect: "personal" },
-          { path: "personal", component: AccountDetails },
-          { path: "bookings", component: BookingHistory },
-          { path: "payment", component: PaymentDetails },
-          { path: "security", component: AccountSecurity },
-          { path: "notifications", component: NotificationSetting },
-        ],
-      },
-    ],
-  },
-  {
-    path: "/bus-management",
-    component: BusManagementLayout,
-    children: [
-      { path: "", redirect: "bus" },
-      { path: "bus", name: "BusManagement", component: BusManagement },
-      { path: "category", name: "BusCategoryManagement", component: BusCategoryManagement },
-      { path: "route", name: "RouteManagement", component: RouteManagement },
-      { path: "trip", name: "TripManagement", component: TripManagement },
-      { path: "price", name: "PriceManagement", component: PriceManagement },
-      { path: "statistics", name: "Statistics", component: Statistics },
-    ],
-  },
-    {
-        path: "/",
-        component: MainLayout,
-        children: [
-            {path: "", name: "Home", component: Home},
-            {path: "register", name: "Register", component: Register},
-            {path: "login", name: "Login", component: Login},
-            {path: "forgot-password", name: "ForgotPassword", component: ForgotPassword},
-            {path: "reset-password", name: "ResetPassword", component: ResetPassword},
-            {path: "expired-link", name: "ExpiredLink", component: ExpiredLink},
-            {path: "verify-email", name: "VerifyEmail", component: VerifyEmail},
-            {path: "tour", name: "Tour", component: Tour},
-            {path: "bus", name: "Bus", component: Bus},
-            {path: "plane", name: "Plane", component: Plane},
-            {
-                path: "plane/:id",
-                name: "FlightDetail",
-                component: FlightDetail,
-                props: true,
             },
             {
                 path: "/orders/:id",
@@ -176,44 +139,6 @@ const routes = [
                 component: MyTripsView,
             },
             {
-                path: "hotel",
-                name: "Hotel",
-                component: Hotel,
-            },
-            {
-                path: "hotel/listing",
-                name: "HotelListing",
-                component: HotelListingPage,
-            },
-            {
-                path: "hotel/:id",
-                name: "HotelDetail",
-                component: HotelDetail,
-                props: true,
-            },
-            {
-                path: "hotel/:id/booking",
-                name: "HotelBooking",
-                component: HotelBooking,
-                props: true,
-            },
-            {
-                path: "hotel/:id/booking/success",
-                name: "BookingSuccess",
-                component: BookingSuccess,
-            },
-            {
-                path: "tours/:id",
-                name: "TourDetail",
-                component: TourDetail,
-                props: true,
-            },
-            {
-                path: "booking",
-                name: "BookingPage",
-                component: BookingPage,
-            },
-            {
                 path: "/plane/pay",
                 name: "PayFlight",
                 component: PayFlight,
@@ -227,20 +152,30 @@ const routes = [
                 path: "/account",
                 component: AccountView,
                 children: [
-                    {path: "", redirect: "personal"},
-                    {path: "personal", component: AccountDetails},
-                    {path: "bookings", component: BookingHistory},
-                    {path: "payment", component: PaymentDetails},
-                    {path: "security", component: AccountSecurity},
-                    {path: "notifications", component: NotificationSetting},
+          { path: "", redirect: "personal" },
+          { path: "personal", component: AccountDetails },
+          { path: "bookings", component: BookingHistory },
+          { path: "payment", component: PaymentDetails },
+          { path: "security", component: AccountSecurity },
+          { path: "notifications", component: NotificationSetting },
                 ],
             },
         ],
     },
+
+
     {
         path: "/bus-management",
-        name: "BusManagement",
         component: BusManagementLayout,
+        children: [
+            { path: "", redirect: "bus" },
+            { path: "bus", name: "BusManagement", component: BusManagement },
+            { path: "category", name: "BusCategoryManagement", component: BusCategoryManagement },
+            { path: "route", name: "RouteManagement", component: RouteManagement },
+            { path: "trip", name: "TripManagement", component: TripManagement },
+            { path: "price", name: "PriceManagement", component: PriceManagement },
+            { path: "statistics", name: "Statistics", component: Statistics },
+        ],
     },
 
 

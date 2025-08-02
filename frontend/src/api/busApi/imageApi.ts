@@ -52,7 +52,6 @@ export async function uploadImage(file: File, onProgress?: (progress: number) =>
     const data = (response.data as any).data || response.data;
     
     if (!data || !data.url || !data.publicId) {
-      console.error('Invalid upload response structure:', data);
       throw new Error('Upload response missing required fields (url, publicId)');
     }
     
@@ -61,7 +60,6 @@ export async function uploadImage(file: File, onProgress?: (progress: number) =>
       publicId: data.publicId
     };
   } catch (error) {
-    console.error('Upload error:', error);
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(error.response.data?.error || 'Upload failed');
     }
@@ -79,7 +77,6 @@ export async function createImageRecord(input: { url: string; publicId: string; 
   try {
     // Validation
     if (!input || !input.url || !input.publicId) {
-      console.error('Invalid input for createImageRecord:', input);
       throw new Error('Input must have url and publicId fields');
     }
     
@@ -90,7 +87,6 @@ export async function createImageRecord(input: { url: string; publicId: string; 
     
     return response.data.createImage;
   } catch (error) {
-    console.error('createImageRecord error:', error);
     throw new Error('Could not save image record to database.');
   }
 }

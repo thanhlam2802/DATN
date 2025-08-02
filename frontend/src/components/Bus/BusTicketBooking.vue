@@ -1,8 +1,14 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router' // ✅ THÊM để redirect
 import { SeatAPI, BookingAPI } from '@/api/busAPI_Client'
+import { CartAPI, CustomerAPI } from '@/api/busAPI_Client/busbookingApi'
+import BusSeatSelection from './BusSeatSelection.vue'
+import { getUserIdFromToken } from '@/services/TokenService' // ✅ THÊM
 
 // DEV MODE: No auth required for booking
+
+const router = useRouter() // ✅ THÊM router instance
 
 const props = defineProps({
   show: {
@@ -15,7 +21,7 @@ const props = defineProps({
   },
   currentStep: {
     type: Number,
-    default: 2 // Bước 2 = Chọn ghế (sau bước 1 = Tìm kiếm)
+    default: 2 // Bước 2 = Chọn ghế → Bước 3 = Thông tin → Redirect đến PaymentView
   }
 })
 
@@ -35,23 +41,30 @@ const realSeatLayout = ref(null)
 // Booking state
 const bookingData = ref({
   selectedSeats: [],
+  selectedSeatNumbers: [], // ✅ THÊM để lưu seat numbers
   passengerInfo: {
     fullName: '',
     phoneNumber: '',
+    email: '',
     notes: ''
   },
   voucherCode: '',
-  paymentMethod: '',
+  // ✅ paymentMethod đã bị loại bỏ vì không còn Step 4 Payment
   totalAmount: 0,
   discount: 0
 })
 
-// Payment methods
-const paymentMethods = [
-  { id: 'credit-card', name: 'Thẻ tín dụng', icon: 'fas fa-credit-card' },
-  { id: 'e-wallet', name: 'Ví điện tử', icon: 'fas fa-wallet' },
-  { id: 'bank-transfer', name: 'Chuyển khoản', icon: 'fas fa-university' }
-]
+// Form validation states
+const validationErrors = ref([])
+const showValidationErrors = ref(false)
+const isValidatingForm = ref(false)
+
+// Booking action states
+const bookingAction = ref('') // 'cart' or 'direct'
+const isProcessingBooking = ref(false)
+
+// ✅ Payment methods đã bị loại bỏ vì không còn Step 4 Payment
+// const paymentMethods = [...]
 
 // Mount/unmount tracking
 onMounted(() => {
@@ -186,13 +199,26 @@ const toggleSeat = (seatNumber) => {
 
 // Form validation functions
 const validatePassengerInfo = () => {
-  const { fullName, phoneNumber } = bookingData.value.passengerInfo
-  return fullName.trim() && phoneNumber.trim() && phoneNumber.length >= 10
+  isValidatingForm.value = true
+  
+  const customerInfo = CustomerAPI.createCustomerFromForm(bookingData.value.passengerInfo)
+  const validation = CustomerAPI.validateCustomerInfo(customerInfo)
+  
+  validationErrors.value = validation.errors
+  showValidationErrors.value = !validation.valid
+  
+  isValidatingForm.value = false
+  return validation.valid
 }
 
-const validatePayment = () => {
-  return bookingData.value.paymentMethod && selectedSeatsCount.value > 0
-}
+// Real-time validation watcher
+watch(() => bookingData.value.passengerInfo, (newInfo) => {
+  if (showValidationErrors.value) {
+    validatePassengerInfo()
+  }
+}, { deep: true })
+
+// ✅ validatePayment đã bị loại bỏ vì không còn Step 4 Payment
 
 // Enhanced voucher functions using API
 const applyVoucher = async () => {
@@ -242,6 +268,21 @@ const removeVoucher = () => {
   updateTotalAmount()
 }
 
+// Handle seat selection from BusSeatSelection component
+const handleSeatSelectionChange = (selectedSeats) => {
+  bookingData.value.selectedSeats = selectedSeats.map(seat => seat.id)
+  bookingData.value.selectedSeatNumbers = selectedSeats.map(seat => seat.seatNumber) // ✅ THÊM
+  
+  // 🐛 DEBUG: Log seat selection
+  console.log('🪑 Seat Selection Changed:', {
+    selectedSeats,
+    selectedSeatIds: bookingData.value.selectedSeats,
+    selectedSeatNumbers: bookingData.value.selectedSeatNumbers
+  })
+  
+  updateTotalAmount()
+}
+
 // Price calculation functions
 const updateTotalAmount = () => {
   bookingData.value.totalAmount = finalAmount.value
@@ -265,69 +306,179 @@ const goToPrevStep = () => {
 
 const canProceedToNext = () => {
   switch (props.currentStep) {
-    case 2: // Chọn ghế -> Thông tin (DEV: no auth required)
+    case 2: // Chọn ghế -> Thông tin 
       return selectedSeatsCount.value > 0
-    case 3: // Thông tin
-      return validatePassengerInfo()
-    case 4: // Thanh toán
-      return validatePayment()
+    case 3: // Thông tin -> ĐẶT VÉ NGAY (redirect đến PaymentView)
+      return false // Step 3 chỉ dùng "Đặt vé ngay", không có "Tiếp tục"
     default:
-      return true
+      return false // Chỉ có Step 2 và 3, không có step khác
   }
 }
 
-// Enhanced booking completion with API
-const completeBooking = async () => {
-  if (!isMounted.value) {
-    return
-  }
-
+// Add to cart function
+const addToCart = async () => {
+  if (!isMounted.value || isProcessingBooking.value) return
+  
   try {
-    // Validate data before submission
-    const bookingInput = {
-      busSlotId: props.selectedTrip.busSlotId,
-      seatNumbers: bookingData.value.selectedSeats,
-      passengerInfo: bookingData.value.passengerInfo,
-      paymentMethod: bookingData.value.paymentMethod,
-      totalAmount: bookingData.value.totalAmount,
-      voucherCode: bookingData.value.voucherCode || undefined
+    isProcessingBooking.value = true
+    bookingAction.value = 'cart'
+    
+    // Validate form first
+    if (!validatePassengerInfo()) {
+      alert('❌ Vui lòng kiểm tra lại thông tin hành khách')
+      return
     }
 
-    const validation = BookingAPI.validateBookingData(bookingInput)
+    // ✅ FIX: Get userId from token instead of hardcode
+    const userId = getUserIdFromToken()
+    if (!userId) {
+      alert('❌ Vui lòng đăng nhập để đặt vé')
+      return
+    }
+
+    // Create cart request
+    const cartRequest = {
+      itemId: props.selectedTrip.busSlotId,
+      itemType: 'BUS',
+      selectedSeatIds: bookingData.value.selectedSeats,
+      totalPrice: finalAmount.value,
+      notes: bookingData.value.passengerInfo.notes,
+      passengerName: CustomerAPI.normalizeName(bookingData.value.passengerInfo.fullName),
+      passengerPhone: bookingData.value.passengerInfo.phoneNumber.replace(/\s/g, ''),
+      passengerEmail: bookingData.value.passengerInfo.email || undefined
+    }
+
+    // Validate cart request
+    const validation = CartAPI.validateCartRequest(cartRequest)
     if (!validation.valid) {
       alert(`❌ Dữ liệu không hợp lệ:\n${validation.errors.join('\n')}`)
       return
     }
 
-    // Create booking via API
-    const booking = await BookingAPI.createBooking(bookingInput)
+    // ✅ FIX: Use dynamic userId from token
+    let cartResponse
+    try {
+      cartResponse = await CartAPI.getCart(userId)
+    } catch (error) {
+      // If cart doesn't exist, create new one
+      cartResponse = await CartAPI.createCart(userId)
+    }
+
+    // Add bus to cart
+    const result = await CartAPI.addBusToCart(cartResponse.data.id, cartRequest)
     
-    // Check if still mounted before emitting
     if (isMounted.value) {
-      // Emit successful booking
+      // ✅ THÊM: Cập nhật localStorage với cart ID mới
+      localStorage.setItem('activeCartId', result.data.id)
+      console.log('✅ Updated cart ID:', result.data.id)
+      
+      alert('✅ Đã thêm vé xe vào giỏ hàng thành công!')
+      
       emit('booking-complete', {
-        bookingId: booking.bookingId,
+        type: 'cart',
+        cartId: result.data.id,
+        bookingId: result.data.busBookings[result.data.busBookings.length - 1]?.id,
         trip: props.selectedTrip,
-        seats: booking.seats,
-        passenger: booking.passenger,
-        payment: {
-          method: bookingData.value.paymentMethod,
-          amount: booking.totalAmount,
-          voucher: bookingData.value.voucherCode,
-          discount: bookingData.value.discount
-        },
-        qrCode: booking.qrCode,
-        bookingTime: new Date().toISOString()
+        passenger: bookingData.value.passengerInfo,
+        totalAmount: finalAmount.value
       })
+      
+      // ✅ THÊM: Redirect đến giỏ hàng với ID đúng
+      setTimeout(() => {
+        window.location.href = `/orders/${result.data.id}`
+      }, 1000)
     }
 
   } catch (error) {
-    console.error('❌ Error completing booking:', error)
+    console.error('❌ Error adding to cart:', error)
     if (isMounted.value) {
       alert(`❌ ${error.message}`)
     }
+  } finally {
+    if (isMounted.value) {
+      isProcessingBooking.value = false
+      bookingAction.value = ''
+    }
   }
 }
+
+// Direct booking function
+const bookDirectly = async () => {
+  if (!isMounted.value || isProcessingBooking.value) return
+  
+  try {
+    isProcessingBooking.value = true
+    bookingAction.value = 'direct'
+    
+    // Validate form first
+    if (!validatePassengerInfo()) {
+      alert('❌ Vui lòng kiểm tra lại thông tin hành khách')
+      return
+    }
+
+    // Create booking request
+    const bookingRequest = {
+      busSlotId: props.selectedTrip.busSlotId,
+      selectedSeatNumbers: bookingData.value.selectedSeatNumbers, // ✅ SỬA từ selectedSeatIds 
+      customerName: CustomerAPI.normalizeName(bookingData.value.passengerInfo.fullName),
+      phone: bookingData.value.passengerInfo.phoneNumber.replace(/\s/g, ''),
+      email: bookingData.value.passengerInfo.email || undefined,
+      notes: bookingData.value.passengerInfo.notes,
+      userId: getUserIdFromToken() || 1 // ✅ THÊM userId với fallback
+    }
+
+    // 🐛 DEBUG: Log payload để kiểm tra
+    console.log('📋 Direct Booking Payload:', {
+      busSlotId: bookingRequest.busSlotId,
+      selectedSeatNumbers: bookingRequest.selectedSeatNumbers,
+      customerName: bookingRequest.customerName,
+      phone: bookingRequest.phone,
+      email: bookingRequest.email,
+      userId: bookingRequest.userId,
+      selectedSeatsFromBookingData: bookingData.value.selectedSeats,
+      selectedSeatNumbersFromBookingData: bookingData.value.selectedSeatNumbers
+    })
+
+    // Validate direct booking request
+    const validation = BookingAPI.validateDirectBookingRequest(bookingRequest)
+    if (!validation.valid) {
+      alert(`❌ Dữ liệu không hợp lệ:\n${validation.errors.join('\n')}`)
+      return
+    }
+
+    // Create direct booking
+    const result = await BookingAPI.createDirectBooking(bookingRequest)
+    
+    if (isMounted.value) {
+      console.log('✅ Đặt vé thành công! OrderId:', result.data)
+      
+      // Emit booking complete event
+      emit('booking-complete', {
+        type: 'direct',
+        orderId: result.data, // Backend trả về orderId
+        trip: props.selectedTrip,
+        passenger: bookingData.value.passengerInfo,
+        totalAmount: finalAmount.value
+      })
+      
+      // Redirect đến PaymentView với countdown timer
+      await router.push(`/payment/${result.data}`)
+    }
+
+  } catch (error) {
+    console.error('❌ Error creating direct booking:', error)
+    if (isMounted.value) {
+      alert(`❌ ${error.message}`)
+    }
+  } finally {
+    if (isMounted.value) {
+      isProcessingBooking.value = false
+      bookingAction.value = ''
+    }
+  }
+}
+
+// ✅ completeBooking đã bị loại bỏ vì không còn Step 5
 
 // Close modal
 const closeModal = () => {
@@ -358,7 +509,8 @@ const getSeatsForLevel = (levelIndex) => {
 </script>
 
 <template>
-  <div v-if="show" class="flex flex-col min-h-full">
+  <div class="bus-ticket-booking-wrapper">
+    <div v-if="show" class="flex flex-col min-h-full">
     
     <!-- Booking Content -->
     <div class="booking-content flex-1 overflow-y-auto px-4 md:px-6 py-4" style="max-height: calc(90vh - 250px);">
@@ -368,171 +520,19 @@ const getSeatsForLevel = (levelIndex) => {
       <div class="mb-4">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold text-gray-900">Chọn ghế</h3>
-          <!-- DEV Mode Status -->
-          <div class="flex items-center space-x-3 text-sm">
-            <div class="flex items-center text-blue-600">
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              </svg>
-              <span>🔧 DEV MODE</span>
-            </div>
-            <div class="text-gray-500">
-              Ghế: <span class="font-semibold text-blue-600">{{ selectedSeatsCount }}</span>
-            </div>
+          <div class="text-sm text-gray-600">
+            {{ selectedTrip.company }} - {{ selectedTrip.busType }}
           </div>
-        </div>
-        <p class="text-sm text-gray-600">
-          {{ selectedTrip.company }} - {{ selectedTrip.busType }}
-        </p>
-        <!-- Debug info -->
-        <div class="text-xs text-gray-500 mt-2">
-          <span v-if="loadingSeatData" class="text-blue-500">
-            <i class="fas fa-spinner fa-spin mr-1"></i>
-            Đang tải thông tin ghế...
-          </span>
-          <span v-else-if="seatDataError" class="text-red-500">
-            <i class="fas fa-exclamation-triangle mr-1"></i>
-            {{ seatDataError }}
-          </span>
-          <span v-else>
-            Layout: {{ currentLayout.layout }}, Tổng ghế: {{ totalSeats }}, Còn trống: {{ seatOccupancy?.availableSeats || 'N/A' }}
-          </span>
         </div>
       </div>
 
-      <!-- Seat Legend -->
-      <div class="flex items-center justify-center space-x-4 mb-4 text-sm">
-        <div class="flex items-center">
-          <div class="w-4 h-4 bg-green-100 border-2 border-green-300 rounded mr-2"></div>
-          <span>Trống</span>
-        </div>
-        <div class="flex items-center">
-          <div class="w-4 h-4 bg-red-100 border-2 border-red-300 rounded mr-2"></div>
-          <span>Đã đặt</span>
-        </div>
-        <div class="flex items-center">
-          <div class="w-4 h-4 bg-yellow-100 border-2 border-yellow-300 rounded mr-2"></div>
-          <span>Đang đặt</span>
-        </div>
-        <div class="flex items-center">
-          <div class="w-4 h-4 bg-indigo-600 border-2 border-indigo-700 rounded mr-2"></div>
-          <span>Đã chọn</span>
-        </div>
-      </div>
-
-      <!-- Seat Layout & Summary - 2 Columns -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
-        
-        <!-- Left Column: Seat Layout -->
-        <div class="flex flex-col items-center">
-          <!-- Driver section -->
-          <div class="text-center mb-4">
-            <div class="inline-flex items-center justify-center w-16 h-8 bg-gray-200 rounded-t-lg">
-              <i class="fas fa-steering-wheel text-gray-600"></i>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">Tài xế</p>
-          </div>
-
-          <!-- Loading State -->
-          <div v-if="loadingSeatData" class="flex justify-center items-center py-8">
-            <div class="text-center">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
-              <p class="text-sm text-gray-600">Đang tải sơ đồ ghế...</p>
-            </div>
-          </div>
-
-          <!-- Single Level Bus Layout (Dynamic) -->
-          <div v-else-if="currentLayout.layout === 'single'" class="space-y-3">
-            <div v-for="row in currentLayout.rows" :key="row" class="flex justify-center space-x-2">
-              <button
-                v-for="seat in currentLayout.seatsPerRow"
-                :key="(row - 1) * currentLayout.seatsPerRow + seat"
-                @click="toggleSeat((row - 1) * currentLayout.seatsPerRow + seat)"
-                :class="getSeatClass((row - 1) * currentLayout.seatsPerRow + seat)"
-                :disabled="getSeatStatus((row - 1) * currentLayout.seatsPerRow + seat) === 'occupied' || getSeatStatus((row - 1) * currentLayout.seatsPerRow + seat) === 'pending'"
-                v-show="(row - 1) * currentLayout.seatsPerRow + seat <= totalSeats"
-              >
-                {{ (row - 1) * currentLayout.seatsPerRow + seat }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Double Level Bus Layout (Dynamic) -->
-          <div v-else-if="currentLayout.layout === 'double'" class="flex justify-center space-x-6">
-            <div v-for="(level, levelIndex) in (currentLayout.levels || ['Tầng trên', 'Tầng dưới'])" :key="level" class="border rounded-lg p-3">
-              <h4 class="text-sm font-medium text-gray-700 mb-2 text-center">{{ level }}</h4>
-              <div class="space-y-2">
-                <div v-for="row in Math.ceil(currentLayout.rows / 2)" :key="row" class="flex justify-center space-x-2">
-                  <button
-                    v-for="seat in currentLayout.seatsPerRow"
-                    :key="levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat"
-                    @click="toggleSeat(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat)"
-                    :class="getSeatClass(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat)"
-                    :disabled="getSeatStatus(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat) === 'occupied' || getSeatStatus(levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat) === 'pending'"
-                    v-show="levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat <= totalSeats"
-                  >
-                    {{ levelIndex * Math.ceil(totalSeats / 2) + (row - 1) * currentLayout.seatsPerRow + seat }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Selected Seats Summary -->
-        <div class="flex flex-col justify-start">
-          <!-- Always show summary area, even when no seats selected -->
-          <div class="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-            <h4 class="font-medium text-gray-900 mb-3">Thông tin đặt chỗ</h4>
-            
-            <!-- When no seats selected -->
-            <div v-if="selectedSeatsCount === 0" class="text-center text-gray-500 py-8">
-              <i class="fas fa-chair text-3xl mb-3 text-gray-300"></i>
-              <p class="text-sm">Vui lòng chọn ghế</p>
-            </div>
-            
-            <!-- When seats are selected -->
-            <div v-else class="space-y-4">
-              <!-- Selected seats -->
-              <div>
-                <h5 class="text-sm font-medium text-gray-700 mb-2">Ghế đã chọn:</h5>
-                <div class="flex flex-wrap gap-2">
-                  <span v-for="seat in bookingData.selectedSeats" :key="seat" 
-                        class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
-                    Ghế {{ seat }}
-                  </span>
-                </div>
-              </div>
-              
-              <!-- Trip info -->
-              <div class="pt-3 border-t border-gray-200">
-                <h5 class="text-sm font-medium text-gray-700 mb-2">Thông tin chuyến:</h5>
-                <div class="text-sm text-gray-600 space-y-1">
-                  <p>{{ selectedTrip.company }}</p>
-                  <p>{{ selectedTrip.busType }}</p>
-                  <p class="text-xs text-indigo-600 font-medium">
-                    {{ currentLayout.layout === 'single' ? 'Xe Trung chuyển' : 'Xe Giường nằm' }} 
-                    ({{ currentLayout.total }} ghế)
-                  </p>
-                  <p>{{ selectedTrip.route?.from }} → {{ selectedTrip.route?.to }}</p>
-                </div>
-              </div>
-              
-              <!-- Price calculation -->
-              <div class="pt-3 border-t border-gray-200">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-sm text-gray-600">{{ selectedSeatsCount }} ghế × {{ basePrice.toLocaleString() }}đ</span>
-                  <span class="text-sm text-gray-900">{{ (basePrice * selectedSeatsCount).toLocaleString() }}đ</span>
-                </div>
-                <div class="flex justify-between items-center pt-2 border-t">
-                  <span class="font-semibold text-gray-900">Tổng cộng:</span>
-                  <span class="font-bold text-lg text-indigo-600">{{ (basePrice * selectedSeatsCount).toLocaleString() }}đ</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Use New Seat Selection Component -->
+      <BusSeatSelection 
+        :busSlot="selectedTrip"
+        :selectedSeats="bookingData.selectedSeats"
+        :maxSeats="10"
+        @selection-change="handleSeatSelectionChange"
+      />
         
       </div>
     </div>
@@ -544,6 +544,18 @@ const getSeatsForLevel = (levelIndex) => {
         <p class="text-sm text-gray-600">Vui lòng điền thông tin chính xác</p>
       </div>
 
+      <!-- Validation Errors -->
+      <div v-if="showValidationErrors && validationErrors.length > 0" 
+           class="max-w-md mx-auto mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div class="flex items-center mb-2">
+          <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+          <span class="text-sm font-medium text-red-700">Vui lòng kiểm tra lại thông tin:</span>
+        </div>
+        <ul class="text-sm text-red-600 space-y-1">
+          <li v-for="error in validationErrors" :key="error">• {{ error }}</li>
+        </ul>
+      </div>
+
       <div class="max-w-md mx-auto space-y-3">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -552,8 +564,14 @@ const getSeatsForLevel = (levelIndex) => {
           <input
             v-model="bookingData.passengerInfo.fullName"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Nhập họ và tên"
+            :class="[
+              'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+              showValidationErrors && validationErrors.some(e => e.includes('Họ và tên')) 
+                ? 'border-red-300 bg-red-50' 
+                : 'border-gray-300'
+            ]"
+            placeholder="Nhập họ và tên đầy đủ"
+            @blur="validatePassengerInfo"
           />
         </div>
 
@@ -564,8 +582,33 @@ const getSeatsForLevel = (levelIndex) => {
           <input
             v-model="bookingData.passengerInfo.phoneNumber"
             type="tel"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Nhập số điện thoại"
+            :class="[
+              'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+              showValidationErrors && validationErrors.some(e => e.includes('điện thoại')) 
+                ? 'border-red-300 bg-red-50' 
+                : 'border-gray-300'
+            ]"
+            placeholder="0987654321"
+            @blur="validatePassengerInfo"
+          />
+          <p class="text-xs text-gray-500 mt-1">Định dạng: 10-11 chữ số</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Email (tùy chọn)
+          </label>
+          <input
+            v-model="bookingData.passengerInfo.email"
+            type="email"
+            :class="[
+              'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+              showValidationErrors && validationErrors.some(e => e.includes('Email')) 
+                ? 'border-red-300 bg-red-50' 
+                : 'border-gray-300'
+            ]"
+            placeholder="example@email.com"
+            @blur="validatePassengerInfo"
           />
         </div>
 
@@ -576,15 +619,47 @@ const getSeatsForLevel = (levelIndex) => {
           <textarea
             v-model="bookingData.passengerInfo.notes"
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            :class="[
+              'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+              showValidationErrors && validationErrors.some(e => e.includes('Ghi chú')) 
+                ? 'border-red-300 bg-red-50' 
+                : 'border-gray-300'
+            ]"
             placeholder="Ghi chú thêm..."
+            maxlength="500"
           ></textarea>
+          <p class="text-xs text-gray-500 mt-1">Tối đa 500 ký tự</p>
+        </div>
+
+        <!-- Customer Summary (when valid) -->
+        <div v-if="!showValidationErrors && bookingData.passengerInfo.fullName && bookingData.passengerInfo.phoneNumber" 
+             class="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center">
+            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+            <span class="text-sm font-medium text-green-700">Thông tin hợp lệ</span>
+          </div>
+          <p class="text-sm text-green-600 mt-1">
+            {{ CustomerAPI.getCustomerSummary(CustomerAPI.createCustomerFromForm(bookingData.passengerInfo)) }}
+          </p>
+        </div>
+
+        <!-- Information completed message for Step 3 -->
+        <div v-if="!showValidationErrors || validationErrors.length === 0" class="pt-4 border-t">
+          <div class="text-center">
+            <div class="inline-flex items-center text-green-600 mb-2">
+              <i class="fas fa-check-circle mr-2"></i>
+              <span class="text-sm font-medium">Thông tin đã hoàn tất</span>
+            </div>
+            <p class="text-xs text-gray-500">
+              Sử dụng các nút ở cuối trang để tiếp tục hoặc đặt vé ngay
+            </p>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Step 4: Payment -->
-    <div v-if="currentStep === 4" class="payment-section">
+    <!-- ✅ Step 4 & 5 đã bị ẩn vì redirect đến PaymentView sau Step 3 -->
+    <div v-if="false" class="payment-section">
       <div class="mb-4">
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Thanh toán</h3>
         <p class="text-sm text-gray-600">Chọn phương thức thanh toán</p>
@@ -707,39 +782,72 @@ const getSeatsForLevel = (levelIndex) => {
     </div> <!-- Close booking-content -->
 
     <!-- Action Buttons -->
-    <div class="flex justify-between items-center p-4 md:p-6 border-t bg-white sticky bottom-0 z-10 shadow-lg">
-      <button
-        v-if="currentStep >= 2"
-        @click="goToPrevStep"
-        class="flex items-center px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-      >
-        <i class="fas fa-chevron-left mr-2"></i>
-        {{ currentStep === 2 ? 'Quay lại tìm kiếm' : 'Quay lại' }}
-      </button>
-      <div v-else></div>
+    <div class="p-4 md:p-6 border-t bg-white sticky bottom-0 z-10 shadow-lg">
+      <!-- Navigation Row -->
+      <div class="flex justify-between items-center">
+        <button
+          v-if="currentStep >= 2"
+          @click="goToPrevStep"
+          class="flex items-center px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          <i class="fas fa-chevron-left mr-2"></i>
+          {{ currentStep === 2 ? 'Quay lại tìm kiếm' : 'Quay lại' }}
+        </button>
+        <div v-else></div>
 
+        <!-- Direct Booking Button for Step 3 - same row as navigation -->
+        <button
+          v-if="currentStep === 3 && (!showValidationErrors || validationErrors.length === 0)"
+          @click="bookDirectly"
+          :disabled="isProcessingBooking"
+          :class="[
+            'px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center',
+            isProcessingBooking && bookingAction === 'direct'
+              ? 'bg-green-400 text-white cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          ]"
+        >
+          <i v-if="isProcessingBooking && bookingAction === 'direct'" 
+             class="fas fa-spinner fa-spin mr-2"></i>
+          <i v-else class="fas fa-bolt mr-2"></i>
+          {{ isProcessingBooking && bookingAction === 'direct' ? 'Đang đặt...' : 'Đặt vé ngay' }}
+        </button>
+        <button
+          v-else-if="currentStep === 2"
+          @click="goToNextStep"
+          :disabled="!canProceedToNext()"
+          :class="canProceedToNext() 
+            ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+          class="px-6 py-2 rounded-lg font-medium transition-colors"
+        >
+          Tiếp tục
+          <i class="fas fa-chevron-right ml-2"></i>
+        </button>
+        <div v-else></div>
+      </div>
+
+      <!-- Add to Cart Button - Temporarily Hidden -->
+      <!-- 
       <button
-        v-if="currentStep < 5"
-        @click="goToNextStep"
-        :disabled="!canProceedToNext()"
-        :class="canProceedToNext() 
-          ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
-          : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
-        class="px-6 py-2 rounded-lg font-medium transition-colors"
+        @click="addToCart"
+        :disabled="isProcessingBooking"
+        :class="[
+          'px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center',
+          isProcessingBooking && bookingAction === 'cart'
+            ? 'bg-indigo-400 text-white cursor-not-allowed'
+            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+        ]"
       >
-        Tiếp tục
-        <i class="fas fa-chevron-right ml-2"></i>
+        <i v-if="isProcessingBooking && bookingAction === 'cart'" 
+           class="fas fa-spinner fa-spin mr-2"></i>
+        <i v-else class="fas fa-shopping-cart mr-2"></i>
+        {{ isProcessingBooking && bookingAction === 'cart' ? 'Đang thêm...' : 'Thêm vào giỏ hàng' }}
       </button>
-      <button
-        v-else
-        @click="completeBooking"
-        class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
-      >
-        Hoàn tất đặt vé
-      </button>
+      -->
     </div>
 
-  </div>
+  </div> <!-- ✅ THÊM closing div cho wrapper -->
 </template>
 
 <style scoped>

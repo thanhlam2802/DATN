@@ -34,9 +34,8 @@ public class CartController {
         logger.info("Yêu cầu lấy chi tiết giỏ hàng với orderId={}", orderId);
         OrderDto cart = cartService.getCartById(orderId);
         logger.debug("Chi tiết giỏ hàng: {}", cart);
-        return ResponseFactory.success(cart, "Lấy thông tin giỏ hàng thành công.");
+        return ResponseFactory.success(cart, "Lấy thông tin giỏ hàng thành công."); // ✅ ADD THIS LINE
     }
-
     @PostMapping("/{orderId}/items")
     public ResponseEntity<ApiResponse<OrderDto>> addItemToCart(
             @PathVariable Integer orderId,

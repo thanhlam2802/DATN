@@ -5,7 +5,7 @@
 
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuth, CurrentUser } from '@/utils/auth'
+import { useAuth } from '@/composables/useAuth.js'
 
 /**
  * Auth Guard Hook
@@ -29,9 +29,9 @@ export const useAuthGuard = (options = {}) => {
   const isLoading = ref(true)
 
   // Computed properties
-  const isAuthenticated = computed(() => auth.isLoggedIn.value)
-  const currentUser = computed(() => auth.currentUser.value)
-  const userId = computed(() => auth.userId.value)
+  const isAuthenticated = computed(() => auth.isAuthenticated.value)
+  const currentUser = computed(() => auth.user.value)
+  const userId = computed(() => auth.user.value?.id)
   const userRole = computed(() => auth.userRole.value)
   const isAuthorized = computed(() => {
     if (!requireAuth) return true
@@ -45,7 +45,7 @@ export const useAuthGuard = (options = {}) => {
     }
 
     const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles]
-    return roles.some(role => auth.hasRole(role))
+    return roles.some(role => userRole.value === role)
   })
 
   // Auth checking logic
@@ -54,8 +54,8 @@ export const useAuthGuard = (options = {}) => {
       isLoading.value = true
       authError.value = null
 
-      // Refresh auth state
-      auth.refreshAuthState()
+      // Check auth state
+      await auth.checkAuth()
 
       if (requireAuth && !isAuthenticated.value) {
         authError.value = 'Bạn cần đăng nhập để truy cập trang này'
@@ -108,8 +108,9 @@ export const useAuthGuard = (options = {}) => {
     logout: auth.logout,
     
     // Helper methods
-    hasRole: auth.hasRole,
+    hasRole: (role) => userRole.value === role,
     isAdmin: computed(() => auth.isAdmin.value),
+    isBusAdmin: computed(() => auth.isBusAdmin.value),
     isOwner: (resourceOwnerId) => {
       return userId.value === resourceOwnerId || resourceOwnerId === userId.value
     }
@@ -160,14 +161,14 @@ export const usePublicAuth = () => {
   const auth = useAuth()
   
   return {
-    isLoggedIn: computed(() => auth.isLoggedIn.value),
-    currentUser: computed(() => auth.currentUser.value),
-    userId: computed(() => auth.userId.value),
+    isLoggedIn: computed(() => auth.isAuthenticated.value),
+    currentUser: computed(() => auth.user.value),
+    userId: computed(() => auth.user.value?.id),
     
     // Enhanced features for logged users
-    canBookTicket: computed(() => auth.isLoggedIn.value),
-    canSaveSearch: computed(() => auth.isLoggedIn.value),
-    canViewHistory: computed(() => auth.isLoggedIn.value),
+    canBookTicket: computed(() => auth.isAuthenticated.value),
+    canSaveSearch: computed(() => auth.isAuthenticated.value),
+    canViewHistory: computed(() => auth.isAuthenticated.value),
     
     // Methods
     promptLogin: () => {
@@ -189,12 +190,12 @@ export const useAdminGuard = () => {
 }
 
 /**
- * Bus Management Guard (cho bus owners và admins)
+ * Bus Management Guard (cho bus suppliers và admins)
  */
 export const useBusManagementGuard = () => {
   return useAuthGuard({
     requireAuth: true,
-    requiredRoles: ['BUS_OWNER', 'ADMIN', 'admin'],
+    requiredRoles: ['BUS_SUPPLIER', 'ADMIN', 'admin'],
     redirectToLogin: true
   })
 } 

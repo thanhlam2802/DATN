@@ -25,17 +25,63 @@ const toggleTab = (tabName) => {
 
 // Format price
 const formatPrice = (price) => {
-  return new Intl.NumberFormat('vi-VN').format(price)
+  if (typeof price === 'number') {
+    return new Intl.NumberFormat('vi-VN').format(price)
+  }
+  return '0'
 }
 
 // Format arrival time with next day indicator
 const formatArrivalTime = (time, nextDay) => {
-  return nextDay ? `${time}` : time
+  return nextDay ? `${time}+1` : time
 }
 
 // Handle book button click
 const handleBookTrip = () => {
   emit('book-trip', props.trip)
+}
+
+// Safe access to nested properties
+const safeRoute = (trip) => {
+  return {
+    from: trip?.route?.from || 'N/A',
+    to: trip?.route?.to || 'N/A'
+  }
+}
+
+const safeSchedule = (trip) => {
+  return {
+    departure: trip?.schedule?.departure || '00:00',
+    arrival: trip?.schedule?.arrival || '00:00',
+    duration: trip?.schedule?.duration || '0h 00m',
+    nextDay: trip?.schedule?.nextDay || false
+  }
+}
+
+const safeFacilities = (trip) => {
+  return Array.isArray(trip?.facilities) ? trip.facilities : []
+}
+
+const safeFeatures = (trip) => {
+  return {
+    seats: trip?.features?.seats || trip?.totalSeats || 0,
+    seatLayout: trip?.features?.seatLayout || '2-2',
+    facilities: Array.isArray(trip?.features?.facilities) ? trip.features.facilities : []
+  }
+}
+
+const safePolicies = (trip) => {
+  return {
+    reschedule: {
+      available: trip?.policies?.reschedule?.available ?? true,
+      description: trip?.policies?.reschedule?.description || 'Có thể đổi lịch trước 2 giờ khởi hành'
+    },
+    refund: {
+      available: trip?.policies?.refund?.available ?? true,
+      description: trip?.policies?.refund?.description || 'Hoàn tiền 80% trước 4 giờ khởi hành',
+      link: trip?.policies?.refund?.link || null
+    }
+  }
 }
 </script>
 
@@ -47,7 +93,7 @@ const handleBookTrip = () => {
       
       <!-- Header: Bus Operator & Type -->
       <div class="mb-4">
-        <h3 class="font-bold text-gray-900 text-lg">{{ trip.busOperator }}</h3>
+        <h3 class="font-bold text-gray-900 text-lg">{{ trip.busOperator || trip.company }}</h3>
         <p class="text-sm text-gray-500">{{ trip.busType }}</p>
       </div>
 
@@ -58,8 +104,8 @@ const handleBookTrip = () => {
         <div class="col-span-5">
           <div class="flex items-center space-x-4">
             <div class="text-center min-w-0">
-              <div class="font-bold text-lg text-gray-900">{{ trip.schedule.departure }}</div>
-              <div class="text-sm text-gray-600 truncate">{{ trip.route.from }}</div>
+              <div class="font-bold text-lg text-gray-900">{{ safeSchedule(trip).departure }}</div>
+              <div class="text-sm text-gray-600 truncate">{{ safeRoute(trip).from }}</div>
             </div>
             <div class="flex-1 flex items-center px-2">
               <div class="w-full border-t border-gray-300 relative">
@@ -68,31 +114,31 @@ const handleBookTrip = () => {
             </div>
             <div class="text-center min-w-0">
               <div class="font-bold text-lg text-gray-900">
-                {{ formatArrivalTime(trip.schedule.arrival, trip.schedule.nextDay) }}
+                {{ formatArrivalTime(safeSchedule(trip).arrival, safeSchedule(trip).nextDay) }}
               </div>
-              <div class="text-sm text-gray-600 truncate">{{ trip.route.to }}</div>
+              <div class="text-sm text-gray-600 truncate">{{ safeRoute(trip).to }}</div>
             </div>
           </div>
         </div>
 
         <!-- Duration (col 6-7) -->
         <div class="col-span-2 text-center">
-          <div class="font-medium text-gray-900">{{ trip.schedule.duration }}</div>
+          <div class="font-medium text-gray-900">{{ safeSchedule(trip).duration }}</div>
           <div class="text-xs text-gray-500">Thời gian di chuyển</div>
         </div>
 
         <!-- Facilities Icons (col 8-9) -->
         <div class="col-span-2">
           <div class="flex items-center justify-center space-x-2 flex-wrap">
-            <i v-for="facility in trip.facilities.slice(0, 4)" 
+            <i v-for="facility in safeFacilities(trip).slice(0, 4)" 
                :key="facility"
-               :class="facilityIcons[facility]" 
+               :class="facilityIcons[facility] || 'fas fa-check'" 
                class="text-gray-500 text-lg"
                :title="facility">
             </i>
-            <span v-if="trip.facilities.length > 4" 
+            <span v-if="safeFacilities(trip).length > 4" 
                   class="text-xs text-gray-500">
-              +{{ trip.facilities.length - 4 }}
+              +{{ safeFacilities(trip).length - 4 }}
             </span>
           </div>
         </div>
@@ -101,7 +147,7 @@ const handleBookTrip = () => {
         <div class="col-span-3 text-right">
           <div class="mb-3">
             <div class="text-xl font-bold text-orange-600">
-              {{ formatPrice(trip.price) }} {{ trip.currency }}
+              {{ formatPrice(trip.price) }} {{ trip.currency || 'đ' }}
             </div>
             <div class="text-xs text-gray-500">/khách</div>
           </div>
@@ -116,8 +162,8 @@ const handleBookTrip = () => {
 
       <!-- Available Seats Info -->
       <div class="flex items-center justify-between text-sm text-gray-600 mb-6">
-        <span>Còn {{ trip.availableSeats }} ghế trống</span>
-        <span>{{ trip.totalSeats }} ghế</span>
+        <span>Còn {{ trip.availableSeats || 0 }} ghế trống</span>
+        <span>{{ trip.totalSeats || 0 }} ghế</span>
       </div>
 
       <!-- Tab Buttons -->
@@ -182,11 +228,11 @@ const handleBookTrip = () => {
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between">
                     <span class="text-gray-600">Số ghế:</span>
-                    <span class="font-medium">{{ trip.features.seats }}</span>
+                    <span class="font-medium">{{ safeFeatures(trip).seats }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">Bố trí ghế:</span>
-                    <span class="font-medium">{{ trip.features.seatLayout }}</span>
+                    <span class="font-medium">{{ safeFeatures(trip).seatLayout }}</span>
                   </div>
                 </div>
               </div>
@@ -195,21 +241,46 @@ const handleBookTrip = () => {
               <div>
                 <h5 class="font-medium text-gray-900 mb-3">Tiện ích:</h5>
                 <div class="grid grid-cols-2 gap-2">
-                  <div v-for="facility in trip.features.facilities" 
+                  <div v-for="facility in safeFeatures(trip).facilities" 
                        :key="facility.name"
                        class="flex items-center space-x-2 text-sm">
-                    <i :class="facility.icon" class="text-blue-500"></i>
+                    <i :class="facility.icon || 'fas fa-check'" class="text-blue-500"></i>
                     <span>{{ facility.name }}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Bus Image -->
+            <!-- Bus Images Gallery -->
             <div class="mt-4">
-              <img :src="trip.image" 
-                   :alt="`${trip.busOperator} ${trip.busType}`"
-                   class="w-full h-48 object-cover rounded-lg">
+              <div v-if="trip.images && trip.images.length > 1" class="space-y-2">
+                <!-- Main Image -->
+                <img :src="trip.images[0]" 
+                     :alt="`${trip.busOperator || trip.company} ${trip.busType}`"
+                     class="w-full h-48 object-cover rounded-lg">
+                
+                <!-- Thumbnail Gallery -->
+                <div class="grid grid-cols-4 gap-2">
+                  <img v-for="(img, index) in trip.images.slice(1, 5)" 
+                       :key="index"
+                       :src="img" 
+                       :alt="`Hình ${index + 2}`"
+                       class="w-full h-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity">
+                  
+                  <!-- More images indicator -->
+                  <div v-if="trip.images.length > 5" 
+                       class="w-full h-16 bg-gray-100 rounded flex items-center justify-center text-gray-500 text-xs">
+                    +{{ trip.images.length - 5 }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Single Image -->
+              <div v-else>
+                <img :src="trip.image" 
+                     :alt="`${trip.busOperator || trip.company} ${trip.busType}`"
+                     class="w-full h-48 object-cover rounded-lg">
+              </div>
             </div>
           </div>
 
@@ -227,13 +298,13 @@ const handleBookTrip = () => {
                 </div>
                 <div class="flex-1 space-y-8">
                   <div>
-                    <div class="font-medium text-gray-900">{{ trip.route.from }}</div>
-                    <div class="text-sm text-gray-600">Điểm đón - {{ trip.schedule.departure }}</div>
+                    <div class="font-medium text-gray-900">{{ safeRoute(trip).from }}</div>
+                    <div class="text-sm text-gray-600">Điểm đón - {{ safeSchedule(trip).departure }}</div>
                   </div>
                   <div>
-                    <div class="font-medium text-gray-900">{{ trip.route.to }}</div>
+                    <div class="font-medium text-gray-900">{{ safeRoute(trip).to }}</div>
                     <div class="text-sm text-gray-600">
-                      Điểm trả - {{ formatArrivalTime(trip.schedule.arrival, trip.schedule.nextDay) }}
+                      Điểm trả - {{ formatArrivalTime(safeSchedule(trip).arrival, safeSchedule(trip).nextDay) }}
                     </div>
                   </div>
                 </div>
@@ -243,7 +314,7 @@ const handleBookTrip = () => {
               <div class="bg-blue-50 p-3 rounded-lg">
                 <div class="flex items-center text-blue-700 text-sm">
                   <i class="fas fa-info-circle mr-2"></i>
-                  <span>Thời gian di chuyển: {{ trip.schedule.duration }}</span>
+                  <span>Thời gian di chuyển: {{ safeSchedule(trip).duration }}</span>
                 </div>
               </div>
             </div>
@@ -257,17 +328,17 @@ const handleBookTrip = () => {
               <!-- Reschedule Policy -->
               <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0 mt-1">
-                  <i v-if="!trip.policies.reschedule.available" 
+                  <i v-if="!safePolicies(trip).reschedule.available" 
                      class="fas fa-times-circle text-red-500"></i>
                   <i v-else 
                      class="fas fa-check-circle text-green-500"></i>
                 </div>
                 <div>
                   <h5 class="font-medium text-gray-900">
-                    {{ trip.policies.reschedule.available ? 'Có thể đổi lịch' : 'Không thể đổi lịch' }}
+                    {{ safePolicies(trip).reschedule.available ? 'Có thể đổi lịch' : 'Không thể đổi lịch' }}
                   </h5>
                   <p class="text-sm text-gray-600 mt-1">
-                    {{ trip.policies.reschedule.description }}
+                    {{ safePolicies(trip).reschedule.description }}
                   </p>
                 </div>
               </div>
@@ -275,21 +346,21 @@ const handleBookTrip = () => {
               <!-- Refund Policy -->
               <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0 mt-1">
-                  <i v-if="trip.policies.refund.available" 
+                  <i v-if="safePolicies(trip).refund.available" 
                      class="fas fa-check-circle text-green-500"></i>
                   <i v-else 
                      class="fas fa-times-circle text-red-500"></i>
                 </div>
                 <div>
                   <h5 class="font-medium text-gray-900">
-                    {{ trip.policies.refund.available ? 'Có thể hoàn tiền' : 'Không thể hoàn tiền' }}
+                    {{ safePolicies(trip).refund.available ? 'Có thể hoàn tiền' : 'Không thể hoàn tiền' }}
                   </h5>
                   <p class="text-sm text-gray-600 mt-1">
-                    {{ trip.policies.refund.description }}
-                    <a v-if="trip.policies.refund.link" 
+                    {{ safePolicies(trip).refund.description }}
+                    <a v-if="safePolicies(trip).refund.link" 
                        href="#" 
                        class="text-blue-600 hover:text-blue-800 ml-1">
-                      {{ trip.policies.refund.link }}
+                      {{ safePolicies(trip).refund.link }}
                     </a>
                   </p>
                 </div>
@@ -309,4 +380,4 @@ const handleBookTrip = () => {
 .transition-all {
   transition-property: max-height, opacity;
 }
-</style> 
+</style>

@@ -3,6 +3,7 @@ package backend.backend.dto;
 
 import lombok.Data;
 import java.time.LocalDate;
+import java.util.List;
 
 import ServiceType.ServiceType;
 
@@ -32,8 +33,16 @@ public class AddItemRequestDto {
 
     // Dành cho Flight
     private Integer flightSlotId;
-    
 
-    // Dành cho Bus
+
+
+
     private Integer busSlotId;
+    private List<Integer> selectedSeatIds;    // Specific to Bus (like roomId for Hotel)
+    private String notes;                     // General purpose notes
+
+    // ✅ NEW: Passenger info cho Bus (like customer info for other services)
+    private String passengerName;
+    private String passengerPhone;
+    private String passengerEmail;
 }

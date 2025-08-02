@@ -15,6 +15,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @Data
@@ -33,7 +35,7 @@ public class BusSlotResponse {
     private BigDecimal price;
     private Integer totalSeats;
     private Integer availableSeats;
-    private BusSlotStatus status; // <-- Đổi từ String sang Enum
+    private BusSlotStatus status;
 
     // --- Real-time Management Fields ---
     private DelayReason delayReason;
@@ -45,9 +47,12 @@ public class BusSlotResponse {
     // --- Auto-management Fields ---
     private TripType tripType;
     private RecurringPattern recurringPattern;
-    private LocalDate recurringEndDate; // LocalDate cho DTO
+    private LocalDate recurringEndDate;
     private Boolean autoStatusUpdate;
     private Boolean autoResetSeats;
+
+    // ✅ ADD: Seats field
+    private List<BusSeatResponse> seats;
 
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -76,7 +81,7 @@ public class BusSlotResponse {
         this.price = busSlot.getPrice();
         this.totalSeats = busSlot.getTotalSeats();
         this.availableSeats = busSlot.getAvailableSeats();
-        this.status = busSlot.getStatus(); // <-- Gán trực tiếp enum
+        this.status = busSlot.getStatus();
 
         // --- Real-time Management Fields ---
         this.delayReason = busSlot.getDelayReason();
@@ -91,6 +96,20 @@ public class BusSlotResponse {
         this.recurringEndDate = busSlot.getRecurringEndDate();
         this.autoStatusUpdate = busSlot.getAutoStatusUpdate();
         this.autoResetSeats = busSlot.getAutoResetSeats();
+
+        // ✅ ADD: Handle seats with null safety
+        this.seats = Optional.ofNullable(busSlot.getSeats())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(seat -> BusSeatResponse.builder()
+                        .id(seat.getId())
+                        .seatNumber(seat.getSeatNumber())
+                        .isBooked(seat.getIsBooked())
+                        .price(seat.getPrice())
+                        .seatType(seat.getSeatType())
+                        .busSlotId(this.id)
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
 
         this.createdAt = Optional.ofNullable(busSlot.getCreatedAt())
                 .map(ldt -> ldt.atOffset(ZoneOffset.ofHours(7)))

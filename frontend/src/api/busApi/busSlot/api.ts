@@ -86,8 +86,6 @@ export class BusSlotAPI {
       const response = await graphqlMutation({ query: CREATE_BUS_SLOT, variables: { input } })
       return response.data.createBusSlot
     } catch (error) {
-      console.error('❌ [API] Lỗi khi tạo chuyến xe:', error)
-      console.error('Chi tiết lỗi:', JSON.stringify(error, null, 2))
       throw error
     }
   }

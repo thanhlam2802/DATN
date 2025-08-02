@@ -1,4 +1,6 @@
 import axios from 'axios'
+// @ts-ignore
+import { getBearerToken } from "@/services/TokenService.js";
 
 interface GraphQLRequestPayload {
   query: string | any;
@@ -27,11 +29,11 @@ const graphqlAxios = axios.create({
   },
 });
 
-// Request interceptor for auth token
+// Request interceptor for auth token - sử dụng TokenService
 graphqlAxios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const token = getBearerToken();
+  if (token && token !== 'Bearer null') {
+    config.headers.Authorization = token;
   }
   return config;
 });
@@ -40,7 +42,16 @@ graphqlAxios.interceptors.request.use((config) => {
 graphqlAxios.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('❌ [GraphQL] Request failed:', error);
+    // Handle authentication errors
+    if (error.response?.status === 401) {
+      // Clear invalid token
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      // Redirect to login if needed
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   }
 );
@@ -79,12 +90,9 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
-      console.error('❌ [GraphQL] Server returned errors:', result.errors)
       throw new Error(result.errors[0].message);
     }
 
-    
-    
     // Return in consistent format 
     return {
       data: result.data,
@@ -93,18 +101,12 @@ export const graphqlRequest = async ({ query, variables = {} }: GraphQLRequestPa
     };
     
   } catch (error: any) {
-    
-    
     // Log response details if available
     if (error.response) {
-      
       const status = error.response.status;
       const message = error.response.data?.message || error.message;
       throw new Error(`GraphQL Error (${status}): ${message}`);
     }
-    
-    // Log request details for debugging
-    
     
     throw new Error(error.message || 'GraphQL request failed');
   }
@@ -115,12 +117,7 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
   try {
     const queryString = getQueryString(query);
     
-    // 🔍 DEBUG: Log BusSlot mutations
-    if (queryString.includes('createBusSlot')) {
-      console.log('🔍 [DEBUG] CreateBusSlot Mutation:')
-      console.log('Query:', queryString)
-      console.log('Variables:', JSON.stringify(variables, null, 2))
-    }
+
     
     const response = await graphqlAxios.post('', {
       query: queryString,
@@ -131,25 +128,9 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
-      console.error('❌ [GraphQL] Server returned errors:', result.errors)
-      
-      // 🔍 DEBUG: Log detailed error info for BusSlot operations
-      if (queryString.includes('createBusSlot')) {
-        console.error('🔍 [DEBUG] CreateBusSlot Error Details:')
-        result.errors.forEach((error, index) => {
-          console.error(`🔍 [DEBUG] Error ${index + 1}:`, {
-            message: error.message,
-            locations: error.locations,
-            path: error.path,
-            extensions: error.extensions
-          })
-        })
-      }
-      
       throw new Error(result.errors[0].message);
     }
 
-    
     // Return in consistent format
     return {
       data: result.data,
@@ -158,8 +139,6 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
     };
     
   } catch (error: any) {
-    console.error('❌ [GraphQL] Request failed:', error?.message || error)
-    
     // Handle network errors
     if (error.response) {
       const status = error.response.status;
@@ -173,14 +152,13 @@ export const graphqlMutation = async ({ query, variables = {} }: GraphQLRequestP
 
 // Helper function to set authorization token
 export const setAuthToken = (token: string) => {
-  localStorage.setItem('authToken', token);
-
+  localStorage.setItem('accessToken', token);
 };
 
 // Helper function to remove authorization token
 export const clearAuthToken = () => {
-  localStorage.removeItem('authToken');
-  
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 };
 
 // Simple gql template literal tag (for compatibility)

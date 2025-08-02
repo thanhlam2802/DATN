@@ -34,7 +34,6 @@ export class PriceAPI {
       const prices = response.data?.findAllRouteBusCategoryPrices || []
       return prices
     } catch (error) {
-      console.error('❌ [PriceAPI] Error fetching all prices:', error)
       throw error
     }
   }
@@ -56,7 +55,6 @@ export class PriceAPI {
         return null
       }
     } catch (error) {
-      console.error(`❌ [PriceAPI] Error fetching price by ID ${id}:`, error)
       throw error
     }
   }
@@ -81,18 +79,17 @@ export class PriceAPI {
       
       const createdPrice = response.data.createRouteBusCategoryPrice
         
-      if (!createdPrice) {
-        throw new Error('Failed to create price rule - no data returned')
-      }
+        if (!createdPrice) {
+          throw new Error('Failed to create price rule - no data returned')
+        }
       
       // Validate essential fields
       if (!createdPrice.id || !createdPrice.route || !createdPrice.busCategory) {
         throw new Error('Incomplete price data received from server')
       }
         
-      return createdPrice
+        return createdPrice
     } catch (error) {
-      console.error('❌ [PriceAPI] Error creating price:', error)
       throw error
     }
   }
@@ -114,18 +111,17 @@ export class PriceAPI {
       
       const updatedPrice = response.data.updateRouteBusCategoryPrice
         
-      if (!updatedPrice) {
-        throw new Error('Failed to update price rule - no data returned')
-      }
+        if (!updatedPrice) {
+          throw new Error('Failed to update price rule - no data returned')
+        }
       
       // Validate essential fields
       if (!updatedPrice.id || !updatedPrice.route || !updatedPrice.busCategory) {
         throw new Error('Incomplete price data received from server')
       }
         
-      return updatedPrice
+        return updatedPrice
     } catch (error) {
-      console.error(`❌ [PriceAPI] Error updating price ${id}:`, error)
       throw error
     }
   }
@@ -147,7 +143,6 @@ export class PriceAPI {
           return false
         }
     } catch (error) {
-      console.error(`❌ [PriceAPI] Error deleting price ${id}:`, error)
       throw error
     }
   }
@@ -194,7 +189,6 @@ export class PriceAPI {
           : `Đang áp dụng giá cơ sở: ${this.formatPrice(effectivePrice)}`
       }
     } catch (error) {
-      console.error('❌ [PriceAPI] Error finding active price:', error)
       throw error
     }
   }
@@ -315,7 +309,6 @@ export class PriceAPI {
       
       return updatedPrices
     } catch (error) {
-      console.error('❌ [PriceAPI] Error in bulk update:', error)
       throw error
     }
   }

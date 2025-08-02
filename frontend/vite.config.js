@@ -17,12 +17,4 @@ export default defineConfig({
       '/api': 'http://localhost:8080',
     },
   },
-  optimizeDeps: {
-    include: [
-      '@apollo/client/core',
-      '@vue/apollo-composable',
-      'graphql'
-    ],
-    force: true
-  },
 });

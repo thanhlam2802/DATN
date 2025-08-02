@@ -227,6 +227,7 @@
             </div>
 
             <!-- Duplicate Warning -->
+            <!-- Duplicate Trip Warning -->
             <div v-if="isDuplicateTrip" class="px-6 py-4 bg-orange-50 border-t border-l-4 border-orange-400">
               <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0 mt-0.5">
@@ -255,6 +256,35 @@
               </div>
             </div>
 
+            <!-- Time Conflict Warning -->
+            <div v-if="hasTimeConflict" class="px-6 py-4 bg-red-50 border-t border-l-4 border-red-400">
+              <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h4 class="text-sm font-semibold text-red-800 mb-1">Thời gian chuyến xe bị trùng</h4>
+                  <p class="text-sm text-red-700 mb-2">{{ timeConflictMessage }}</p>
+                  <div class="text-xs text-red-600 space-y-1">
+                    <p class="flex items-center">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 12h12"/>
+                      </svg>
+                      Chọn thời gian khác để tránh trùng lịch trình
+                    </p>
+                    <p class="flex items-center">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 12h12"/>
+                      </svg>
+                      Hoặc chọn xe bus khác cho thời gian này
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Modal Footer -->
             <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
               <div class="text-sm text-gray-500">
@@ -276,7 +306,7 @@
                 <button 
                   @click="handleSubmit" 
                   type="submit" 
-                  :disabled="loading || loadingBuses || loadingRoutes || (isDuplicateTrip && !isEditing)"
+                  :disabled="loading || loadingBuses || loadingRoutes || (isDuplicateTrip && !isEditing) || hasTimeConflict"
                   class="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   <div v-if="loading" class="flex items-center">
@@ -288,6 +318,9 @@
                   </div>
                   <span v-else-if="isDuplicateTrip && !isEditing">
                     ⚠️ Trùng lặp chuyến xe
+                  </span>
+                  <span v-else-if="hasTimeConflict">
+                    ⚠️ Trùng thời gian
                   </span>
                   <span v-else>
                     {{ isEditing ? 'Cập nhật chuyến' : 'Tạo chuyến xe' }}
@@ -308,6 +341,7 @@ import { ref, computed, watch, defineProps, defineEmits } from 'vue'
 import { toast } from '@/utils/notifications'
 import { useTripManagement } from '@/composables/useTripManagement'
 import { PriceAPI } from '@/api/busApi/priceApi'
+import { useTimeConflictCheck } from '@/composables/useTimeConflictCheck'
 
 const props = defineProps({
   visible: {
@@ -344,6 +378,9 @@ const emit = defineEmits(['close', 'save'])
 
 // Initialize trip management for validation
 const tripManager = useTripManagement()
+
+// Initialize time conflict checker
+const timeConflictChecker = useTimeConflictCheck()
 
 // Form state
 const form = ref({
@@ -387,6 +424,28 @@ const duplicateWarningMessage = computed(() => {
   
   return `${busName} đã có chuyến đi trên tuyến ${routeName} vào ngày ${formattedDate}`
 })
+
+// Time conflict checking
+const timeConflict = computed(() => {
+  if (!form.value.busId || !form.value.slotDate || !form.value.departureTime || !form.value.arrivalTime) {
+    return { hasConflict: false, conflictingTrips: [], message: '' }
+  }
+  
+  // Get existing trips for this bus and date
+  const existingTrips = tripManager.getTripsForBusAndDate(form.value.busId, form.value.slotDate)
+  
+  const conflict = timeConflictChecker.checkTimeConflict(form.value, existingTrips)
+  const message = timeConflictChecker.getConflictMessage(conflict.conflictingTrips)
+  
+  return {
+    hasConflict: conflict.hasConflict,
+    conflictingTrips: conflict.conflictingTrips,
+    message
+  }
+})
+
+const hasTimeConflict = computed(() => timeConflict.value.hasConflict)
+const timeConflictMessage = computed(() => timeConflict.value.message)
 
 // Initialize form when editing
 watch(() => props.editingTrip, (newTrip) => {
@@ -509,7 +568,7 @@ const checkAndFillPriceForRoute = async () => {
         } else if (priceRule.basePrice && priceRule.basePrice > 0) {
           defaultPrice = priceRule.basePrice
           priceSource = 'giá chuẩn cho tuyến đường'
-        }
+    }
       } else {
         await calculateFallbackPrice(selectedRoute) // Fallback if no rules found
       }
@@ -618,6 +677,12 @@ async function handleSubmit() {
   // Check duplicate trip (only for new trips, not editing)
   if (!isEditing.value && isDuplicateTrip.value) {
     // Don't proceed - let the UI warning handle user feedback
+    return
+  }
+  
+  // Check time conflict (for both new and editing trips)
+  if (hasTimeConflict.value) {
+    toast.error('Thời gian chuyến xe bị trùng với lịch trình hiện có', 'Lỗi thời gian')
     return
   }
   

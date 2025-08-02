@@ -20,18 +20,19 @@ public interface BusSlotService {
     List<BusSlotResponse> findBusSlotsByRouteId(Integer routeId);
     List<BusSlotResponse> findBusSlotsByStatus(BusSlotStatus status);
 
-    // Advanced Search for End-Users
-    List<BusSlotResponse> searchBusSlots(
-            String departureLocationId,
-            String arrivalLocationId,
+
+    List<BusSlotResponse> searchBusSlotsDetailed(
+            String departureProvince,
+            String departureDistrict,
+            String arrivalProvince,
+            String arrivalDistrict,
             LocalDate slotDate,
+            Integer minAvailableSeats,
             Integer busCategoryId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
-            Integer minAvailableSeats,
             BusSlotStatus status
     );
-
     // --- Status Update Mutations (Legacy) ---
     BusSlotResponse activateBusSlot(Integer id);
     BusSlotResponse completeBusSlot(Integer id);

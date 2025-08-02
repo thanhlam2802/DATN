@@ -228,7 +228,7 @@ public class BusServiceImpl implements BusService {
         } catch (EntityNotFoundException e) {
             throw e;
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("ID không hợp lệ. Vui lòng đảm bảo ID là số.", e);
+            throw   new IllegalArgumentException("ID không hợp lệ. Vui lòng đảm bảo ID là số.", e);
         } catch (Exception e) {
             log.error("Lỗi không xác định khi tạo Bus: {}", e.getMessage(), e);
             throw new RuntimeException("Đã xảy ra lỗi không mong muốn khi tạo xe bus.", e);

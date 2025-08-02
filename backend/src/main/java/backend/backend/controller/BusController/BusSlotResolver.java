@@ -55,27 +55,30 @@ public class BusSlotResolver {
     }
 
     @QueryMapping
-    public List<BusSlotResponse> searchBusSlots(
-            @Argument String departureLocationId,
-            @Argument String arrivalLocationId,
-            @Argument String slotDate, // Nhận String từ GraphQL
+    public List<BusSlotResponse> searchBusSlotsDetailed(
+            @Argument String departureProvince,
+            @Argument String departureDistrict,
+            @Argument String arrivalProvince,
+            @Argument String arrivalDistrict,
+            @Argument String slotDate,
+            @Argument Integer minAvailableSeats,
             @Argument Integer busCategoryId,
             @Argument BigDecimal minPrice,
             @Argument BigDecimal maxPrice,
-            @Argument Integer minAvailableSeats,
-            @Argument BusSlotStatus status) { // Nhận Enum từ GraphQL
+            @Argument BusSlotStatus status) {
 
-        // Chuyển đổi slotDate từ String sang LocalDate trước khi truyền vào Service
         LocalDate parsedSlotDate = LocalDate.parse(slotDate);
 
-        return busSlotService.searchBusSlots(
-                departureLocationId,
-                arrivalLocationId,
-                parsedSlotDate, // Truyền LocalDate đã parse
+        return busSlotService.searchBusSlotsDetailed(
+                departureProvince,
+                departureDistrict,
+                arrivalProvince,
+                arrivalDistrict,
+                parsedSlotDate,
+                minAvailableSeats,
                 busCategoryId,
                 minPrice,
                 maxPrice,
-                minAvailableSeats,
                 status
         );
     }

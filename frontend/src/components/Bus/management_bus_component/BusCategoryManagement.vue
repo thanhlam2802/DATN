@@ -262,7 +262,7 @@ import type { Bus, BusSlot, BusSlotResponse } from '@/api/busApi/types/common.ty
 // @ts-ignore
 import { toast, confirm, handleError } from '@/utils/notifications'
 // @ts-ignore
-import { CurrentUser } from '@/utils/auth'
+import { useAuth } from '@/composables/useAuth.js'
 
 // State
 const categories = ref<BusCategory[]>([])
@@ -376,7 +376,13 @@ const loadUserBusData = async () => {
   isLoadingStats.value = true
   
   try {
-    const currentUserId = CurrentUser.getId()
+    const { user } = useAuth()
+    const currentUserId = user.value?.id?.toString()
+    
+    if (!currentUserId) {
+      console.warn('⚠️ [DEBUG] No user ID available')
+      return
+    }
     
     // Load user's buses
     userBuses.value = await BusAPI.getBusesByOwnerId(currentUserId)
@@ -568,4 +574,4 @@ onUnmounted(() => {
   stopAutoRefresh() // Stop auto-refresh
   document.removeEventListener('click', handleClickOutside)
 })
-</script>
+</script> 

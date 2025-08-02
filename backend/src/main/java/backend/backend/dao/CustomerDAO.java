@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface CustomerDAO extends JpaRepository<Customer, Integer> {
     Optional<Customer> findByEmail(String email);
+    // ✅ CHỈ THÊM METHOD NÀY:
+    Optional<Customer> findByPhone(String phone);
 } 

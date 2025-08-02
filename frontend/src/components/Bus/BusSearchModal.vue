@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { timeSlots, availableFacilities } from '@/data/locationData.js'
-import { BusSearchAPI } from '@/api/busAPI_Client'
 import BusCard from './BusCard.vue'
 import BusTicketBooking from './BusTicketBooking.vue'
 
@@ -13,13 +12,17 @@ const props = defineProps({
   searchParams: {
     type: Object,
     default: () => ({})
+  },
+  searchResults: {
+    type: Object,
+    default: () => ({ busSlots: [], searchParams: {} })
   }
 })
 
 const emit = defineEmits(['close'])
 
 // Modal state management
-const currentStep = ref(1) // 1: Tìm kiếm, 2: Chọn ghế, 3: Thông tin, 4: Thanh toán, 5: Xác nhận
+const currentStep = ref(1)
 const selectedTrip = ref(null)
 const showBookingFlow = ref(false)
 
@@ -30,15 +33,6 @@ const searchError = ref('')
 // Component lifecycle tracking
 const isMounted = ref(false)
 
-// Steps configuration
-const steps = [
-  { id: 1, name: 'Tìm kiếm', icon: 'fas fa-search' },
-  { id: 2, name: 'Chọn ghế', icon: 'fas fa-chair' },
-  { id: 3, name: 'Thông tin', icon: 'fas fa-user' },
-  { id: 4, name: 'Thanh toán', icon: 'fas fa-credit-card' },
-  { id: 5, name: 'Xác nhận', icon: 'fas fa-check' }
-]
-
 // Filter states
 const filters = ref({
   timeSlots: [],
@@ -47,47 +41,121 @@ const filters = ref({
   availableSeats: ''
 })
 
-// Real search results from API
+// Real search results from props
 const rawSearchResults = ref([])
 const searchResults = ref([])
 
-// Transform BusSlot data to match UI expectations
+// Transform BusSlotResponse to match UI expectations
 const transformBusSlotToTrip = (busSlot) => {
-  // Calculate duration from estimated minutes
-  const duration = busSlot.route.estimatedDurationMinutes 
-    ? `${Math.floor(busSlot.route.estimatedDurationMinutes / 60)}h ${busSlot.route.estimatedDurationMinutes % 60}m`
-    : '8h 30m' // fallback
+  // Parse time từ OffsetDateTime về HH:mm format
+  const formatTime = (offsetDateTime) => {
+    if (!offsetDateTime) return '00:00'
+    try {
+      const date = new Date(offsetDateTime)
+      return date.toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      })
+    } catch {
+      return '00:00'
+    }
+  }
 
-  // Get first image URL or use fallback
-  const imageUrl = busSlot.bus.busImages?.[0]?.image?.url || '/default-bus.jpg'
+  // Calculate duration từ departure và arrival
+  const calculateDuration = (departureTime, arrivalTime) => {
+    if (!departureTime || !arrivalTime) return '8h 00m'
+    try {
+      const departure = new Date(departureTime)
+      const arrival = new Date(arrivalTime)
+      const diffMs = arrival.getTime() - departure.getTime()
+      const diffMins = Math.floor(diffMs / (1000 * 60))
+      const hours = Math.floor(diffMins / 60)
+      const mins = diffMins % 60
+      return `${hours}h ${mins.toString().padStart(2, '0')}m`
+    } catch {
+      return '8h 00m'
+    }
+  }
 
-  // Mock facilities based on bus category (real data should come from backend)
-  const facilities = generateFacilitiesFromCategory(busSlot.bus.categoryName)
+  // Get image URL directly from busImages
+  const getImageUrl = (bus) => {
+    if (bus?.busImages && Array.isArray(bus.busImages) && bus.busImages.length > 0) {
+      // Lấy hình đầu tiên từ busImages (nested structure)
+      return bus.busImages[0].image.url
+    }
+    
+    // Fallback placeholder khi không có hình
+    return `data:image/svg+xml,${encodeURIComponent(`
+      <svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#f3f4f6"/>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" 
+              font-family="Arial, sans-serif" font-size="14" fill="#6b7280">
+          ${bus?.name || 'Xe khách'}
+        </text>
+      </svg>
+    `)}`
+  }
+  
+  const imageUrl = getImageUrl(busSlot.bus)
+  
+  // Get all images for gallery (nếu cần hiển thị nhiều hình)
+  const getAllImages = (bus) => {
+    if (bus?.busImages && Array.isArray(bus.busImages)) {
+      return bus.busImages.map(busImg => busImg.image.url)
+    }
+    return [getImageUrl(bus)]
+  }
+
+  // Mock facilities based on bus category
+  const facilities = generateFacilitiesFromCategory(busSlot.bus?.categoryName)
 
   return {
     id: busSlot.id,
     busSlotId: busSlot.id, // Keep reference for booking
-    company: busSlot.bus.name || 'Nhà xe không xác định',
-    busType: busSlot.bus.categoryName || 'Xe khách',
+    company: busSlot.bus?.name || 'Nhà xe không xác định',
+    busOperator: busSlot.bus?.name || 'Nhà xe không xác định',
+    busType: busSlot.bus?.categoryName || 'Xe khách',
     route: {
-      from: busSlot.route.origin,
-      to: busSlot.route.destination,
-      distance: busSlot.route.distanceKm ? `${busSlot.route.distanceKm}km` : 'N/A'
+      from: busSlot.route?.originLocation?.name || 'N/A',
+      to: busSlot.route?.destinationLocation?.name || 'N/A',
+      distance: 'N/A' // TODO: Calculate from locations if needed
     },
     schedule: {
-      departure: busSlot.departureTime,
-      arrival: busSlot.arrivalTime,
-      duration: duration
+      departure: formatTime(busSlot.departureTime),
+      arrival: formatTime(busSlot.arrivalTime),
+      duration: calculateDuration(busSlot.departureTime, busSlot.arrivalTime),
+      nextDay: false // TODO: Logic to determine if arrival is next day
     },
-    price: busSlot.price,
-    totalSeats: busSlot.totalSeats,
-    availableSeats: busSlot.availableSeats,
+    price: busSlot.price || 0,
+    totalSeats: busSlot.totalSeats || 0,
+    availableSeats: busSlot.availableSeats || 0,
     facilities: facilities,
     image: imageUrl,
+    images: getAllImages(busSlot.bus), // Tất cả hình ảnh của xe
     status: busSlot.status,
+    currency: 'đ',
+    // Additional fields for detail tabs
+    features: {
+      seats: busSlot.totalSeats || 0,
+      seatLayout: determineSeatLayout(busSlot.totalSeats),
+      facilities: facilities.map(f => ({ name: f, icon: getFacilityIcon(f) }))
+    },
+    policies: {
+      reschedule: {
+        available: true,
+        description: 'Có thể đổi lịch trước 2 giờ khởi hành'
+      },
+      refund: {
+        available: true,
+        description: 'Hoàn tiền 80% trước 4 giờ khởi hành'
+      }
+    },
     // For booking flow
     type: determineBusType(busSlot.totalSeats),
-    activeTab: determineBusType(busSlot.totalSeats)
+    activeTab: determineBusType(busSlot.totalSeats),
+    // ✅ Include seat data for booking
+    seats: busSlot.seats || []
   }
 }
 
@@ -110,13 +178,27 @@ const generateFacilitiesFromCategory = (categoryName) => {
   return facilities
 }
 
-// Determine bus type for seat layout
+// Helper functions
+const determineSeatLayout = (totalSeats) => {
+  if (totalSeats <= 20) return '2-2'
+  if (totalSeats <= 30) return '2-1'
+  return '1-1-1'
+}
+
 const determineBusType = (totalSeats) => {
-  if (totalSeats <= 20) {
-    return 'shuttle-bus'
-  } else {
-    return 'sleeping-bus'
+  if (totalSeats <= 20) return 'shuttle-bus'
+  return 'sleeping-bus'
+}
+
+const getFacilityIcon = (facility) => {
+  const icons = {
+    wifi: 'fas fa-wifi',
+    ac: 'fas fa-snowflake',
+    water: 'fas fa-tint',
+    blanket: 'fas fa-bed',
+    entertainment: 'fas fa-tv'
   }
+  return icons[facility] || 'fas fa-check'
 }
 
 // Mount/unmount tracking
@@ -128,61 +210,26 @@ onUnmounted(() => {
   isMounted.value = false
 })
 
-// Perform search when modal opens or search params change
-const performSearch = async () => {
-  if (!isMounted.value || !props.searchParams.from || !props.searchParams.to || !props.searchParams.departureDate) {
-    return
-  }
-
-  try {
-    loadingResults.value = true
+// Watch for searchResults prop changes
+watch(() => props.searchResults, (newResults) => {
+  if (newResults?.busSlots && isMounted.value) {
+    rawSearchResults.value = newResults.busSlots
+    searchResults.value = newResults.busSlots.map(transformBusSlotToTrip)
+    loadingResults.value = false
     searchError.value = ''
-
-    const criteria = {
-      from: props.searchParams.from,
-      to: props.searchParams.to,
-      departureDate: props.searchParams.departureDate,
-      seats: props.searchParams.seats || 1,
-      roundtrip: props.searchParams.roundtrip || false
-    }
-
-    const busSlots = await BusSearchAPI.searchBusSlots(criteria)
-    
-    // Check if still mounted before updating state
-    if (isMounted.value) {
-      rawSearchResults.value = busSlots
-      // Transform to UI format
-      searchResults.value = busSlots.map(transformBusSlotToTrip)
-    }
-
-  } catch (error) {
-    if (isMounted.value) {
-      searchError.value = 'Không thể tìm kiếm chuyến xe. Vui lòng thử lại.'
-      searchResults.value = []
-      rawSearchResults.value = []
-    }
-  } finally {
-    if (isMounted.value) {
-      loadingResults.value = false
-    }
   }
-}
-
-// Watch for search params changes
-watch(() => props.searchParams, async (newParams) => {
-  if (props.show && newParams && isMounted.value) {
-    await performSearch()
-  }
-}, { deep: true })
+}, { immediate: true, deep: true })
 
 // Watch for modal show/hide
-watch(() => props.show, async (isVisible) => {
-  if (isVisible && isMounted.value) {
-    await performSearch()
+watch(() => props.show, (isVisible) => {
+  if (isVisible && props.searchResults?.busSlots?.length > 0 && isMounted.value) {
+    // Data already available from props
+    rawSearchResults.value = props.searchResults.busSlots
+    searchResults.value = props.searchResults.busSlots.map(transformBusSlotToTrip)
   }
 })
 
-// Filtered results based on filters
+// Filtered results based on filters (existing logic)
 const filteredResults = computed(() => {
   let results = [...searchResults.value]
   
@@ -240,7 +287,7 @@ const filteredResults = computed(() => {
   return results
 })
 
-// Handle filter changes
+// Handle filter changes (existing logic)
 const toggleTimeSlot = (slotId) => {
   const index = filters.value.timeSlots.indexOf(slotId)
   if (index > -1) {
@@ -271,6 +318,44 @@ const toggleArrivalTimeSlot = (slotId) => {
   }
 }
 
+// Clear all filters
+const clearFilters = () => {
+  filters.value = {
+    timeSlots: [],
+    arrivalTimeSlots: [],
+    facilities: [],
+    availableSeats: ''
+  }
+}
+
+// Booking flow functions (existing logic)
+const startBookingFlow = (trip) => {
+  selectedTrip.value = {
+    ...trip,
+    type: props.searchParams.busType || trip.type,
+    activeTab: props.searchParams.busType || trip.activeTab
+  }
+  currentStep.value = 2
+  showBookingFlow.value = true
+}
+
+const handleStepChange = (step) => {
+  currentStep.value = step
+}
+
+const handleBookingComplete = (bookingData) => {
+  currentStep.value = 1
+  showBookingFlow.value = false
+  selectedTrip.value = null
+  emit('close')
+}
+
+const backToSearch = () => {
+  currentStep.value = 1
+  showBookingFlow.value = false
+  selectedTrip.value = null
+}
+
 // Handle modal close
 const closeModal = () => {
   emit('close')
@@ -283,71 +368,32 @@ const handleBackdropClick = (event) => {
   }
 }
 
-// Clear all filters
-const clearFilters = () => {
-  filters.value = {
-    timeSlots: [],
-    arrivalTimeSlots: [],
-    facilities: [],
-    availableSeats: ''
-  }
-}
-
-// Booking flow functions
-const startBookingFlow = (trip) => {
-  selectedTrip.value = {
-    ...trip,
-    type: props.searchParams.busType || trip.type, // Use busType from search params
-    activeTab: props.searchParams.busType || trip.activeTab // Pass activeTab info
-  }
-  currentStep.value = 2 // Move to seat selection
-  showBookingFlow.value = true
-}
-
-const handleStepChange = (step) => {
-  currentStep.value = step
-}
-
-const handleBookingComplete = (bookingData) => {
-  // Handle booking completion
-  // In real app, send to API
-  // Reset modal state
-  currentStep.value = 1
-  showBookingFlow.value = false
-  selectedTrip.value = null
-  // Show success message or redirect
-  emit('close')
-}
-
-const backToSearch = () => {
-  currentStep.value = 1
-  showBookingFlow.value = false
-  selectedTrip.value = null
-}
-
-// Step styling functions
+// Step styling functions (existing logic)
 const getStepClass = (step) => {
   if (step.id < currentStep.value) {
-    return 'bg-green-500 text-white' // Completed
+    return 'bg-green-500 text-white'
   } else if (step.id === currentStep.value) {
-    return 'bg-indigo-600 text-white' // Current
+    return 'bg-indigo-600 text-white'
   } else {
-    return 'bg-gray-200 text-gray-500' // Pending
+    return 'bg-gray-200 text-gray-500'
   }
 }
 
 const getStepConnectorClass = (stepIndex) => {
   if (stepIndex < currentStep.value - 1) {
-    return 'bg-green-500' // Completed
+    return 'bg-green-500'
   } else {
-    return 'bg-gray-200' // Pending
+    return 'bg-gray-200'
   }
 }
 
-// Retry search function
-const retrySearch = () => {
-  performSearch()
-}
+// Steps configuration (existing)
+const steps = [
+  { id: 1, name: 'Tìm kiếm', icon: 'fas fa-search' },
+  { id: 2, name: 'Chọn ghế', icon: 'fas fa-chair' },
+  { id: 3, name: 'Thông tin', icon: 'fas fa-user' },
+
+]
 </script>
 
 <template>
@@ -373,20 +419,19 @@ const retrySearch = () => {
         leave-from-class="opacity-100 transform scale-100"
         leave-to-class="opacity-0 transform scale-95"
       >
-        <div v-if="show" class="flex items-start justify-center min-h-screen p-4 py-8 mt-[100px]">
-          <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-hidden"
+        <div v-if="show" class="flex items-center justify-center min-h-screen p-2 md:p-4 mt-14">
+          <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[95vh] md:h-[90vh] overflow-hidden flex flex-col"
                @click.stop>
             
-            <!-- Modal Header -->
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <!-- Modal Header - Fixed Height -->
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex-shrink-0">
               <div class="flex items-center justify-between mb-4">
                 <div>
                   <h2 class="text-xl font-bold text-gray-900">
                     {{ currentStep === 1 ? 'Kết quả tìm kiếm' : 'Đặt vé xe khách' }}
                   </h2>
                   <p class="text-sm text-gray-600 mt-1">
-                    {{ searchParams.from }} → {{ searchParams.to }} • {{ searchParams.departureDate }}
-                    <span v-if="searchParams.roundtrip"> • Khứ hồi</span>
+                    {{ props.searchResults?.searchParams?.departureProvince || 'N/A' }} → {{ props.searchResults?.searchParams?.arrivalProvince || 'N/A' }} • {{ props.searchResults?.searchParams?.departureDate || 'N/A' }}
                   </p>
                 </div>
                 <button 
@@ -423,15 +468,15 @@ const retrySearch = () => {
               </div>
             </div>
 
-            <!-- Modal Body -->
-            <div class="flex" style="">
+            <!-- Modal Body - Flexible Height -->
+            <div class="flex flex-1 overflow-hidden">
               
               <!-- Step 1: Search Results -->
               <template v-if="currentStep === 1">
-                <!-- Sidebar Filters (col-2) -->
-                <div class="w-4/12 bg-gray-50 border-r border-gray-200 overflow-y-auto flex justify-center">
-                  <div class="w-full max-w-xs mx-auto p-6 space-y-6">
-                                      <!-- Time Slots -->
+                <!-- Sidebar Filters -->
+                <div class="w-1/3 lg:w-1/4 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+                  <div class="p-6 space-y-6">
+                    <!-- Time Slots -->
                     <div class="text-center">
                       <h3 class="font-semibold text-gray-900 mb-3">Khung giờ đón</h3>
                       <div class="space-y-2">
@@ -449,172 +494,139 @@ const retrySearch = () => {
                       </div>
                     </div>
 
-                  <!-- Arrival Time -->
-                  <div class="text-center">
-                    <h3 class="font-semibold text-gray-900 mb-3">Khung giờ đến</h3>
-                    <div class="space-y-2">
-                      <label v-for="slot in timeSlots" 
-                             :key="'arrival-' + slot.id"
-                             class="flex items-center justify-start cursor-pointer text-left">
-                        <input 
-                          type="checkbox"
-                          :checked="filters.arrivalTimeSlots.includes(slot.id)"
-                          @change="toggleArrivalTimeSlot(slot.id)"
-                          class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span class="ml-2 text-sm text-gray-700">{{ slot.label }}</span>
-                      </label>
+                    <!-- Arrival Time -->
+                    <div class="text-center">
+                      <h3 class="font-semibold text-gray-900 mb-3">Khung giờ đến</h3>
+                      <div class="space-y-2">
+                        <label v-for="slot in timeSlots" 
+                               :key="'arrival-' + slot.id"
+                               class="flex items-center justify-start cursor-pointer text-left">
+                          <input 
+                            type="checkbox"
+                            :checked="filters.arrivalTimeSlots.includes(slot.id)"
+                            @change="toggleArrivalTimeSlot(slot.id)"
+                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span class="ml-2 text-sm text-gray-700">{{ slot.label }}</span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
 
-                  <!-- Facilities -->
-                  <div class="text-center">
-                    <h3 class="font-semibold text-gray-900 mb-3">Tiện ích</h3>
-                    <div class="space-y-2">
-                      <label v-for="facility in availableFacilities" 
-                             :key="facility.id"
-                             class="flex items-center justify-start cursor-pointer text-left">
-                        <input 
-                          type="checkbox"
-                          :checked="filters.facilities.includes(facility.id)"
-                          @change="toggleFacility(facility.id)"
-                          class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span class="ml-2 text-sm text-gray-700 flex items-center">
-                          <i :class="facility.icon" class="mr-2 text-gray-500"></i>
-                          {{ facility.name }}
-                        </span>
-                      </label>
+                    <!-- Facilities -->
+                    <div class="text-center">
+                      <h3 class="font-semibold text-gray-900 mb-3">Tiện ích</h3>
+                      <div class="space-y-2">
+                        <label v-for="facility in availableFacilities" 
+                               :key="facility.id"
+                               class="flex items-center justify-start cursor-pointer text-left">
+                          <input 
+                            type="checkbox"
+                            :checked="filters.facilities.includes(facility.id)"
+                            @change="toggleFacility(facility.id)"
+                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span class="ml-2 text-sm text-gray-700 flex items-center">
+                            <i :class="facility.icon" class="mr-2 text-gray-500"></i>
+                            {{ facility.name }}
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
 
-                  <!-- Available Seats -->
-                  <div class="text-center">
-                    <h3 class="font-semibold text-gray-900 mb-3">Số ghế trống</h3>
-                    <select v-model="filters.availableSeats"
-                            class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                      <option value="">Tất cả</option>
-                      <option value="1">Ít nhất 1 ghế</option>
-                      <option value="2">Ít nhất 2 ghế</option>
-                      <option value="4">Ít nhất 4 ghế</option>
-                      <option value="6">Ít nhất 6 ghế</option>
-                    </select>
-                  </div>
-
-                  <!-- Clear Filters -->
-                  <div class="text-center">
-                    <button @click="clearFilters"
-                            class="w-full text-sm text-blue-600 hover:text-blue-800 underline">
-                      Xóa bộ lọc
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-
-              <!-- Search Results (col-8) -->
-              <div class="w-8/12 overflow-y-auto flex-1">
-                <div class="p-6">
-                  
-                  <!-- Results Header -->
-                  <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                      {{ filteredResults.length }} chuyến xe được tìm thấy
-                    </h3>
-                    <div class="flex items-center space-x-4">
-                      <span class="text-sm text-gray-600">Sắp xếp theo:</span>
-                      <select class="p-2 border border-gray-300 rounded-lg text-sm">
-                        <option>Giá thấp nhất</option>
-                        <option>Giờ khởi hành</option>
-                        <option>Thời gian di chuyển</option>
+                    <!-- Available Seats -->
+                    <div class="text-center">
+                      <h3 class="font-semibold text-gray-900 mb-3">Số ghế trống</h3>
+                      <select v-model="filters.availableSeats"
+                              class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Tất cả</option>
+                        <option value="1">Ít nhất 1 ghế</option>
+                        <option value="2">Ít nhất 2 ghế</option>
+                        <option value="4">Ít nhất 4 ghế</option>
+                        <option value="6">Ít nhất 6 ghế</option>
                       </select>
                     </div>
-                  </div>
 
-                  <!-- Loading State -->
-                  <div v-if="loadingResults" class="text-center py-12">
-                    <div class="flex flex-col items-center">
-                      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-                      <h3 class="text-lg font-medium text-gray-900 mb-2">Đang tìm kiếm chuyến xe...</h3>
-                      <p class="text-gray-600">Vui lòng chờ trong giây lát</p>
-                    </div>
-                  </div>
-
-                  <!-- Error State -->
-                  <div v-else-if="searchError" class="text-center py-12">
-                    <div class="flex flex-col items-center">
-                      <i class="fas fa-exclamation-triangle text-red-400 text-4xl mb-4"></i>
-                      <h3 class="text-lg font-medium text-gray-900 mb-2">Có lỗi xảy ra</h3>
-                      <p class="text-gray-600 mb-4">{{ searchError }}</p>
-                      <button 
-                        @click="retrySearch"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                        <i class="fas fa-redo mr-2"></i>
-                        Thử lại
+                    <!-- Clear Filters -->
+                    <div class="text-center">
+                      <button @click="clearFilters"
+                              class="w-full text-sm text-blue-600 hover:text-blue-800 underline">
+                        Xóa bộ lọc
                       </button>
                     </div>
                   </div>
-
-                  <!-- Bus Cards -->
-                  <div v-else-if="!loadingResults && filteredResults.length > 0" class="space-y-4">
-                    <BusCard 
-                      v-for="trip in filteredResults"
-                      :key="trip.id"
-                      :trip="trip"
-                      @book-trip="startBookingFlow"
-                    />
-                  </div>
-
-                  <!-- No Results -->
-                  <div v-else-if="!loadingResults && searchResults.length === 0" 
-                       class="text-center py-12">
-                    <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Không tìm thấy chuyến xe</h3>
-                    <p class="text-gray-600 mb-4">Không có chuyến xe nào phù hợp với tiêu chí tìm kiếm</p>
-                    <button 
-                      @click="clearFilters"
-                      class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                      <i class="fas fa-filter mr-2"></i>
-                      Xóa bộ lọc
-                    </button>
-                  </div>
-
-                  <!-- Filtered No Results -->
-                  <div v-else-if="!loadingResults && searchResults.length > 0 && filteredResults.length === 0" 
-                       class="text-center py-12">
-                    <i class="fas fa-filter text-gray-400 text-4xl mb-4"></i>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Không có kết quả với bộ lọc hiện tại</h3>
-                    <p class="text-gray-600 mb-4">Thử điều chỉnh bộ lọc để xem thêm chuyến xe</p>
-                    <button 
-                      @click="clearFilters"
-                      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                      <i class="fas fa-times mr-2"></i>
-                      Xóa bộ lọc
-                    </button>
-                  </div>
-
                 </div>
-              </div>
+
+                <!-- Search Results -->
+                <div class="w-2/3 lg:w-3/4 overflow-y-auto">
+                  <div class="p-6">
+                    
+                    <!-- Results Header -->
+                    <div class="flex items-center justify-between mb-6">
+                      <h3 class="text-lg font-semibold text-gray-900">
+                        {{ filteredResults.length }} chuyến xe được tìm thấy
+                      </h3>
+                      <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-600">Sắp xếp theo:</span>
+                        <select class="p-2 border border-gray-300 rounded-lg text-sm">
+                          <option>Giá thấp nhất</option>
+                          <option>Giờ khởi hành</option>
+                          <option>Thời gian di chuyển</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Bus Cards -->
+                    <div v-if="filteredResults.length > 0" class="space-y-4">
+                      <BusCard 
+                        v-for="trip in filteredResults"
+                        :key="trip.id"
+                        :trip="trip"
+                        @book-trip="startBookingFlow"
+                      />
+                    </div>
+
+                    <!-- No Results -->
+                    <div v-else-if="searchResults.length === 0" 
+                         class="text-center py-12">
+                      <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+                      <h3 class="text-lg font-medium text-gray-900 mb-2">Không tìm thấy chuyến xe</h3>
+                      <p class="text-gray-600 mb-4">Không có chuyến xe nào phù hợp với tiêu chí tìm kiếm</p>
+                    </div>
+
+                    <!-- Filtered No Results -->
+                    <div v-else-if="searchResults.length > 0 && filteredResults.length === 0" 
+                         class="text-center py-12">
+                      <i class="fas fa-filter text-gray-400 text-4xl mb-4"></i>
+                      <h3 class="text-lg font-medium text-gray-900 mb-2">Không có kết quả với bộ lọc hiện tại</h3>
+                      <p class="text-gray-600 mb-4">Thử điều chỉnh bộ lọc để xem thêm chuyến xe</p>
+                      <button 
+                        @click="clearFilters"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-times mr-2"></i>
+                        Xóa bộ lọc
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
               </template>
 
               <!-- Step 2-5: Booking Flow -->
               <template v-else>
                 <div class="w-full overflow-y-auto">
-                  <div class="">
-                    <Transition
-                      name="slide-left"
-                      mode="out-in"
-                    >
-                      <BusTicketBooking
-                        :show="showBookingFlow"
-                        :selected-trip="selectedTrip"
-                        :current-step="currentStep"
-                        @step-change="handleStepChange"
-                        @booking-complete="handleBookingComplete"
-                        @close="backToSearch"
-                      />
-                    </Transition>
-                  </div>
+                  <Transition
+                    name="slide-left"
+                    mode="out-in"
+                  >
+                    <BusTicketBooking
+                      :show="showBookingFlow"
+                      :selected-trip="selectedTrip"
+                      :current-step="currentStep"
+                      @step-change="handleStepChange"
+                      @booking-complete="handleBookingComplete"
+                      @close="backToSearch"
+                    />
+                  </Transition>
                 </div>
               </template>
 
@@ -627,25 +639,83 @@ const retrySearch = () => {
 </template>
 
 <style scoped>
-/* Custom scrollbar */
+/* Modal positioning */
+.fixed.inset-0 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scrollbar styling */
 .overflow-y-auto::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f8fafc;
+  border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 2px;
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+  background: #94a3b8;
 }
 
-/* Slide left animation */
+/* Modal responsive */
+@media (max-width: 1024px) {
+  .w-1\/3.lg\:w-1\/4 {
+    width: 35%;
+  }
+  
+  .w-2\/3.lg\:w-3\/4 {
+    width: 65%;
+  }
+}
+
+@media (max-width: 768px) {
+  .w-1\/3 {
+    width: 40%;
+  }
+  
+  .w-2\/3 {
+    width: 60%;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+  
+  .p-6 {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .w-1\/3 {
+    width: 100%;
+    position: absolute;
+    left: -100%;
+    transition: left 0.3s ease;
+    z-index: 10;
+    background: white;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .w-2\/3 {
+    width: 100%;
+  }
+  
+  /* Show filters button on mobile */
+  .w-1\/3.show-filters {
+    left: 0;
+  }
+}
+
 .slide-left-enter-active,
 .slide-left-leave-active {
   transition: all 0.3s ease-out;
@@ -666,4 +736,4 @@ const retrySearch = () => {
   opacity: 1;
   transform: translateX(0);
 }
-</style> 
+</style>

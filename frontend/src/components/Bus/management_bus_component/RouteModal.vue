@@ -279,77 +279,77 @@
                           </div>
                           
                           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
+                        <div>
                               <label :for="'basePrice_' + categoryId" class="block text-sm font-medium text-gray-700 mb-1">
-                                Giá cơ sở (VND) <span class="text-red-500">*</span>
-                              </label>
-                              <input
+                            Giá cơ sở (VND) <span class="text-red-500">*</span>
+                          </label>
+                          <input
                                 :id="'basePrice_' + categoryId"
                                 v-model.number="form.priceRules[categoryId].basePrice"
-                                type="number"
-                                min="10000"
-                                step="10000"
-                                required
-                                placeholder="500000"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              />
-                            </div>
-                            <div>
+                            type="number"
+                            min="10000"
+                            step="10000"
+                            required
+                            placeholder="500000"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
                               <label :for="'promotionPrice_' + categoryId" class="block text-sm font-medium text-gray-700 mb-1">
-                                Giá khuyến mãi (VND)
-                              </label>
-                              <input
+                            Giá khuyến mãi (VND)
+                          </label>
+                          <input
                                 :id="'promotionPrice_' + categoryId"
                                 v-model.number="form.priceRules[categoryId].promotionPrice"
-                                type="number"
-                                min="10000"
-                                step="10000"
-                                placeholder="Để trống nếu không có"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              />
-                            </div>
-                          </div>
-                          
+                            type="number"
+                            min="10000"
+                            step="10000"
+                            placeholder="Để trống nếu không có"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
                           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                            <div>
+                        <div>
                               <label :for="'validFrom_' + categoryId" class="block text-sm font-medium text-gray-700 mb-1">
-                                Áp dụng từ ngày <span class="text-red-500">*</span>
-                              </label>
-                              <input
+                            Áp dụng từ ngày <span class="text-red-500">*</span>
+                          </label>
+                          <input
                                 :id="'validFrom_' + categoryId"
                                 v-model="form.priceRules[categoryId].validFrom"
-                                type="date"
-                                required
-                                :min="today"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              />
-                            </div>
-                            <div>
+                            type="date"
+                            required
+                            :min="today"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
                               <label :for="'validTo_' + categoryId" class="block text-sm font-medium text-gray-700 mb-1">
-                                Áp dụng đến ngày <span class="text-red-500">*</span>
-                              </label>
-                              <input
+                            Áp dụng đến ngày <span class="text-red-500">*</span>
+                          </label>
+                          <input
                                 :id="'validTo_' + categoryId"
                                 v-model="form.priceRules[categoryId].validTo"
-                                type="date"
-                                required
+                            type="date"
+                            required
                                 :min="form.priceRules[categoryId].validFrom || today"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              />
-                            </div>
-                          </div>
-                          
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
                           <div class="mt-3">
                             <label :for="'notes_' + categoryId" class="block text-sm font-medium text-gray-700 mb-1">
-                              Ghi chú (tùy chọn)
-                            </label>
-                            <textarea
+                          Ghi chú (tùy chọn)
+                        </label>
+                        <textarea
                               :id="'notes_' + categoryId"
                               v-model="form.priceRules[categoryId].notes"
-                              rows="2"
+                          rows="2"
                               placeholder="Ghi chú cho loại xe này..."
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            ></textarea>
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        ></textarea>
                           </div>
                         </div>
                       </div>
@@ -742,21 +742,21 @@ const validateForm = () => {
     
     if (!priceRule.basePrice || priceRule.basePrice <= 0) {
       errors.selectedCategories = `Giá cơ bản cho ${getCategoryName(categoryId)} phải lớn hơn 0`
-      isValid = false
+    isValid = false
       return
-    }
-    
+  }
+  
     if (!priceRule.validFrom) {
       errors.selectedCategories = `Ngày bắt đầu cho ${getCategoryName(categoryId)} là bắt buộc`
-      isValid = false
+    isValid = false
       return
-    }
-    
+  }
+  
     if (!priceRule.validTo) {
       errors.selectedCategories = `Ngày kết thúc cho ${getCategoryName(categoryId)} là bắt buộc`
-      isValid = false
+    isValid = false
       return
-    }
+  }
   })
   
   if (form.validFrom && form.validTo && form.validFrom > form.validTo) {
@@ -868,7 +868,7 @@ const openForEdit = async (route, existingPriceData = null) => {
   if (existingPriceData) {
     await loadExistingPriceRulesFromData(route.id, existingPriceData)
   } else {
-    await loadExistingPriceRules(route.id)
+  await loadExistingPriceRules(route.id)
   }
   
   isOpen.value = true

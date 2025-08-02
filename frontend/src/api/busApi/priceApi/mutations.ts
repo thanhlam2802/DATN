@@ -26,8 +26,8 @@ export const CREATE_ROUTE_BUS_CATEGORY_PRICE = gql`
       busCategory {
         id
         name
-      }
     }
+  }
   }
 `
 
@@ -57,8 +57,8 @@ export const UPDATE_ROUTE_BUS_CATEGORY_PRICE = gql`
       busCategory {
         id
         name
-      }
     }
+  }
   }
 `
 

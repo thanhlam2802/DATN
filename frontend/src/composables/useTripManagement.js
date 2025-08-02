@@ -116,6 +116,17 @@ export function useTripManagement() {
              slot.slotDate === slotDate
     })
   }
+  
+  // Helper function để lấy tất cả chuyến xe của một bus trong một ngày
+  function getTripsForBusAndDate(busId, slotDate) {
+    if (!busId || !slotDate) return []
+    
+    return busSlots.value.filter(slot => {
+      return slot.bus?.id === busId && 
+             slot.slotDate === slotDate &&
+             ['SCHEDULED', 'IN_PROGRESS'].includes(slot.status)
+    })
+  }
 
   function timeToMinutes(timeString) {
     if (!timeString) return 0
@@ -747,6 +758,7 @@ export function useTripManagement() {
     clearError,
     setEditingTrip,
     hasDuplicateTrip,
+    getTripsForBusAndDate,
     
     // Lifecycle
     initialize,

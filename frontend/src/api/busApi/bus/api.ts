@@ -31,7 +31,6 @@ export class BusAPI {
 
       return response.data;
     } catch (error) {
-      console.error('❌ Simple query failed:', error);
       throw error;
     }
   }
@@ -48,7 +47,6 @@ export class BusAPI {
 
       return response.data?.findBusesByOwnerId || [];
     } catch (error) {
-      console.error('❌ Owner query failed:', error);
       throw error;
     }
   }
@@ -75,7 +73,6 @@ export class BusAPI {
 
       return response.data?.findAllBuses || [];
     } catch (error) {
-      console.error('❌ Backup query failed:', error);
       throw error;
     }
   }
@@ -116,7 +113,6 @@ export class BusAPI {
       // If all fail, return empty array
       return [];
     } catch (error) {
-      console.error('❌ Error in getAllBuses:', error);
       return [];
     }
   }
@@ -151,14 +147,13 @@ export class BusAPI {
           return simpleResponse.data.findBusesByOwnerId;
         }
       } catch (error) {
-        console.error('❌ Simple query also failed:', error);
+        // Continue to next method
       }
 
       // If both fail, return empty array
       return [];
 
     } catch (error) {
-      console.error('❌ Error in getBusesByOwnerId:', error);
       return [];
     }
   }
@@ -183,7 +178,6 @@ export class BusAPI {
       });
       return response.data.createBus;
     } catch (error) {
-      console.error('❌ Error creating bus:', error);
       throw error;
     }
   }
@@ -196,7 +190,6 @@ export class BusAPI {
       });
       return response.data.updateBus;
     } catch (error) {
-      console.error('❌ Error updating bus:', error);
       throw error;
     }
   }
@@ -209,7 +202,6 @@ export class BusAPI {
       });
       return response.data.deleteBus;
     } catch (error) {
-      console.error('❌ Error deleting bus:', error);
       throw error;
     }
   }

@@ -10,6 +10,7 @@ import backend.backend.entity.*;
 // <------------------------------------------------>
 
 import backend.backend.entity.enumBus.BusSlotStatus;
+import backend.backend.implement.busImplement.helper.CreateSeatBusSlotHelper;
 import backend.backend.service.busService.BusSlotService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -35,6 +37,7 @@ public class BusSlotServiceImpl implements BusSlotService {
     private final BusDAO busDAO;
     private final RouteDAO routeDAO;
     private final BusCategoryDAO busCategoryDAO;
+    private final CreateSeatBusSlotHelper  createSeatBusSlotHelper;
     // --- Helper Methods to Convert Entities to DTOs ---
 
     private BusResponse convertToBusResponse(Bus bus) {
@@ -46,6 +49,13 @@ public class BusSlotServiceImpl implements BusSlotService {
     }
 
     private BusSlotResponse convertToBusSlotResponse(BusSlot busSlot) {
+        // Convert seats to BusSeatResponse list, handle null case
+        List<BusSeatResponse> seatResponses = Optional.ofNullable(busSlot.getSeats())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(this::convertToBusSeatResponse)
+                .collect(Collectors.toList());
+
         return BusSlotResponse.builder()
                 .id(busSlot.getId())
                 .bus(convertToBusResponse(busSlot.getBus()))
@@ -81,6 +91,10 @@ public class BusSlotServiceImpl implements BusSlotService {
                 .totalSeats(busSlot.getTotalSeats())
                 .availableSeats(busSlot.getAvailableSeats())
                 .status(busSlot.getStatus())
+
+                // ✅ ADD: Include seats
+                .seats(seatResponses)
+
                 .createdAt(Optional.ofNullable(busSlot.getCreatedAt())
                         .map(ldt -> ldt.atOffset(ZoneOffset.ofHours(7)))
                         .orElse(null))
@@ -89,7 +103,25 @@ public class BusSlotServiceImpl implements BusSlotService {
                         .orElse(null))
                 .build();
     }
+    @Transactional(readOnly = true)
+    public List<BusSeatResponse> getBusSeats(Integer busSlotId) {
+        BusSlot busSlot = busSlotDAO.findByIdWithDetails(busSlotId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy BusSlot với ID: " + busSlotId));
 
+        return busSlot.getSeats().stream()
+                .map(this::convertToBusSeatResponse)
+                .collect(Collectors.toList());
+    }
+
+    private BusSeatResponse convertToBusSeatResponse(BusSeat seat) {
+        return BusSeatResponse.builder()
+                .id(seat.getId())
+                .seatNumber(seat.getSeatNumber())
+                .isBooked(seat.getIsBooked())
+                .price(seat.getPrice())
+                .seatType(seat.getSeatType())
+                .build();
+    }
 
 
 
@@ -105,33 +137,83 @@ public class BusSlotServiceImpl implements BusSlotService {
 
         // Lấy các giá trị cần kiểm tra từ request
         LocalDate slotDate = request.getSlotDate();
-        LocalTime departureTime = LocalTime.parse(request.getDepartureTime()); // Parse thời gian khởi hành để kiểm tra
+        LocalTime departureTime = LocalTime.parse(request.getDepartureTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
 
         // THÊM ĐOẠN MÃ KIỂM TRA TẠI ĐÂY:
-        // ĐÃ SỬA: Truyền ID của Bus và Route
         Optional<BusSlot> existingBusSlot = busSlotDAO.findByBusAndRouteAndSlotDateAndDepartureTime(
                 bus.getId(),
                 route.getId(),
                 slotDate,
-                departureTime
+                request.getDepartureTime()
         );
 
         if (existingBusSlot.isPresent()) {
-            // Nếu BusSlot đã tồn tại, ném ra ngoại lệ
             throw new IllegalArgumentException(
                     String.format("Chuyến xe với xe bus '%s', tuyến đường '%s', ngày '%s' và thời gian khởi hành '%s' đã tồn tại.",
                             bus.getName(), route.getOriginLocation().getName() +"-"+ route.getDestinationLocation().getName()
                             , slotDate, departureTime)
             );
-
         }
 
+        List<BusSlot> overlappingSlots = busSlotDAO.findOverlappingActiveBusSlots(
+                bus.getId(),
+                slotDate,
+                LocalTime.parse(request.getDepartureTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")),
+                LocalTime.parse(request.getArrivalTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))
+        );
+
+        if (!overlappingSlots.isEmpty()) {
+            throw new IllegalArgumentException(
+                    String.format("Thời gian chuyến xe từ %s đến %s bị trùng với lịch trình hiện tại.",
+                            request.getDepartureTime(), request.getArrivalTime())
+            );
+        }
+
+        // Kiểm tra trùng thời gian với logic chính xác hơn
+        LocalTime newStart = LocalTime.parse(request.getDepartureTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
+        LocalTime newEnd = LocalTime.parse(request.getArrivalTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        log.info("Kiểm tra trùng thời gian cho xe bus ID: {}, ngày: {}, thời gian: {} - {}",
+                bus.getId(), request.getSlotDate(), newStart, newEnd);
+
+        // Debug: Kiểm tra tất cả chuyến xe của bus này trong ngày
+        List<BusSlot> allBusSlots = busSlotDAO.findByBusIdWithDetails(bus.getId());
+        log.info("Tất cả chuyến xe của bus {}: {}", bus.getId(), allBusSlots.size());
+        for (BusSlot slot : allBusSlots) {
+            if (slot.getSlotDate().equals(request.getSlotDate())) {
+                log.info("Chuyến xe cùng ngày: ID={}, Thời gian={}-{}, Trạng thái={}",
+                        slot.getId(), slot.getDepartureTime(), slot.getArrivalTime(), slot.getStatus());
+            }
+        }
+
+        List<BusSlot> conflicts = busSlotDAO.findConflictingSlots(
+                bus.getId(),
+                request.getSlotDate(),
+                newStart,
+                newEnd
+        );
+
+        if (!conflicts.isEmpty()) {
+            log.warn("Tìm thấy {} chuyến xe trùng thời gian", conflicts.size());
+            for (BusSlot conflict : conflicts) {
+                log.warn("Chuyến xe trùng: ID={}, Thời gian={}-{}, Trạng thái={}",
+                        conflict.getId(), conflict.getDepartureTime(), conflict.getArrivalTime(), conflict.getStatus());
+            }
+            throw new IllegalArgumentException(
+                    String.format("Thời gian chuyến xe từ %s đến %s bị trùng với lịch trình hiện tại của xe bus '%s'.",
+                            request.getDepartureTime(), request.getArrivalTime(), bus.getName())
+            );
+        }
+
+        log.info("Không có chuyến xe nào trùng thời gian");
+
+        // === TẠO BUS SLOT ===
         BusSlot newBusSlot = new BusSlot();
         newBusSlot.setBus(bus);
         newBusSlot.setRoute(route);
         newBusSlot.setSlotDate(request.getSlotDate());
-        newBusSlot.setDepartureTime(LocalTime.parse(request.getDepartureTime()));
-        newBusSlot.setArrivalTime(LocalTime.parse(request.getArrivalTime()));
+        newBusSlot.setDepartureTime(LocalTime.parse(request.getDepartureTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+        newBusSlot.setArrivalTime(LocalTime.parse(request.getArrivalTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
         newBusSlot.setPrice(request.getPrice());
         newBusSlot.setTotalSeats(request.getTotalSeats());
         newBusSlot.setAvailableSeats(request.getTotalSeats());
@@ -147,9 +229,14 @@ public class BusSlotServiceImpl implements BusSlotService {
         Optional.ofNullable(request.getAutoStatusUpdate()).ifPresent(newBusSlot::setAutoStatusUpdate);
         Optional.ofNullable(request.getAutoResetSeats()).ifPresent(newBusSlot::setAutoResetSeats);
 
+        // === THÊM LOGIC TẠO GHẾ ===
+        List<BusSeat> seats = createSeatBusSlotHelper.createSeatsForBusSlot(newBusSlot, request.getTotalSeats());
+        newBusSlot.setSeats(seats);
 
+        // === LƯU BUS SLOT VÀ GHẾ ===
         BusSlot savedBusSlot = busSlotDAO.save(newBusSlot);
-        log.info("Đã tạo BusSlot mới với ID: {}", savedBusSlot.getId());
+        log.info("Đã tạo BusSlot mới với ID: {} và {} ghế", savedBusSlot.getId(), seats.size());
+
         return convertToBusSlotResponse(savedBusSlot);
     }
 
@@ -172,8 +259,8 @@ public class BusSlotServiceImpl implements BusSlotService {
         });
 
         Optional.ofNullable(request.getSlotDate()).ifPresent(existingBusSlot::setSlotDate);
-        Optional.ofNullable(request.getDepartureTime()).ifPresent(timeStr -> existingBusSlot.setDepartureTime(LocalTime.parse(timeStr)));
-        Optional.ofNullable(request.getArrivalTime()).ifPresent(timeStr -> existingBusSlot.setArrivalTime(LocalTime.parse(timeStr)));
+        Optional.ofNullable(request.getDepartureTime()).ifPresent(timeStr -> existingBusSlot.setDepartureTime(LocalTime.parse(timeStr, java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))));
+        Optional.ofNullable(request.getArrivalTime()).ifPresent(timeStr -> existingBusSlot.setArrivalTime(LocalTime.parse(timeStr, java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))));
 
         Optional.ofNullable(request.getPrice()).ifPresent(existingBusSlot::setPrice);
         Optional.ofNullable(request.getTotalSeats()).ifPresent(newTotalSeats -> {
@@ -203,6 +290,38 @@ public class BusSlotServiceImpl implements BusSlotService {
         Optional.ofNullable(request.getRecurringEndDate()).ifPresent(existingBusSlot::setRecurringEndDate);
         Optional.ofNullable(request.getAutoStatusUpdate()).ifPresent(existingBusSlot::setAutoStatusUpdate);
         Optional.ofNullable(request.getAutoResetSeats()).ifPresent(existingBusSlot::setAutoResetSeats);
+
+
+        List<BusSlot> overlappingSlots = busSlotDAO.findOverlappingActiveBusSlotsExcludingCurrent(
+                existingBusSlot.getBus().getId(),
+                existingBusSlot.getSlotDate(),
+                existingBusSlot.getDepartureTime(),
+                existingBusSlot.getArrivalTime(),
+                existingBusSlot.getId()
+        );
+
+        if (!overlappingSlots.isEmpty()) {
+            throw new IllegalArgumentException(
+                    String.format("Không thể cập nhật. Thời gian mới (%s - %s) trùng với lịch trình đã có.",
+                            existingBusSlot.getDepartureTime(), existingBusSlot.getArrivalTime())
+            );
+        }
+
+        Optional.ofNullable(request.getTotalSeats()).ifPresent(newTotalSeats -> {
+            if (newTotalSeats != existingBusSlot.getTotalSeats()) {
+                log.info("Cập nhật số ghế từ {} lên {}", existingBusSlot.getTotalSeats(), newTotalSeats);
+
+                // Xóa ghế cũ
+                existingBusSlot.getSeats().clear();
+
+                // Tạo ghế mới
+                List<BusSeat> newSeats = createSeatBusSlotHelper.createSeatsForBusSlot(existingBusSlot, newTotalSeats);
+                existingBusSlot.setSeats(newSeats);
+
+                existingBusSlot.setTotalSeats(newTotalSeats);
+                existingBusSlot.setAvailableSeats(newTotalSeats);
+            }
+        });
 
 
         BusSlot updatedBusSlot = busSlotDAO.save(existingBusSlot);
@@ -261,33 +380,35 @@ public class BusSlotServiceImpl implements BusSlotService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BusSlotResponse> searchBusSlots(
-            String departureLocationId,
-            String arrivalLocationId,
+    public List<BusSlotResponse> searchBusSlotsDetailed(
+            String departureProvince,
+            String departureDistrict,
+            String arrivalProvince,
+            String arrivalDistrict,
             LocalDate slotDate,
+            Integer minAvailableSeats,
             Integer busCategoryId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
-            Integer minAvailableSeats,
             BusSlotStatus status) {
 
-        if (busCategoryId != null) {
-            busCategoryDAO.findById(busCategoryId)
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy danh mục xe với ID: " + busCategoryId));
-        }
-
-        return busSlotDAO.searchBusSlotsWithDetails(
-                departureLocationId,
-                arrivalLocationId,
+        List<BusSlot> busSlots = busSlotDAO.searchBusSlotsDetailed(
                 slotDate,
+                departureProvince,
+                departureDistrict,
+                arrivalProvince,
+                arrivalDistrict,
                 busCategoryId,
                 minPrice,
                 maxPrice,
                 minAvailableSeats,
                 status
-        ).stream().map(this::convertToBusSlotResponse).collect(Collectors.toList());
-    }
+        );
 
+        return busSlots.stream()
+                .map(this::convertToBusSlotResponse)
+                .collect(Collectors.toList());
+    }
     // --- QUẢN LÝ QUY TẮC GIÁ MỚI (IMPLEMENTATION) ---
 
 

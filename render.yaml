@@ -6,7 +6,6 @@ services:
     region: oregon
     rootDir: backend
     buildCommand: ./mvnw clean package -DskipTests
-    startCommand: java -jar target/backend-0.0.1-SNAPSHOT.jar
     envVars:
       - key: SPRING_DATASOURCE_URL
         value: jdbc:sqlserver://34.124.165.193:1433;databaseName=datn;encrypt=true;trustServerCertificate=true
@@ -22,7 +21,6 @@ services:
     region: oregon
     rootDir: core-banking-service
     buildCommand: ./mvnw clean package -DskipTests
-    startCommand: java -jar target/core-banking-service-0.0.1-SNAPSHOT.jar
     envVars:
       - key: SPRING_DATASOURCE_URL
         value: jdbc:sqlserver://34.124.165.193:1433;databaseName=core_banking;encrypt=true;trustServerCertificate=true
@@ -38,7 +36,6 @@ services:
     region: oregon
     rootDir: notification-service
     buildCommand: ./mvnw clean package -DskipTests
-    startCommand: java -jar target/Notification-service-0.0.1-SNAPSHOT.jar
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: production

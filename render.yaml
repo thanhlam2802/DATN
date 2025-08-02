@@ -3,7 +3,6 @@ services:
     name: datn-backend
     env: docker
     plan: free
-    region: oregon
     rootDir: backend
     buildCommand: ./mvnw clean package -DskipTests
     envVars:
@@ -18,7 +17,6 @@ services:
     name: datn-core-banking
     env: docker
     plan: free
-    region: oregon
     rootDir: core-banking-service
     buildCommand: ./mvnw clean package -DskipTests
     envVars:
@@ -33,7 +31,6 @@ services:
     name: datn-notification
     env: docker
     plan: free
-    region: oregon
     rootDir: notification-service
     buildCommand: ./mvnw clean package -DskipTests
     envVars:

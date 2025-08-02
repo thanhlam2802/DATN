@@ -6,7 +6,7 @@ services:
     rootDir: backend
     envVars:
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:sqlserver://34.124.165.193:1433;databaseName=datn;encrypt=true;trustServerCertificate=true
+        value: jdbc:sqlserver://datn.ct4sc6oi2i77.ap-southeast-1.rds.amazonaws.com:1433;databaseName=datn;encrypt=true;trustServerCertificate=true
       - key: SPRING_PROFILES_ACTIVE
         value: production
       - key: PORT
@@ -19,7 +19,7 @@ services:
     rootDir: core-banking-service
     envVars:
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:sqlserver://34.124.165.193:1433;databaseName=core_banking;encrypt=true;trustServerCertificate=true
+        value: jdbc:sqlserver://datn.ct4sc6oi2i77.ap-southeast-1.rds.amazonaws.com:1433;databaseName=core_banking;encrypt=true;trustServerCertificate=true
       - key: SPRING_PROFILES_ACTIVE
         value: production
       - key: PORT

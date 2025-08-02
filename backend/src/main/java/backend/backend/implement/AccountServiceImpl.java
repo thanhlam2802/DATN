@@ -10,6 +10,7 @@ import backend.backend.service.AccountService;
 import backend.backend.utils.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -20,15 +21,17 @@ public class AccountServiceImpl implements AccountService {
     private final UserMapper userMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public AccountDto getAccountDetails(String userEmail) {
-        Optional<User> user = userRepository.findByEmail(userEmail);
+        Optional<User> user = userRepository.findByEmailWithRoles(userEmail);
         return user.map(userMapper::fromEntityToProfile).orElse(null);
     }
 
     @Override
+    @Transactional
     public AccountDto updateAccount(AccountDto dto) {
         String email = SecurityUtil.getCurrentUserEmail();
-        Optional<User> user = userRepository.findByEmail(email);
+        Optional<User> user = userRepository.findByEmailWithRoles(email);
         if (user.isPresent()) {
             User userEntity = user.get();
             userEntity.setName(dto.getName());

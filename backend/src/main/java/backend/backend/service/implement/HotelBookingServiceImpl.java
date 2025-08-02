@@ -22,6 +22,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import backend.backend.controller.AdminWebSocketController;
+import backend.backend.service.PushNotificationService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -53,6 +54,9 @@ public class HotelBookingServiceImpl implements HotelBookingService {
     
     @Autowired
     private AdminWebSocketController adminWebSocketController;
+    
+    @Autowired
+    private PushNotificationService pushNotificationService;
 
     private static final Logger log = LoggerFactory.getLogger(HotelBookingServiceImpl.class);
 
@@ -150,6 +154,13 @@ public class HotelBookingServiceImpl implements HotelBookingService {
                     customer.getFullName(),
                     variant.getRoom().getHotel().getName(),
                     dto.getRooms()
+                );
+                
+                pushNotificationService.sendNotificationToHotelAdmins(
+                    "Đặt phòng mới",
+                    "Khách hàng " + customer.getFullName() + " vừa đặt " + dto.getRooms() + " phòng tại " + variant.getRoom().getHotel().getName(),
+                    "/icons/booking.png",
+                    "/admin/hotel/dashboard"
                 );
             } catch (Exception e) {
                 log.warn("[BOOK_HOTEL] Không thể gửi WebSocket notification: {}", e.getMessage());

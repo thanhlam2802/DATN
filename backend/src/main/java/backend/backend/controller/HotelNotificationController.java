@@ -25,6 +25,48 @@ public class HotelNotificationController {
         }
     }
 
+    @PostMapping("/created")
+    public ResponseEntity<String> notifyHotelCreated(@RequestBody HotelActionRequest request) {
+        try {
+            System.out.println("Received hotel created notification - HotelName: " + request.getHotelName() + ", UserName: " + request.getUserName());
+            adminWebSocketController.sendHotelCreatedNotification(request.getHotelName(), request.getUserName());
+            System.out.println("Hotel created notification sent successfully");
+            return ResponseEntity.ok("Hotel created notification sent successfully");
+        } catch (Exception e) {
+            System.err.println("Failed to send hotel created notification: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Failed to send hotel created notification: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/updated")
+    public ResponseEntity<String> notifyHotelUpdated(@RequestBody HotelActionRequest request) {
+        try {
+            System.out.println("Received hotel updated notification - HotelName: " + request.getHotelName() + ", UserName: " + request.getUserName());
+            adminWebSocketController.sendHotelUpdatedNotification(request.getHotelName(), request.getUserName());
+            System.out.println("Hotel updated notification sent successfully");
+            return ResponseEntity.ok("Hotel updated notification sent successfully");
+        } catch (Exception e) {
+            System.err.println("Failed to send hotel updated notification: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Failed to send hotel updated notification: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/deleted")
+    public ResponseEntity<String> notifyHotelDeleted(@RequestBody HotelActionRequest request) {
+        try {
+            System.out.println("Received hotel deleted notification - HotelName: " + request.getHotelName() + ", UserName: " + request.getUserName());
+            adminWebSocketController.sendHotelDeletedNotification(request.getHotelName(), request.getUserName());
+            System.out.println("Hotel deleted notification sent successfully");
+            return ResponseEntity.ok("Hotel deleted notification sent successfully");
+        } catch (Exception e) {
+            System.err.println("Failed to send hotel deleted notification: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Failed to send hotel deleted notification: " + e.getMessage());
+        }
+    }
+
     public static class HotelCancellationRequest {
         private Long orderId;
         private Long bookingId;
@@ -43,6 +85,27 @@ public class HotelNotificationController {
 
         public void setBookingId(Long bookingId) {
             this.bookingId = bookingId;
+        }
+    }
+
+    public static class HotelActionRequest {
+        private String hotelName;
+        private String userName;
+
+        public String getHotelName() {
+            return hotelName;
+        }
+
+        public void setHotelName(String hotelName) {
+            this.hotelName = hotelName;
+        }
+
+        public String getUserName() {
+            return userName;
+        }
+
+        public void setUserName(String userName) {
+            this.userName = userName;
         }
     }
 } 

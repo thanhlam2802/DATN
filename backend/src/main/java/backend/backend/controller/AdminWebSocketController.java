@@ -94,6 +94,51 @@ public class AdminWebSocketController {
         }
     }
 
+    public void sendHotelCreatedNotification(String hotelName, String userName) {
+        try {
+            Map<String, Object> notification = new HashMap<>();
+            notification.put("hotelName", hotelName);
+            notification.put("userName", userName);
+            notification.put("timestamp", System.currentTimeMillis());
+            notification.put("type", "HOTEL_CREATED");
+            
+            messagingTemplate.convertAndSend("/topic/admin/hotel/actions", notification);
+            logger.info("Sent hotel created notification to admin: {}", notification);
+        } catch (Exception e) {
+            logger.error("Error sending hotel created notification to admin", e);
+        }
+    }
+
+    public void sendHotelUpdatedNotification(String hotelName, String userName) {
+        try {
+            Map<String, Object> notification = new HashMap<>();
+            notification.put("hotelName", hotelName);
+            notification.put("userName", userName);
+            notification.put("timestamp", System.currentTimeMillis());
+            notification.put("type", "HOTEL_UPDATED");
+            
+            messagingTemplate.convertAndSend("/topic/admin/hotel/actions", notification);
+            logger.info("Sent hotel updated notification to admin: {}", notification);
+        } catch (Exception e) {
+            logger.error("Error sending hotel updated notification to admin", e);
+        }
+    }
+
+    public void sendHotelDeletedNotification(String hotelName, String userName) {
+        try {
+            Map<String, Object> notification = new HashMap<>();
+            notification.put("hotelName", hotelName);
+            notification.put("userName", userName);
+            notification.put("timestamp", System.currentTimeMillis());
+            notification.put("type", "HOTEL_DELETED");
+            
+            messagingTemplate.convertAndSend("/topic/admin/hotel/actions", notification);
+            logger.info("Sent hotel deleted notification to admin: {}", notification);
+        } catch (Exception e) {
+            logger.error("Error sending hotel deleted notification to admin", e);
+        }
+    }
+
     public void sendExpiredOrderNotification(String orderId) {
         try {
             Map<String, Object> notification = new HashMap<>();

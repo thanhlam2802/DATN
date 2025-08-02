@@ -61,8 +61,14 @@ import ResetPassword from "@/views/ResetPassword.vue";
 import ExpiredLink from "@/views/ExpiredLink.vue";
 import VerifyEmail from "@/views/VerifyEmail.vue";
 import OAuth2LoginSuccessView from "@/views/OAuth2LoginSuccessView.vue";
+import Unauthorized from "@/views/Unauthorized.vue";
 
 const routes = [
+  {
+    path: "/unauthorized",
+    name: "Unauthorized",
+    component: Unauthorized
+  },
   {
     path: "/",
     component: MainLayout,

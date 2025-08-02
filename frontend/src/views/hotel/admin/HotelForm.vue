@@ -714,7 +714,8 @@
 </template>
 
 <script>
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi } from '@/api/adminApi';
+import { notifyHotelCreated, notifyHotelUpdated, notifyHotelDeleted } from '@/api/hotelApi';
 import HotelDetailModal from './HotelDetailModal.vue';
 import provinceApi from '@/api/provinceApi';
 import AmenityApi from '@/api/AmenityApi';
@@ -723,6 +724,8 @@ import Ckeditor from '@/components/Ckeditor.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
 import CustomSelect from '@/components/CustomSelect.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 export default {
     name: 'HotelManager',
     components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent, CustomSelect },
@@ -923,7 +926,7 @@ export default {
             this.activeTab = 0;
             if (mode === 'edit' && hotel) {
                 try {
-                    const res = await hotelApi.getHotelById(hotel.id);
+                    const res = await hotelAdminApi.getHotelById(hotel.id);
                     const detail = res.data.data || {};
                     this.newHotel = {
                         id: detail.id,
@@ -1028,7 +1031,7 @@ export default {
             this.hotelImagePreviews = [];
             this.imagesToDelete = [];
             try {
-                const res = await hotelApi.getHotelById(hotel.id);
+                const res = await hotelAdminApi.getHotelById(hotel.id);
                 const detail = res.data.data || {};
                 this.newHotel = {
                     id: detail.id,
@@ -1127,7 +1130,12 @@ export default {
         async onConfirmDelete() {
             this.showConfirmDialog = false;
             try {
-                await hotelApi.deleteHotel(this.hotelIdToDelete);
+                const hotelToDelete = this.hotels.find(h => h.id === this.hotelIdToDelete);
+                const hotelName = hotelToDelete ? hotelToDelete.name : 'Khách sạn';
+                await hotelAdminApi.deleteHotel(this.hotelIdToDelete);
+                const userStore = useUserStore();
+                const userName = userStore.user?.name || userStore.user?.email || 'Admin';
+                await notifyHotelDeleted(hotelName, userName);
                 window.$toast('Xóa khách sạn thành công!', 'success');
                 this.backToList();
                 this.fetchHotels();
@@ -1223,7 +1231,7 @@ export default {
                     page: 0,
                     size: 1000,
                 };
-                const response = await hotelApi.searchHotels(params);
+                const response = await hotelAdminApi.searchHotels(params);
                 if (response.data && response.data.data) {
                     this.hotels = response.data.data.content || response.data.data.items || [];
                 } else {
@@ -1486,11 +1494,15 @@ export default {
             }
             try {
                 let res;
+                const userStore = useUserStore();
+                const userName = userStore.user?.name || userStore.user?.email || 'Admin';
                 if (this.modalMode === 'add') {
-                    res = await hotelApi.createHotel(formData);
+                    res = await hotelAdminApi.createHotel(formData);
+                    await notifyHotelCreated(this.newHotel.name, userName);
                     window.$toast('Thêm khách sạn thành công!', 'success');
                 } else {
-                    res = await hotelApi.updateHotel(hotelData.id, formData);
+                    res = await hotelAdminApi.updateHotel(hotelData.id, formData);
+                    await notifyHotelUpdated(this.newHotel.name, userName);
                     window.$toast('Cập nhật khách sạn thành công!', 'success');
                 }
                 this.backToList();
@@ -1568,7 +1580,7 @@ export default {
             this.hotelImagePreviews = [];
             this.imagesToDelete = [];
             try {
-                const res = await hotelApi.getHotelById(hotel.id);
+                const res = await hotelAdminApi.getHotelById(hotel.id);
                 const detail = res.data.data || {};
                 this.newHotel = {
                     id: detail.id,
@@ -1706,7 +1718,7 @@ export default {
             this.isViewMode = true;
             if (this.newHotel.id) {
                 try {
-                    const res = await hotelApi.getHotelById(this.newHotel.id);
+                    const res = await hotelAdminApi.getHotelById(this.newHotel.id);
                     const detail = res.data.data || {};
                     this.newHotel = {
                         id: detail.id,
@@ -1943,6 +1955,27 @@ export default {
         },
     },
     mounted() {
+        const userStore = useUserStore();
+        console.log('UserStore:', userStore);
+        console.log('User:', userStore.user);
+        console.log('User roles:', userStore.user?.roles);
+        
+        if (!userStore.user) {
+            console.log('No user data, trying to restore...');
+            userStore.restoreUserFromToken().then(() => {
+                console.log('After restore - User:', userStore.user);
+                console.log('After restore - User roles:', userStore.user?.roles);
+            });
+        }
+        
+        const { requireAdmin } = useAdminAuth();
+        if (!requireAdmin('hotel')) {
+            console.log('Không có quyền admin hotel');
+            return;
+        }
+        
+        console.log('Có quyền admin hotel, loading data...');
+        
         this.fetchHotels();
         this.loadProvincesAndAmenities();
         document.addEventListener('click', this.handleOutsideClick, true);

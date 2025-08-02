@@ -10,6 +10,7 @@ import {useRouter} from "vue-router";
 import {saveAccessToken, saveRefreshToken} from "@/services/TokenService.js";
 import {AccountApi} from "@/api/AccountApi.js";
 import {ErrorCodes} from "@/data/ErrorCode.js";
+import {getRedirectPath} from "@/utils/redirectUtils.js";
 
 const loadingStore = useLoadingStore();
 const userStore = useUserStore();
@@ -32,9 +33,15 @@ onMounted(async () => {
     return;
   }
 
-  await router.push("/")
+  if (!res.errorCode) {
+    userStore.login(res.data, token);
+    const redirectPath = getRedirectPath(res.data);
+    await router.push(redirectPath);
+  } else {
+    userStore.login(null, token);
+    await router.push("/");
+  }
 
   loadingStore.stopLoading();
-  userStore.login();
 })
 </script>

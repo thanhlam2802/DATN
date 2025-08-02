@@ -14,15 +14,21 @@ const apiClient = axios.create({
 export const AccountApi = {
     getProfile: async () => {
         try {
+            console.log('AccountApi.getProfile - calling API...');
+            const token = getBearerToken();
+            console.log('AccountApi.getProfile - token:', token ? 'exists' : 'not found');
+            
             const res = await apiClient.get("/v1/account/profile", {
                 headers: {
-                    Authorization: getBearerToken()
+                    Authorization: token
                 }
             })
+            console.log('AccountApi.getProfile - response:', res.data);
             return res.data;
         } catch (err) {
+            console.error('AccountApi.getProfile - error:', err);
             return {
-                errorCode: err.response.data.errorCode
+                errorCode: err.response?.data?.errorCode || 'UNKNOWN_ERROR'
             }
         }
     },

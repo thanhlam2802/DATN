@@ -17,7 +17,7 @@ public interface HotelService {
     List<ReviewDto> getReviewsForHotel(Integer hotelId);
 
     HotelDetailDto createHotel(HotelDetailDto hotelDto, List<MultipartFile> images,
-            Map<String, List<MultipartFile>> roomImagesMap);
+            Map<String, List<MultipartFile>> roomImagesMap, String currentUserEmail);
 
     HotelDetailDto updateHotel(Integer id, HotelDetailDto hotelDto, List<MultipartFile> images,
             List<String> deleteImageUrls, Map<String, List<MultipartFile>> roomImagesMap,

@@ -1,5 +1,9 @@
 export const TOKEN_KEY = "t_";
 export const REFRESH_TOKEN_KEY = "rt_";
+<<<<<<< HEAD
+=======
+
+>>>>>>> cc2ba10 ( danh gia)
 export const saveAccessToken = (token) => {
   localStorage.setItem(TOKEN_KEY, token);
 };

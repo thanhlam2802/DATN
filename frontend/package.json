@@ -11,11 +11,13 @@
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
     "@vueform/slider": "^2.1.10",
+    "@vuepic/vue-datepicker": "^11.0.2",
     "@vueuse/core": "^13.5.0",
     "axios": "^1.10.0",
     "chart.js": "^4.5.0",
     "chartjs-plugin-datalabels": "^2.2.0",
     "element-plus": "^2.10.1",
+    "jwt-decode": "^4.0.0",
     "lucide-vue-next": "^0.511.0",
     "pinia": "^3.0.3",
     "sockjs-client": "^1.6.1",

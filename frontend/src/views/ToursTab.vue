@@ -335,7 +335,6 @@ function mapApiToForm(apiTour) {
     mo_ta: apiTour.description,
     gia: apiTour.price,
     durationDays: apiTour.durationDays,
-    diem_khoi_hanh: apiTour.departurePoint,
     diem_den: apiTour.destination,
     status: apiTour.status,
     hinh_anh: (apiTour.tourImages || []).map((img) => ({

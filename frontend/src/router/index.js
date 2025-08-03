@@ -12,6 +12,7 @@ import BusManagementLayout from "@/components/Bus/management_bus_component/BusMa
 import MainLayout from "@/layouts/Main.vue";
 
 import AccountView from "@/views/AccountView.vue";
+import ServiceReviews from "@/components/User/Sidebar/ServiceReviews.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
 import BookingHistory from "@/components/User/Sidebar/BookingHistory.vue";
 import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
@@ -174,6 +175,11 @@ const routes = [
           { path: "payment", component: PaymentDetails },
           { path: "security", component: AccountSecurity },
           { path: "notifications", component: NotificationSetting },
+          {
+            path: "reviews",
+            name: "AccountReviews",
+            component: ServiceReviews,
+          },
         ],
       },
     ],

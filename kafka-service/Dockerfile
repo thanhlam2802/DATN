@@ -12,5 +12,5 @@ ENV KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9
 ENV KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
 ENV KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
 
-# Start Kafka
-CMD ["kafka-server-start.sh", "/opt/bitnami/kafka/config/server.properties"] 
+# Start Kafka using the default entrypoint
+CMD ["/opt/bitnami/scripts/kafka/entrypoint.sh", "/opt/bitnami/scripts/kafka/run.sh"] 

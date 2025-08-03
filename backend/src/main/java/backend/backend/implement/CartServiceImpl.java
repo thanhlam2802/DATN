@@ -102,12 +102,6 @@ public class CartServiceImpl implements CartService {
                     }
                  }
                 hotelBookingDAO.delete(hotel);
-                
-                try {
-                    adminWebSocketController.sendCancellationNotification(orderToUpdate.getId().toString());
-                } catch (Exception e) {
-                    log.warn("Không thể gửi thông báo hủy booking: {}", e.getMessage());
-                }
                 break;
             }
             case "BUS": {

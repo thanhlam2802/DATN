@@ -218,10 +218,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi } from '@/api/adminApi';
 import CustomSelect from '@/components/CustomSelect.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 
 const searchQuery = ref('');
 const selectedRating = ref('');
@@ -249,6 +251,27 @@ const ratingOptions = [
 
 onMounted(async () => {
   console.log('Review component mounted');
+  
+  const userStore = useUserStore();
+  console.log('UserStore:', userStore);
+  console.log('User:', userStore.user);
+  console.log('User roles:', userStore.user?.roles);
+  
+  if (!userStore.user) {
+    console.log('No user data, trying to restore...');
+    await userStore.restoreUserFromToken();
+    console.log('After restore - User:', userStore.user);
+    console.log('After restore - User roles:', userStore.user?.roles);
+  }
+  
+  const { requireAdmin } = useAdminAuth();
+  if (!requireAdmin('hotel')) {
+    console.log('Không có quyền admin hotel');
+    return;
+  }
+  
+  console.log('Có quyền admin hotel, loading data...');
+  
   const breadcrumbStore = useAdminBreadcrumbStore();
   breadcrumbStore.setBreadcrumb([
     { label: 'Đánh giá', active: true }
@@ -331,7 +354,7 @@ async function fetchReviews() {
   loading.value = true;
   console.log('Fetching reviews...'); 
   try {
-    const res = await hotelApi.getAllHotelReviews();
+            const res = await hotelAdminApi.getAllHotelReviews();
     console.log('API response:', res);
     if (res.data && res.data.data) {
       reviews.value = res.data.data;
@@ -387,7 +410,7 @@ function deleteReview(reviewId) {
 async function onConfirmDelete() {
   showConfirmDialog.value = false;
   try {
-    await hotelApi.deleteHotelReview(reviewIdToDelete.value);
+            await hotelAdminApi.deleteHotelReview(reviewIdToDelete.value);
     window.$toast && window.$toast('Xóa đánh giá thành công!', 'success');
     await fetchReviews();
   } catch (error) {

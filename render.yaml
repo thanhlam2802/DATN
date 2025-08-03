@@ -24,8 +24,8 @@ services:
         value: production
       - key: PORT
         value: 8081
-      - key: DOCKER_HOST
-        value: datn-kafka.onrender.com
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        value: your-upstash-kafka-url:9092
       - key: REDIS_HOST
         value: datn-redis.onrender.com
       - key: VAULT_ADDR
@@ -41,8 +41,8 @@ services:
         value: production
       - key: PORT
         value: 9821
-      - key: DOCKER_HOST
-        value: datn-kafka.onrender.com
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        value: your-upstash-kafka-url:9092
 
   - type: redis
     name: datn-redis
@@ -50,28 +50,7 @@ services:
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
 
-  - type: web
-    name: datn-kafka
-    env: docker
-    plan: free
-    rootDir: kafka-service
-    envVars:
-      - key: KAFKA_CFG_NODE_ID
-        value: 0
-      - key: KAFKA_CFG_PROCESS_ROLES
-        value: controller,broker
-      - key: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
-        value: 0@datn-kafka.onrender.com:9093
-      - key: KAFKA_CFG_LISTENERS
-        value: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      - key: KAFKA_CFG_ADVERTISED_LISTENERS
-        value: PLAINTEXT://datn-kafka.onrender.com:9092,EXTERNAL://datn-kafka.onrender.com:9094
-      - key: KAFKA_KRAFT_CLUSTER_ID
-        value: 4L6g3nShT-eMCtK--X86sw
-      - key: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
-        value: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - key: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
-        value: CONTROLLER
+
 
   - type: web
     name: datn-vault

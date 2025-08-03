@@ -61,11 +61,13 @@ services:
       - key: KAFKA_CFG_PROCESS_ROLES
         value: controller,broker
       - key: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
-        value: 0@datn-kafka.onrender.com:9093
+        value: 0@localhost:9093
       - key: KAFKA_CFG_LISTENERS
         value: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
       - key: KAFKA_CFG_ADVERTISED_LISTENERS
-        value: PLAINTEXT://datn-kafka.onrender.com:9092,EXTERNAL://datn-kafka.onrender.com:9094
+        value: PLAINTEXT://localhost:9092,EXTERNAL://localhost:9094
+      - key: KAFKA_KRAFT_CLUSTER_ID
+        value: 4L6g3nShT-eMCtK--X86sw
       - key: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
         value: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - key: KAFKA_CFG_CONTROLLER_LISTENER_NAMES

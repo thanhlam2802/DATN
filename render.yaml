@@ -27,7 +27,7 @@ services:
       - key: PORT
         value: 8081
       - key: KAFKA_BOOTSTRAP_SERVERS
-        value: your-upstash-kafka-url:9092
+        value: YOUR_UPSTASH_KAFKA_URL_HERE
       - key: REDIS_HOST
         value: datn-redis.onrender.com
       - key: VAULT_ADDR
@@ -45,7 +45,7 @@ services:
       - key: PORT
         value: 9821
       - key: KAFKA_BOOTSTRAP_SERVERS
-        value: your-upstash-kafka-url:9092
+        value: YOUR_UPSTASH_KAFKA_URL_HERE
 
   - type: redis
     name: datn-redis

@@ -23,11 +23,15 @@
               Sân bay khởi hành
             </label>
             <select id="departureAirport" v-model="filters.departureAirportId"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              :class="`w-full border rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.departureAirportId ? 'border-red-500' : 'border-gray-300'}`">
+              <option value="">Chọn sân bay khởi hành</option>
               <option v-for="airport in airports" :key="airport.id" :value="airport.id">
                 {{ airport.name }}
               </option>
             </select>
+            <div v-if="validationErrors.departureAirportId" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.departureAirportId[0] }}
+            </div>
           </div>
           <div>
             <label for="to" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -40,11 +44,15 @@
               Sân bay hạ cánh
             </label>
             <select id="arrivalAirport" v-model="filters.arrivalAirportId"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              :class="`w-full border rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.arrivalAirportId ? 'border-red-500' : 'border-gray-300'}`">
+              <option value="">Chọn sân bay hạ cánh</option>
               <option v-for="airport in airports" :key="airport.id" :value="airport.id">
                 {{ airport.name }}
               </option>
             </select>
+            <div v-if="validationErrors.arrivalAirportId" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.arrivalAirportId[0] }}
+            </div>
           </div>
           <div>
             <label for="departDate" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -57,13 +65,16 @@
             </label>
             <div class="relative">
               <input id="departDate" v-model="filters.departureDate" type="date"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                :class="`w-full border rounded-lg px-4 py-2 pr-10 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.departureDate ? 'border-red-500' : 'border-gray-300'}`" />
               <svg xmlns="http://www.w3.org/2000/svg"
                 class="h-5 w-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
+            </div>
+            <div v-if="validationErrors.departureDate" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.departureDate[0] }}
             </div>
           </div>
 
@@ -226,7 +237,7 @@
           <div class="absolute bottom-4 left-4 text-white">
             <h3 class="text-xl font-semibold">{{ flight.name }}</h3>
             <p class="text-sm mt-1">
-              {{ formatTime(flight.departureTime) }} - {{ formatTime(flight.arrivalTime) }}
+              {{ formatDate(flight.departureTime)+ ' ' +formatTime(flight.departureTime) }}
             </p>
             <p class="text-lg font-bold mt-2">
               {{ priceDisplay(flight) }}
@@ -282,16 +293,14 @@
                 class="absolute inset-0 bg-white rounded-xl shadow-lg flex flex-col [backface-visibility:hidden] bg-gradient-to-br from-violet-400 to-indigo-600">
                 <div class="flex items-center space-x-14 overflow-hidden">
                   <img :src="selectedFlight.images[0].imageUrl" alt="flight image"
-                    class="h-full object-cover rounded-lg overflow-hidden" />
+                    class="h-full w-full object-cover rounded-lg overflow-hidden" />
                   <div class="text-white">
-                    <h3 class="text-3xl font-semibold">
+                    <h3 class="text-2xl font-semibold">
                       {{ selectedFlight.name }}
                     </h3>
                     <p class="text-sm">
-                      {{ formatTime(selectedFlight.departureTime) }} - {{ formatTime(selectedFlight.arrivalTime) }}
+                      {{formatDate(selectedFlight.departureTime)+ ' ' +formatTime(selectedFlight.departureTime)}}
                     </p>
-                  </div>
-                  <div>
                     <p class="text-2xl text-white font-bold">
                       {{ priceDisplay(selectedFlight) }}
                     </p>
@@ -302,8 +311,10 @@
               <div
                 class="absolute inset-0 bg-white rounded-xl shadow-lg p-4 [transform:rotateX(180deg)] [backface-visibility:hidden]">
                 <div class="mb-3">
-                  <h4 class="text-lg font-bold text-gray-800">
-                    Thông tin chuyến bay
+                  <h4 class="text-lg font-bold text-gray-800 flex gap-3">
+                    Thông tin chuyến bay  <p class="text-gray-500 italic">
+                    {{ selectedFlight.flightNumber }} 
+                  </p>
                   </h4>
                 </div>
                 <div class="text-sm text-gray-600 space-y-1">
@@ -313,13 +324,13 @@
                   </p>
                   <p>
                     <strong>Khởi hành:</strong>
-                    Sân bay: {{ selectedFlight.departureAirport.name }}
-                    Thời gian: {{ formatTime(selectedFlight.departureTime) }}
+                    {{ selectedFlight.departureAirport.name }} - 
+                    Thời gian: {{formatDate(selectedFlight.departureTime)+ ' ' +formatTime(selectedFlight.departureTime) }}
                   </p>
                   <p>
                     <strong>Đến:</strong>
-                    Sân bay: {{ selectedFlight.arrivalAirport.name }}
-                    Thời gian: {{ formatTime(selectedFlight.arrivalTime) }}
+                    {{ selectedFlight.arrivalAirport.name }} - 
+                    Thời gian: {{formatDate(selectedFlight.arrivalTime)+ ' ' +formatTime(selectedFlight.arrivalTime) }}
                   </p>
                   <p>
                     <strong>Hãng:</strong>
@@ -327,10 +338,7 @@
                     selectedFlight.airline.name
                     : selectedFlight.airline) : 'N/A' }}
                   </p>
-                  <p class="text-gray-500 italic">
-                    {{ selectedFlight.flightNumber }} • {{ formatTime(selectedFlight.departureTime) }} – {{
-                    formatTime(selectedFlight.arrivalTime) }}
-                  </p>
+                 
                   <p>
                     <strong>Số ghế còn:</strong>
                     {{ availableSeats !== null ? availableSeats.total : '...' }}
@@ -516,6 +524,7 @@ import { useRouter } from 'vue-router';
 import { searchFlights, getAvailableSeats, getAllAirlines,getAllAirports ,getAllFlightCategories} from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import FindAvailableSlotRequestDto from '@/dto/FindAvailableSlotRequestDto'
+import { validateForm, flightSearchSchema } from '@/utils/validation'
 
 const router = useRouter();
 const showBookingModal = ref(false);
@@ -595,11 +604,23 @@ const filters = ref({
   priceMax: 10000000,
 });
 
+// Validation errors
+const validationErrors = ref({})
+
 const flights = ref([])
 const loading = ref(false)
 const error = ref('')
 
 function onSearch() {
+  // Validate form before search
+  const { isValid, errors } = validateForm(filters.value, flightSearchSchema)
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin tìm kiếm!', 'error')
+    return
+  }
+  
   loading.value = true
   console.log(filters.value);
   
@@ -683,7 +704,7 @@ const pageInactiveClass = "bg-white text-gray-600 hover:bg-gray-100";
 
 function priceDisplay(flight) {
   if (flight.minPrice && flight.maxPrice && flight.minPrice !== flight.maxPrice) {
-    return formatCurrency(flight.minPrice) + ' - ' + formatCurrency(flight.maxPrice);
+    return formatCurrency(flight.minPrice) + ' ' + formatCurrency(flight.maxPrice);
   } else if (flight.minPrice) {
     return formatCurrency(flight.minPrice);
   } else {
@@ -698,6 +719,11 @@ function formatTime(val) {
   if (!val) return '';
   const d = new Date(val);
   return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+}
+function formatDate(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  return d.toLocaleDateString('vi-VN');
 }
 function getTicketSummary(slots, isBusiness) {
   console.log('Slots:', slots);

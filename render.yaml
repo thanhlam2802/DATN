@@ -48,6 +48,7 @@ services:
     name: datn-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
   - type: web
     name: datn-kafka

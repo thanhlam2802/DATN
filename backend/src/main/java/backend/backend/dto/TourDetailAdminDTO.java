@@ -49,7 +49,7 @@ public class TourDetailAdminDTO {
         this.description = tour.getDescription();
         this.price = tour.getPrice();
         this.durationDays = tour.getDurationDays();
-        this.departurePoint = tour.getDeparturePoint();
+//        this.departurePoint = tour.getDeparturePoint();
         this.destination = tour.getDestination();
         this.status = tour.getStatus();
         this.owner_id = tour.getOwner() != null ? tour.getOwner().getId() : null;

@@ -37,7 +37,7 @@ public class TourDetailDto {
         dto.setDescription(tour.getDescription());
         dto.setPrice(tour.getPrice());
         dto.setDurationDays(tour.getDurationDays());
-        dto.setDeparturePoint(tour.getDeparturePoint());
+//        dto.setDeparturePoint(tour.getDeparturePoint());
         dto.setDestination(tour.getDestination());
 
 

@@ -1,37 +1,87 @@
 <template>
   <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h2 class="text-3xl font-bold text-gray-800">Tổng quan</h2>
-      <div class="flex items-center text-sm text-gray-600">
-        <TrendingUpIcon class="w-4 h-4 mr-1" />
-        Cập nhật: {{ currentDate }}
-      </div>
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div
-        v-for="(stat, index) in stats"
-        :key="index"
-        class="bg-white rounded-lg shadow p-6"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">{{ stat.title }}</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stat.value }}</p>
-          </div>
-          <div :class="[stat.color, 'p-3 rounded-full']">
-            <component :is="stat.icon" class="w-6 h-6 text-white" />
-          </div>
+    <div class="p-4 bg-white rounded-lg shadow">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Chọn khoảng thời gian</label
+          >
+          <Datepicker
+            v-model="dateRange"
+            range
+            :enable-time-picker="false"
+            format="dd/MM/yyyy"
+            auto-apply
+            placeholder="Chọn một khoảng ngày để lọc"
+          />
+        </div>
+        <div class="flex items-end space-x-2">
+          <button @click="setPresetRange('today')" class="preset-btn">
+            Hôm nay
+          </button>
+          <button @click="setPresetRange('last7days')" class="preset-btn">
+            7 ngày qua
+          </button>
+          <button @click="setPresetRange('thisMonth')" class="preset-btn">
+            Tháng này
+          </button>
+          <button @click="setPresetRange('thisYear')" class="preset-btn">
+            Năm nay
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Recent Bookings -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="p-6 bg-white rounded-lg shadow">
+        <p class="text-sm font-medium text-gray-600">
+          Doanh thu
+          <span class="font-bold text-blue-600">{{ filterText }}</span>
+        </p>
+        <p class="text-2xl font-bold text-gray-900">{{ stats.revenue }}</p>
+      </div>
+      <div class="p-6 bg-white rounded-lg shadow">
+        <p class="text-sm font-medium text-gray-600">
+          Khách hàng
+          <span class="font-bold text-blue-600">{{ filterText }}</span>
+        </p>
+        <p class="text-2xl font-bold text-gray-900">{{ stats.customers }}</p>
+      </div>
+      <div class="p-6 bg-white rounded-lg shadow">
+        <p class="text-sm font-medium text-gray-600">Tổng Tour</p>
+        <p class="text-2xl font-bold text-gray-900">{{ stats.totalTours }}</p>
+      </div>
+      <div class="p-6 bg-white rounded-lg shadow">
+        <p class="text-sm font-medium text-gray-600">Tour hoạt động</p>
+        <p class="text-2xl font-bold text-gray-900">{{ stats.activeTours }}</p>
+      </div>
+    </div>
+
     <div class="bg-white rounded-lg shadow">
-      <div class="p-6 border-b">
-        <h3 class="text-lg font-semibold text-gray-800">Booking gần đây</h3>
+      <div class="p-6 border-b flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-800">
+          Booking {{ filterText }}
+        </h3>
+        <div class="flex items-center space-x-2">
+          <button
+            @click="changePage(pagination.currentPage - 1)"
+            :disabled="pagination.currentPage === 0"
+            class="px-3 py-1 text-sm bg-gray-200 rounded disabled:opacity-50"
+          >
+            Trước
+          </button>
+          <span
+            >Trang {{ pagination.currentPage + 1 }} /
+            {{ pagination.totalPages }}</span
+          >
+          <button
+            @click="changePage(pagination.currentPage + 1)"
+            :disabled="pagination.currentPage >= pagination.totalPages - 1"
+            class="px-3 py-1 text-sm bg-gray-200 rounded disabled:opacity-50"
+          >
+            Sau
+          </button>
+        </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full">
@@ -55,34 +105,23 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
               >
-                Trạng thái
+                Tổng tiền
               </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr v-for="booking in recentBookings" :key="booking.id">
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
-              >
-                {{ booking.tour }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ booking.customer }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ booking.date }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="[
-                    'px-2 py-1 text-xs rounded-full',
-                    booking.status === 'Đã xác nhận'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800',
-                  ]"
-                >
-                  {{ booking.status }}
-                </span>
+            <tr v-if="loading">
+              <td colspan="4" class="text-center py-8">Đang tải...</td>
+            </tr>
+            <tr v-else-if="bookings.length === 0">
+              <td colspan="4" class="text-center py-8">Không có booking.</td>
+            </tr>
+            <tr v-for="booking in bookings" :key="booking.bookingId">
+              <td class="px-6 py-4">{{ booking.tourName }}</td>
+              <td class="px-6 py-4">{{ booking.name }}</td>
+              <td class="px-6 py-4">{{ formatDate(booking.bookingDate) }}</td>
+              <td class="px-6 py-4 font-semibold text-green-600">
+                {{ formatCurrency(booking.totalPrice) }}
               </td>
             </tr>
           </tbody>
@@ -93,65 +132,131 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import {
-  UsersIcon,
-  MapPinIcon,
-  CalendarIcon,
-  DollarSignIcon,
-  TrendingUpIcon,
-} from "lucide-vue-next";
+import { ref, onMounted, reactive, watch } from "vue";
+import OverviewTourApi from "../api/OverviewTourApi";
+import Datepicker from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
 
-const currentDate = new Date().toLocaleDateString("vi-VN");
+// --- State Management ---
+const loading = ref(true);
+const stats = reactive({
+  revenue: "₫0",
+  customers: 0,
+  totalTours: 0,
+  activeTours: 0,
+});
+const bookings = ref([]);
+const pagination = reactive({ currentPage: 0, totalPages: 0, pageSize: 5 });
+const dateRange = ref(null);
+const filterText = ref("gần đây");
 
-const stats = ref([
-  {
-    title: "Tổng số Tour",
-    value: "45",
-    icon: MapPinIcon,
-    color: "bg-blue-500",
-  },
-  {
-    title: "Tour đang hoạt động",
-    value: "32",
-    icon: CalendarIcon,
-    color: "bg-green-500",
-  },
-  {
-    title: "Khách hàng",
-    value: "1,234",
-    icon: UsersIcon,
-    color: "bg-purple-500",
-  },
-  {
-    title: "Doanh thu tháng",
-    value: "₫125M",
-    icon: DollarSignIcon,
-    color: "bg-yellow-500",
-  },
-]);
+// --- API Fetching Logic ---
+const fetchData = async (page = 0) => {
+  loading.value = true;
+  pagination.currentPage = page;
 
-const recentBookings = ref([
-  {
-    id: 1,
-    tour: "Hạ Long Bay 3N2Đ",
-    customer: "Nguyễn Văn A",
-    date: "2024-01-15",
-    status: "Đã xác nhận",
-  },
-  {
-    id: 2,
-    tour: "Sapa Trekking 2N1Đ",
-    customer: "Trần Thị B",
-    date: "2024-01-14",
-    status: "Chờ xác nhận",
-  },
-  {
-    id: 3,
-    tour: "Phú Quốc 4N3Đ",
-    customer: "Lê Văn C",
-    date: "2024-01-13",
-    status: "Đã xác nhận",
-  },
-]);
+  const [startDate, endDate] = dateRange.value || [null, null];
+  const filters = {
+    startDate: startDate ? startDate.toISOString().split("T")[0] : null,
+    endDate: endDate ? endDate.toISOString().split("T")[0] : null,
+  };
+
+  try {
+    const [statsRes, bookingsRes] = await Promise.all([
+      OverviewTourApi.getStatistics(filters),
+      OverviewTourApi.getBookings({
+        ...filters,
+        page: pagination.currentPage,
+        size: pagination.pageSize,
+      }),
+    ]);
+
+    const statsData = statsRes.data.data;
+    stats.revenue = formatCurrency(statsData.revenueThisMonth);
+    stats.customers = statsData.totalCustomers;
+    stats.totalTours = statsData.totalTours;
+    stats.activeTours = statsData.activeTours;
+
+    const bookingsPage = bookingsRes.data.data;
+    bookings.value = bookingsPage.content;
+    pagination.totalPages = bookingsPage.totalPages;
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// --- Event Handlers & Watchers ---
+watch(dateRange, () => {
+  updateFilterText();
+  fetchData(0); // Reset về trang đầu khi đổi bộ lọc
+});
+
+const setPresetRange = (preset) => {
+  const end = new Date();
+  let start = new Date();
+  switch (preset) {
+    case "today":
+      break;
+    case "last7days":
+      start.setDate(end.getDate() - 6);
+      break;
+    case "thisMonth":
+      start.setDate(1);
+      break;
+    case "thisYear":
+      start.setMonth(0, 1);
+      break;
+  }
+  dateRange.value = [start, end];
+};
+
+const changePage = (page) => {
+  if (page >= 0 && page < pagination.totalPages) {
+    fetchData(page);
+  }
+};
+
+const updateFilterText = () => {
+  if (!dateRange.value) {
+    filterText.value = "gần đây";
+    return;
+  }
+  const [start, end] = dateRange.value;
+  filterText.value = `từ ${formatDate(start)} đến ${formatDate(end)}`;
+};
+
+// --- Lifecycle & Helpers ---
+onMounted(fetchData);
+
+const formatCurrency = (v) =>
+  v
+    ? new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+      }).format(v)
+    : "₫0";
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "N/A");
 </script>
+
+<style>
+/* CSS cho nút chọn nhanh và Datepicker */
+.preset-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  color: #374151;
+  transition: background-color 0.2s;
+}
+.preset-btn:hover {
+  background-color: #d1d5db;
+}
+:root {
+  --dp-input-padding: 8px 12px;
+  --dp-font-size: 0.875rem;
+  --dp-border-radius: 0.375rem;
+}
+</style>

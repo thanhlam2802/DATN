@@ -223,7 +223,7 @@ public class TourAdminServiceImpl implements TourAdminService {
         tour.setDescription(dto.getDescription());
         tour.setPrice(dto.getPrice());
         tour.setDurationDays(dto.getDurationDays());
-        tour.setDeparturePoint(dto.getDeparturePoint());
+//        tour.setDeparturePoint(dto.getDeparturePoint());
         tour.setDestination(dto.getDestination());
         tour.setStatus(dto.getStatus());
     }

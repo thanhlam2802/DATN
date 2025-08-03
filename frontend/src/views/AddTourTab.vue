@@ -61,18 +61,7 @@
               class="form-input"
             />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Điểm khởi hành <span class="text-red-500">*</span></label
-            >
-            <input
-              v-model="tourForm.diem_khoi_hanh"
-              type="text"
-              required
-              :disabled="isViewMode"
-              class="form-input"
-            />
-          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1"
               >Điểm đến <span class="text-red-500">*</span></label
@@ -538,7 +527,6 @@ const getInitialFormState = () => ({
   mo_ta: "",
   gia: 0,
   durationDays: 1,
-  diem_khoi_hanh: "",
   diem_den: "",
   status: "ACTIVE",
   hinh_anh: [],

@@ -1,5 +1,6 @@
 package backend.backend.dao;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -639,4 +640,6 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
         chartData.put("hotels", hotels);
         return chartData;
     }
+    
+    
 }

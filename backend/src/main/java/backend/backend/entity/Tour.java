@@ -33,8 +33,8 @@ public class Tour {
     @Column(name = "duration_days", nullable = false)
     private Integer durationDays;
 
-    @Column(name = "departure_point", length = 200)
-    private String departurePoint;
+//    @Column(name = "departure_point", length = 200)
+//    private String departurePoint;
 
     @Column(length = 200)
     private String destination;

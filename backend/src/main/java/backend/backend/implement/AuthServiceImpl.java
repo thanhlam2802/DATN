@@ -284,14 +284,18 @@ public class AuthServiceImpl implements AuthService {
     public JwtResultDto loginOAuth2(OAuth2LoginRequestDto requestDto) {
         Optional<User> user = userRepository.findByEmail(requestDto.getEmail());
         if (user.isPresent()) {
-            if (!user.get().getAuthProvider().equals(requestDto.getAuthProvider())) {
-                throw new BadRequestException("User already existed", ErrorCode.AUTH_001);
+            User existingUser = user.get();
+            if (existingUser.getAuthProvider() == null || !existingUser.getAuthProvider().equals(requestDto.getAuthProvider())) {
+                existingUser.setAuthProvider(requestDto.getAuthProvider());
+                userRepository.save(existingUser);
             }
+
             JwtResultDto jwtResultDto = new JwtResultDto();
-            jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user.get()));
-            jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user.get()));
+            jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(existingUser));
+            jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(existingUser));
             return jwtResultDto;
         }
+
         User newUser = new User();
         newUser.setEmail(requestDto.getEmail());
         newUser.setName(requestDto.getName());

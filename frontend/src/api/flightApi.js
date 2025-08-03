@@ -98,6 +98,12 @@ export const updateAdminFlightBookingStatus = (bookingId, status) =>
 // Admin – Statistics & Airports
 export const getAdminFlightStatistics = (params) =>
   api.get('/admin/flights/statistics', { params });
+export const getMonthlyFlightStatistics = (year, month) =>
+  api.get('/admin/flights/monthly-statistics', { params: { year, month } });
+export const getBookingsByDestination = (year, month) =>
+  api.get('/admin/flights/bookings-by-destination', { params: { year, month } });
+export const getRevenueBySeatClass = (year, month) =>
+  api.get('/admin/flights/revenue-by-seat-class', { params: { year, month } });
 export const getAdminAirports = () => api.get('/admin/airports');
 export const createAdminAirport = (data) =>
   api.post('/admin/airports', data);

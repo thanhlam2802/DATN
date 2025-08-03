@@ -4,6 +4,7 @@ services:
     env: docker
     plan: free
     rootDir: backend
+    buildCommand: chmod +x ./mvnw && ./mvnw clean package -DskipTests
     envVars:
       - key: SPRING_DATASOURCE_URL
         value: jdbc:sqlserver://datn.ct4sc6oi2i77.ap-southeast-1.rds.amazonaws.com:1433;databaseName=datn;encrypt=true;trustServerCertificate=true
@@ -17,6 +18,7 @@ services:
     env: docker
     plan: free
     rootDir: core-banking-service
+    buildCommand: chmod +x ./mvnw && ./mvnw clean package -DskipTests
     envVars:
       - key: SPRING_DATASOURCE_URL
         value: jdbc:sqlserver://datn.ct4sc6oi2i77.ap-southeast-1.rds.amazonaws.com:1433;databaseName=core_banking;encrypt=true;trustServerCertificate=true
@@ -36,6 +38,7 @@ services:
     env: docker
     plan: free
     rootDir: notification-service
+    buildCommand: chmod +x ./mvnw && ./mvnw clean package -DskipTests
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: production
@@ -57,6 +60,7 @@ services:
     env: docker
     plan: free
     rootDir: vault-service
+    buildCommand: chmod +x ./mvnw && ./mvnw clean package -DskipTests
     envVars:
       - key: VAULT_DEV_ROOT_TOKEN_ID
         value: myroot

@@ -209,6 +209,7 @@ async function submitPayment() {
 }
 
 async function confirmOtp() {
+  console.log('confirmOtp');
   if (!otp.value || !paymentId.value) return;
   isConfirming.value = true;
   otpError.value = '';

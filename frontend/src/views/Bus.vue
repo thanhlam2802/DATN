@@ -107,7 +107,6 @@ const whyChooseUsData = [
 
 // Handle search from BusSearchForm
 const handleBusSearch = (searchData) => {
-  console.log('🔍 Search data received:', searchData)
   
   // Store search results and params  
   lastSearchParams.value = { 
@@ -121,7 +120,6 @@ const handleBusSearch = (searchData) => {
   // Show modal with results
   showSearchModal.value = true
   
-  console.log('📊 Search results:', searchResults.value)
 }
 
 // Handle destination click

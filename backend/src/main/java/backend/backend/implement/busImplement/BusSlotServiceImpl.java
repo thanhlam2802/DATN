@@ -2,6 +2,7 @@ package backend.backend.implement.busImplement;
 
 import backend.backend.dao.Bus.*;
 
+import backend.backend.dao.BusBookingDAO;
 import backend.backend.dto.BusDTO.*; // Giữ các DTO imports
 
 // <-- ĐÃ SỬA: Import các enum từ entity package -->
@@ -37,6 +38,7 @@ public class BusSlotServiceImpl implements BusSlotService {
     private final BusDAO busDAO;
     private final RouteDAO routeDAO;
     private final BusCategoryDAO busCategoryDAO;
+    private final BusBookingDAO busBookingDAO; // ✅ ADD: Để xóa bookings
     private final CreateSeatBusSlotHelper  createSeatBusSlotHelper;
     // --- Helper Methods to Convert Entities to DTOs ---
 
@@ -332,11 +334,32 @@ public class BusSlotServiceImpl implements BusSlotService {
     @Override
     @Transactional
     public void deleteBusSlot(Integer id) {
-        if (!busSlotDAO.existsById(id)) {
-            throw new EntityNotFoundException("Không tìm thấy BusSlot với ID: " + id);
+        BusSlot busSlot = busSlotDAO.findByIdWithDetails(id)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy BusSlot với ID: " + id));
+        
+        // ✅ STEP 1: Xóa tất cả BusBookings liên quan trước
+        if (busSlot.getBusBookings() != null && !busSlot.getBusBookings().isEmpty()) {
+            log.info("Xóa {} bus bookings liên quan đến BusSlot ID: {}", 
+                    busSlot.getBusBookings().size(), id);
+            
+            // Xóa từng booking để trigger cascade delete cho seats
+            for (BusBooking booking : busSlot.getBusBookings()) {
+                log.info("Xóa BusBooking ID: {} với {} ghế", 
+                        booking.getId(), 
+                        booking.getSelectedSeats() != null ? booking.getSelectedSeats().size() : 0);
+            }
+            // Cascade delete sẽ tự động xóa bookings khi xóa busSlot
         }
+        
+        // ✅ STEP 2: Xóa tất cả BusSeats liên quan
+        if (busSlot.getSeats() != null && !busSlot.getSeats().isEmpty()) {
+            log.info("Xóa {} seats liên quan đến BusSlot ID: {}", 
+                    busSlot.getSeats().size(), id);
+        }
+        
+        // ✅ STEP 3: Xóa BusSlot (cascade sẽ xóa bookings và seats)
         busSlotDAO.deleteById(id);
-        log.info("Đã xóa BusSlot với ID: {}", id);
+        log.info("Đã xóa BusSlot với ID: {} và tất cả dữ liệu liên quan", id);
     }
 
     @Override

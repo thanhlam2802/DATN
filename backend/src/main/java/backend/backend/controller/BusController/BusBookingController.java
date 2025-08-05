@@ -57,6 +57,23 @@ public class BusBookingController {
     }
 
     /**
+     * ✅ NEW: Get detailed bus booking information for display
+     */
+    @GetMapping("/{bookingId}/detail")
+    public ResponseEntity<ApiResponse<backend.backend.dto.BusDTO.BusBookingDetailDto>> getBookingDetailForDisplay(@PathVariable Integer bookingId) {
+        log.info("Yêu cầu lấy thông tin chi tiết vé xe để hiển thị với bookingId={}", bookingId);
+        try {
+            backend.backend.dto.BusDTO.BusBookingDetailDto detail = busBookingService.getBusBookingDetailForDisplay(bookingId);
+            log.debug("Thông tin chi tiết vé xe: route={} → {}, seats={}", 
+                     detail.getDepartureLocation(), detail.getArrivalLocation(), detail.getTotalSeats());
+            return ResponseFactory.success(detail, "Lấy thông tin chi tiết vé xe thành công.");
+        } catch (Exception e) {
+            log.error("Lỗi khi lấy thông tin chi tiết vé xe: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
      * Cancel bus booking
      */
     @PostMapping("/{bookingId}/cancel")
@@ -129,6 +146,22 @@ public class BusBookingController {
             return ResponseFactory.success(response, "Yêu cầu hoàn tiền đã được gửi thành công.");
         } catch (Exception e) {
             log.error("Lỗi khi yêu cầu hoàn tiền: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * ✅ NEW: Test endpoint for manual cleanup (admin only)
+     */
+    @PostMapping("/test-cleanup")
+    public ResponseEntity<ApiResponse<String>> testCleanup() {
+        log.info("Manual cleanup test requested");
+        try {
+            // Call the cleanup service directly
+            busBookingService.releaseExpiredReservations();
+            return ResponseFactory.success("OK", "Manual cleanup completed successfully.");
+        } catch (Exception e) {
+            log.error("Error during manual cleanup: {}", e.getMessage());
             throw e;
         }
     }

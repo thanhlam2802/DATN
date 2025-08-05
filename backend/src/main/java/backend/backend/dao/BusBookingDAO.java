@@ -27,7 +27,7 @@ public interface BusBookingDAO extends JpaRepository<BusBooking, Integer> {
 	@Query("SELECT b FROM BusBooking b LEFT JOIN FETCH b.order LEFT JOIN FETCH b.selectedSeats WHERE b.status = :status AND b.expiresAt < :now")
 	List<BusBooking> findExpiredReservations(@Param("status") BusBookingStatus status, @Param("now") LocalDateTime now);
 
-	@Query("SELECT b FROM BusBooking b LEFT JOIN FETCH b.selectedSeats WHERE b.order.id = :orderId")
+	@Query("SELECT b FROM BusBooking b LEFT JOIN FETCH b.selectedSeats LEFT JOIN FETCH b.busSlot bs LEFT JOIN FETCH bs.bus LEFT JOIN FETCH bs.route LEFT JOIN FETCH bs.bus.category WHERE b.order.id = :orderId")
 	List<BusBooking> findByOrderIdWithSeats(@Param("orderId") Integer orderId);
 
 	// ✅ THÊM: Method để tìm booking với ghế (needed by BusBookingServiceImpl)
@@ -52,6 +52,18 @@ public interface BusBookingDAO extends JpaRepository<BusBooking, Integer> {
 
 	@Query("SELECT bb FROM BusBooking bb WHERE bb.bookingDate BETWEEN :startDate AND :endDate")
 	List<BusBooking> findByBookingDateBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+	// ✅ NEW: Method để lấy bus booking với đầy đủ thông tin chi tiết
+	@Query("SELECT bb FROM BusBooking bb " +
+		   "LEFT JOIN FETCH bb.selectedSeats " +
+		   "LEFT JOIN FETCH bb.busSlot bs " +
+		   "LEFT JOIN FETCH bs.bus " +
+		   "LEFT JOIN FETCH bs.route r " +
+		   "LEFT JOIN FETCH r.originLocation " +
+		   "LEFT JOIN FETCH r.destinationLocation " +
+		   "LEFT JOIN FETCH bb.customer " +
+		   "WHERE bb.id = :bookingId")
+	Optional<BusBooking> findByIdWithFullDetails(@Param("bookingId") Integer bookingId);
 
 	@Query("SELECT bb FROM BusBooking bb WHERE bb.customer.id = :customerId ORDER BY bb.bookingDate DESC LIMIT 10")
 	List<BusBooking> findRecentBookingsByCustomerId(@Param("customerId") Integer customerId);

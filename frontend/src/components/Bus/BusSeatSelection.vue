@@ -219,28 +219,25 @@ const availableSeatsCount = computed(() => {
 
 <template>
   <div class="bus-seat-selection">
-    <!-- Header Info -->
-    <div class="bg-gray-50 p-4 rounded-lg mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold text-gray-900">Chọn ghế ngồi</h3>
-        <div class="text-sm text-gray-600">
-          Còn <span class="font-medium text-green-600">{{ availableSeatsCount }}</span> ghế trống
-        </div>
+    <!-- Compact Header - Only essential info -->
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+      <div class="text-sm text-gray-600">
+        Còn <span class="font-medium text-green-600">{{ availableSeatsCount }}</span> ghế trống
       </div>
       
-      <!-- Legend -->
-      <div class="flex items-center space-x-6 text-sm">
-        <div class="flex items-center space-x-2">
-          <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-          <span class="text-gray-700">Ghế trống</span>
+      <!-- Compact Legend -->
+      <div class="flex items-center space-x-4 text-xs">
+        <div class="flex items-center space-x-1">
+          <div class="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+          <span class="text-gray-600">Trống</span>
         </div>
-        <div class="flex items-center space-x-2">
-          <div class="w-4 h-4 bg-blue-500 border border-blue-600 rounded"></div>
-          <span class="text-gray-700">Đã chọn</span>
+        <div class="flex items-center space-x-1">
+          <div class="w-3 h-3 bg-blue-500 border border-blue-600 rounded"></div>
+          <span class="text-gray-600">Đã chọn</span>
         </div>
-        <div class="flex items-center space-x-2">
-          <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-          <span class="text-gray-700">Đã đặt</span>
+        <div class="flex items-center space-x-1">
+          <div class="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+          <span class="text-gray-600">Đã đặt</span>
         </div>
       </div>
     </div>
@@ -342,25 +339,7 @@ const availableSeatsCount = computed(() => {
       <p class="text-gray-600">Chuyến xe này hiện không có thông tin ghế.</p>
     </div>
 
-    <!-- Selection Summary -->
-    <div v-if="selectedSeatsInfo.count > 0" 
-         class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-      <h4 class="font-medium text-blue-900 mb-2">Ghế đã chọn</h4>
-      <div class="space-y-1 text-sm">
-        <div class="flex justify-between">
-          <span class="text-blue-700">Ghế số:</span>
-          <span class="font-medium">{{ selectedSeatsInfo.seatNumbers }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-blue-700">Số lượng:</span>
-          <span class="font-medium">{{ selectedSeatsInfo.count }} ghế</span>
-        </div>
-        <div class="flex justify-between border-t border-blue-200 pt-2">
-          <span class="text-blue-900 font-medium">Tổng tiền:</span>
-          <span class="font-bold text-blue-900">{{ formatPrice(selectedSeatsInfo.totalPrice) }} đ</span>
-        </div>
-      </div>
-    </div>
+    
   </div>
 </template>
 

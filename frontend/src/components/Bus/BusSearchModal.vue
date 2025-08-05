@@ -1,8 +1,14 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { timeSlots, availableFacilities } from '@/data/locationData.js'
 import BusCard from './BusCard.vue'
-import BusTicketBooking from './BusTicketBooking.vue'
+import BusSeatSelection from './BusSeatSelection.vue'
+// Import cart và booking APIs
+import { CartAPI, CustomerAPI, BookingAPI } from '@/api/busAPI_Client/busbookingApi'
+import { createCustomer } from '@/api/CustomerApi'
+import { addItemToCart } from '@/api/OrderApi'
+import { getUserIdFromToken, getBearerToken } from '@/services/TokenService'
 
 const props = defineProps({
   show: {
@@ -20,6 +26,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close'])
+const router = useRouter()
 
 // Modal state management
 const currentStep = ref(1)
@@ -32,6 +39,29 @@ const searchError = ref('')
 
 // Component lifecycle tracking
 const isMounted = ref(false)
+
+// Booking state từ BusTicketBooking.vue
+const bookingData = ref({
+  selectedSeats: [],
+  selectedSeatNumbers: [],
+  passengerInfo: {
+    fullName: '',
+    phoneNumber: '',
+    email: '',
+    notes: ''
+  },
+  totalAmount: 0,
+  discount: 0
+})
+
+// Form validation states
+const validationErrors = ref([])
+const showValidationErrors = ref(false)
+const isValidatingForm = ref(false)
+
+// Booking action states
+const bookingAction = ref('') // 'cart' or 'direct'
+const isProcessingBooking = ref(false)
 
 // Filter states
 const filters = ref({
@@ -201,13 +231,53 @@ const getFacilityIcon = (facility) => {
   return icons[facility] || 'fas fa-check'
 }
 
+// ✅ Storage change handler
+let storageChangeHandler = null
+
 // Mount/unmount tracking
 onMounted(() => {
   isMounted.value = true
+  
+  // ✅ Listen for localStorage changes để auto reload pending orders
+  storageChangeHandler = (e) => {
+    if (e.key === 'activeCartId') {
+
+      // Delay to ensure the change is processed
+      setTimeout(() => {
+        reloadPendingOrders()
+      }, 100)
+    }
+  }
+  
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', storageChangeHandler)
+    
+    // ✅ Expose functions for external debugging/control
+    window.busSearchModal = {
+      reloadPendingOrders,
+      checkPendingOrders,
+      getCartIdFromStorage,
+      clearCartFromStorage,
+      debugCartState: () => ({
+        hasActiveCart: hasActiveCart.value,
+        hasPendingPaymentOrder: hasPendingPaymentOrder.value,
+        pendingOrders: pendingOrders.value,
+        activeCartId: getCartIdFromStorage(),
+        checkedPendingOrders: checkedPendingOrders.value
+      })
+    }
+
+  }
 })
 
 onUnmounted(() => {
   isMounted.value = false
+  
+  // ✅ Cleanup event listeners
+  if (typeof window !== 'undefined' && storageChangeHandler) {
+    window.removeEventListener('storage', storageChangeHandler)
+    delete window.busSearchModal
+  }
 })
 
 // Watch for searchResults prop changes
@@ -328,13 +398,38 @@ const clearFilters = () => {
   }
 }
 
-// Booking flow functions (existing logic)
+// Booking flow functions - updated để reset data
 const startBookingFlow = (trip) => {
   selectedTrip.value = {
     ...trip,
     type: props.searchParams.busType || trip.type,
     activeTab: props.searchParams.busType || trip.activeTab
   }
+  
+  // ✅ Reset booking data khi bắt đầu flow mới
+  bookingData.value = {
+    selectedSeats: [],
+    selectedSeatNumbers: [],
+    passengerInfo: {
+      fullName: '',
+      phoneNumber: '',
+      email: '',
+      notes: ''
+    },
+    totalAmount: 0,
+    discount: 0
+  }
+  
+  // Reset validation states
+  validationErrors.value = []
+  showValidationErrors.value = false
+  isProcessingBooking.value = false
+  bookingAction.value = ''
+  
+  // Reset pending order check để re-check khi start new booking
+  checkedPendingOrders.value = false
+  pendingOrders.value = []
+  
   currentStep.value = 2
   showBookingFlow.value = true
 }
@@ -356,6 +451,367 @@ const backToSearch = () => {
   selectedTrip.value = null
 }
 
+// ✅ COMPUTED PROPERTIES từ BusTicketBooking.vue
+const selectedSeatsCount = computed(() => bookingData.value.selectedSeats.length)
+
+const basePrice = computed(() => {
+  const price = selectedTrip.value?.price || 0
+  return typeof price === 'string' ? parseInt(price.replace(/[^\d]/g, '')) : price
+})
+
+const finalAmount = computed(() => {
+  const total = basePrice.value * selectedSeatsCount.value
+  const discountAmount = (total * bookingData.value.discount) / 100
+  return total - discountAmount
+})
+
+// ✅ State cho pending orders
+const pendingOrders = ref([])
+const isCheckingPendingOrders = ref(false)
+const checkedPendingOrders = ref(false)
+
+// ✅ Cart checking computed properties
+const hasActiveCart = computed(() => {
+  const cartId = getCartIdFromStorage()
+  return cartId !== null
+})
+
+const hasPendingPaymentOrder = computed(() => {
+  // Chỉ count các orders PENDING_PAYMENT, loại bỏ CANCELLED
+  return pendingOrders.value.some(order => order.status === 'PENDING_PAYMENT')
+})
+
+const shouldShowAddToCartButton = computed(() => {
+  // Hiển thị nút "Thêm vào đơn hàng hiện tại" khi:
+  // 1. Có activeCartId trong localStorage, HOẶC
+  // 2. Có đơn hàng PENDING_PAYMENT
+  return hasActiveCart.value || hasPendingPaymentOrder.value
+})
+
+const shouldShowDirectBookingButton = computed(() => {
+  return true // Luôn hiển thị nút "Đặt vé ngay"
+})
+
+// ✅ NAVIGATION FUNCTIONS
+const goToPassengerInfo = async () => {
+  // Check pending orders before showing step 3
+  await checkPendingOrders()
+  currentStep.value = 3
+}
+
+const goToSeatSelection = () => {
+  currentStep.value = 2
+}
+
+const canProceedToNext = () => {
+  switch (currentStep.value) {
+    case 2: // Chọn ghế -> Thông tin 
+      return selectedSeatsCount.value > 0
+    case 3: // Thông tin -> ĐẶT VÉ NGAY
+      return isFormValid()
+    default:
+      return false
+  }
+}
+
+const isFormValid = () => {
+  return bookingData.value.passengerInfo.fullName && 
+         bookingData.value.passengerInfo.phoneNumber &&
+         !showValidationErrors.value
+}
+
+// ✅ SEAT SELECTION HANDLER
+const handleSeatSelectionChange = (selectedSeats) => {
+  bookingData.value.selectedSeats = selectedSeats.map(seat => seat.id)
+  bookingData.value.selectedSeatNumbers = selectedSeats.map(seat => seat.seatNumber)
+  
+  // Update total amount
+  bookingData.value.totalAmount = finalAmount.value
+}
+
+// ✅ FORM VALIDATION
+const validatePassengerInfo = () => {
+  isValidatingForm.value = true
+  
+  const customerInfo = CustomerAPI.createCustomerFromForm(bookingData.value.passengerInfo)
+  const validation = CustomerAPI.validateCustomerInfo(customerInfo)
+  
+  validationErrors.value = validation.errors
+  showValidationErrors.value = !validation.valid
+  
+  isValidatingForm.value = false
+  return validation.valid
+}
+
+// ✅ CART HELPERS từ BusTicketBooking.vue
+const getCartIdFromStorage = () => {
+  const cartId = localStorage.getItem('activeCartId')
+  return cartId && cartId !== 'null' ? parseInt(cartId) : null
+}
+
+const saveCartIdToStorage = (cartId) => {
+  localStorage.setItem('activeCartId', cartId.toString())
+}
+
+const clearCartFromStorage = () => {
+  localStorage.removeItem('activeCartId')
+}
+
+const validateExistingCart = async (cartId, expectedUserId) => {
+  try {
+    const response = await CartAPI.getCart(cartId)
+    if (!(response.statusCode === 200 || response.success)) return false
+    
+    const cart = response.data
+    if (cart.status !== 'CART') return false
+    if (cart.userId !== expectedUserId) return false
+    
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
+const createNewCart = async (userId) => {
+  try {
+
+    const response = await CartAPI.createCart(userId)
+    
+    
+    if ((response.statusCode === 201 || response.success) && response.data?.id) {
+      const newCartId = response.data.id
+      saveCartIdToStorage(newCartId)
+      return newCartId
+    } else {
+      throw new Error('Invalid response from create cart API')
+    }
+  } catch (error) {
+    throw new Error('Không thể tạo giỏ hàng mới. Vui lòng thử lại.')
+  }
+}
+
+const ensureValidCart = async () => {
+  const userId = getUserIdFromToken()
+  if (!userId) {
+    throw new Error('Vui lòng đăng nhập để sử dụng giỏ hàng')
+  }
+
+  let cartId = getCartIdFromStorage()
+  
+  if (!cartId) {
+    cartId = await createNewCart(userId)
+    return cartId
+  }
+
+  const isValid = await validateExistingCart(cartId, userId)
+  
+  if (isValid) {
+    return cartId
+  } else {
+    clearCartFromStorage()
+    cartId = await createNewCart(userId)
+    return cartId
+  }
+}
+
+// ✅ NEW: Check pending orders from API
+const checkPendingOrders = async () => {
+  if (isCheckingPendingOrders.value || checkedPendingOrders.value) return
+  
+  const userId = getUserIdFromToken()
+  if (!userId) {
+    return
+  }
+
+  isCheckingPendingOrders.value = true
+  try {
+    
+    const response = await fetch(
+      `http://localhost:8080/api/v1/orders/my-orders?userId=${userId}`,
+      {
+        headers: {
+          Authorization: getBearerToken(),
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    
+    if (data.statusCode === 200) {
+      pendingOrders.value = data.data || []
+      
+      // Filter pending payment orders (loại bỏ CANCELLED)
+      const pendingPaymentOrders = pendingOrders.value.filter(order => order.status === 'PENDING_PAYMENT')
+      const cancelledOrders = pendingOrders.value.filter(order => order.status === 'CANCELLED')
+      
+      if (cancelledOrders.length > 0) {
+        // Clear activeCartId nếu nó trỏ đến cancelled order
+        const activeCartId = getCartIdFromStorage()
+        if (activeCartId && cancelledOrders.some(order => order.id === parseInt(activeCartId))) {
+          clearCartFromStorage()
+        }
+      }
+      
+      if (pendingPaymentOrders.length > 0) {
+        // Sync activeCartId với pending order đầu tiên (nếu chưa có)
+        if (!getCartIdFromStorage() && pendingPaymentOrders[0]) {
+          saveCartIdToStorage(pendingPaymentOrders[0].id)
+        }
+      }
+    }
+    
+    checkedPendingOrders.value = true
+    
+  } catch (error) {
+    // Don't throw error to prevent breaking the booking flow
+  } finally {
+    isCheckingPendingOrders.value = false
+  }
+}
+
+// ✅ Force reload pending orders (for external calls)
+const reloadPendingOrders = async () => {
+  checkedPendingOrders.value = false
+  pendingOrders.value = []
+  await checkPendingOrders()
+}
+
+// ✅ Add to cart function 
+const addToCart = async () => {
+  if (!isMounted.value || isProcessingBooking.value) return
+  
+  try {
+    isProcessingBooking.value = true
+    bookingAction.value = 'add_to_cart'
+    
+    // Step 1: Validate form
+    if (!validatePassengerInfo()) {
+      alert('❌ Vui lòng kiểm tra lại thông tin hành khách')
+      return
+    }
+
+    // Step 2: Lấy activeCartId từ localStorage hoặc pending order
+    let activeCartId = getCartIdFromStorage()
+    
+    // Nếu không có activeCartId, check pending orders
+    if (!activeCartId && hasPendingPaymentOrder.value) {
+      const pendingOrder = pendingOrders.value.find(order => order.status === 'PENDING_PAYMENT')
+      if (pendingOrder) {
+        activeCartId = pendingOrder.id
+        saveCartIdToStorage(activeCartId) // Sync vào localStorage
+      }
+    }
+    
+    if (!activeCartId) {
+      alert('❌ Không tìm thấy giỏ hàng hiện tại')
+      return
+    }
+
+    // Step 3: Tạo customer
+    const customerData = {
+      fullName: CustomerAPI.normalizeName(bookingData.value.passengerInfo.fullName),
+      phone: bookingData.value.passengerInfo.phoneNumber.replace(/\s/g, ''),
+      email: bookingData.value.passengerInfo.email || ''
+    }
+
+    const customerResponse = await createCustomer(customerData)
+    const customerId = customerResponse.data.data.id
+
+    // Step 4: Chuẩn bị data theo format Flight
+    const data = {
+      itemId: selectedTrip.value.busSlotId,
+      itemType: "BUS", 
+      busSlotId: selectedTrip.value.busSlotId,
+      customerId: customerId,
+      selectedSeatIds: bookingData.value.selectedSeats,
+      totalPrice: finalAmount.value
+    }
+
+    // Step 5: Thêm vào giỏ hàng
+    const response = await addItemToCart(activeCartId, data)
+    
+    if (isMounted.value) {
+      alert('✅ Đã thêm vé xe vào giỏ hàng thành công!')
+      
+      // Redirect đến giỏ hàng
+      setTimeout(() => {
+        window.location.href = `/orders/${activeCartId}`
+      }, 1000)
+    }
+
+  } catch (error) {
+    // Nếu lỗi liên quan đến cart, clear localStorage
+    if (error.message.includes('cart') || error.message.includes('Cart')) {
+      clearCartFromStorage()
+    }
+    
+    if (isMounted.value) {
+      alert(`❌ Lỗi thêm vào giỏ hàng: ${error.response?.data?.message || error.message}`)
+    }
+  } finally {
+    if (isMounted.value) {
+      isProcessingBooking.value = false
+      bookingAction.value = ''
+    }
+  }
+}
+
+const bookDirectly = async () => {
+  if (!isMounted.value || isProcessingBooking.value) return
+  
+  try {
+    isProcessingBooking.value = true
+    bookingAction.value = 'direct'
+    
+    // Validate form
+    if (!validatePassengerInfo()) {
+      alert('❌ Vui lòng kiểm tra lại thông tin hành khách')
+      return
+    }
+
+    // Create booking request
+    const bookingRequest = {
+      busSlotId: selectedTrip.value.busSlotId,
+      selectedSeatNumbers: bookingData.value.selectedSeatNumbers,
+      customerName: CustomerAPI.normalizeName(bookingData.value.passengerInfo.fullName),
+      phone: bookingData.value.passengerInfo.phoneNumber.replace(/\s/g, ''),
+      email: bookingData.value.passengerInfo.email || undefined,
+      notes: bookingData.value.passengerInfo.notes,
+      userId: getUserIdFromToken() || 1
+    }
+
+    // Validate request
+    const validation = BookingAPI.validateDirectBookingRequest(bookingRequest)
+    if (!validation.valid) {
+      alert(`❌ Dữ liệu không hợp lệ:\n${validation.errors.join('\n')}`)
+      return
+    }
+
+    // Create booking
+    const result = await BookingAPI.createDirectBooking(bookingRequest)
+    
+    if (isMounted.value) {
+      // Redirect to payment
+      await router.push(`/payment/${result.data}`)
+    }
+
+  } catch (error) {
+    if (isMounted.value) {
+      alert(`❌ ${error.message}`)
+    }
+  } finally {
+    if (isMounted.value) {
+      isProcessingBooking.value = false
+      bookingAction.value = ''
+    }
+  }
+}
+
 // Handle modal close
 const closeModal = () => {
   emit('close')
@@ -368,14 +824,23 @@ const handleBackdropClick = (event) => {
   }
 }
 
-// Step styling functions (existing logic)
+// Step styling functions - đồng bộ với BusTicketBooking.vue
 const getStepClass = (step) => {
-  if (step.id < currentStep.value) {
+  // Step 1 luôn completed (green)
+  if (step.id === 1) {
     return 'bg-green-500 text-white'
-  } else if (step.id === currentStep.value) {
-    return 'bg-indigo-600 text-white'
-  } else {
-    return 'bg-gray-200 text-gray-500'
+  }
+  // Step hiện tại (blue/active)
+  else if (step.id === currentStep.value) {
+    return 'bg-blue-500 text-white'
+  }
+  // Step đã hoàn thành (green)
+  else if (step.id < currentStep.value) {
+    return 'bg-green-500 text-white'
+  }
+  // Step chưa đến (gray)
+  else {
+    return 'bg-gray-300 text-gray-500'
   }
 }
 
@@ -450,10 +915,15 @@ const steps = [
                       :class="getStepClass(step)"
                       class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-medium transition-all duration-300"
                     >
-                      <i v-if="step.id < currentStep" class="fas fa-check"></i>
-                      <i v-else :class="step.icon"></i>
+                      <i v-if="step.id === 1 || step.id < currentStep" class="fas fa-check"></i>
+                      <span v-else class="font-medium">{{ step.id }}</span>
                     </div>
-                    <span class="ml-1 md:ml-2 text-xs md:text-sm font-medium text-gray-700 hidden sm:block">
+                    <span :class="[
+                      step.id === 1 ? 'text-green-600 font-medium' :
+                      step.id === currentStep ? 'text-blue-600 font-medium' : 
+                      step.id < currentStep ? 'text-green-600 font-medium' : 
+                      'text-gray-500'
+                    ]" class="ml-1 md:ml-2 text-xs md:text-sm hidden sm:block">
                       {{ step.name }}
                     </span>
                   </div>
@@ -611,21 +1081,187 @@ const steps = [
                 </div>
               </template>
 
-              <!-- Step 2-5: Booking Flow -->
-              <template v-else>
+              <!-- Step 2: Seat Selection -->
+              <template v-else-if="currentStep === 2">
                 <div class="w-full overflow-y-auto">
-                  <Transition
-                    name="slide-left"
-                    mode="out-in"
-                  >
-                    <BusTicketBooking
-                      :show="showBookingFlow"
-                      :selected-trip="selectedTrip"
-                      :current-step="currentStep"
-                      @step-change="handleStepChange"
-                      @booking-complete="handleBookingComplete"
-                      @close="backToSearch"
-                    />
+                  <Transition name="fade-left" mode="out-in">
+                    <div class="p-6">
+                      <div class="mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Chọn ghế ngồi</h3>
+                            <p class="text-sm text-gray-600">{{ selectedTrip?.company || 'Nhà xe' }} - {{ selectedTrip?.busType || 'Loại xe' }}</p>
+                          </div>
+                          <!-- Seat Preview -->
+                          <div v-if="bookingData.selectedSeatNumbers && bookingData.selectedSeatNumbers.length > 0" 
+                               class="flex items-center bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                            <i class="fas fa-chair text-blue-600 mr-2"></i>
+                            <span class="text-sm text-blue-700 font-medium">
+                              Ghế: {{ bookingData.selectedSeatNumbers.join(', ') }}
+                            </span>
+                            <span class="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                              {{ finalAmount?.toLocaleString?.('vi-VN') || '0' }} ₫
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Seat Selection Component -->
+                      <BusSeatSelection 
+                        :busSlot="selectedTrip"
+                        :selectedSeats="bookingData.selectedSeats"
+                        :maxSeats="10"
+                        @selection-change="handleSeatSelectionChange"
+                      />
+
+                      <!-- Footer Actions -->
+                      <div class="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
+                        <button @click="backToSearch" 
+                                class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+                          <i class="fas fa-arrow-left mr-2"></i>Quay lại
+                        </button>
+                        <button @click="goToPassengerInfo"
+                                :disabled="!canProceedToNext() || isCheckingPendingOrders"
+                                :class="[
+                                  'px-6 py-2 text-white rounded-md transition-colors',
+                                  (canProceedToNext() && !isCheckingPendingOrders)
+                                    ? 'bg-blue-600 hover:bg-blue-700' 
+                                    : 'bg-gray-400 cursor-not-allowed'
+                                ]">
+                          <i v-if="isCheckingPendingOrders" class="fas fa-spinner fa-spin mr-2"></i>
+                          {{ isCheckingPendingOrders ? 'Đang kiểm tra...' : 'Tiếp tục' }}
+                          <i v-if="!isCheckingPendingOrders" class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </Transition>
+                </div>
+              </template>
+
+              <!-- Step 3: Passenger Info -->
+              <template v-else-if="currentStep === 3">
+                <div class="w-full overflow-y-auto">
+                  <Transition name="fade-left" mode="out-in">
+                    <div class="p-6">
+                      <div class="mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Thông tin hành khách</h3>
+                            <p class="text-sm text-gray-600">Vui lòng điền thông tin chính xác để hoàn tất đặt vé</p>
+                          </div>
+                          <!-- Seat Preview -->
+                          <div v-if="bookingData.selectedSeatNumbers && bookingData.selectedSeatNumbers.length > 0" 
+                               class="flex items-center bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                            <i class="fas fa-chair text-blue-600 mr-2"></i>
+                            <span class="text-sm text-blue-700 font-medium">
+                              Ghế: {{ bookingData.selectedSeatNumbers.join(', ') }}
+                            </span>
+                            <span class="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                              {{ finalAmount?.toLocaleString?.('vi-VN') || '0' }} ₫
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Validation Errors -->
+                      <div v-if="showValidationErrors && validationErrors.length > 0" 
+                           class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex items-center mb-2">
+                          <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                          <span class="text-sm font-medium text-red-700">Vui lòng kiểm tra lại:</span>
+                        </div>
+                        <ul class="text-sm text-red-600 ml-6">
+                          <li v-for="error in validationErrors" :key="error">• {{ error }}</li>
+                        </ul>
+                      </div>
+                      
+                      <!-- Passenger Form -->
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-2">Họ và tên *</label>
+                          <div class="relative">
+                            <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
+                            <input v-model="bookingData.passengerInfo.fullName" 
+                                   type="text" 
+                                   class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Nhập họ và tên"
+                                   @blur="validatePassengerInfo">
+                          </div>
+                        </div>
+
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại *</label>
+                          <div class="relative">
+                            <i class="fas fa-phone absolute left-3 top-3 text-gray-400"></i>
+                            <input v-model="bookingData.passengerInfo.phoneNumber" 
+                                   type="tel" 
+                                   class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Nhập số điện thoại"
+                                   @blur="validatePassengerInfo">
+                          </div>
+                        </div>
+
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                          <div class="relative">
+                            <i class="fas fa-envelope absolute left-3 top-3 text-gray-400"></i>
+                            <input v-model="bookingData.passengerInfo.email" 
+                                   type="email" 
+                                   class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Nhập email">
+                          </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                          <div class="relative">
+                            <i class="fas fa-comment-alt absolute left-3 top-3 text-gray-400"></i>
+                            <textarea v-model="bookingData.passengerInfo.notes" 
+                                      class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                      rows="3"
+                                      placeholder="Ghi chú thêm"
+                                      maxlength="300"></textarea>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Footer Actions -->
+                      <div class="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
+                        <button @click="goToSeatSelection" 
+                                class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+                          <i class="fas fa-arrow-left mr-2"></i>Quay lại
+                        </button>
+                        <div class="flex space-x-3">
+                          <!-- ✅ Loading state khi check pending orders -->
+                          <div v-if="isCheckingPendingOrders" class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Đang kiểm tra đơn hàng...
+                          </div>
+                          
+                          <template v-else>
+                            <!-- ✅ Nút "Thêm vào đơn hàng hiện tại" - hiển thị khi có activeCartId hoặc pending order -->
+                            <button v-if="shouldShowAddToCartButton" 
+                                    @click="addToCart"
+                                    :disabled="!isFormValid() || (isProcessingBooking && bookingAction === 'add_to_cart')"
+                                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                              <i v-if="isProcessingBooking && bookingAction === 'add_to_cart'" class="fas fa-spinner fa-spin mr-2"></i>
+                              <i v-else class="fas fa-shopping-cart mr-2"></i>
+                              {{ isProcessingBooking && bookingAction === 'add_to_cart' ? 'Đang thêm...' : 'Thêm vào đơn hàng hiện tại' }}
+                            </button>
+                           
+                            <!-- ✅ Nút "Đặt vé ngay" - luôn hiển thị -->
+                            <button v-if="shouldShowDirectBookingButton"
+                                    @click="bookDirectly"
+                                    :disabled="!isFormValid() || (isProcessingBooking && bookingAction === 'direct')"
+                                    class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">
+                              <i v-if="isProcessingBooking && bookingAction === 'direct'" class="fas fa-spinner fa-spin mr-2"></i>
+                              <i v-else class="fas fa-bolt mr-2"></i>
+                              {{ isProcessingBooking && bookingAction === 'direct' ? 'Đang đặt...' : 'Đặt vé ngay' }}
+                            </button>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
                   </Transition>
                 </div>
               </template>
@@ -716,6 +1352,29 @@ const steps = [
   }
 }
 
+/* ✅ Fade Left Animation cho step transitions */
+.fade-left-enter-active,
+.fade-left-leave-active {
+  transition: all 0.4s ease-in-out;
+}
+
+.fade-left-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.fade-left-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.fade-left-enter-to,
+.fade-left-leave-from {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Legacy slide-left for compatibility */
 .slide-left-enter-active,
 .slide-left-leave-active {
   transition: all 0.3s ease-out;

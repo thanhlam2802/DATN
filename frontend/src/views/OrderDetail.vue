@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getBearerToken } from "@/services/TokenService"; // Import getBearerToken
+import { BusBookingDetailAPI } from "@/api/busAPI_Client/busbookingApi/busBookingDetailApi"; // ✅ NEW: Import bus booking detail API
 
 const route = useRoute();
 const router = useRouter();
@@ -12,6 +13,10 @@ const flightBookingDetails = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
 const processingItemId = ref(null); // State loading cho từng item
+
+// ✅ NEW: State cho bus booking details
+const busBookingDetails = ref(new Map()); // Map<bookingId, BusBookingDetailDto>
+const isLoadingBusDetails = ref(new Set()); // Set<bookingId> để track loading state
 
 // --- STATE CHO VOUCHER ---
 const voucherCode = ref("");
@@ -47,6 +52,39 @@ const formatDateTime = (dateString) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
+// ✅ NEW: Format time for bus slots
+const formatTime = (timeString) => {
+  if (!timeString) return '--:--';
+  return timeString.substring(0, 5); // Extract HH:MM from time string
+};
+
+// ✅ NEW: Calculate duration between departure and arrival
+const calculateDuration = (departureTime, arrivalTime) => {
+  if (!departureTime || !arrivalTime) return 'N/A';
+  
+  try {
+    const departure = new Date(`2000-01-01T${departureTime}`);
+    const arrival = new Date(`2000-01-01T${arrivalTime}`);
+    
+    // Handle overnight trips
+    if (arrival < departure) {
+      arrival.setDate(arrival.getDate() + 1);
+    }
+    
+    const diffMs = arrival - departure;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes}m`;
+    } else {
+      return `${diffMinutes}m`;
+    }
+  } catch (error) {
+    return 'N/A';
+  }
+};
 
 const getStatusInfo = (status) => {
   switch (status) {
@@ -101,6 +139,11 @@ const fetchOrderDetails = async () => {
 
     const data = await orderResponse.json();
     order.value = data.data;
+    
+    // ✅ DEBUG: Log order data to see structure
+    if (order.value.busBookings && order.value.busBookings.length > 0) {
+      // Bus bookings loaded successfully
+    }
 
     if (order.value && isEditable.value) {
       await fetchSuggestedVouchers();
@@ -119,9 +162,13 @@ const fetchOrderDetails = async () => {
             flightBookingDetails.value.push({ ...detail, showDetail: false });
           }
         } catch (e) {
-          console.error(`Lỗi tải chi tiết chuyến bay ${booking.id}:`, e);
         }
       }
+    }
+
+    // ✅ NEW: Fetch bus booking details
+    if (order.value.busBookings && order.value.busBookings.length > 0) {
+      await fetchBusBookingDetails();
     }
   } catch (e) {
     error.value = e.message;
@@ -143,9 +190,38 @@ const fetchSuggestedVouchers = async () => {
       suggestedVouchers.value = await response.json();
     }
   } catch (e) {
-    console.error("Lỗi tải voucher gợi ý:", e);
+    // Silent error handling
   } finally {
     isLoadingVouchers.value = false;
+  }
+};
+
+// ✅ NEW: Fetch bus booking details
+const fetchBusBookingDetails = async () => {
+  if (!order.value?.busBookings) return;
+  
+  for (const busBooking of order.value.busBookings) {
+    if (!busBookingDetails.value.has(busBooking.id)) {
+      await fetchBusBookingDetail(busBooking.id);
+    }
+  }
+};
+
+// ✅ NEW: Fetch single bus booking detail
+const fetchBusBookingDetail = async (bookingId) => {
+  if (isLoadingBusDetails.value.has(bookingId)) return; // Prevent duplicate requests
+  
+  isLoadingBusDetails.value.add(bookingId);
+  try {
+    const response = await BusBookingDetailAPI.getBookingDetailForDisplay(bookingId);
+    
+    if (response.data) {
+      busBookingDetails.value.set(bookingId, response.data);
+    }
+  } catch (error) {
+    // Don't throw error to prevent breaking the page
+  } finally {
+    isLoadingBusDetails.value.delete(bookingId);
   }
 };
 
@@ -195,21 +271,109 @@ const addMoreServices = () => {
   router.push("/");
 };
 
+// ✅ NEW: Cancel bus booking before removing from cart
+const cancelBusBooking = async (busBookingId) => {
+  try {
+    
+    const response = await fetch(
+      `http://localhost:8080/api/v1/bus-booking/${busBookingId}/cancel`,
+      { 
+        method: "POST", 
+        headers: { 
+          Authorization: getBearerToken(),
+          'Content-Type': 'application/json'
+        } 
+      }
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Không thể hủy vé xe.");
+    }
+    
+    const result = await response.json();
+    return result;
+    
+  } catch (error) {
+    throw error;
+  }
+};
+
 const handleDeleteItem = async (itemId, itemType) => {
-  if (!confirm(`Bạn có chắc chắn muốn xóa dịch vụ này khỏi đơn hàng?`)) return;
+  // ✅ Customize confirm message cho từng loại service
+  let confirmMessage = '';
+  switch (itemType) {
+    case 'BUS':
+      confirmMessage = `Bạn có chắc chắn muốn hủy và xóa vé xe này khỏi đơn hàng?\n\n⚠️ Lưu ý: Vé xe sẽ được hủy và ghế sẽ được giải phóng để khách khác có thể đặt.`;
+      break;
+    case 'TOUR':
+      confirmMessage = 'Bạn có chắc chắn muốn xóa tour này khỏi đơn hàng?';
+      break;
+    case 'FLIGHT':
+      confirmMessage = 'Bạn có chắc chắn muốn xóa chuyến bay này khỏi đơn hàng?';
+      break;
+    case 'HOTEL':
+      confirmMessage = 'Bạn có chắc chắn muốn xóa phòng khách sạn này khỏi đơn hàng?';
+      break;
+    default:
+      confirmMessage = 'Bạn có chắc chắn muốn xóa dịch vụ này khỏi đơn hàng?';
+  }
+  
+  if (!confirm(confirmMessage)) return;
 
   processingItemId.value = `${itemType}-${itemId}`;
   try {
+    // ✅ STEP 1: Nếu là BUS, cancel booking trước để release seats
+    if (itemType === 'BUS') {
+      try {
+        await cancelBusBooking(itemId);
+      } catch (error) {
+        // ✅ Handle case where booking is already cancelled/expired
+        if (error.message && (error.message.includes('already cancelled') || error.message.includes('already expired'))) {
+        } else {
+          throw error; // Re-throw other errors
+        }
+      }
+    }
+    
+    // ✅ STEP 2: Xóa item khỏi cart
     const response = await fetch(
       `http://localhost:8080/api/v1/cart/items?orderId=${order.value.id}&itemId=${itemId}&itemType=${itemType}`,
       { method: "DELETE", headers: { Authorization: getBearerToken() } }
     );
     if (!response.ok) throw new Error("Xóa dịch vụ thất bại.");
 
-    window.$toast && window.$toast("Đã xóa dịch vụ thành công.", "success");
+    // ✅ Success messages theo loại service
+    const successMessages = {
+      'BUS': '🚌 Đã hủy vé xe và xóa khỏi đơn hàng thành công! Ghế đã được giải phóng.',
+      'TOUR': '🏔️ Đã xóa tour khỏi đơn hàng thành công!',
+      'FLIGHT': '✈️ Đã xóa chuyến bay khỏi đơn hàng thành công!',
+      'HOTEL': '🏨 Đã xóa phòng khách sạn khỏi đơn hàng thành công!'
+    };
+    
+    const message = successMessages[itemType] || "Đã xóa dịch vụ thành công.";
+    window.$toast && window.$toast(message, "success");
+                                                                                                                                  
+    // ✅ Clear activeCartId từ localStorage nếu đơn hàng này là cart hiện tại
+    const activeCartId = localStorage.getItem('activeCartId');
+    if (activeCartId && parseInt(activeCartId) === order.value.id) {
+      localStorage.removeItem('activeCartId');
+    }
+    
     await fetchOrderDetails();
+    
   } catch (e) {
-    window.$toast && window.$toast(e.message, "error");
+    
+    // ✅ Error messages theo loại service
+    const errorMessages = {
+      'BUS': '❌ Lỗi khi hủy vé xe: ' + e.message,
+      'TOUR': '❌ Lỗi khi xóa tour: ' + e.message,
+      'FLIGHT': '❌ Lỗi khi xóa chuyến bay: ' + e.message,
+      'HOTEL': '❌ Lỗi khi xóa phòng khách sạn: ' + e.message
+    };
+    
+    const message = errorMessages[itemType] || ('❌ Lỗi: ' + e.message);
+    window.$toast && window.$toast(message, "error");
   } finally {
     processingItemId.value = null;
   }
@@ -240,6 +404,7 @@ const handleEditItem = async (item, itemType) => {
       TOUR: `/tours/${item.tourId}`,
       FLIGHT: `/flights/${item.flightId}`,
       HOTEL: `/hotels/${item.hotelId}`,
+      BUS: `/bus`, // ✅ Route cho bus booking
     };
     if (paths[itemType]) router.push(paths[itemType]);
   } catch (e) {
@@ -483,6 +648,174 @@ function prevHotelImage(hotel) {
                   <div v-if="isEditable" class="flex gap-2 absolute right-6 top-6 z-10">
                     <button @click="handleEditItem(hotel, 'HOTEL')" class="text-sm text-yellow-600 hover:text-yellow-800 flex items-center"><i class="fa-solid fa-pencil mr-1"></i> Sửa</button>
                     <button @click="handleDeleteItem(hotel.id, 'HOTEL')" class="text-sm text-red-600 hover:text-red-800 flex items-center"><i class="fa-solid fa-trash mr-1"></i> Xóa</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ Bus Bookings Section - Compact Design -->
+            <div v-if="order.busBookings && order.busBookings.length > 0">
+              <h2 class="text-xl font-bold mb-3 text-gray-700 flex items-center gap-2">
+                <i class="fa-solid fa-bus text-orange-500"></i> Vé xe đã đặt
+              </h2>
+              
+              <div
+                v-for="bus in order.busBookings"
+                :key="'bus-' + bus.id"
+                class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-3"
+              >
+                <!-- ✅ Compact Header -->
+                <div class="flex justify-between items-center mb-3">
+                  <div class="flex-1">
+                    <h3 class="text-lg font-bold text-orange-700">
+                      🚌 #{{ bus.bookingReference || bus.id }}
+                    </h3>
+                    
+                    <!-- ✅ Compact Route Info -->
+                    <div v-if="isLoadingBusDetails.has(bus.id)" class="mt-1">
+                      <div class="flex items-center gap-2 text-gray-500 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                        <span>Đang tải...</span>
+                      </div>
+                    </div>
+                    
+                    <div v-else-if="busBookingDetails.has(bus.id)" class="mt-1">
+                      <div class="flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-map-marker-alt text-red-500 text-xs"></i>
+                        <span class="text-red-600 font-medium">{{ busBookingDetails.get(bus.id).departureLocation || 'Điểm đi' }}</span>
+                        <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+                        <i class="fa-solid fa-map-marker-alt text-green-500 text-xs"></i>
+                        <span class="text-green-600 font-medium">{{ busBookingDetails.get(bus.id).arrivalLocation || 'Điểm đến' }}</span>
+                      </div>
+                    </div>
+                    
+                    <div v-else class="mt-1">
+                      <div class="flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-map-marker-alt text-red-500 text-xs"></i>
+                        <span class="text-red-600 font-medium">{{ bus.busSlot?.route?.startLocation || 'Điểm đi' }}</span>
+                        <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+                        <i class="fa-solid fa-map-marker-alt text-green-500 text-xs"></i>
+                        <span class="text-green-600 font-medium">{{ bus.busSlot?.route?.endLocation || 'Điểm đến' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- ✅ Compact Action buttons -->
+                  <div v-if="isEditable" class="flex items-center gap-1">
+                    <button
+                      :disabled="processingItemId === `BUS-${bus.id}`"
+                      @click="handleEditItem(bus, 'BUS')"
+                      class="text-xs text-yellow-600 hover:text-yellow-800 disabled:opacity-50 px-2 py-1 rounded"
+                    >
+                      <i :class="processingItemId === `BUS-${bus.id}` ? 'fas fa-spinner fa-spin' : 'fa-solid fa-pencil'"></i>
+                    </button>
+                    <button
+                      :disabled="processingItemId === `BUS-${bus.id}`"
+                      @click="handleDeleteItem(bus.id, 'BUS')"
+                      class="text-xs text-red-600 hover:text-red-800 disabled:opacity-50 px-2 py-1 rounded"
+                    >
+                      <i :class="processingItemId === `BUS-${bus.id}` ? 'fas fa-spinner fa-spin' : 'fa-solid fa-trash'"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- ✅ Compact Trip Info với dữ liệu từ API mới -->
+                <div v-if="busBookingDetails.has(bus.id)" class="bg-gray-50 rounded-lg p-3 mb-3">
+                  <div class="grid grid-cols-4 gap-3 text-xs">
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-calendar text-blue-500"></i>
+                      <span class="font-medium">{{ formatDate(busBookingDetails.get(bus.id).departureDate) }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-clock text-green-500"></i>
+                      <span class="font-medium">{{ formatTime(busBookingDetails.get(bus.id).departureTime) }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-chair text-purple-500"></i>
+                      <span class="font-medium">{{ busBookingDetails.get(bus.id).totalSeats || 0 }} ghế</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-route text-orange-500"></i>
+                      <span class="font-medium">{{ busBookingDetails.get(bus.id).tripDuration }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ✅ Compact Trip Info với dữ liệu cũ -->
+                <div v-else class="bg-gray-50 rounded-lg p-3 mb-3">
+                  <div class="grid grid-cols-4 gap-3 text-xs">
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-calendar text-blue-500"></i>
+                      <span class="font-medium">{{ formatDate(bus.busSlot?.slotDate) }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-clock text-green-500"></i>
+                      <span class="font-medium">{{ formatTime(bus.busSlot?.departureTime) }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-chair text-purple-500"></i>
+                      <span class="font-medium">{{ bus.selectedSeats?.length || 0 }} ghế</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <i class="fa-solid fa-route text-orange-500"></i>
+                      <span class="font-medium">{{ calculateDuration(bus.busSlot?.departureTime, bus.busSlot?.arrivalTime) }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- ✅ Compact Seat Info (chỉ hiển thị khi hover hoặc click) -->
+                <div v-if="busBookingDetails.has(bus.id) && busBookingDetails.get(bus.id).selectedSeats?.length > 0" class="text-xs text-gray-600 mb-2">
+                  <i class="fa-solid fa-chair text-purple-500 mr-1"></i>
+                  Ghế: {{ busBookingDetails.get(bus.id).selectedSeats.map(seat => seat.seatNumber).join(', ') }}
+                </div>
+
+                <!-- ✅ Compact Additional Info -->
+                <div class="text-xs text-gray-600 mb-2">
+                  <i class="fa-solid fa-users text-blue-500 mr-1"></i>
+                  {{ busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).numPassengers : bus.numPassengers }} hành khách
+                </div>
+
+                <!-- ✅ Compact Customer Info -->
+                <div v-if="busBookingDetails.has(bus.id) && busBookingDetails.get(bus.id).customerName" class="text-xs text-gray-600 mb-2">
+                  <i class="fa-solid fa-user text-blue-500 mr-1"></i>
+                  {{ busBookingDetails.get(bus.id).customerName }}
+                  <span v-if="busBookingDetails.get(bus.id).customerPhone" class="ml-2">
+                    <i class="fa-solid fa-phone text-green-500 mr-1"></i>
+                    {{ busBookingDetails.get(bus.id).customerPhone }}
+                  </span>
+                </div>
+
+                <div v-else-if="bus.customer" class="text-xs text-gray-600 mb-2">
+                  <i class="fa-solid fa-user text-blue-500 mr-1"></i>
+                  {{ bus.customer.fullName }}
+                  <span v-if="bus.customer.phone" class="ml-2">
+                    <i class="fa-solid fa-phone text-green-500 mr-1"></i>
+                    {{ bus.customer.phone }}
+                  </span>
+                </div>
+
+                <!-- ✅ Compact Footer: Status & Price -->
+                <div class="border-t pt-2 flex justify-between items-center">
+                  <div class="flex items-center gap-2">
+                    <!-- Status Badge -->
+                    <div v-if="busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status" class="flex items-center gap-1">
+                      <span :class="(busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status) === 'RESERVED' ? 'bg-orange-100 text-orange-700' : (busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status) === 'CONFIRMED' ? 'bg-green-100 text-green-700' : (busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status) === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'" 
+                            class="px-2 py-0.5 rounded-full font-medium text-xs">
+                        {{ (busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status) === 'RESERVED' ? '🟡 Đã đặt' : (busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status) === 'CONFIRMED' ? '✅ Đã xác nhận' : (busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status) === 'CANCELLED' ? '❌ Đã hủy' : (busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).status : bus.status) }}
+                      </span>
+                    </div>
+                    
+                    <!-- Booking Date -->
+                    <div class="text-xs text-gray-500">
+                      <i class="fa-solid fa-calendar text-gray-400 mr-1"></i>
+                      {{ formatDateTime(busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).bookingDate : bus.bookingDate) }}
+                    </div>
+                  </div>
+                  
+                  <div class="text-right">
+                    <div class="text-base font-bold text-orange-700">
+                      {{ formatPrice(busBookingDetails.has(bus.id) ? busBookingDetails.get(bus.id).totalPrice : bus.totalPrice) }}
+                    </div>
                   </div>
                 </div>
               </div>

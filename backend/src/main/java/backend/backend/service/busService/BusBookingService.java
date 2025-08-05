@@ -35,6 +35,11 @@ public interface BusBookingService {
     BusBookingResponse getBusBookingDetail(Integer bookingId);
 
     /**
+     * ✅ NEW: Get detailed bus booking information for display
+     */
+    backend.backend.dto.BusDTO.BusBookingDetailDto getBusBookingDetailForDisplay(Integer bookingId);
+
+    /**
      * Get customer's bus bookings
      */
     List<BusBookingResponse> getCustomerBookings(Integer customerId);

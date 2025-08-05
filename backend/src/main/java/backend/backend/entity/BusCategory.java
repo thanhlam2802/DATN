@@ -4,6 +4,7 @@ package backend.backend.entity;
 
 import lombok.Data;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 @Data
@@ -17,6 +18,7 @@ public class BusCategory {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "category")
     private List<Bus> buses;
 }

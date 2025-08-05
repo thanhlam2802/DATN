@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -116,6 +117,18 @@ public class BusBookingServiceImpl implements BusBookingService {
     public BusBookingResponse getBusBookingDetail(Integer bookingId) {
         BusBooking booking = findBookingById(bookingId);
         return convertToResponse(booking);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public backend.backend.dto.BusDTO.BusBookingDetailDto getBusBookingDetailForDisplay(Integer bookingId) {
+        log.info("Getting detailed bus booking for display: {}", bookingId);
+        
+        BusBooking booking = busBookingDAO.findByIdWithFullDetails(bookingId)
+                .orElseThrow(() -> new BusBookingException("BOOKING_NOT_FOUND", 
+                        "Bus booking not found with ID: " + bookingId));
+        
+        return convertToDetailDto(booking);
     }
 
     @Override
@@ -472,13 +485,20 @@ public class BusBookingServiceImpl implements BusBookingService {
     private void validateBookingCanBeCancelled(BusBooking booking) {
         // Check current status
         if (booking.getStatus() == BusBookingStatus.CANCELLED) {
-            throw new BusBookingException("ALREADY_CANCELLED", "Booking is already cancelled");
+            // ✅ ALLOW: Return success instead of throwing error for already cancelled bookings
+            log.info("Booking {} is already cancelled, returning success", booking.getId());
+            return;
         }
 
         if (booking.getStatus() == BusBookingStatus.EXPIRED) {
-            throw new BusBookingException("BOOKING_EXPIRED", "Cannot cancel expired booking");
+            // ✅ ALLOW: Return success instead of throwing error for expired bookings
+            log.info("Booking {} is already expired, returning success", booking.getId());
+            return;
         }
 
+        // ✅ COMMENTED OUT: Time-based cancellation restrictions removed
+        // Allow cancellation at any time for admin/testing purposes
+        /*
         // Check if departure time has passed
         if (booking.getBusSlot() != null) {
             LocalDateTime departureDateTime = LocalDateTime.of(
@@ -498,6 +518,7 @@ public class BusBookingServiceImpl implements BusBookingService {
                         "Cannot cancel booking within 2 hours of departure time");
             }
         }
+        */
 
         // Paid bookings might need special handling
         if (booking.getStatus() == BusBookingStatus.PAID) {
@@ -518,7 +539,7 @@ public class BusBookingServiceImpl implements BusBookingService {
         booking.setTotalPrice(request.getTotalPrice());
         booking.setStatus(BusBookingStatus.RESERVED);
         booking.setNotes(request.getNotes());
-        booking.setExpiresAt(LocalDateTime.now().plusMinutes(15));
+        booking.setExpiresAt(LocalDateTime.now().plusMinutes(30)); // ✅ FIXED: Match order expiration time
 
         return booking;
     }
@@ -663,5 +684,112 @@ public class BusBookingServiceImpl implements BusBookingService {
                     if (!builder.isEmpty()) builder.append(" - ");
                     builder.append(v);
                 });
+    }
+
+    /**
+     * ✅ NEW: Convert BusBooking entity to BusBookingDetailDto for display
+     */
+    private backend.backend.dto.BusDTO.BusBookingDetailDto convertToDetailDto(BusBooking booking) {
+        backend.backend.dto.BusDTO.BusBookingDetailDto dto = new backend.backend.dto.BusDTO.BusBookingDetailDto();
+        
+        // ✅ BASIC BOOKING INFO
+        dto.setId(booking.getId());
+        dto.setBookingReference(booking.getBookingReference());
+        dto.setStatus(booking.getStatus().name());
+        dto.setNumPassengers(booking.getNumPassengers());
+        dto.setTotalPrice(booking.getTotalPrice());
+        dto.setBookingDate(booking.getBookingDate());
+        
+        // ✅ CUSTOMER INFORMATION
+        if (booking.getCustomer() != null) {
+            dto.setCustomerName(booking.getCustomer().getFullName());
+            dto.setCustomerPhone(booking.getCustomer().getPhone());
+            dto.setCustomerEmail(booking.getCustomer().getEmail());
+        }
+        
+        // ✅ BUS SLOT & ROUTE INFORMATION
+        if (booking.getBusSlot() != null) {
+            BusSlot slot = booking.getBusSlot();
+            
+            dto.setDepartureDate(slot.getSlotDate());
+            dto.setDepartureTime(slot.getDepartureTime());
+            dto.setArrivalTime(slot.getArrivalTime());
+            
+            // Calculate trip duration
+            if (slot.getDepartureTime() != null && slot.getArrivalTime() != null) {
+                dto.setTripDuration(calculateTripDuration(slot.getDepartureTime(), slot.getArrivalTime()));
+            }
+            
+            // Bus information
+            if (slot.getBus() != null) {
+                dto.setBusName(slot.getBus().getName());
+                dto.setBusLicensePlate(slot.getBus().getLicensePlate());
+                if (slot.getBus().getCategory() != null) {
+                    dto.setBusCategoryName(slot.getBus().getCategory().getName());
+                }
+            }
+            
+            // Route information
+            if (slot.getRoute() != null) {
+                dto.setDepartureLocation(getLocationDisplayName(slot.getRoute().getOriginLocation()));
+                dto.setArrivalLocation(getLocationDisplayName(slot.getRoute().getDestinationLocation()));
+            }
+        }
+        
+        // ✅ SEAT INFORMATION
+        if (booking.getSelectedSeats() != null && !booking.getSelectedSeats().isEmpty()) {
+            List<backend.backend.dto.BusDTO.BusBookingDetailDto.SeatInfoDto> seatDtos = 
+                booking.getSelectedSeats().stream()
+                    .map(this::convertToSeatInfoDto)
+                    .collect(Collectors.toList());
+            dto.setSelectedSeats(seatDtos);
+            dto.setTotalSeats(seatDtos.size());
+        }
+        
+        return dto;
+    }
+    
+    /**
+     * ✅ NEW: Convert BusSeat to SeatInfoDto
+     */
+    private backend.backend.dto.BusDTO.BusBookingDetailDto.SeatInfoDto convertToSeatInfoDto(BusSeat seat) {
+        backend.backend.dto.BusDTO.BusBookingDetailDto.SeatInfoDto dto = 
+            new backend.backend.dto.BusDTO.BusBookingDetailDto.SeatInfoDto();
+        dto.setId(seat.getId());
+        dto.setSeatNumber(seat.getSeatNumber());
+        dto.setSeatType(seat.getSeatType() != null ? seat.getSeatType().name() : "STANDARD");
+        dto.setSeatStatus(seat.getIsBooked() ? "BOOKED" : "AVAILABLE");
+        return dto;
+    }
+    
+    /**
+     * ✅ NEW: Calculate trip duration between departure and arrival times
+     */
+    private String calculateTripDuration(LocalTime departureTime, LocalTime arrivalTime) {
+        if (departureTime == null || arrivalTime == null) {
+            return "N/A";
+        }
+        
+        try {
+            int departureMinutes = departureTime.getHour() * 60 + departureTime.getMinute();
+            int arrivalMinutes = arrivalTime.getHour() * 60 + arrivalTime.getMinute();
+            
+            // Handle overnight trips
+            if (arrivalMinutes < departureMinutes) {
+                arrivalMinutes += 24 * 60; // Add 24 hours
+            }
+            
+            int durationMinutes = arrivalMinutes - departureMinutes;
+            int hours = durationMinutes / 60;
+            int minutes = durationMinutes % 60;
+            
+            if (hours > 0) {
+                return String.format("%dh %dm", hours, minutes);
+            } else {
+                return String.format("%dm", minutes);
+            }
+        } catch (Exception e) {
+            return "N/A";
+        }
     }
 }

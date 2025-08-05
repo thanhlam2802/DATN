@@ -99,8 +99,8 @@ public class BusSlot {
     @OneToMany(mappedBy = "busSlot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BusSeat> seats = new ArrayList<>(); // <-- Đã đổi từ Seat thành BusSeat
 
-    @OneToMany(mappedBy = "busSlot")
-    private List<BusBooking> busBookings;
+    @OneToMany(mappedBy = "busSlot", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BusBooking> busBookings = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

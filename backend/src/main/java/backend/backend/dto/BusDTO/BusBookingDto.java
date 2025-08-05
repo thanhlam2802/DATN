@@ -37,6 +37,7 @@ public class BusBookingDto {
     private LocalTime arrivalTime;
     private String busName;
     private String busLicensePlate;
+    private String busCategoryName;
     private String departureLocation;
     private String arrivalLocation;
 

@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Data
 @Entity
@@ -27,13 +28,13 @@ public class BusBooking {
     private Customer customer;
 
     // ✅ ADD: Selected seats relationship
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinTable(
             name = "bus_booking_seats",
             joinColumns = @JoinColumn(name = "booking_id"),
             inverseJoinColumns = @JoinColumn(name = "seat_id")
     )
-    private List<BusSeat> selectedSeats;
+    private List<BusSeat> selectedSeats = new ArrayList<>();
 
     // ✅ ADD: Booking status
     @Enumerated(EnumType.STRING)

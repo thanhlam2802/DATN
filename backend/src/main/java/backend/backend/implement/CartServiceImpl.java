@@ -125,8 +125,8 @@ public class CartServiceImpl implements CartService {
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vé xe buýt với ID: " + itemId));
                 orderToUpdate = bus.getOrder();
 
-                // ✅ IMPORTANT: Cancel the bus booking properly (release seats)
-                busBookingService.cancelBusBooking(bus.getId());
+                // ✅ COMMENTED OUT: Frontend already calls cancel API before removing from cart
+                // busBookingService.cancelBusBooking(bus.getId());
 
                 // Remove from order's collection
                 if (orderToUpdate.getBusBookings() != null) {
@@ -246,7 +246,7 @@ public class CartServiceImpl implements CartService {
                 BusBookingRequest busRequest = mapToBusRequest(order, genericRequest);
                 BusBooking busBooking = busBookingService.createBusBookingForCart(busRequest);
 
-                // Link booking to order
+
                 busBooking.setOrder(order);
                 busBookingDAO.save(busBooking);
                 break;

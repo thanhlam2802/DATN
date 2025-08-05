@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; 
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -29,27 +30,29 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
     private final BusSeatDAO busSeatDAO;
 
 
-    @Scheduled(fixedRate = 300000)
+    @Scheduled(fixedRate = 30000) // ✅ RE-ENABLED: Auto-cancel expired orders every 30 seconds
     @Transactional
     public void cancelExpiredOrders() {
+
         System.out.println("Running scheduled task to cancel expired orders...");
+
+        // ✅ FIXED: Handle expired PENDING_PAYMENT orders
         List<Order> expiredOrders = orderDAO.findAllByStatusAndExpiresAtBefore("PENDING_PAYMENT", LocalDateTime.now());
 
         if (!expiredOrders.isEmpty()) {
             for (Order order : expiredOrders) {
-                System.out.println("Expired order: " + order.getId());
-
                 // ✅ EXISTING: Handle hotel bookings
                 handleExpiredHotelBookings(order);
-
-                // ✅ NEW: Handle bus bookings
-                handleExpiredBusBookings(order);
+                handleExpireBusBooking(order);
 
                 order.setStatus("CANCELLED");
             }
             orderDAO.saveAll(expiredOrders);
             System.out.println("Cancelled " + expiredOrders.size() + " expired orders.");
         }
+
+        // ✅ NEW: Handle RESERVED bus bookings that should be expired
+        handleExpiredBusBookings();
     }
 
     // ✅ REFACTORED: Extract hotel logic
@@ -68,14 +71,14 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
             }
         }
     }
-
-    private void handleExpiredBusBookings(Order order) {
+    private void handleExpireBusBooking(Order order) {
+        System.out.println("Expired order: " + order.getId());
         List<BusBooking> busBookings = busBookingDAO.findByOrderIdWithSeats(order.getId());
-
+        System.out.println("Vao bus" + busBookings.get(0));
         for (BusBooking booking : busBookings) {
             System.out.println("  Bus Booking id: " + booking.getId() + ", seats: " + booking.getNumPassengers());
 
-            // Only handle RESERVED bookings (similar to hotel pattern)
+            // ✅ FIXED: Only handle RESERVED bookings (not CANCELLED)
             if (booking.getStatus() == BusBookingStatus.RESERVED) {
                 try {
                     // Release seats back to available pool
@@ -98,6 +101,55 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
                     System.err.println("Error releasing bus seats for booking " + booking.getId() + ": " + e.getMessage());
                 }
             }
+        }
+    }
+
+    // ✅ NEW: Handle expired bus bookings independently
+    @Transactional
+    public void handleExpiredBusBookings() {
+        System.out.println("🔍 Checking for expired bus bookings...");
+        
+        // Find all RESERVED bus bookings that have expired
+        List<BusBooking> expiredBusBookings = busBookingDAO.findExpiredReservations(
+            BusBookingStatus.RESERVED, 
+            LocalDateTime.now()
+        );
+        
+        System.out.println("📊 Found " + expiredBusBookings.size() + " expired bus bookings");
+        
+        if (!expiredBusBookings.isEmpty()) {
+            for (BusBooking booking : expiredBusBookings) {
+                try {
+                    System.out.println("🔄 Processing expired bus booking: " + booking.getId());
+                    System.out.println("   - Status: " + booking.getStatus());
+                    System.out.println("   - ExpiresAt: " + booking.getExpiresAt());
+                    System.out.println("   - Order: " + (booking.getOrder() != null ? booking.getOrder().getId() : "null"));
+                    System.out.println("   - Seats: " + (booking.getSelectedSeats() != null ? booking.getSelectedSeats().size() : 0));
+                    
+                    // Release seats back to available pool
+                    if (booking.getSelectedSeats() != null) {
+                        for (BusSeat seat : booking.getSelectedSeats()) {
+                            System.out.println("   - Releasing seat: " + seat.getSeatNumber() + " (was booked: " + seat.getIsBooked() + ")");
+                            seat.setIsBooked(false);
+                            busSeatDAO.save(seat);
+                            System.out.println("   ✅ Released seat: " + seat.getSeatNumber());
+                        }
+                    }
+
+                    // Update booking status to expired
+                    booking.setStatus(BusBookingStatus.EXPIRED);
+                    booking.setNotes(booking.getNotes() + "\n[Auto-expired at: " + LocalDateTime.now() + "]");
+                    busBookingDAO.save(booking);
+
+                    System.out.println("✅ Bus booking " + booking.getId() + " expired and seats released");
+
+                } catch (Exception e) {
+                    System.err.println("❌ Error processing expired bus booking " + booking.getId() + ": " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            System.out.println("✅ No expired bus bookings found");
         }
     }
 }

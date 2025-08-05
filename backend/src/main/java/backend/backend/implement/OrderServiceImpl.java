@@ -342,7 +342,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setTourBookings(bookingTourDAO.findByOrderId(entity.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
         dto.setFlightBookings(flightBookingDAO.findByOrderId(entity.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
         dto.setHotelBookings(hotelBookingDAO.findByOrderId(entity.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
-        dto.setBusBookings(busBookingDAO.findByOrderId(entity.getId()).stream().map(this::toBusBookingDto).collect(Collectors.toList())); // ✅ ADD
+        dto.setBusBookings(busBookingDAO.findByOrderIdWithSeats(entity.getId()).stream().map(this::toBusBookingDto).collect(Collectors.toList())); // ✅ ADD
 
 
         return dto;
@@ -561,6 +561,7 @@ public class OrderServiceImpl implements OrderService {
 
         return dto;
     }
+    @Transactional(readOnly = true)
     private BusBookingDto toBusBookingDto(BusBooking busBooking) {
         BusBookingDto dto = new BusBookingDto();
 
@@ -588,14 +589,26 @@ public class OrderServiceImpl implements OrderService {
             dto.setDepartureTime(busBooking.getBusSlot().getDepartureTime());
             dto.setArrivalTime(busBooking.getBusSlot().getArrivalTime());
 
+            // ✅ ADD: Map route info (avoid lazy loading)
+            if (busBooking.getBusSlot().getRoute() != null) {
+                dto.setDepartureLocation(busBooking.getBusSlot().getRoute().getOriginLocation().getName());
+                dto.setArrivalLocation(busBooking.getBusSlot().getRoute().getDestinationLocation().getName());
+            }
+
             if (busBooking.getBusSlot().getBus() != null) {
                 dto.setBusName(busBooking.getBusSlot().getBus().getName());
                 dto.setBusLicensePlate(busBooking.getBusSlot().getBus().getLicensePlate());
+                
+                // ✅ ADD: Map bus category name only (avoid lazy loading)
+                if (busBooking.getBusSlot().getBus().getCategory() != null) {
+                    dto.setBusCategoryName(busBooking.getBusSlot().getBus().getCategory().getName());
+                }
             }
         }
 
-        // Seat numbers
+        // ✅ ENHANCED: Map selected seats (avoid lazy loading)
         if (busBooking.getSelectedSeats() != null) {
+            // Map seat numbers as strings
             List<String> seatNumbers = busBooking.getSelectedSeats().stream()
                     .map(seat -> seat.getSeatNumber())
                     .collect(Collectors.toList());

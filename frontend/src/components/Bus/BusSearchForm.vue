@@ -48,7 +48,6 @@ const loadProvinces = async () => {
     const provinceList = await ProvinceAPI.getProvinceList()
     provinces.value = provinceList
   } catch (error) {
-    console.error('Error loading provinces:', error)
   } finally {
     loadingProvinces.value = false
   }
@@ -65,7 +64,6 @@ const loadDepartureDistricts = async (provinceName) => {
     const districtList = await ProvinceAPI.getDistrictsByProvince(provinceName)
     departureDistricts.value = districtList
   } catch (error) {
-    console.error('Error loading departure districts:', error)
     departureDistricts.value = []
   } finally {
     loadingDepartureDistricts.value = false
@@ -83,7 +81,6 @@ const loadArrivalDistricts = async (provinceName) => {
     const districtList = await ProvinceAPI.getDistrictsByProvince(provinceName)
     arrivalDistricts.value = districtList
   } catch (error) {
-    console.error('Error loading arrival districts:', error)
     arrivalDistricts.value = []
   } finally {
     loadingArrivalDistricts.value = false
@@ -221,7 +218,6 @@ const handleSearch = async () => {
     // Emit kết quả tìm kiếm
     emit('search', searchResults)
   } catch (error) {
-    console.error('Error searching bus slots:', error)
     toast.warning('Không tìm thấy kết quả')
   }
 }

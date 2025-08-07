@@ -37,8 +37,9 @@
                 class="flex flex-col items-center justify-center w-full max-w-xs px-4 py-6 bg-white border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition">
                 
                 <span class="text-sm text-gray-600">Chọn ảnh (có thể chọn nhiều)</span>
-                <input type="file" multiple accept="image/*" @change="onImageChange" class="hidden" />
+                <input type="file" multiple accept="image/*" @change="onImageChange" class="hidden" :disabled="loadingImage" />
               </label>
+              <div v-if="loadingImage" class="text-indigo-600 text-sm flex items-center gap-2 mb-2"><span class="animate-spin w-4 h-4 border-2 border-indigo-500 border-t-white rounded-full"></span> Đang tải ảnh...</div>
 
               <div class="flex flex-wrap gap-2">
                 <div v-for="(img, idx) in images" :key="idx" class="relative w-24 h-24">
@@ -61,44 +62,56 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tên chuyến bay</label>
               <input v-model="flight.name" type="text" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.name ? 'border-red-500' : 'border-gray-300'}`"
                 placeholder="VD: Hà Nội - Đà Nẵng" />
+              <div v-if="validationErrors.name" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.name[0] }}
+              </div>
             </div>
 
             <!-- Hãng hàng không -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Hãng hàng không</label>
               <select v-model="flight.airline" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.airline ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn hãng</option>
                 <option v-for="airline in airlines" :key="airline.id" :value="airline">
                   {{ airline.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.airline" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.airline[0] }}
+              </div>
             </div>
 
             <!-- Departure Airport -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Sân bay đi</label>
               <select v-model="flight.departureAirport" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.departureAirport ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn sân bay đi</option>
                 <option v-for="airport in airports" :key="airport.id" :value="airport">
                   {{ airport.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.departureAirport" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.departureAirport[0] }}
+              </div>
             </div>
 
             <!-- Arrival Airport -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Sân bay đến</label>
               <select v-model="flight.arrivalAirport" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.arrivalAirport ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn sân bay đến</option>
                 <option v-for="airport in airports" :key="airport.id" :value="airport">
                   {{ airport.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.arrivalAirport" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.arrivalAirport[0] }}
+              </div>
             </div>
 
             <!-- Departure Time -->
@@ -321,6 +334,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { createAdminFlight, updateAdminFlight, getAdminAirports, getAllAirlines, getAllAirports, getAllFlightCategories, uploadFlightImages } from '@/api/flightApi'
 import Flight from '@/entity/Flight'
+import { validateForm, flightFormSchema } from '@/utils/validation'
 
 const flight = ref({ ...Flight })
 const airports = ref([])
@@ -329,6 +343,9 @@ const flightCategories = ref([])
 const isEdit = ref(false)
 const loading = ref(false)
 const error = ref('')
+
+// Validation errors
+const validationErrors = ref({})
 
 // Thông tin vé
 const ticketForm = ref({
@@ -454,18 +471,29 @@ const previewFlightNumber = computed(() => {
 })
 
 const images = ref([])
+const loadingImage = ref(false)
 function onImageChange(e) {
   const files = Array.from(e.target.files)
-  for (const file of files) {
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      images.value.push({ file, preview: ev.target.result })
+  if (files.length === 0) return
+  loadingImage.value = true
+  try {
+    for (const file of files) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        images.value.push({ file, preview: ev.target.result })
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
+    window.$toast('Thêm ảnh thành công!', 'success')
+  } catch (error) {
+    window.$toast('Lỗi khi thêm ảnh!', 'error')
+  } finally {
+    loadingImage.value = false
   }
 }
 function removeImage(idx) {
   images.value.splice(idx, 1)
+  window.$toast('Xóa ảnh thành công!', 'success')
 }
 
 onMounted(async () => {
@@ -484,6 +512,15 @@ onMounted(async () => {
 })
 
 async function submitFlight() {
+  // Validate form before submit
+  const { isValid, errors } = validateForm(flight.value, flightFormSchema)
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin chuyến bay!', 'error')
+    return
+  }
+  
   loading.value = true
 
   // Sinh mã chuyến bay tự động

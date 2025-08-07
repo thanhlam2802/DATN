@@ -13,9 +13,10 @@
     <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
       <div class="overflow-x-auto">
         <div class="overflow-y-auto h-[385px]">
-          <table class="min-w-[900px] w-full divide-y divide-slate-200">
+          <table class="min-w-[1000px] w-full divide-y divide-slate-200">
             <thead class="bg-slate-100">
               <tr>
+                <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
                 <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách hàng</th>
                 <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
                 <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày đặt phòng</th>
@@ -25,9 +26,14 @@
             </thead>
             <tbody class="bg-white divide-y divide-slate-100">
               <tr v-if="paginatedBookings.length === 0">
-                <td colspan="5" class="px-6 py-12 text-center text-slate-500">Không tìm thấy booking nào</td>
+                <td colspan="6" class="px-6 py-12 text-center text-slate-500">Không tìm thấy booking nào</td>
               </tr>
-              <tr v-for="b in paginatedBookings" :key="b.id" class="hover:bg-slate-50 transition-colors duration-150">
+              <tr v-for="(b, index) in paginatedBookings" :key="b.id" class="hover:bg-slate-50 transition-colors duration-150">
+                <td class="px-3 py-5 whitespace-nowrap">
+                  <div class="text-sm font-medium text-slate-700 text-center">
+                    {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                  </div>
+                </td>
                 <td class="px-3 py-5 whitespace-nowrap font-semibold text-slate-900">{{ b.customerName }}</td>
                 <td class="px-3 py-5 whitespace-nowrap">{{ b.hotelName }}</td>
                 <td class="px-3 py-5 whitespace-nowrap">{{ formatDateTime(b.createdAt) }}</td>
@@ -76,9 +82,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi } from '@/api/adminApi';
 import CustomSelect from '@/components/CustomSelect.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 
 const searchQuery = ref('');
 const currentPage = ref(1);
@@ -88,13 +96,34 @@ const itemsPerPage = computed(() => itemsPerPageStr.value === 'Tất cả' ? fil
 
 const bookings = ref([]);
 
+const { requireAdmin } = useAdminAuth();
+
 onMounted(async () => {
+  const userStore = useUserStore();
+  console.log('UserStore:', userStore);
+  console.log('User:', userStore.user);
+  console.log('User roles:', userStore.user?.roles);
+  
+  if (!userStore.user) {
+    console.log('No user data, trying to restore...');
+    await userStore.restoreUserFromToken();
+    console.log('After restore - User:', userStore.user);
+    console.log('After restore - User roles:', userStore.user?.roles);
+  }
+  
+  if (!requireAdmin('hotel')) {
+    console.log('Không có quyền admin hotel');
+    return;
+  }
+  
+  console.log('Có quyền admin hotel, loading data...');
+
   const breadcrumbStore = useAdminBreadcrumbStore();
   breadcrumbStore.setBreadcrumb([
     { label: 'Booking', active: true }
   ]);
   try {
-    const res = await hotelApi.getAllHotelBookings();
+    const res = await hotelAdminApi.getAllHotelBookings();
     if (res.data && res.data.data) {
       bookings.value = res.data.data;
     } else {

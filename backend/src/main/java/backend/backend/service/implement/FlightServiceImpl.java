@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -33,27 +34,61 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public List<FlightDto> searchFlights(FlightSearchRequestDto request) {
         String requestId = UUID.randomUUID().toString();
-        log.info("SEARCH_FLIGHTS_REQUEST    - RequestId: {}, params: {}", requestId, request);
+        long startTime = System.currentTimeMillis();
+
+        log.info("[SEARCH_FLIGHTS_REQUEST] RequestId: {}, Input Params:", requestId);
+        log.info("  - DepartureAirportId: {}", request.getDepartureAirportId());
+        log.info("  - ArrivalAirportId:   {}", request.getArrivalAirportId());
+        log.info("  - DepartureDate:      {}", request.getDepartureDate());
+        log.info("  - AirlineId:          {}", request.getAirlineId());
+        log.info("  - TimeWindow:         {}", request.getTimeWindow());
+        log.info("  - MinPrice:           {}", request.getMinPrice());
+        log.info("  - MaxPrice:           {}", request.getMaxPrice());
+        log.info("  - getCategoryId:           {}", request.getCategoryId());
         try {
-            List<Flight> flights = flightDAO.findAllWithSlots();
-            List<FlightDto> result = flights.stream()
-                    .filter(f -> request.getDepartureAirportId() == null ||
-                            (f.getDepartureAirport() != null &&
-                                    f.getDepartureAirport().getId().equals(request.getDepartureAirportId())))
-                    .filter(f -> request.getArrivalAirportId() == null ||
-                            (f.getArrivalAirport() != null &&
-                                    f.getArrivalAirport().getId().equals(request.getArrivalAirportId())))
-                    .filter(f -> request.getDepartureDate() == null ||
-                            f.getDepartureTime().toLocalDate().equals(request.getDepartureDate()))
-                    .map(this::toFlightDto)
-                    .collect(Collectors.toList());
-            log.info("SEARCH_FLIGHTS_SUCCESS    - RequestId: {}, found: {}", requestId, result.size());
+            List<Flight> flights = flightDAO.findAllUpcomingFlights();
+            log.info("[{}] Tổng chuyến bay ban đầu: {}", requestId, flights.size());
+            Integer startHour= null;
+            Integer endHour =null;
+            if (request.getTimeWindow()!=null) {
+                if (request.getTimeWindow().equalsIgnoreCase("morning")){
+                    startHour= 5;
+                    endHour =12;
+                }else if (request.getTimeWindow().equalsIgnoreCase("afternoon")){
+                    startHour= 12;
+                    endHour =20;
+                }else if (request.getTimeWindow().equalsIgnoreCase("night")){
+                    startHour= 20;
+                    endHour =5;
+                }
+            }
+            List<Flight>  ls =flightDAO.searchFlights(
+                    request.getDepartureAirportId(),
+                    request.getArrivalAirportId(),
+                    request.getAirlineId(),
+                    request.getCategoryId(),
+                    request.getDepartureDate(),
+                    startHour,endHour,
+                    request.getMinPrice(),
+                    request.getMaxPrice()
+            );
+            List<FlightDto> result = new ArrayList<>();
+            for (Flight flight : ls) {
+                log.info("[FORR]  id flight: {}",flight.getId());
+                FlightDto flightDto = this.toFlightDto(flight);
+                result.add(flightDto);
+            }
+            log.info("[SEARCH_FLIGHTS_SUCCESS] RequestId: {}, Tổng kết quả: {}", requestId, result.size());
+
             return result;
+
         } catch (Exception e) {
-            log.error("SEARCH_FLIGHTS_FAILED     - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            log.info("[SEARCH_FLIGHTS_FAILED] RequestId: {}, Exception: {}", requestId, e.getMessage(), e);
             throw e;
         }
     }
+
+
     @Transactional
     @Override
     public FlightDto getFlightDetail(Integer flightId) {
@@ -127,7 +162,7 @@ public class FlightServiceImpl implements FlightService {
             result.put("business",          flightSlotDAO.countAvailableBusinessSlotsByFlightId(flightId));
             result.put("economyWindow",     flightSlotDAO.countAvailableEconomyWindowSlotsByFlightId(flightId));
             result.put("economyAisle",      flightSlotDAO.countAvailableEconomyAisleSlotsByFlightId(flightId));
-            result.put("busine  ssWindow",    flightSlotDAO.countAvailableBusinessWindowSlotsByFlightId(flightId));
+            result.put("businessWindow",    flightSlotDAO.countAvailableBusinessWindowSlotsByFlightId(flightId));
             result.put("businessAisle",     flightSlotDAO.countAvailableBusinessAisleSlotsByFlightId(flightId));
             log.info("GET_SEATS_DETAIL_SUCCESS  - RequestId: {}, flightId: {}, details: {}", requestId, flightId, result);
             return result;

@@ -6,6 +6,7 @@ import backend.backend.service.AuthService;
 import backend.backend.service.OTPTransactionService;
 import backend.backend.utils.SecurityUtil;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -18,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final OTPTransactionService otpTransactionService;
 
     @PostMapping("/register")
     public JwtResultDto register(@Valid @RequestBody RegisterRequestDto requestDto) {
@@ -56,5 +56,15 @@ public class AuthController {
     @PostMapping("/reset-password/verify-link")
     public void resetPasswordVerifyLink(@Valid @RequestBody ResetPasswordVerifyLinkDto requestDto) {
         authService.resetPasswordVerifyLink(requestDto);
+    }
+
+    @PostMapping("/verify-account/resend")
+    public void verifyAccountResend(@Valid @Email @RequestBody String email) {
+        authService.verifyAccountResend(email);
+    }
+
+    @PostMapping("/refresh-token")
+    public JwtResultDto refreshToken(@Valid @RequestBody RefreshTokenRequestDto requestDto) {
+        return authService.refreshToken(requestDto);
     }
 }

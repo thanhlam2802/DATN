@@ -33,4 +33,6 @@ public class FlightSlot {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flight_id", nullable = false)
     private Flight flight;
+    @Column(name = "status")
+    private String status;
 }

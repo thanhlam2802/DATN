@@ -154,9 +154,12 @@ const submitCode = async () => {
   loadingStore.stopLoading();
 };
 
-const resendCode = () => {
+const resendCode = async () => {
   timer.value = 60;
   startTimer();
+  loadingStore.startLoading();
+  await AuthApi.verifyAccountResend(email.value);
+  loadingStore.stopLoading();
   // Add logic to resend code via API
 };
 

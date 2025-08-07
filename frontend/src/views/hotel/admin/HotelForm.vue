@@ -154,9 +154,10 @@
             <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
                 <div class="overflow-x-auto">
                   <div class="overflow-y-auto h-[453px]">
-                    <table class="min-w-[1100px] w-full divide-y divide-slate-200">
+                    <table class="min-w-[1200px] w-full divide-y divide-slate-200">
                       <thead class="bg-slate-100">
                         <tr>
+                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
                           <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
                           <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hạng sao</th>
                           <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
@@ -168,7 +169,7 @@
                       </thead>
                       <tbody class="bg-white divide-y divide-slate-100">
                         <tr v-if="paginatedHotels.length === 0" class="hover:bg-slate-50">
-                            <td colspan="6" class="px-6 py-12 text-center">
+                            <td colspan="8" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center space-y-3">
                                     <i class="fas fa-search text-4xl text-slate-300"></i>
                                     <p class="text-lg font-medium text-slate-500">Không tìm thấy khách sạn nào</p>
@@ -179,6 +180,11 @@
                         <tr v-for="(h, index) in paginatedHotels" :key="h.id"
                             class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
                             @click="() => viewHotelDetail(h)">
+                            <td class="px-3 py-5 whitespace-nowrap">
+                                <div class="text-sm font-medium text-slate-700 text-center">
+                                    {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                                </div>
+                            </td>
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="flex items-center space-x-3">
                                     <div>
@@ -708,7 +714,8 @@
 </template>
 
 <script>
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi } from '@/api/adminApi';
+import { notifyHotelCreated, notifyHotelUpdated, notifyHotelDeleted } from '@/api/hotelApi';
 import HotelDetailModal from './HotelDetailModal.vue';
 import provinceApi from '@/api/provinceApi';
 import AmenityApi from '@/api/AmenityApi';
@@ -717,6 +724,8 @@ import Ckeditor from '@/components/Ckeditor.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
 import CustomSelect from '@/components/CustomSelect.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 export default {
     name: 'HotelManager',
     components: { HotelDetailModal, ConfirmDialog, Ckeditor, HtmlContent, CustomSelect },
@@ -917,7 +926,7 @@ export default {
             this.activeTab = 0;
             if (mode === 'edit' && hotel) {
                 try {
-                    const res = await hotelApi.getHotelById(hotel.id);
+                    const res = await hotelAdminApi.getHotelById(hotel.id);
                     const detail = res.data.data || {};
                     this.newHotel = {
                         id: detail.id,
@@ -1022,7 +1031,7 @@ export default {
             this.hotelImagePreviews = [];
             this.imagesToDelete = [];
             try {
-                const res = await hotelApi.getHotelById(hotel.id);
+                const res = await hotelAdminApi.getHotelById(hotel.id);
                 const detail = res.data.data || {};
                 this.newHotel = {
                     id: detail.id,
@@ -1121,7 +1130,12 @@ export default {
         async onConfirmDelete() {
             this.showConfirmDialog = false;
             try {
-                await hotelApi.deleteHotel(this.hotelIdToDelete);
+                const hotelToDelete = this.hotels.find(h => h.id === this.hotelIdToDelete);
+                const hotelName = hotelToDelete ? hotelToDelete.name : 'Khách sạn';
+                await hotelAdminApi.deleteHotel(this.hotelIdToDelete);
+                const userStore = useUserStore();
+                const userName = userStore.user?.name || userStore.user?.email || 'Admin';
+                await notifyHotelDeleted(hotelName, userName);
                 window.$toast('Xóa khách sạn thành công!', 'success');
                 this.backToList();
                 this.fetchHotels();
@@ -1217,7 +1231,7 @@ export default {
                     page: 0,
                     size: 1000,
                 };
-                const response = await hotelApi.searchHotels(params);
+                const response = await hotelAdminApi.searchHotels(params);
                 if (response.data && response.data.data) {
                     this.hotels = response.data.data.content || response.data.data.items || [];
                 } else {
@@ -1480,11 +1494,15 @@ export default {
             }
             try {
                 let res;
+                const userStore = useUserStore();
+                const userName = userStore.user?.name || userStore.user?.email || 'Admin';
                 if (this.modalMode === 'add') {
-                    res = await hotelApi.createHotel(formData);
+                    res = await hotelAdminApi.createHotel(formData);
+                    await notifyHotelCreated(this.newHotel.name, userName);
                     window.$toast('Thêm khách sạn thành công!', 'success');
                 } else {
-                    res = await hotelApi.updateHotel(hotelData.id, formData);
+                    res = await hotelAdminApi.updateHotel(hotelData.id, formData);
+                    await notifyHotelUpdated(this.newHotel.name, userName);
                     window.$toast('Cập nhật khách sạn thành công!', 'success');
                 }
                 this.backToList();
@@ -1562,7 +1580,7 @@ export default {
             this.hotelImagePreviews = [];
             this.imagesToDelete = [];
             try {
-                const res = await hotelApi.getHotelById(hotel.id);
+                const res = await hotelAdminApi.getHotelById(hotel.id);
                 const detail = res.data.data || {};
                 this.newHotel = {
                     id: detail.id,
@@ -1700,7 +1718,7 @@ export default {
             this.isViewMode = true;
             if (this.newHotel.id) {
                 try {
-                    const res = await hotelApi.getHotelById(this.newHotel.id);
+                    const res = await hotelAdminApi.getHotelById(this.newHotel.id);
                     const detail = res.data.data || {};
                     this.newHotel = {
                         id: detail.id,
@@ -1937,6 +1955,27 @@ export default {
         },
     },
     mounted() {
+        const userStore = useUserStore();
+        console.log('UserStore:', userStore);
+        console.log('User:', userStore.user);
+        console.log('User roles:', userStore.user?.roles);
+        
+        if (!userStore.user) {
+            console.log('No user data, trying to restore...');
+            userStore.restoreUserFromToken().then(() => {
+                console.log('After restore - User:', userStore.user);
+                console.log('After restore - User roles:', userStore.user?.roles);
+            });
+        }
+        
+        const { requireAdmin } = useAdminAuth();
+        if (!requireAdmin('hotel')) {
+            console.log('Không có quyền admin hotel');
+            return;
+        }
+        
+        console.log('Có quyền admin hotel, loading data...');
+        
         this.fetchHotels();
         this.loadProvincesAndAmenities();
         document.addEventListener('click', this.handleOutsideClick, true);

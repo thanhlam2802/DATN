@@ -4,6 +4,7 @@ import backend.backend.dao.*;
 import backend.backend.dto.*;
 import backend.backend.entity.*;
 import backend.backend.service.AdminFlightService;
+import backend.backend.service.FlightService;
 import backend.backend.service.ImageStorageService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
     @Autowired private ImageStorageService imageStorageService;
     @Autowired private ImageDAO imageDAO;
     @Autowired private FlightImageDAO flightImageDAO;
-
+    @Autowired private FlightService flightService;
     @Override
     @Transactional
     public List<FlightDto> getFlights(int page, int size, String filter) {
@@ -229,6 +230,29 @@ public class AdminFlightServiceImpl implements AdminFlightService {
             throw e;
         }
     }
+    @Override
+    public List<FlightSlotDto> getSeatsBooked(Integer flightId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("""
+                GET_SEATS_REQUEST   - RequestId: {}, flightId: {}""", requestId, flightId);
+        try {
+            List<FlightSlot> ls= flightDAO.findslotByBooked(flightId);
+            if (ls.size() == 0) {
+                log.warn("GET_SEATS_NOT_FOUND       - RequestId: {}, flightId: {}", requestId, flightId);
+                return Collections.emptyList();
+            }
+            List<FlightSlotDto> res = new ArrayList<>();
+            for (FlightSlot fs : ls) {
+                FlightSlotDto dto = toFlightSlotDto(fs);
+                res.add(dto);
+                log.info("GET_SEATS_SUCCESS         - RequestId: {}, flightId: {}, dto: {}", requestId, flightId, dto);
+            }
+            return res;
+        } catch (Exception e) {
+            log.error("GET_SEATS_FAILED          - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+            throw e;
+        }
+    }
 
     @Override
     public List<FlightSlotDto> updateSeats(Integer flightId, List<FlightSlotDto> seats) {
@@ -347,11 +371,172 @@ public class AdminFlightServiceImpl implements AdminFlightService {
             throw e;
         }
     }
+    @Transactional
+    @Override
+    public void updateGroupSeat(Integer flightId, FlightSeatGroupDto dto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_GROUP_SEAT_REQ       - requestId: {}, flightId: {}, dto: {}", requestId, flightId, dto);
+
+        try {
+            Map<String, Integer> seatDetails = flightService.getAvailableSeatsDetail(flightId);
+            int ecoWindow   = seatDetails.getOrDefault("economyWindow", 0);
+            int ecoAisle    = seatDetails.getOrDefault("economyAisle", 0);
+            int bizWindow   = seatDetails.getOrDefault("businessWindow", 0);
+            int bizAisle    = seatDetails.getOrDefault("businessAisle", 0);
+
+            Flight fl = flightDAO.findById(flightId).orElse(null);
+            if (fl == null) {
+                log.warn("UPDATE_GROUP_SEAT_FLIGHT_NOT_FOUND - requestId: {}, flightId: {}", requestId, flightId);
+                return;
+            }
+
+            boolean isBusiness = dto.getIsBusiness();
+            boolean isWindow = dto.getIsWindow();
+            int desiredCount = dto.getCount();
+
+            if (isBusiness) {
+                if (isWindow) {
+                    if (bizWindow < desiredCount) {
+                        int toCreate = desiredCount - bizWindow;
+                        log.info("CREATE_SLOT_BIZ_WINDOW     - requestId: {}, flightId: {}, creating: {}", requestId, flightId, toCreate);
+                        createBackupSlots(toCreate, fl, dto);
+                    } else if (bizWindow > desiredCount) {
+                        int toDelete = bizWindow - desiredCount;
+                        log.info("DELETE_SLOT_BIZ_WINDOW     - requestId: {}, flightId: {}, deleting: {}", requestId, flightId, toDelete);
+                        deletebyGroup(toDelete, fl, dto);
+                    } else {
+                        log.info("NO_CHANGE_BIZ_WINDOW       - requestId: {}, flightId: {}, count unchanged", requestId, flightId);
+                    }
+                } else {
+                    if (bizAisle < desiredCount) {
+                        int toCreate = desiredCount - bizAisle;
+                        log.info("CREATE_SLOT_BIZ_AISLE      - requestId: {}, flightId: {}, creating: {}", requestId, flightId, toCreate);
+                        createBackupSlots(toCreate, fl, dto);
+                    } else if (bizAisle > desiredCount) {
+                        int toDelete = bizAisle - desiredCount;
+                        log.info("DELETE_SLOT_BIZ_AISLE      - requestId: {}, flightId: {}, deleting: {}", requestId, flightId, toDelete);
+                        deletebyGroup(toDelete, fl, dto);
+                    } else {
+                        log.info("NO_CHANGE_BIZ_AISLE        - requestId: {}, flightId: {}, count unchanged", requestId, flightId);
+                    }
+                }
+            } else {
+                if (isWindow) {
+                    if (ecoWindow < desiredCount) {
+                        int toCreate = desiredCount - ecoWindow;
+                        log.info("CREATE_SLOT_ECO_WINDOW     - requestId: {}, flightId: {}, creating: {}", requestId, flightId, toCreate);
+                        createBackupSlots(toCreate, fl, dto);
+                    } else if (ecoWindow > desiredCount) {
+                        int toDelete = ecoWindow - desiredCount;
+                        log.info("DELETE_SLOT_ECO_WINDOW     - requestId: {}, flightId: {}, deleting: {}", requestId, flightId, toDelete);
+                        deletebyGroup(toDelete, fl, dto);
+                    } else {
+                        log.info("NO_CHANGE_ECO_WINDOW       - requestId: {}, flightId: {}, count unchanged", requestId, flightId);
+                    }
+                } else {
+                    if (ecoAisle < desiredCount) {
+                        int toCreate = desiredCount - ecoAisle;
+                        log.info("CREATE_SLOT_ECO_AISLE      - requestId: {}, flightId: {}, creating: {}", requestId, flightId, toCreate);
+                        createBackupSlots(toCreate, fl, dto);
+                    } else if (ecoAisle > desiredCount) {
+                        int toDelete = ecoAisle - desiredCount;
+                        log.info("DELETE_SLOT_ECO_AISLE      - requestId: {}, flightId: {}, deleting: {}", requestId, flightId, toDelete);
+                        deletebyGroup(toDelete, fl, dto);
+                    } else {
+                        log.info("NO_CHANGE_ECO_AISLE        - requestId: {}, flightId: {}, count unchanged", requestId, flightId);
+                    }
+                }
+            }
+
+            flightSlotDAO.updateFlightSlotsByConditions(
+                    dto.getPrice(),
+                    dto.getCarryOnLuggage(),
+                    !isWindow,
+                    isWindow,
+                    isBusiness,
+                    flightId
+            );
+
+            log.info("UPDATE_SLOT_CONDITIONS_DONE - requestId: {}, flightId: {}", requestId, flightId);
+
+        } catch (Exception e) {
+            log.error("UPDATE_GROUP_SEAT_FAILED   - requestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    private void createBackupSlots(int count, Flight flight, FlightSeatGroupDto dto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("CREATE_BACKUP_SLOTS_START   - requestId: {}, flightId: {}, creating: {}, isBusiness: {}, isWindow: {}",
+                requestId, flight.getId(), count, dto.getIsBusiness(), dto.getIsWindow());
+
+        try {
+            for (int i = 0; i < count; i++) {
+                FindAvailableSlotRequestDto dtoReq = new FindAvailableSlotRequestDto();
+                dtoReq.setFlightId(flight.getId());
+                dtoReq.setIsAisle(!dto.getIsWindow());
+                dtoReq.setIsBusiness(dto.getIsBusiness());
+                dtoReq.setIsWindow(dto.getIsWindow());
+
+                FlightSlot slot = new FlightSlot();
+                slot.setFlight(flight);
+                slot.setPrice(dto.getPrice());
+                slot.setIsAisle(!dto.getIsWindow());
+                slot.setIsBusiness(dto.getIsBusiness());
+                slot.setIsWindow(dto.getIsWindow());
+                slot.setCarryOnLuggage(dto.getCarryOnLuggage());
+
+                int bk = 1;
+                String code;
+                do {
+                    code = "backup" + bk;
+                    bk++;
+                } while (flightSlotDAO.existsBySeatNumber(code));
+
+                slot.setSeatNumber(code);
+                flightSlotDAO.save(slot);
+                log.info("CREATE_BACKUP_SLOT_SUCCESS - requestId: {}, seatNumber: {}", requestId, code);
+            }
+
+            log.info("CREATE_BACKUP_SLOTS_DONE    - requestId: {}, flightId: {}", requestId, flight.getId());
+        } catch (Exception e) {
+            log.error("CREATE_BACKUP_SLOTS_FAILED  - requestId: {}, flightId: {}, error: {}", requestId, flight.getId(), e.getMessage(), e);
+            throw e;
+        }
+    }
+    private void deletebyGroup(int count, Flight flight, FlightSeatGroupDto dto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("DELETE_SLOT_GROUP_START     - requestId: {}, flightId: {}, deleting: {}, isBusiness: {}, isWindow: {}",
+                requestId, flight.getId(), count, dto.getIsBusiness(), dto.getIsWindow());
+
+        try {
+            List<FlightSlot> ls = flightDAO.findUnbookedSlotByConditions(
+                    flight.getId(), !dto.getIsWindow(), dto.getIsWindow(), dto.getIsBusiness()
+            );
+
+            if (ls.size() < count) {
+                log.warn("DELETE_SLOT_GROUP_INSUFFICIENT - requestId: {}, flightId: {}, available: {}, required: {}",
+                        requestId, flight.getId(), ls.size(), count);
+                return;
+            }
+
+            for (int i = 0; i < count; i++) {
+                String seat = ls.get(i).getSeatNumber();
+                flightSlotDAO.delete(ls.get(i));
+                log.info("DELETE_SLOT_SUCCESS         - requestId: {}, seatNumber: {}", requestId, seat);
+            }
+
+            log.info("DELETE_SLOT_GROUP_DONE      - requestId: {}, flightId: {}", requestId, flight.getId());
+        } catch (Exception e) {
+            log.error("DELETE_SLOT_GROUP_FAILED    - requestId: {}, flightId: {}, error: {}", requestId, flight.getId(), e.getMessage(), e);
+            throw e;
+        }
+    }
+
 
     @Override
     public List<FlightStatisticsDto> getFlightStatistics(String type, String value) {
         String requestId = UUID.randomUUID().toString();
-        log.info("GET_STATS_REQUEST         - RequestId: {}, type: {}, value: {}", requestId, type, value);
+        log.info("GET_STATS_REQUEST - RequestId: {}, type: {}, value: {}", requestId, type, value);
         try {
             var stats = flightDAO.findAll().stream().map(f -> {
                 FlightStatisticsDto dto = new FlightStatisticsDto();
@@ -738,5 +923,210 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .build();
         log.info("MAPPING_CATEGORY_TO_DTO_DONE- categoryId: {}", c.getId());
         return dto;
+    }
+
+    @Override
+    public MonthlyFlightStatisticsDto getMonthlyFlightStatistics(Integer year, Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("[THỐNG_KÊ_THÁNG][BẮT_ĐẦU] requestId={}, năm={}, tháng={}", requestId, year, month);
+
+        try {
+            // Tính tháng trước
+            int previousMonth = (month == 1) ? 12 : month - 1;
+            int previousYear = (month == 1) ? year - 1 : year;
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tháng trước được tính là: năm={}, tháng={}", requestId, previousYear, previousMonth);
+
+            // Thống kê tháng hiện tại
+            log.info("[THỐNG_KÊ_THÁNG][{}] Bắt đầu lấy dữ liệu thống kê tháng hiện tại...", requestId);
+            Long totalFlightsCurrentMonth = flightDAO.countFlightsByMonth(year, month);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số chuyến bay tháng {}/{}: {}", requestId, month, year, totalFlightsCurrentMonth);
+
+            Long totalBookingsCurrentMonth = flightBookingDAO.countBookingsByMonth(year, month);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số lượt đặt vé tháng {}/{}: {}", requestId, month, year, totalBookingsCurrentMonth);
+
+            Double totalRevenueCurrentMonth = flightBookingDAO.sumRevenueByMonth(year, month);
+            if (totalRevenueCurrentMonth == null) {
+                totalRevenueCurrentMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, month, year);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{}: {}", requestId, month, year, totalRevenueCurrentMonth);
+            }
+
+            Double averageOccupancyRateCurrentMonth = calculateAverageOccupancyRate(year, month);
+            if (averageOccupancyRateCurrentMonth == null) {
+                averageOccupancyRateCurrentMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, month, year);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy trung bình tháng {}/{}: {}%", requestId, month, year, averageOccupancyRateCurrentMonth);
+            }
+
+            // Thống kê tháng trước
+            log.info("[THỐNG_KÊ_THÁNG][{}] Bắt đầu lấy dữ liệu thống kê tháng trước...", requestId);
+            Long totalFlightsPreviousMonth = flightDAO.countFlightsByMonth(previousYear, previousMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số chuyến bay tháng {}/{}: {}", requestId, previousMonth, previousYear, totalFlightsPreviousMonth);
+
+            Long totalBookingsPreviousMonth = flightBookingDAO.countBookingsByMonth(previousYear, previousMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số lượt đặt vé tháng {}/{}: {}", requestId, previousMonth, previousYear, totalBookingsPreviousMonth);
+
+            Double totalRevenuePreviousMonth = flightBookingDAO.sumRevenueByMonth(previousYear, previousMonth);
+            if (totalRevenuePreviousMonth == null) {
+                totalRevenuePreviousMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, previousMonth, previousYear);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{}: {}", requestId, previousMonth, previousYear, totalRevenuePreviousMonth);
+            }
+
+            Double averageOccupancyRatePreviousMonth = calculateAverageOccupancyRate(previousYear, previousMonth);
+            if (averageOccupancyRatePreviousMonth == null) {
+                averageOccupancyRatePreviousMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, previousMonth, previousYear);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy trung bình tháng {}/{}: {}%", requestId, previousMonth, previousYear, averageOccupancyRatePreviousMonth);
+            }
+
+            // Tính phần trăm thay đổi
+            log.info("[THỐNG_KÊ_THÁNG][{}] Đang tính phần trăm thay đổi giữa hai tháng...", requestId);
+            Double flightsChangePercentage = calculatePercentageChange(totalFlightsPreviousMonth, totalFlightsCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi số chuyến bay: {}%", requestId, flightsChangePercentage);
+
+            Double bookingsChangePercentage = calculatePercentageChange(totalBookingsPreviousMonth, totalBookingsCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi lượt đặt vé: {}%", requestId, bookingsChangePercentage);
+
+            Double revenueChangePercentage = calculatePercentageChange(totalRevenuePreviousMonth, totalRevenueCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi doanh thu: {}%", requestId, revenueChangePercentage);
+
+            Double occupancyChangePercentage = calculatePercentageChange(averageOccupancyRatePreviousMonth, averageOccupancyRateCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi tỷ lệ lấp đầy: {}%", requestId, occupancyChangePercentage);
+
+            // Build DTO kết quả
+            MonthlyFlightStatisticsDto result = MonthlyFlightStatisticsDto.builder()
+                    .year(year)
+                    .month(month)
+                    .totalFlightsCurrentMonth(totalFlightsCurrentMonth)
+                    .totalBookingsCurrentMonth(totalBookingsCurrentMonth)
+                    .totalRevenueCurrentMonth(totalRevenueCurrentMonth)
+                    .averageOccupancyRateCurrentMonth(averageOccupancyRateCurrentMonth)
+                    .totalFlightsPreviousMonth(totalFlightsPreviousMonth)
+                    .totalBookingsPreviousMonth(totalBookingsPreviousMonth)
+                    .totalRevenuePreviousMonth(totalRevenuePreviousMonth)
+                    .averageOccupancyRatePreviousMonth(averageOccupancyRatePreviousMonth)
+                    .flightsChangePercentage(flightsChangePercentage)
+                    .bookingsChangePercentage(bookingsChangePercentage)
+                    .revenueChangePercentage(revenueChangePercentage)
+                    .occupancyChangePercentage(occupancyChangePercentage)
+                    .build();
+
+            log.info("[THỐNG_KÊ_THÁNG][THÀNH_CÔNG] requestId={}, kết_quả={}", requestId, result);
+            return result;
+
+        } catch (Exception e) {
+            log.error("[THỐNG_KÊ_THÁNG][LỖI] requestId={}, năm={}, tháng={}, lỗi={}, chi_tiết={}",
+                    requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    private Double calculateAverageOccupancyRate(Integer year, Integer month) {
+        try {
+            // Lấy tất cả chuyến bay trong tháng
+            List<Flight> flights = flightDAO.findAll().stream()
+                    .filter(f -> f.getCreatedAt().getYear() == year && f.getCreatedAt().getMonthValue() == month)
+                    .collect(Collectors.toList());
+            
+            if (flights.isEmpty()) {
+                return 0.0;
+            }
+            
+            double totalOccupancyRate = 0.0;
+            int flightCount = 0;
+            
+            for (Flight flight : flights) {
+                int totalSlots = flightSlotDAO.countAvailableSlotsByFlightId(flight.getId()) + 
+                                flightBookingDAO.countSoldSeatsByFlightId(flight.getId());
+                
+                if (totalSlots > 0) {
+                    int soldSeats = flightBookingDAO.countSoldSeatsByFlightId(flight.getId());
+                    double occupancyRate = (soldSeats * 100.0) / totalSlots;
+                    totalOccupancyRate += occupancyRate;
+                    flightCount++;
+                }
+            }
+            
+            return flightCount > 0 ? totalOccupancyRate / flightCount : 0.0;
+            
+        } catch (Exception e) {
+            log.error("CALCULATE_OCCUPANCY_RATE_FAILED - year: {}, month: {}, error: {}", year, month, e.getMessage(), e);
+            return 0.0;
+        }
+    }
+    
+    private Double calculatePercentageChange(Double previousValue, Double currentValue) {
+        if (previousValue == null || previousValue == 0) {
+            return currentValue != null && currentValue > 0 ? 100.0 : 0.0;
+        }
+        return ((currentValue - previousValue) / previousValue) * 100.0;
+    }
+    
+    private Double calculatePercentageChange(Long previousValue, Long currentValue) {
+        if (previousValue == null || previousValue == 0) {
+            return currentValue != null && currentValue > 0 ? 100.0 : 0.0;
+        }
+        return ((currentValue - previousValue) * 100.0) / previousValue;
+    }
+
+    @Override
+    public List<BookingByDestinationDto> getBookingsByDestination(Integer year, Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_BOOKINGS_BY_DESTINATION_REQUEST - RequestId: {}, year: {}, month: {}", requestId, year, month);
+        
+        try {
+            // Sử dụng JPA query tối ưu thay vì findAll().stream()
+            List<Object[]> results = flightBookingDAO.getBookingsByDestinationOptimized(year, month);
+            
+            // Chuyển đổi kết quả thành DTO
+            List<BookingByDestinationDto> result = results.stream()
+                    .map(row -> BookingByDestinationDto.builder()
+                            .destination((String) row[0])
+                            .bookingCount(((Number) row[1]).longValue())
+                            .build())
+                    .collect(Collectors.toList());
+
+            log.info("GET_BOOKINGS_BY_DESTINATION_SUCCESS - RequestId: {}, year: {}, month: {}, count: {}", 
+                    requestId, year, month, result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("GET_BOOKINGS_BY_DESTINATION_FAILED - RequestId: {}, year: {}, month: {}, error: {}", 
+                    requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    public List<RevenueBySeatClassDto> getRevenueBySeatClass(Integer year, Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_REVENUE_BY_SEAT_CLASS_REQUEST - RequestId: {}, year: {}, month: {}", requestId, year, month);
+        
+        try {
+            // Sử dụng JPA query tối ưu thay vì findAll().stream()
+            List<Object[]> results = flightBookingDAO.getRevenueBySeatClassOptimized(year, month);
+            
+            // Chuyển đổi kết quả thành DTO
+            List<RevenueBySeatClassDto> result = results.stream()
+                    .map(row -> RevenueBySeatClassDto.builder()
+                            .seatClass((String) row[0])
+                            .revenue(((Number) row[1]).doubleValue())
+                            .build())
+                    .collect(Collectors.toList());
+
+            log.info("GET_REVENUE_BY_SEAT_CLASS_SUCCESS - RequestId: {}, year: {}, month: {}, count: {}", 
+                    requestId, year, month, result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("GET_REVENUE_BY_SEAT_CLASS_FAILED - RequestId: {}, year: {}, month: {}, error: {}", 
+                    requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
     }
 }

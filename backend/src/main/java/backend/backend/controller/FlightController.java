@@ -2,10 +2,13 @@ package backend.backend.controller;
 
 import backend.backend.dto.*;
 import backend.backend.entity.*;
+import backend.backend.service.CustomerService;
 import backend.backend.service.FlightService;
 import backend.backend.dao.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,12 +28,13 @@ public class FlightController {
 
     @Autowired
     private AirportDAO airportDAO;
-
+    @Autowired
+    private CustomerService customerService;
     @Autowired
     private FlightCategoryDAO flightCategoryDAO;
 
-    @GetMapping("/search")
-    public ResponseEntity<List<FlightDto>> searchFlights(FlightSearchRequestDto request) {
+    @PostMapping("/search")
+    public ResponseEntity<List<FlightDto>> searchFlights(@RequestBody  FlightSearchRequestDto request) {
         String requestId = UUID.randomUUID().toString();
         log.info("SEARCH_FLIGHTS_REQUEST - RequestId: {}, Params: {}", requestId, request);
         try {
@@ -137,4 +141,23 @@ public class FlightController {
             throw e;
         }
     }
+    @PutMapping("/update-customer/{id}")
+    public ResponseEntity<CustomerDto> updateCustomer( @PathVariable Integer id,@RequestBody CustomerDto customerDto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_CUSTOMER_REQUEST – requestId={}, id={}, payload={}",requestId, id, customerDto);
+        try {
+            CustomerDto updated = customerService.updateCustomer(id, customerDto);
+            log.info("UPDATE_CUSTOMER_SUCCESS – requestId={}, id={}",requestId, updated.getId());
+
+            return ResponseEntity.ok(updated);
+
+        } catch (EntityNotFoundException ex) {
+            log.warn("UPDATE_CUSTOMER_NOT_FOUND – requestId={}, id={}", requestId, id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            log.error("UPDATE_CUSTOMER_FAILED – requestId={}, id={}, error={}",requestId, id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 }

@@ -1,6 +1,5 @@
 package backend.backend.service;
 
-import backend.backend.dto.auth.JwtResultDto;
 import backend.backend.dto.auth.OtpType;
 import backend.backend.entity.OTPTransaction;
 

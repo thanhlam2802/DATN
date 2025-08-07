@@ -9,22 +9,6 @@
         </p>
         <i class="fa-solid fa-plane-departure absolute top-8 right-64 text-5xl text-[#4f39f6]"></i>
       </div>
-      <div class="mb-10 flex justify-center">
-        <div class="inline-flex space-x-2 bg-white rounded-full shadow-md p-1">
-          <button @click="currentTab = 'one-way'" :class="currentTab === 'one-way' ? tabActiveClass : tabInactiveClass
-            " class="px-4 py-2 rounded-full text-sm font-medium transition-colors">
-            Một chiều
-          </button>
-          <button @click="currentTab = 'round-trip'" :class="currentTab === 'round-trip' ? tabActiveClass : tabInactiveClass
-            " class="px-4 py-2 rounded-full text-sm font-medium transition-colors">
-            Khứ hồi
-          </button>
-          <button @click="currentTab = 'multi-city'" :class="currentTab === 'multi-city' ? tabActiveClass : tabInactiveClass
-            " class="px-4 py-2 rounded-full text-sm font-medium transition-colors">
-            Nhiều thành phố
-          </button>
-        </div>
-      </div>
       <form @submit.prevent="onSearch"
         class="rounded-xl shadow-lg p-8 mb-10 border-t border-l border-gray-200 overflow-hidden relative before:absolute before:w-96 before:h-96 before:bg-sky-300 before:-z-10 before:rounded-full before:-top-70 before:-right-72 before:blur-xl before:[box-shadow:-100px_50px_30px_100px_#7dd3fc] after:absolute after:w-96 after:h-96 after:bg-sky-300 after:-z-10 after:rounded-full after:top-70 after:-left-72 after:blur-xl after:[box-shadow:-100px_50px_30px_100px_#7dd3fc]">
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -36,15 +20,18 @@
                   d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
               </svg>
 
-
               Sân bay khởi hành
             </label>
             <select id="departureAirport" v-model="filters.departureAirportId"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              :class="`w-full border rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.departureAirportId ? 'border-red-500' : 'border-gray-300'}`">
+              <option value="">Chọn sân bay khởi hành</option>
               <option v-for="airport in airports" :key="airport.id" :value="airport.id">
                 {{ airport.name }}
               </option>
             </select>
+            <div v-if="validationErrors.departureAirportId" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.departureAirportId[0] }}
+            </div>
           </div>
           <div>
             <label for="to" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -57,11 +44,15 @@
               Sân bay hạ cánh
             </label>
             <select id="arrivalAirport" v-model="filters.arrivalAirportId"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              :class="`w-full border rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.arrivalAirportId ? 'border-red-500' : 'border-gray-300'}`">
+              <option value="">Chọn sân bay hạ cánh</option>
               <option v-for="airport in airports" :key="airport.id" :value="airport.id">
                 {{ airport.name }}
               </option>
             </select>
+            <div v-if="validationErrors.arrivalAirportId" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.arrivalAirportId[0] }}
+            </div>
           </div>
           <div>
             <label for="departDate" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -74,13 +65,16 @@
             </label>
             <div class="relative">
               <input id="departDate" v-model="filters.departureDate" type="date"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                :class="`w-full border rounded-lg px-4 py-2 pr-10 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.departureDate ? 'border-red-500' : 'border-gray-300'}`" />
               <svg xmlns="http://www.w3.org/2000/svg"
                 class="h-5 w-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
+            </div>
+            <div v-if="validationErrors.departureDate" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.departureDate[0] }}
             </div>
           </div>
 
@@ -95,10 +89,13 @@
 
               Loại chuyến bay
             </label>
-            <select v-model="filters.flightType"
+            <select v-model="filters.categoryId"
               class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="one-way">Một chiều</option>
               <option value="round-trip">Khứ hồi</option>
+              <option v-for="cate in categories" :key="cate.id" :value="cate.id">
+                {{ cate.name }}
+              </option>
             </select>
           </div>
 
@@ -138,9 +135,10 @@
                 <input type="range" v-model="filters.priceMax" min="0" max="10000000" step="50000" class="w-full" />
               </div>
             </div>
-            <div class="flex justify-between text-xs text-gray-500">
-              <span class="text-center">{{ formatCurrency(filters.priceMin) }}</span>
-              <span class="text-center">{{  formatCurrency(filters.priceMax )}}</span>
+            <div class="text-xs text-gray-500 flex">
+              <span class="text-center block w-1/2">{{ filters.priceMin <= 0 ? "0 ₫" :formatCurrency(filters.priceMin)
+                  }}</span>
+                  <span class="text-center block w-1/2 ">{{ formatCurrency(filters.priceMax )}}</span>
             </div>
           </div>
           <div>
@@ -168,7 +166,7 @@
                       d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314l1.414 1.414M16.95 16.95l1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z" />
                   </svg>
                 </div>
-                <span class="ml-2 text-gray-700">Sáng (07:00–11:00)</span>
+                <span class="ml-2 text-gray-700">Sáng (05:00–12:00)</span>
               </label>
 
               <!-- Trưa -->
@@ -186,12 +184,12 @@
                       d="M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2m0 16v2m8-10h-2M6 12H4m12.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414" />
                   </svg>
                 </div>
-                <span class="ml-2 text-gray-700">Trưa (11:01–17:00)</span>
+                <span class="ml-2 text-gray-700">Trưa (12:00–20:00)</span>
               </label>
 
               <!-- Tối -->
               <label class="relative flex items-center cursor-pointer">
-                <input type="radio" name="timeWindow" value="evening" v-model="filters.timeWindow"
+                <input type="radio" name="timeWindow" value="night" v-model="filters.timeWindow"
                   class="sr-only peer" />
                 <div class="w-6 h-6 flex items-center justify-center bg-transparent border-2 border-indigo-500 rounded-full
              peer-checked:bg-indigo-500 peer-checked:border-indigo-500
@@ -204,21 +202,26 @@
                       d="M20.354 15.354A9 9 0 118.646 3.646 7 7 0 0020.354 15.354z" />
                   </svg>
                 </div>
-                <span class="ml-2 text-gray-700">Tối (17:01–23:00)</span>
+                <span class="ml-2 text-gray-700">Tối (20:00–05:00)</span>
               </label>
             </div>
 
 
           </div>
+          <div class="my-auto flex justify-center items-center gap-4 self-start">
+            <button type="submit"
+              class=" bg-indigo-600 hover:bg-transparent hover:text-indigo-600 horver:border hover:border-4 horver:border-indigo-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
+              Search
+            </button>
+            <button @click="reset"
+              class="border bg-transparent border-4 border-indigo-600 hover:bg-indigo-600 hover:text-white text-indigo-600 font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
+              Reset
+            </button>
+          </div>
 
         </div>
 
-        <div class="mt-8 flex justify-end">
-          <button type="submit"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors shadow-md">
-            Search
-          </button>
-        </div>
+
       </form>
 
       <h2 class="text-2xl font-semibold text-gray-800 mb-4">Flight options</h2>
@@ -234,7 +237,7 @@
           <div class="absolute bottom-4 left-4 text-white">
             <h3 class="text-xl font-semibold">{{ flight.name }}</h3>
             <p class="text-sm mt-1">
-              {{ formatTime(flight.departureTime) }} - {{ formatTime(flight.arrivalTime) }}
+              {{ formatDate(flight.departureTime)+ ' ' +formatTime(flight.departureTime) }}
             </p>
             <p class="text-lg font-bold mt-2">
               {{ priceDisplay(flight) }}
@@ -290,16 +293,14 @@
                 class="absolute inset-0 bg-white rounded-xl shadow-lg flex flex-col [backface-visibility:hidden] bg-gradient-to-br from-violet-400 to-indigo-600">
                 <div class="flex items-center space-x-14 overflow-hidden">
                   <img :src="selectedFlight.images[0].imageUrl" alt="flight image"
-                    class="h-full object-cover rounded-lg overflow-hidden" />
+                    class="h-full w-full object-cover rounded-lg overflow-hidden" />
                   <div class="text-white">
-                    <h3 class="text-3xl font-semibold">
+                    <h3 class="text-2xl font-semibold">
                       {{ selectedFlight.name }}
                     </h3>
                     <p class="text-sm">
-                      {{ formatTime(selectedFlight.departureTime) }} - {{ formatTime(selectedFlight.arrivalTime) }}
+                      {{formatDate(selectedFlight.departureTime)+ ' ' +formatTime(selectedFlight.departureTime)}}
                     </p>
-                  </div>
-                  <div>
                     <p class="text-2xl text-white font-bold">
                       {{ priceDisplay(selectedFlight) }}
                     </p>
@@ -310,8 +311,10 @@
               <div
                 class="absolute inset-0 bg-white rounded-xl shadow-lg p-4 [transform:rotateX(180deg)] [backface-visibility:hidden]">
                 <div class="mb-3">
-                  <h4 class="text-lg font-bold text-gray-800">
-                    Thông tin chuyến bay
+                  <h4 class="text-lg font-bold text-gray-800 flex gap-3">
+                    Thông tin chuyến bay  <p class="text-gray-500 italic">
+                    {{ selectedFlight.flightNumber }} 
+                  </p>
                   </h4>
                 </div>
                 <div class="text-sm text-gray-600 space-y-1">
@@ -321,13 +324,13 @@
                   </p>
                   <p>
                     <strong>Khởi hành:</strong>
-                    Sân bay: {{ selectedFlight.departureAirport.name }}
-                    Thời gian: {{ formatTime(selectedFlight.departureTime) }}
+                    {{ selectedFlight.departureAirport.name }} - 
+                    Thời gian: {{formatDate(selectedFlight.departureTime)+ ' ' +formatTime(selectedFlight.departureTime) }}
                   </p>
                   <p>
                     <strong>Đến:</strong>
-                    Sân bay: {{ selectedFlight.arrivalAirport.name }}
-                    Thời gian: {{ formatTime(selectedFlight.arrivalTime) }}
+                    {{ selectedFlight.arrivalAirport.name }} - 
+                    Thời gian: {{formatDate(selectedFlight.arrivalTime)+ ' ' +formatTime(selectedFlight.arrivalTime) }}
                   </p>
                   <p>
                     <strong>Hãng:</strong>
@@ -335,10 +338,7 @@
                     selectedFlight.airline.name
                     : selectedFlight.airline) : 'N/A' }}
                   </p>
-                  <p class="text-gray-500 italic">
-                    {{ selectedFlight.flightNumber }} • {{ formatTime(selectedFlight.departureTime) }} – {{
-                    formatTime(selectedFlight.arrivalTime) }}
-                  </p>
+                 
                   <p>
                     <strong>Số ghế còn:</strong>
                     {{ availableSeats !== null ? availableSeats.total : '...' }}
@@ -354,7 +354,9 @@
             Chọn loại vé của bạn
           </h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="group cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1">
+            <div class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
+                 :class="{'scale-105 -rotate-1 ring-2 ring-indigo-500/60 shadow-indigo-500/20': selectedCabinClass==='economy'}"
+                 @click="() => { selectedCabinClass = 'economy'; if (!economySeatType) economySeatType = 'window'; selectedSeatType = economySeatType; }">
               <div
                 class="relative w-full rounded-3xl border border-indigo-500/20 bg-gradient-to-tr from-[#0F0F0F] to-[#1B1B1B] shadow-2xl overflow-hidden backdrop-blur-xl hover:border-indigo-500/40 hover:shadow-indigo-500/10 hover:shadow-3xl">
                 <div class="absolute inset-0 z-0 overflow-hidden">
@@ -400,8 +402,6 @@
                   </p>
 
                   <ul class="text-sm text-gray-300 list-disc list-inside space-y-1">
-                    <li>Giá từ: <span class="font-bold text-indigo-400">{{ economySummary?.price ?
-                        formatCurrency(economySummary.price) : 'N/A' }}</span></li>
                     <li>Hành lý xách tay: <span class="font-bold text-indigo-400">{{ economySummary?.carryOnLuggage ?
                         economySummary.carryOnLuggage + ' kg' : 'N/A' }}</span></li>
                     <li>Số lượng vé: <span class="font-bold text-indigo-400">{{ economySummary?.total ?? 0 }}</span>
@@ -412,14 +412,15 @@
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="economySeatType" value="window" @change="selectedSeatType = 'window'"
                         class="form-radio text-indigo-600" />
-                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span>
+                        <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+{{ economySummary.priceWindow }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{ economySummary.countWindow ?? 0
                           }})</span></span>
                     </label>
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="economySeatType" value="aisle" @change="selectedSeatType = 'aisle'"
                         class="form-radio text-indigo-600" />
-                      <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{
+                      <span class="ml-2 font-bold">Ngồi lối đi <span class="text-xs text-gray-400">(+{{ economySummary.priceAisle }} VND)</span>
+                        <span class="ml-1 text-xs text-gray-500">(Còn {{
                           economySummary.countAisle ?? 0 }})</span></span>
                     </label>
                   </div>
@@ -427,7 +428,9 @@
               </div>
             </div>
 
-            <div class="group cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1">
+            <div class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
+                 :class="{'scale-105 -rotate-1 ring-2 ring-yellow-400/60 shadow-yellow-400/20': selectedCabinClass==='business'}"
+                 @click="() => { selectedCabinClass = 'business'; if (!businessSeatType) businessSeatType = 'window'; selectedSeatType = businessSeatType; }">
               <div
                 class="relative w-full rounded-3xl border border-yellow-400/20 bg-gradient-to-tr from-[#1A1400] to-[#2B1F00] shadow-2xl overflow-hidden backdrop-blur-xl hover:border-yellow-400/40 hover:shadow-yellow-400/10 hover:shadow-3xl">
                 <div class="absolute inset-0 z-0 overflow-hidden">
@@ -476,8 +479,6 @@
                   </p>
 
                   <ul class="text-sm text-gray-300 list-disc list-inside space-y-1">
-                    <li>Giá từ: <span class="font-bold text-indigo-400">{{ businessSummary?.price ?
-                        formatCurrency(businessSummary.price) : 'N/A' }}</span></li>
                     <li>Hành lý xách tay: <span class="font-bold text-indigo-400">{{ businessSummary?.carryOnLuggage ?
                         businessSummary.carryOnLuggage + ' kg' : 'N/A' }}</span></li>
                     <li>Số lượng vé: <span class="font-bold text-indigo-400">{{ businessSummary?.total ?? 0 }}</span>
@@ -488,14 +489,15 @@
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="businessSeatType" value="window"
                         @change="selectedSeatType = 'window'" class="form-radio text-yellow-500" />
-                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+200,000 VND)</span>
+                      <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+{{ businessSummary.priceWindow }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{ businessSummary.countWindow ?? 0
                           }})</span></span>
                     </label>
                     <label class="inline-flex items-center">
                       <input type="radio" v-model="businessSeatType" value="aisle" @change="selectedSeatType = 'aisle'"
                         class="form-radio text-yellow-500" />
-                      <span class="ml-2 font-bold">Ngồi lối đi <span class="ml-1 text-xs text-gray-500">(Còn {{
+                      <span class="ml-2 font-bold">Ngồi lối đi <span class="text-xs text-gray-400">(+{{ businessSummary.priceAisle }} VND)</span>
+                        <span class="ml-1 text-xs text-gray-500">(Còn {{
                           businessSummary.countAisle ?? 0 }})</span></span>
                     </label>
                   </div>
@@ -519,16 +521,12 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router';
-import { searchFlights, getAvailableSeats, findFirstAvailableSlot } from '@/api/flightApi'
+import { searchFlights, getAvailableSeats, getAllAirlines,getAllAirports ,getAllFlightCategories} from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import FindAvailableSlotRequestDto from '@/dto/FindAvailableSlotRequestDto'
+import { validateForm, flightSearchSchema } from '@/utils/validation'
 
 const router = useRouter();
-
-/** ========== Tab State ========== **/
-const currentTab = ref("one-way");
-const tabActiveClass = "bg-indigo-600 text-white";
-const tabInactiveClass = "bg-white text-gray-600 hover:bg-gray-100";
 const showBookingModal = ref(false);
 const selectedFlight = ref(null);
 const availableSeats = ref(null);
@@ -557,81 +555,79 @@ function openBooking(flight) {
 
 
 }
+const categories = ref([]);
+const airports =ref([]);
+const airlines =ref([]);
 const economySummary = ref({
   price: 0,
   carryOnLuggage: 0,
   total: 0,
   countWindow: 0,
-  countAisle: 0
+  countAisle: 0,
+  priceWindow: 0,
+  priceAisle: 0
 });
 const businessSummary = ref({
   price: 0,
   carryOnLuggage: 0,
   total: 0,
   countWindow: 0,
-  countAisle: 0
+  countAisle: 0,
+  priceWindow: 0,
+  priceAisle: 0
 });
 function closeBooking() {
   showBookingModal.value = false;
   selectedFlight.value = null;
 }
 
-/** ========== Filter State ========== **/
+function reset(){
+  filters.value ={
+  departureAirportId: null,
+  arrivalAirportId: null,
+  departureDate: '',
+  categoryId: null,
+  airlineId: null,
+  timeWindow:null,  
+  priceMin: 0,
+  priceMax: 10000000,
+}
+}
 const filters = ref({
   departureAirportId: null,
   arrivalAirportId: null,
   departureDate: '',
-  returnDate: '',
-  passengers: 1,
-  cabinClass: "economy",
-  airlines: [], // array of selected airline keys
-  stops: [], // array of selected stop types
-  timeWindow: "all",
+  categoryId: null,
+  airlineId: null,
+  timeWindow:null,  
   priceMin: 0,
-  priceMax: 1000,
-  multiCities: "",
+  priceMax: 10000000,
 });
 
-
-
-
-
-// Tùy chọn stop types
-const stopsOptions = {
-  direct: "Bay thẳng",
-  "1stop": "1 điểm dừng",
-  "2plus": "2+ điểm dừng",
-};
-
-// Hàm toggle chọn airlines (đa lựa)
-function toggleAirline(key) {
-  const idx = filters.value.airlines.indexOf(key);
-  if (idx === -1) filters.value.airlines.push(key);
-  else filters.value.airlines.splice(idx, 1);
-}
-
-// Hàm toggle chọn stops
-function toggleStop(key) {
-  const idx = filters.value.stops.indexOf(key);
-  if (idx === -1) filters.value.stops.push(key);
-  else filters.value.stops.splice(idx, 1);
-}
+// Validation errors
+const validationErrors = ref({})
 
 const flights = ref([])
 const loading = ref(false)
 const error = ref('')
 
 function onSearch() {
+  // Validate form before search
+  const { isValid, errors } = validateForm(filters.value, flightSearchSchema)
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin tìm kiếm!', 'error')
+    return
+  }
+  
   loading.value = true
-  searchFlights({
-    departureAirportId: filters.value.departureAirportId,
-    arrivalAirportId: filters.value.arrivalAirportId,
-    departureDate: filters.value.departureDate,
-    airlineId: filters.value.airlines.length === 1 ? filters.value.airlines[0] : undefined
-  })
+  console.log(filters.value);
+  
+  searchFlights(filters.value)
     .then(res => {
       flights.value = res.data
-      window.$toast('Tìm kiếm thành công!', 'success');
+      window.$toast('Thành công!', 'success');
     })
     .catch(() => {
       error.value = 'Không thể tìm chuyến bay.'
@@ -641,9 +637,36 @@ function onSearch() {
       loading.value = false
     })
 }
-
+function fillAirPorts(){
+  getAllAirports().then(res =>{
+    airports.value = res.data;
+    console.log(airports.value);
+    
+  })
+  getAllAirlines().then(res =>{
+    airlines.value = res.data;
+  })
+  getAllFlightCategories().then(res =>{
+    categories.value = res.data;
+  })
+  
+}
 onMounted(() => {
-  onSearch()
+  fillAirPorts();
+  searchFlights(filters.value)
+    .then(res => {
+      flights.value = res.data
+      window.$toast('Tìm kiếm thành công!', 'success');
+    })
+    .catch((e) => {
+      error.value = 'Không thể tìm chuyến bay.'
+      console.log(e);
+      
+      window.$toast('Không tìm thấy chuyến bay!', 'error');
+    })
+    .finally(() => {
+      loading.value = false
+    })
 })
 
 /** ========== Pagination ========== **/
@@ -681,7 +704,7 @@ const pageInactiveClass = "bg-white text-gray-600 hover:bg-gray-100";
 
 function priceDisplay(flight) {
   if (flight.minPrice && flight.maxPrice && flight.minPrice !== flight.maxPrice) {
-    return formatCurrency(flight.minPrice) + ' - ' + formatCurrency(flight.maxPrice);
+    return formatCurrency(flight.minPrice) + ' ' + formatCurrency(flight.maxPrice);
   } else if (flight.minPrice) {
     return formatCurrency(flight.minPrice);
   } else {
@@ -697,15 +720,32 @@ function formatTime(val) {
   const d = new Date(val);
   return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 }
+function formatDate(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  return d.toLocaleDateString('vi-VN');
+}
 function getTicketSummary(slots, isBusiness) {
   console.log('Slots:', slots);
   for (const slot of slots) {
     if (slot.isBusiness === isBusiness) {
       businessSummary.value.price = slot.price;
       businessSummary.value.carryOnLuggage = slot.carryOnLuggage;
+      if(slot.isWindow){
+        businessSummary.value.priceWindow = slot.price;
+      }
+      if(slot.isAisle){
+        businessSummary.value.priceAisle = slot.price;
+      }
     } else {
       economySummary.value.price = slot.price;
       economySummary.value.carryOnLuggage = slot.carryOnLuggage;
+      if(slot.isWindow){
+        economySummary.value.priceWindow = slot.price;
+      }
+      if(slot.isAisle){
+        economySummary.value.priceAisle = slot.price;
+      }
     }
   }
 }

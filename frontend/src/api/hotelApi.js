@@ -84,10 +84,10 @@ export const getDashboardStatistics = (timePeriod = 'this_month') => {
     });
 };
 
-export const getHotelRevenueChart = (timePeriod = 'this_month') => {
+export const getHotelRevenueChart = (timePeriod = 'this_month', chartType = 'by_day') => {
     const headers = { Authorization: getBearerToken() };
     return axios.get(`${API_ADMIN_BASE_URL}/revenue-chart`, {
-        params: { timePeriod },
+        params: { timePeriod, chartType },
         headers
     });
 };

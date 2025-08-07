@@ -205,8 +205,19 @@ const submitForm = async () => {
       const profileRes = await AccountApi.getProfile();
       if (!profileRes.errorCode) {
         userStore.login(profileRes.data, res.accessToken);
-        const redirectPath = getRedirectPath(profileRes.data);
-        await router.push(redirectPath);
+        
+        const intendedRoute = localStorage.getItem('intendedRoute');
+        console.log('Login success - intended route:', intendedRoute);
+        
+        if (intendedRoute) {
+          console.log('Redirecting to intended route:', intendedRoute);
+          localStorage.removeItem('intendedRoute');
+          await router.push(intendedRoute);
+        } else {
+          const redirectPath = getRedirectPath(profileRes.data);
+          console.log('Redirecting to default path:', redirectPath);
+          await router.push(redirectPath);
+        }
       } else {
         userStore.login(null, res.accessToken);
         await router.push("/");

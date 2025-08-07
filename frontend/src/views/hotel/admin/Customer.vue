@@ -25,17 +25,17 @@
             <table class="min-w-[1000px] w-full divide-y divide-slate-200">
               <thead class="bg-slate-100">
                 <tr>
-                  <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
-                  <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách
                     hàng</th>
-                  <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Email</th>
-                  <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Email</th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện
                     thoại</th>
-                  <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số lượt đặt
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số lượt đặt
                   </th>
-                  <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày đặt
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày đặt
                     phòng gần nhất</th>
-                  <th class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Hành động
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider z-9999">Hành động
                   </th>
                 </tr>
               </thead>
@@ -510,13 +510,20 @@ watch([mode, formMode], () => {
 });
 
 const filteredCustomers = computed(() => {
-  if (!searchQuery.value) return customers.value;
-  const q = searchQuery.value.toLowerCase();
-  return customers.value.filter(c =>
-    (c.fullName || '').toLowerCase().includes(q) ||
-    (c.email || '').toLowerCase().includes(q) ||
-    (c.phone || '').includes(q)
-  );
+  let filtered = customers.value;
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(c =>
+      (c.fullName || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.phone || '').includes(q)
+    );
+  }
+  return filtered.sort((a, b) => {
+    const dateA = a.latestBookingDate ? new Date(a.latestBookingDate) : new Date(0);
+    const dateB = b.latestBookingDate ? new Date(b.latestBookingDate) : new Date(0);
+    return dateB - dateA;
+  });
 });
 
 const itemsPerPage = computed(() => itemsPerPageStr.value === 'Tất cả' ? filteredCustomers.value.length : Number(itemsPerPageStr.value));

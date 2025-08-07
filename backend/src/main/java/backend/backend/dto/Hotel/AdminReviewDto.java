@@ -14,4 +14,7 @@ public class AdminReviewDto {
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String adminResponse;
+    private LocalDateTime adminResponseAt;
+    private String adminResponseByName;
 } 

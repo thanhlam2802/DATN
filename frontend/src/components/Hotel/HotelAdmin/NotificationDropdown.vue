@@ -275,12 +275,20 @@ const markAsRead = (id) => {
   if (notification && !notification.read) {
     notification.read = true;
     saveNotificationsToStorage();
+    
+    window.dispatchEvent(new CustomEvent('notificationsUpdated', { 
+      detail: { notifications: notifications.value, nextId: Date.now() }
+    }));
   }
 };
 
 const markAllAsRead = () => {
   notifications.value.forEach(n => n.read = true);
   saveNotificationsToStorage();
+  
+  window.dispatchEvent(new CustomEvent('notificationsUpdated', { 
+    detail: { notifications: notifications.value, nextId: Date.now() }
+  }));
 };
 
 const viewAllNotifications = () => {
@@ -307,24 +315,8 @@ const formatTime = (timestamp) => {
 const handleNotificationsUpdate = (event) => {
   if (event.detail) {
     const newNotifications = event.detail.notifications || [];
-    const currentIds = notifications.value.map(n => n.id);
     
-    const newNotificationsToAdd = newNotifications.filter(n => !currentIds.includes(n.id));
-    
-    if (newNotificationsToAdd.length > 0) {
-      notifications.value.unshift(...newNotificationsToAdd);
-      
-      if (notifications.value.length > 50) {
-        notifications.value = notifications.value.slice(0, 50);
-      }
-    } else {
-      notifications.value.forEach(notification => {
-        const updatedNotification = newNotifications.find(n => n.id === notification.id);
-        if (updatedNotification) {
-          notification.read = updatedNotification.read;
-        }
-      });
-    }
+    notifications.value = newNotifications;
   }
 };
 

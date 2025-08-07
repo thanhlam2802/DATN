@@ -194,6 +194,15 @@ const routes = [
     path: "/bus-management",
     name: "BusManagement",
     component: BusManagementLayout,
+    children: [
+      { path: "", redirect: "route" },
+      { path: "route", name: "RouteManagement", component: () => import("@/components/Bus/management_bus_component/RouteManagement.vue") },
+      { path: "category", name: "BusCategoryManagement", component: () => import("@/components/Bus/management_bus_component/BusCategoryManagement.vue") },
+      { path: "bus", name: "BusManagementPage", component: () => import("@/components/Bus/management_bus_component/BusManagement.vue") },
+      { path: "trip", name: "TripManagement", component: () => import("@/components/Bus/management_bus_component/TripManagement.vue") },
+      { path: "price", name: "PriceManagement", component: () => import("@/components/Bus/management_bus_component/PriceManagement.vue") },
+      { path: "statistics", name: "Statistics", component: () => import("@/components/Bus/management_bus_component/Statistics.vue") },
+    ],
   },
   {
     path: "/oauth2/login/success",

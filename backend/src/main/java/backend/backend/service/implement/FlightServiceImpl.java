@@ -46,8 +46,6 @@ public class FlightServiceImpl implements FlightService {
         log.info("  - MaxPrice:           {}", request.getMaxPrice());
         log.info("  - getCategoryId:           {}", request.getCategoryId());
         try {
-            List<Flight> flights = flightDAO.findAllUpcomingFlights();
-            log.info("[{}] Tổng chuyến bay ban đầu: {}", requestId, flights.size());
             Integer startHour= null;
             Integer endHour =null;
             if (request.getTimeWindow()!=null) {
@@ -74,7 +72,6 @@ public class FlightServiceImpl implements FlightService {
             );
             List<FlightDto> result = new ArrayList<>();
             for (Flight flight : ls) {
-                log.info("[FORR]  id flight: {}",flight.getId());
                 FlightDto flightDto = this.toFlightDto(flight);
                 result.add(flightDto);
             }

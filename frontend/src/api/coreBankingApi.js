@@ -38,9 +38,15 @@ export const servicePayment = (data) =>
 export const refundByPaymentId = (paymentId, data) =>
   api.post(`/payments/${paymentId}/refunds`, data);
 
-// Refund by TransactionId
-export const refundByTransactionId = (data) =>
-  api.post('/refunds/by-transaction', data);
+
+
+// Refund Make (Gửi OTP hủy vé)
+export const refundMake = (data) =>
+  api.post('/refunds/make', data);
+
+// Refund Confirm (Xác nhận OTP hủy vé)
+export const refundConfirm = (data) =>
+  api.post('/refunds/confirm', data);
 
 // Service Payment Make (Gửi OTP)
 export const servicePaymentMake = (data) =>

@@ -141,27 +141,7 @@ public class PaymentController {
         return ResponseEntity.ok(paymentDto);
     }
 
-    @Operation(summary = "Hoàn tiền dựa trên transactionId",
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    required = true,
-                    content = @Content(schema = @Schema(
-                        example = "{" +
-                                "\n  'transactionId': 10," +
-                                "\n  'reason': 'Hoàn tiền do lỗi dịch vụ'\n}")))
-            ,
-            responses = @ApiResponse(
-                    responseCode = "200",
-                    description = "Kết quả hoàn tiền",
-                    content = @Content(schema = @Schema(implementation = RefundDto.class))
-            )
-    )
-    @PostMapping("/refunds/by-transaction")
-    public ResponseEntity<RefundDto> refundByTransactionId(@RequestBody Map<String, Object> req) {
-        UUID transactionId = UUID.fromString(req.get("transactionId").toString());
-        String reason = req.get("reason").toString();
-        RefundDto refundDto = paymentService.refundByTransactionId(transactionId, reason);
-        return ResponseEntity.ok(refundDto);
-    }
+
 
     @PostMapping("/payments/service/make")
     public ResponseEntity<PaymentDto> makeServicePayment(@RequestBody ServicePaymentRequestDto req) {
@@ -175,5 +155,49 @@ public class PaymentController {
         String otp = req.get("otp");
         TransactionDto dto = paymentService.confirmServicePayment(paymentId, otp);
         return ResponseEntity.ok(dto);
+    }
+
+    @Operation(summary = "Hủy vé - Gửi OTP xác nhận",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(schema = @Schema(
+                        example = "{" +
+                                "\n  'transactionId': 'uuid-1'," +
+                                "\n  'reason': 'Hủy vé do thay đổi lịch trình'\n}")))
+            ,
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "Kết quả gửi OTP",
+                    content = @Content(schema = @Schema(implementation = PaymentDto.class))
+            )
+    )
+    @PostMapping("/refunds/make")
+    public ResponseEntity<PaymentDto> makeRefund(@RequestBody Map<String, Object> req) {
+        UUID transactionId = UUID.fromString(req.get("transactionId").toString());
+        String reason = req.get("reason").toString();
+        PaymentDto paymentDto = paymentService.makeRefund(transactionId, reason);
+        return ResponseEntity.ok(paymentDto);
+    }
+
+    @Operation(summary = "Hủy vé - Xác nhận OTP",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(schema = @Schema(
+                        example = "{" +
+                                "\n  'paymentId': 'uuid-1'," +
+                                "\n  'otp': '123456'\n}")))
+            ,
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "Kết quả hoàn tiền",
+                    content = @Content(schema = @Schema(implementation = RefundDto.class))
+            )
+    )
+    @PostMapping("/refunds/confirm")
+    public ResponseEntity<RefundDto> confirmRefund(@RequestBody Map<String, String> req) {
+        String paymentId = req.get("paymentId");
+        String otp = req.get("otp");
+        RefundDto refundDto = paymentService.confirmRefund(paymentId, otp);
+        return ResponseEntity.ok(refundDto);
     }
 } 

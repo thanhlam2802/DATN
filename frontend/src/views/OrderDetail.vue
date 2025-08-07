@@ -3,7 +3,7 @@ import { ref, onMounted, computed, reactive, onUnmounted, onBeforeUnmount, watch
 import { useRoute, useRouter } from "vue-router";
 import { getBearerToken } from "@/services/TokenService";
 import { updateCustomer, cancelFlightBooking } from '@/api/flightApi'
-import { servicePaymentMake, servicePaymentConfirm, accountLookup } from '@/api/coreBankingApi';
+import { servicePaymentMake, servicePaymentConfirm, accountLookup, refundMake, refundConfirm } from '@/api/coreBankingApi';
 import SockJS from "sockjs-client/dist/sockjs.min.js";
 import { markOrderSuccess } from '@/api/OrderApi'
 import Stomp from "stompjs";
@@ -84,6 +84,95 @@ const bankTransfer = reactive({
 
 // --- COMPUTED PROPERTIES ---
 const isEditable = computed(() => order.value?.status === "PENDING_PAYMENT");
+const isPaid = computed(() => order.value?.status === "PAID");
+const canRefund = computed(() => isPaid.value && order.value?.transactionId);
+
+// Computed property to check if any bookings are close to expiry
+const bookingsCloseToExpiry = computed(() => {
+  if (!order.value) return [];
+
+  const now = new Date();
+  const oneDayInMs = 24 * 60 * 60 * 1000;
+  const closeBookings = [];
+
+  // Check flight bookings
+  if (order.value.flightBookings && order.value.flightBookings.length > 0) {
+    for (const booking of order.value.flightBookings) {
+      if (booking.flightSlot && booking.flightSlot.flight && booking.flightSlot.flight.departureTime) {
+        const departureTime = new Date(booking.flightSlot.flight.departureTime);
+        const timeUntilDeparture = departureTime.getTime() - now.getTime();
+
+        if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
+          closeBookings.push({
+            type: 'flight',
+            name: `${booking.flightSlot.flight.name} (${booking.flightSlot.flight.flightNumber})`,
+            remainingTime: formatRemainingTime(timeUntilDeparture),
+            departureTime: booking.flightSlot.flight.departureTime
+          });
+        }
+      }
+    }
+  }
+
+  // Check hotel bookings
+  if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
+    for (const booking of order.value.hotelBookings) {
+      if (booking.checkInDate) {
+        const checkInDate = new Date(booking.checkInDate);
+        const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
+
+        if (timeUntilCheckIn <= oneDayInMs && timeUntilCheckIn > 0) {
+          closeBookings.push({
+            type: 'hotel',
+            name: booking.hotelName || 'N/A',
+            remainingTime: formatRemainingTime(timeUntilCheckIn),
+            checkInDate: booking.checkInDate
+          });
+        }
+      }
+    }
+  }
+
+  // Check tour bookings
+  if (order.value.tourBookings && order.value.tourBookings.length > 0) {
+    for (const booking of order.value.tourBookings) {
+      if (booking.departureDate) {
+        const departureDate = new Date(booking.departureDate);
+        const timeUntilDeparture = departureDate.getTime() - now.getTime();
+
+        if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
+          closeBookings.push({
+            type: 'tour',
+            name: booking.tourName || 'N/A',
+            remainingTime: formatRemainingTime(timeUntilDeparture),
+            departureDate: booking.departureDate
+          });
+        }
+      }
+    }
+  }
+
+  // Check bus bookings
+  if (order.value.busBookings && order.value.busBookings.length > 0) {
+    for (const booking of order.value.busBookings) {
+      if (booking.busSlot && booking.busSlot.bus && booking.busSlot.bus.departureTime) {
+        const departureTime = new Date(booking.busSlot.bus.departureTime);
+        const timeUntilDeparture = departureTime.getTime() - now.getTime();
+
+        if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
+          closeBookings.push({
+            type: 'bus',
+            name: booking.busSlot.bus.name || 'N/A',
+            remainingTime: formatRemainingTime(timeUntilDeparture),
+            departureTime: booking.busSlot.bus.departureTime
+          });
+        }
+      }
+    }
+  }
+
+  return closeBookings;
+});
 
 // --- HELPER FUNCTIONS ---
 const formatPrice = (price) =>
@@ -122,6 +211,20 @@ const otpCountdown = ref(600);
 const otpCountdownDisplay = ref('10:00');
 const otpExpired = ref(false);
 let otpTimer = null;
+
+// --- STATE CHO HỦY VÉ ---
+const showRefundDialog = ref(false);
+const refundReason = ref('');
+const isRefunding = ref(false);
+const refundOtp = ref('');
+const refundOtpError = ref('');
+const refundOtpSuccess = ref(false);
+const isRefundConfirming = ref(false);
+const refundPaymentId = ref(null);
+const refundOtpCountdown = ref(600);
+const refundOtpCountdownDisplay = ref('10:00');
+const refundOtpExpired = ref(false);
+let refundOtpTimer = null;
 function resetAccountInfo() {
   bankTransfer.accountName = '';
   bankTransfer.availableBalance = 0;
@@ -180,6 +283,21 @@ const formatDateTime = (dateString) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
+// Helper function to format remaining time
+const formatRemainingTime = (milliseconds) => {
+  const days = Math.floor(milliseconds / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((milliseconds % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const minutes = Math.floor((milliseconds % (60 * 60 * 1000)) / (60 * 1000));
+
+  if (days > 0) {
+    return `${days} ngày ${hours} giờ ${minutes} phút`;
+  } else if (hours > 0) {
+    return `${hours} giờ ${minutes} phút`;
+  } else {
+    return `${minutes} phút`;
+  }
+};
 
 const getStatusInfo = (status) => {
   switch (status) {
@@ -300,6 +418,7 @@ onUnmounted(() => {
 
   }
   clearInterval(timerInterval.value);
+  clearInterval(refundOtpTimer);
 });
 
 // --- END: Logic WebSocket ---
@@ -519,9 +638,217 @@ function updateOtpCountdownDisplay() {
   otpCountdownDisplay.value = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
+function startRefundOtpCountdown() {
+  refundOtpCountdown.value = 600;
+  refundOtpExpired.value = false;
+  updateRefundOtpCountdownDisplay();
+  if (refundOtpTimer) clearInterval(refundOtpTimer);
+  refundOtpTimer = setInterval(() => {
+    if (refundOtpCountdown.value > 0) {
+      refundOtpCountdown.value--;
+      updateRefundOtpCountdownDisplay();
+    } else {
+      refundOtpExpired.value = true;
+      updateRefundOtpCountdownDisplay();
+      clearInterval(refundOtpTimer);
+    }
+  }, 1000);
+}
+
+function updateRefundOtpCountdownDisplay() {
+  const m = Math.floor(refundOtpCountdown.value / 60);
+  const s = refundOtpCountdown.value % 60;
+  refundOtpCountdownDisplay.value = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function openRefundDialog() {
+  // Validate if tickets can be cancelled based on their expiry times
+  const validationErrors = [];
+  const now = new Date();
+  const oneDayInMs = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+
+  // Check flight bookings
+  if (order.value.flightBookings && order.value.flightBookings.length > 0) {
+    for (const booking of order.value.flightBookings) {
+      if (booking.flightSlot && booking.flightSlot.flight && booking.flightSlot.flight.departureTime) {
+        const departureTime = new Date(booking.flightSlot.flight.departureTime);
+        const timeUntilDeparture = departureTime.getTime() - now.getTime();
+
+        if (timeUntilDeparture <= oneDayInMs) {
+          const remainingTime = formatRemainingTime(timeUntilDeparture);
+          validationErrors.push(`Chuyến bay ${booking.flightSlot.flight.name} (${booking.flightSlot.flight.flightNumber}) khởi hành trong ${remainingTime}. Không thể hủy vé.`);
+        }
+      }
+    }
+  }
+
+  // Check hotel bookings
+  if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
+    for (const booking of order.value.hotelBookings) {
+      if (booking.checkInDate) {
+        const checkInDate = new Date(booking.checkInDate);
+        const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
+
+        if (timeUntilCheckIn <= oneDayInMs) {
+          const remainingTime = formatRemainingTime(timeUntilCheckIn);
+          validationErrors.push(`Khách sạn ${booking.hotelName || 'N/A'} nhận phòng trong ${remainingTime}. Không thể hủy đặt phòng.`);
+        }
+      }
+    }
+  }
+
+  // Check tour bookings
+  if (order.value.tourBookings && order.value.tourBookings.length > 0) {
+    for (const booking of order.value.tourBookings) {
+      if (booking.departureDate) {
+        const departureDate = new Date(booking.departureDate);
+        const timeUntilDeparture = departureDate.getTime() - now.getTime();
+
+        if (timeUntilDeparture <= oneDayInMs) {
+          const remainingTime = formatRemainingTime(timeUntilDeparture);
+          validationErrors.push(`Tour ${booking.tourName || 'N/A'} khởi hành trong ${remainingTime}. Không thể hủy tour.`);
+        }
+      }
+    }
+  }
+
+  // Check bus bookings (if they exist in the order structure)
+  if (order.value.busBookings && order.value.busBookings.length > 0) {
+    for (const booking of order.value.busBookings) {
+      if (booking.busSlot && booking.busSlot.bus && booking.busSlot.bus.departureTime) {
+        const departureTime = new Date(booking.busSlot.bus.departureTime);
+        const timeUntilDeparture = departureTime.getTime() - now.getTime();
+
+        if (timeUntilDeparture <= oneDayInMs) {
+          const remainingTime = formatRemainingTime(timeUntilDeparture);
+          validationErrors.push(`Chuyến xe ${booking.busSlot.bus.name || 'N/A'} khởi hành trong ${remainingTime}. Không thể hủy vé.`);
+        }
+      }
+    }
+  }
+
+  // If there are validation errors, show them and don't open the dialog
+  if (validationErrors.length > 0) {
+    const errorMessage = validationErrors.join('\n');
+    window.$toast && window.$toast(errorMessage, 'error');
+    return;
+  }
+
+  // If validation passes, open the dialog
+  showRefundDialog.value = true;
+  refundReason.value = '';
+  refundOtp.value = '';
+  refundOtpError.value = '';
+  refundOtpSuccess.value = false;
+  refundPaymentId.value = null;
+}
+
+function closeRefundDialog() {
+  showRefundDialog.value = false;
+  refundReason.value = '';
+  refundOtp.value = '';
+  refundOtpError.value = '';
+  refundOtpSuccess.value = false;
+  refundPaymentId.value = null;
+  clearInterval(refundOtpTimer);
+}
+
+async function submitRefund() {
+  if (!refundReason.value.trim()) {
+    window.$toast && window.$toast('Vui lòng nhập lý do hủy vé.', 'error');
+    return;
+  }
+
+  isRefunding.value = true;
+  try {
+    const res = await refundMake({
+      transactionId: order.value.transactionId,
+      reason: refundReason.value.trim()
+    });
+
+    if (res.data?.paymentId) {
+      refundPaymentId.value = res.data.paymentId;
+      refundOtp.value = '';
+      refundOtpError.value = '';
+      refundOtpSuccess.value = false;
+      window.$toast('Đã gửi OTP xác nhận hủy vé qua email.', 'success');
+    } else {
+      window.$toast('Không nhận được paymentId cho giao dịch hủy vé.', 'error');
+    }
+  } catch (error) {
+    console.error('Lỗi khi gửi yêu cầu hủy vé:', error);
+    window.$toast('Gửi yêu cầu hủy vé thất bại!', 'error');
+  } finally {
+    isRefunding.value = false;
+  }
+}
+
+async function confirmRefundOtp() {
+  if (!refundOtp.value || !refundPaymentId.value) return;
+
+  isRefundConfirming.value = true;
+  refundOtpError.value = '';
+  refundOtpSuccess.value = false;
+
+  try {
+    const res = await refundConfirm({
+      paymentId: refundPaymentId.value,
+      otp: refundOtp.value
+    });
+
+    if (res.data?.refundId) {
+      refundOtpSuccess.value = true;
+      window.$toast('Hủy vé thành công!', 'success');
+
+      // Gọi API backend để cập nhật trạng thái đơn hàng và booking
+      try {
+        const orderResponse = await fetch(
+          `http://localhost:8080/api/v1/orders/${order.value.id}/cancel-after-refund`,
+          {
+            method: 'PUT',
+            headers: {
+              'Authorization': getBearerToken(),
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (orderResponse.ok) {
+          console.log('Đã cập nhật trạng thái đơn hàng thành công');
+        } else {
+          console.error('Lỗi khi cập nhật trạng thái đơn hàng');
+        }
+      } catch (e) {
+        console.error('Lỗi khi gọi API cập nhật trạng thái đơn hàng:', e);
+      }
+
+      // Cập nhật thông tin đơn hàng
+      try {
+        await fetchOrderDetails();
+      } catch (e) {
+        console.error('Lỗi khi cập nhật thông tin đơn hàng:', e);
+      }
+
+      closeRefundDialog();
+    } else {
+      refundOtpError.value = 'OTP không đúng hoặc đã hết hạn.';
+    }
+  } catch (error) {
+    console.error('Lỗi khi xác nhận OTP hủy vé:', error);
+    refundOtpError.value = 'Xác nhận OTP thất bại!';
+  } finally {
+    isRefundConfirming.value = false;
+  }
+}
+
 watch(showOtpDialog, val => {
   if (val) startOtpCountdown();
   else clearInterval(otpTimer);
+});
+
+watch(showRefundDialog, val => {
+  if (val) startRefundOtpCountdown();
+  else clearInterval(refundOtpTimer);
 });
 // --- EVENT HANDLERS ---
 
@@ -963,19 +1290,20 @@ function prevHotelImage(hotel) {
             <div class="sticky top-8">
               <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <div class=" mb-4 border-b flex  justify-between ">
-                 <h2 class="text-xl font-semibold">Tóm tắt đơn hàng</h2> 
-                   <div class="px-2 border border-red-200 bg-red-50 rounded-lg text-center mb-6 flex items-center justify-center gap-2">
-                        <p v-if="!hasExpired" class="text-sm text-red-700">Thời gian giữ chỗ còn lại:</p>
-                        <p v-else class="text-sm font-semibold text-red-700">Đã hết thời gian giữ chỗ!</p>
-                        <p class="text-sm font-mono font-bold text-red-600 tracking-wider mt-1">
-                          {{ String(minutes).padStart(2, '0') }}<span class="animate-pulse">:</span>{{
-                            String(seconds).padStart(2,
+                  <h2 class="text-xl font-semibold">Tóm tắt đơn hàng</h2>
+                  <div
+                    class="px-2 border border-red-200 bg-red-50 rounded-lg text-center mb-6 flex items-center justify-center gap-2">
+                    <p v-if="!hasExpired" class="text-sm text-red-700">Thời gian giữ chỗ còn lại:</p>
+                    <p v-else class="text-sm font-semibold text-red-700">Đã hết thời gian giữ chỗ!</p>
+                    <p class="text-sm font-mono font-bold text-red-600 tracking-wider mt-1">
+                      {{ String(minutes).padStart(2, '0') }}<span class="animate-pulse">:</span>{{
+                        String(seconds).padStart(2,
                           '0') }}
-                        </p>
-                      </div>
-                
+                    </p>
+                  </div>
+
                 </div>
-                
+
                 <div class="space-y-3 text-gray-600">
                   <div class="flex justify-between items-center">
                     <span>Trạng thái:</span>
@@ -1063,136 +1391,171 @@ function prevHotelImage(hotel) {
                     </button>
                   </div>
                 </div>
-                    <div v-if="isEditable" class="max-w-lg w-full mt-4">
-                      
+                <div v-if="isEditable" class="max-w-lg w-full mt-4">
 
+
+                  <div>
+                    <h3 class="text-lg font-semibold mb-4">Thanh toán chuyển khoản</h3>
+                    <div class="space-y-6">
                       <div>
-                        <h3 class="text-lg font-semibold mb-4">Thanh toán chuyển khoản</h3>
-                        <div class="space-y-6">
-                          <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                              <i class="fas fa-university text-blue-400"></i> Ngân hàng
-                            </label>
-                            <div class="relative">
-                              <button type="button" @click="showDropdown = !showDropdown"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white hover:border-indigo-400 transition">
-                                <img v-if="selectedBank && selectedBank.logo" :src="selectedBank.logo"
-                                  class="w-6 h-6 mr-2 object-contain" />
-                                <span class="font-medium">{{ selectedBank ? selectedBank.name : 'Chọn ngân hàng'
-                                  }}</span>
-                                <svg class="ml-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
-                                  viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                              <ul v-if="showDropdown"
-                                class="absolute z-20 bg-white border w-full mt-1 rounded shadow max-h-60 overflow-auto animate-fade-in">
-                                <li v-for="bank in banks" :key="bank.code" @click="selectBank(bank)"
-                                  class="flex items-center px-4 py-2 hover:bg-indigo-50 cursor-pointer transition">
-                                  <img v-if="bank.logo" :src="bank.logo" class="w-6 h-6 mr-2 object-contain" />
-                                  <span>{{ bank.name }}</span>
-                                </li>
-                              </ul>
-                            </div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <i class="fas fa-university text-blue-400"></i> Ngân hàng
+                        </label>
+                        <div class="relative">
+                          <button type="button" @click="showDropdown = !showDropdown"
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white hover:border-indigo-400 transition">
+                            <img v-if="selectedBank && selectedBank.logo" :src="selectedBank.logo"
+                              class="w-6 h-6 mr-2 object-contain" />
+                            <span class="font-medium">{{ selectedBank ? selectedBank.name : 'Chọn ngân hàng'
+                            }}</span>
+                            <svg class="ml-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                              viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          <ul v-if="showDropdown"
+                            class="absolute z-20 bg-white border w-full mt-1 rounded shadow max-h-60 overflow-auto animate-fade-in">
+                            <li v-for="bank in banks" :key="bank.code" @click="selectBank(bank)"
+                              class="flex items-center px-4 py-2 hover:bg-indigo-50 cursor-pointer transition">
+                              <img v-if="bank.logo" :src="bank.logo" class="w-6 h-6 mr-2 object-contain" />
+                              <span>{{ bank.name }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <i class="fas fa-id-card text-green-400"></i> Số tài khoản
+                        </label>
+                        <input v-model="bankTransfer.accountNumber" type="text" placeholder="Nhập số tài khoản"
+                          maxlength="20"
+                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition placeholder-gray-400"
+                          @blur="onAccountNumberBlur" @input="resetAccountInfo" />
+                        <div v-if="isLoadingLK" class="flex items-center mt-2 text-blue-500"><span
+                            class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400 mr-2"></span>Đang
+                          kiểm
+                          tra...</div>
+                        <div v-if="notFound && !isLoadingLK" class="text-red-500 text-sm mt-2">Không tìm thấy thông
+                          tin số tài
+                          khoản
+                        </div>
+                      </div>
+                      <div v-if="found"
+                        class="bg-indigo-50 rounded-lg p-4 flex flex-col gap-2 border border-indigo-100">
+                        <div class="flex items-center gap-2">
+                          <i class="fas fa-user-circle text-indigo-400"></i>
+                          <span class="font-semibold text-gray-700">Tên tài khoản:</span>
+                          <span class="ml-auto font-bold text-indigo-700">{{ bankTransfer.accountName }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <i class="fas fa-wallet text-green-400"></i>
+                          <span class="font-semibold text-gray-700">Số dư khả dụng:</span>
+                          <span class="ml-auto font-bold text-green-600">{{ bankTransfer.availableBalance }} {{
+                            bankTransfer.currency
+                          }}</span>
+                        </div>
+                      </div>
+                      <div v-if="found">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <i class="fas fa-coins text-yellow-400"></i> Số tiền muốn thanh toán
+                        </label>
+                        <input v-model.number="bankTransfer.amount" type="number" min="0"
+                          :max="bankTransfer.availableBalance" placeholder="Nhập số tiền"
+                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder-gray-400"
+                          @input="validateAmount" />
+                        <div v-if="amountError" class="text-red-500 text-sm mt-1">{{ amountValidationMessage }}
+                        </div>
+                      </div>
+                      <div class="flex justify-end" v-if="found">
+                        <button @click="submitPayment" :disabled="isPaying || amountError || !bankTransfer.amount"
+                          class="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white px-8 py-2 rounded-lg font-semibold flex items-center shadow-lg transition disabled:opacity-60">
+                          <span v-if="isPaying"
+                            class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
+                          <i class="fas fa-paper-plane mr-2"></i> Thanh toán
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <transition name="modal" appear>
+                    <div v-if="showOtpDialog"
+                      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
+                      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                        <div
+                          class="bg-gradient-to-r from-indigo-500 to-blue-400 px-6 py-4 flex justify-between items-center">
+                          <h3 class="text-white flex items-center gap-2"><i class="fas fa-shield-alt"></i> Xác thực
+                            OTP</h3>
+                          <button @click="showOtpDialog = false"><i class="fas fa-times text-white"></i></button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                          <p>OTP đã gửi qua email. Nhập để xác nhận thanh toán.</p>
+                          <div class="flex items-center gap-2">
+                            <i class="fas fa-clock"></i>
+                            <span>Thời gian còn lại:</span>
+                            <span class="font-mono">{{ otpCountdownDisplay }}</span>
                           </div>
-                          <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                              <i class="fas fa-id-card text-green-400"></i> Số tài khoản
-                            </label>
-                            <input v-model="bankTransfer.accountNumber" type="text" placeholder="Nhập số tài khoản"
-                              maxlength="20"
-                              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition placeholder-gray-400"
-                              @blur="onAccountNumberBlur" @input="resetAccountInfo" />
-                            <div v-if="isLoadingLK" class="flex items-center mt-2 text-blue-500"><span
-                                class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400 mr-2"></span>Đang
-                              kiểm
-                              tra...</div>
-                            <div v-if="notFound && !isLoadingLK" class="text-red-500 text-sm mt-2">Không tìm thấy thông
-                              tin số tài
-                              khoản
-                            </div>
-                          </div>
-                          <div v-if="found"
-                            class="bg-indigo-50 rounded-lg p-4 flex flex-col gap-2 border border-indigo-100">
-                            <div class="flex items-center gap-2">
-                              <i class="fas fa-user-circle text-indigo-400"></i>
-                              <span class="font-semibold text-gray-700">Tên tài khoản:</span>
-                              <span class="ml-auto font-bold text-indigo-700">{{ bankTransfer.accountName }}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                              <i class="fas fa-wallet text-green-400"></i>
-                              <span class="font-semibold text-gray-700">Số dư khả dụng:</span>
-                              <span class="ml-auto font-bold text-green-600">{{ bankTransfer.availableBalance }} {{
-                                bankTransfer.currency
-                                }}</span>
-                            </div>
-                          </div>
-                          <div v-if="found">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                              <i class="fas fa-coins text-yellow-400"></i> Số tiền muốn thanh toán
-                            </label>
-                            <input v-model.number="bankTransfer.amount" type="number" min="0"
-                              :max="bankTransfer.availableBalance" placeholder="Nhập số tiền"
-                              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder-gray-400"
-                              @input="validateAmount" />
-                            <div v-if="amountError" class="text-red-500 text-sm mt-1">{{ amountValidationMessage }}
-                            </div>
-                          </div>
-                          <div class="flex justify-end" v-if="found">
-                            <button @click="submitPayment" :disabled="isPaying || amountError || !bankTransfer.amount"
-                              class="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white px-8 py-2 rounded-lg font-semibold flex items-center shadow-lg transition disabled:opacity-60">
-                              <span v-if="isPaying"
-                                class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
-                              <i class="fas fa-paper-plane mr-2"></i> Thanh toán
+                          <input v-model="otp" maxlength="6" :disabled="otpExpired" placeholder="Nhập OTP"
+                            class="w-full border rounded-lg px-4 py-2 text-center" />
+                          <div v-if="otpError" class="text-red-500">{{ otpError }}</div>
+                          <div v-if="otpSuccess" class="text-green-600">Xác thực thành công!</div>
+                          <div v-if="otpExpired" class="text-red-500">OTP đã hết hạn.</div>
+                          <div class="flex justify-end gap-2">
+                            <button @click="showOtpDialog = false" class="px-4 py-2 rounded bg-gray-200">Hủy</button>
+                            <button @click="confirmOtp" :disabled="isConfirming || !otp || otpExpired"
+                              class="px-4 py-2 rounded text-white bg-gradient-to-r from-indigo-500 to-blue-500 disabled:opacity-50 flex items-center">
+                              <span v-if="isConfirming"
+                                class="animate-spin inline-block h-5 w-5 border-t-2 border-white mr-2 rounded-full"></span>
+                              Xác nhận
                             </button>
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </transition>
 
-                      <transition name="modal" appear>
-                        <div v-if="showOtpDialog"
-                          class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-                          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-                            <div
-                              class="bg-gradient-to-r from-indigo-500 to-blue-400 px-6 py-4 flex justify-between items-center">
-                              <h3 class="text-white flex items-center gap-2"><i class="fas fa-shield-alt"></i> Xác thực
-                                OTP</h3>
-                              <button @click="showOtpDialog = false"><i class="fas fa-times text-white"></i></button>
-                            </div>
-                            <div class="p-6 space-y-4">
-                              <p>OTP đã gửi qua email. Nhập để xác nhận thanh toán.</p>
-                              <div class="flex items-center gap-2">
-                                <i class="fas fa-clock"></i>
-                                <span>Thời gian còn lại:</span>
-                                <span class="font-mono">{{ otpCountdownDisplay }}</span>
-                              </div>
-                              <input v-model="otp" maxlength="6" :disabled="otpExpired" placeholder="Nhập OTP"
-                                class="w-full border rounded-lg px-4 py-2 text-center" />
-                              <div v-if="otpError" class="text-red-500">{{ otpError }}</div>
-                              <div v-if="otpSuccess" class="text-green-600">Xác thực thành công!</div>
-                              <div v-if="otpExpired" class="text-red-500">OTP đã hết hạn.</div>
-                              <div class="flex justify-end gap-2">
-                                <button @click="showOtpDialog = false"
-                                  class="px-4 py-2 rounded bg-gray-200">Hủy</button>
-                                <button @click="confirmOtp" :disabled="isConfirming || !otp || otpExpired"
-                                  class="px-4 py-2 rounded text-white bg-gradient-to-r from-indigo-500 to-blue-500 disabled:opacity-50 flex items-center">
-                                  <span v-if="isConfirming"
-                                    class="animate-spin inline-block h-5 w-5 border-t-2 border-white mr-2 rounded-full"></span>
-                                  Xác nhận
-                                </button>
-                              </div>
-                            </div>
+                </div>
+                <div v-if="!isEditable && order.status === 'PAID'" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <button
+                    class="mt-6 w-full bg-gray-800 text-white font-medium py-3 rounded-lg hover:bg-black transition">
+                    <i class="fa-solid fa-print mr-2"></i> In hóa đơn
+                  </button>
+                  <div v-if="canRefund && bookingsCloseToExpiry.length > 0"
+                    class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex items-start gap-3">
+                      <i class="fa-solid fa-exclamation-triangle text-yellow-600 mt-1"></i>
+                      <div class="flex-1">
+                        <h4 class="text-yellow-800 font-semibold mb-2">
+                          ⚠️ Cảnh báo: Một số vé sắp hết hạn hủy
+                        </h4>
+                        <div class="space-y-2">
+                          <div v-for="booking in bookingsCloseToExpiry" :key="`${booking.type}-${booking.name}`"
+                            class="text-sm text-yellow-700">
+                            <span class="font-medium">
+                              {{ booking.type === 'flight' ? '✈️ Chuyến bay:' :
+                                booking.type === 'hotel' ? '🏨 Khách sạn:' :
+                                  booking.type === 'tour' ? '🏔️ Tour:' : '🚌 Chuyến xe:' }}
+                            </span>
+                            <span class="font-semibold">{{ booking.name }}</span>
+                            <span class="text-yellow-600">(còn {{ booking.remainingTime }})</span>
                           </div>
                         </div>
-                      </transition>
-
+                        <p class="text-xs text-yellow-600 mt-2">
+                          * Vé sẽ không thể hủy khi còn dưới 1 ngày trước khi khởi hành/nhận phòng
+                        </p>
+                      </div>
                     </div>
+                  </div>
+                  <button  @click="openRefundDialog"
+                    class="mt-6 w-full bg-red-600 text-white font-medium py-3 rounded-lg hover:bg-red-700 transition flex items-center justify-center">
+                    <i class="fa-solid fa-times-circle mr-2"></i> Hủy vé
+                  </button>
+                </div>
 
-                <button v-else
-                  class="mt-6 w-full bg-gray-800 text-white font-medium py-3 rounded-lg hover:bg-black transition">
-                  <i class="fa-solid fa-print mr-2"></i> In hóa đơn
-                </button>
+
+
+
+
               </div>
             </div>
           </div>
@@ -1255,6 +1618,97 @@ function prevHotelImage(hotel) {
       </div>
     </section>
   </div>
+
+  <!-- Modal hủy vé -->
+  <transition name="modal" appear>
+    <div v-if="showRefundDialog" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 flex justify-between items-center">
+          <h3 class="text-white flex items-center gap-2">
+            <i class="fas fa-times-circle"></i> Hủy vé
+          </h3>
+          <button @click="closeRefundDialog" class="text-white hover:text-red-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <!-- Bước 1: Nhập lý do -->
+          <div v-if="!refundPaymentId">
+            <p class="text-gray-700 mb-4">Vui lòng nhập lý do hủy vé để tiếp tục.</p>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Lý do hủy vé <span class="text-red-500">*</span>
+              </label>
+              <textarea v-model="refundReason" placeholder="Nhập lý do hủy vé..." rows="4"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-400 transition resize-none"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+              <button @click="closeRefundDialog"
+                class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
+                Hủy
+              </button>
+              <button @click="submitRefund" :disabled="isRefunding || !refundReason.trim()"
+                class="px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                <span v-if="isRefunding"
+                  class="animate-spin inline-block h-5 w-5 border-t-2 border-white mr-2 rounded-full"></span>
+                <i class="fas fa-paper-plane mr-2"></i>
+                Gửi yêu cầu
+              </button>
+            </div>
+          </div>
+
+          <!-- Bước 2: Nhập OTP -->
+          <div v-else>
+            <p class="text-gray-700 mb-4">OTP đã được gửi qua email. Nhập để xác nhận hủy vé.</p>
+
+            <div class="flex items-center gap-2 mb-4 text-sm text-gray-600">
+              <i class="fas fa-clock"></i>
+              <span>Thời gian còn lại:</span>
+              <span class="font-mono font-bold" :class="refundOtpExpired ? 'text-red-500' : 'text-blue-600'">
+                {{ refundOtpCountdownDisplay }}
+              </span>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Mã OTP <span class="text-red-500">*</span>
+              </label>
+              <input v-model="refundOtp" type="text" maxlength="6" :disabled="refundOtpExpired"
+                placeholder="Nhập mã OTP"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 text-center text-lg font-mono focus:outline-none focus:ring-2 focus:ring-red-400 transition disabled:opacity-50" />
+            </div>
+
+            <div v-if="refundOtpError" class="text-red-500 text-sm mt-2">
+              {{ refundOtpError }}
+            </div>
+
+            <div v-if="refundOtpSuccess" class="text-green-600 text-sm mt-2">
+              Xác thực thành công!
+            </div>
+
+            <div v-if="refundOtpExpired" class="text-red-500 text-sm mt-2">
+              OTP đã hết hạn.
+            </div>
+
+            <div class="flex justify-end gap-3 mt-4">
+              <button @click="closeRefundDialog"
+                class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
+                Hủy
+              </button>
+              <button @click="confirmRefundOtp" :disabled="isRefundConfirming || !refundOtp || refundOtpExpired"
+                class="px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                <span v-if="isRefundConfirming"
+                  class="animate-spin inline-block h-5 w-5 border-t-2 border-white mr-2 rounded-full"></span>
+                <i class="fas fa-check mr-2"></i>
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </transition>
 
   <!--  -->
 

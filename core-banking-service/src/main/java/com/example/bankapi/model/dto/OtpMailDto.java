@@ -20,6 +20,10 @@ public class OtpMailDto {
         this.time = time;
         this.expiredTime = expiredTime;
     }
+
+    public OtpMailDto(String recipient, String recipientName, String otp, String xácNhậnHủyVé, String s, String now) {
+    }
+
     public String getRecipient() { return recipient; }
     public void setRecipient(String recipient) { this.recipient = recipient; }
     public String getRecipientName() { return recipientName; }

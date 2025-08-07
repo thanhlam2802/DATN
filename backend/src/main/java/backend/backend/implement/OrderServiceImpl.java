@@ -385,9 +385,6 @@ public class OrderServiceImpl implements OrderService {
             eventPublisher.publishEvent(new VoucherUsedUpEvent(this, updatedVoucher.getCode()));
         }
 
-
-      
-
         Order updatedOrder = orderDAO.save(order);
 
         return convertToDto(updatedOrder); 
@@ -426,9 +423,85 @@ public class OrderServiceImpl implements OrderService {
         }
         return BigDecimal.ZERO;
     }
-    
+
     private OrderDto convertToDto(Order order) {
-      
-        return new OrderDto();
+        if (order == null) return null;
+
+        // This method combines the logic of toOrderDTO and toDetailedOrderDto,
+        // and also maps the 'originalAmount' which is crucial after applying a voucher.
+        OrderDto dto = new OrderDto();
+        dto.setId(order.getId());
+        dto.setAmount(order.getAmount());
+        dto.setOriginalAmount(order.getOriginalAmount());
+        dto.setStatus(order.getStatus());
+        dto.setPayDate(order.getPayDate());
+        dto.setCreatedAt(order.getCreatedAt());
+        dto.setExpiresAt(order.getExpiresAt());
+
+        if (order.getUser() != null) {
+            dto.setUserId(order.getUser().getId());
+        }
+        if (order.getVoucher() != null) {
+            dto.setVoucherId(order.getVoucher().getId());
+        }
+        if (order.getDestination() != null) {
+            dto.setDestinationId(order.getDestination().getId());
+        }
+        dto.setTourBookings(bookingTourDAO.findByOrderId(order.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
+        dto.setFlightBookings(flightBookingDAO.findByOrderId(order.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
+        dto.setHotelBookings(hotelBookingDAO.findByOrderId(order.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
+
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public OrderDto cancelOrderAfterRefund(Integer orderId) {
+        logger.info("Bắt đầu hủy đơn hàng sau hoàn tiền cho Order ID: {}", orderId);
+        
+        Order order = orderDAO.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));
+
+        if (!"PAID".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể hủy đơn hàng đã thanh toán.");
+        }
+
+        // Cập nhật trạng thái đơn hàng thành CANCELLED
+        order.setStatus("CANCELLED");
+        orderDAO.save(order);
+
+        // Xử lý các booking trong đơn hàng
+        // 1. Flight bookings - cập nhật flight slots thành AVAILABLE
+        if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
+            for (FlightBooking flightBooking : order.getFlightBookings()) {
+                FlightSlot flightSlot = flightBooking.getFlightSlot();
+                if (flightSlot != null) {
+                    flightSlot.setStatus("AVAILABLE");
+                    flightSlotDAO.save(flightSlot);
+                    logger.info("Đã cập nhật flight slot {} thành AVAILABLE", flightSlot.getId());
+                }
+            }
+        }
+
+        // 2. Hotel bookings - placeholder logic
+        if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
+            logger.info("Đơn hàng có {} hotel bookings - xử lý placeholder", order.getHotelBookings().size());
+            // TODO: Implement hotel booking cancellation logic
+        }
+
+        // 3. Tour bookings - placeholder logic
+        if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
+            logger.info("Đơn hàng có {} tour bookings - xử lý placeholder", order.getBookingTours().size());
+            // TODO: Implement tour booking cancellation logic
+        }
+
+        // 4. Bus bookings - placeholder logic
+        if (order.getBusBookings() != null && !order.getBusBookings().isEmpty()) {
+            logger.info("Đơn hàng có {} bus bookings - xử lý placeholder", order.getBusBookings().size());
+            // TODO: Implement bus booking cancellation logic
+        }
+
+        logger.info("Hủy đơn hàng thành công cho Order ID: {}", orderId);
+        return toOrderDTO(order);
     }
 }

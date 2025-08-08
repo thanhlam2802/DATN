@@ -13,12 +13,12 @@ public class OrderDto {
     private BigDecimal originalAmount;
     private String status;
     private LocalDateTime payDate;
-    private Integer voucherId; 
+    private Integer voucherId;
     private Integer destinationId;
     private LocalDateTime createdAt;
     private String mainProduct;
     private LocalDateTime expiresAt;
-    
+    private String transactionId;
     private List<BookingTourDto> tourBookings;
     private List<FlightBookingDto> flightBookings;
     private List<HotelBookingDto> hotelBookings;

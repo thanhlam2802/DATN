@@ -363,24 +363,7 @@ public class PaymentServiceImpl implements PaymentService {
         return toPaymentDto(payment);
     }
 
-    @Override
-    public RefundDto refundByTransactionId(UUID transactionId, String reason) {
-        logger.info("[PaymentService] refundByTransactionId - transactionId: {}, reason: {}", transactionId, reason);
-        Transaction tx = transactionRepository.findByTransactionId(transactionId);
-        Optional<Payment> paymentOpt = paymentRepository.findFirstByDebtorAccount_IdOrCreditorAccount_Id(
-            tx.getAccount().getId(), tx.getAccount().getId()
-        );
-        Payment payment = paymentOpt.orElse(null);
-        if (payment == null) {
-            throw new AccountNotFoundException("Không tìm thấy giao dịch thanh toán");
-        }
-        BigDecimal amount = tx.getAmount().abs();
-        RefundDto refund = refundPayment(payment.getPaymentId(), amount, reason);
-        logger.info("[PaymentService] refundByTransactionId - Refund created:  refundId={}, amount={}, status={}, createdAt={}",
-             refund.getRefundId(), refund.getAmount(), refund.getStatus(), refund.getCreatedAt()
-        );
-        return refund;
-    }
+
 
     public PaymentDto toPaymentDto(Payment entity) {
         if (entity == null) return null;
@@ -400,5 +383,152 @@ public class PaymentServiceImpl implements PaymentService {
         dto.setAmount(entity.getAmount());
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
+    }
+
+    @Override
+    public PaymentDto makeRefund(UUID transactionId, String reason) {
+        logger.info("[PaymentService] makeRefund - transactionId: {}, reason: {}", transactionId, reason);
+        
+        // Tìm transaction gốc
+        Transaction tx = transactionRepository.findByTransactionId(transactionId);
+        if (tx == null) {
+            throw new AccountNotFoundException("Không tìm thấy giao dịch gốc");
+        }
+
+        // Tìm payment gốc
+        Optional<Payment> paymentOpt = paymentRepository.findFirstByDebtorAccount_IdOrCreditorAccount_Id(
+            tx.getAccount().getId(), tx.getAccount().getId()
+        );
+        Payment originalPayment = paymentOpt.orElse(null);
+        if (originalPayment == null) {
+            throw new AccountNotFoundException("Không tìm thấy giao dịch thanh toán gốc");
+        }
+
+        // Tìm account khách hàng để lấy email
+        Account customer = tx.getAccount();
+        String recipient = customer.getEmail();
+        String recipientName = customer.getAccountHolderName();
+
+        // 1. Tạo OTP
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        logger.info("Refund OTP: {}", otp);
+
+        // 2. Tạo paymentId cho refund
+        String paymentId = UUID.randomUUID().toString();
+        Payment refundPayment = new Payment();
+        refundPayment.setDebtorAccount(tx.getAccount()); // Account khách hàng
+        refundPayment.setCreditorAccount(originalPayment.getCreditorAccount()); // Account hệ thống
+        refundPayment.setAmount(tx.getAmount().abs());
+        refundPayment.setPaymentId(UUID.fromString(paymentId));
+        refundPayment.setCurrency(originalPayment.getCurrency());
+        refundPayment.setStatus("PENDING");
+        refundPayment.setRemittanceInfo("Hoàn tiền: " + reason);
+        refundPayment.setIdempotencyKey("refund_" + System.currentTimeMillis());
+        refundPayment = paymentRepository.save(refundPayment);
+
+        logger.info("[PaymentService] makeRefund - Refund Payment created: id={}, paymentId={}, amount={}, status={}, debtorAccountId={}, creditorAccountId={}, createdAt={}",
+            refundPayment.getId(), refundPayment.getPaymentId(), refundPayment.getAmount(), refundPayment.getStatus(), 
+            refundPayment.getDebtorAccount().getId(), refundPayment.getCreditorAccount().getId(), refundPayment.getCreatedAt()
+        );
+
+        // 3. Lưu OTP vào Redis (10 phút)
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        ops.set("refund_otp:" + paymentId, otp, Duration.ofMinutes(10));
+
+        // 4. Gửi OTP qua Kafka
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        OtpMailDto otpMail = new OtpMailDto(
+            recipient,
+            recipientName,
+            otp,
+            "Xác nhận hủy vé",
+            "Mã OTP để xác nhận hủy vé và hoàn tiền",
+            now
+        );
+        streamBridge.send("otp-mail", otpMail);
+        logger.info("[PaymentService] makeRefund - OTP sent to: {}", recipient);
+
+        return toPaymentDto(refundPayment);
+    }
+
+    @Override
+    public RefundDto confirmRefund(String paymentId, String otp) {
+        logger.info("[PaymentService] confirmRefund - paymentId: {}, otp: {}", paymentId, otp);
+
+        // 1. Kiểm tra OTP
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        String storedOtp = ops.get("refund_otp:" + paymentId);
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            throw new RuntimeException("OTP không đúng hoặc đã hết hạn");
+        }
+
+        // 2. Xóa OTP khỏi Redis
+        redisTemplate.delete("refund_otp:" + paymentId);
+
+        // 3. Tìm payment refund
+        Payment refundPayment = paymentRepository.findByPaymentId(UUID.fromString(paymentId))
+            .orElseThrow(() -> new AccountNotFoundException("Không tìm thấy giao dịch refund"));
+
+        if (!"PENDING".equals(refundPayment.getStatus())) {
+            throw new RuntimeException("Giao dịch refund không ở trạng thái PENDING");
+        }
+
+        // 4. Thực hiện hoàn tiền
+        Account customer = refundPayment.getDebtorAccount();
+        Account system = refundPayment.getCreditorAccount();
+        BigDecimal amount = refundPayment.getAmount();
+
+        // Kiểm tra số dư hệ thống
+        if (system.getAvailableBalance().compareTo(amount) < 0) {
+            throw new InsufficientFundsException("Số dư hệ thống không đủ để hoàn tiền");
+        }
+
+        // Hoàn tiền: Trừ tiền hệ thống, cộng tiền khách hàng
+        system.setAvailableBalance(system.getAvailableBalance().subtract(amount));
+        system.setCurrentBalance(system.getCurrentBalance().subtract(amount));
+        customer.setAvailableBalance(customer.getAvailableBalance().add(amount));
+        customer.setCurrentBalance(customer.getCurrentBalance().add(amount));
+
+        accountRepository.save(system);
+        accountRepository.save(customer);
+
+        // 5. Cập nhật trạng thái payment
+        refundPayment.setStatus("COMPLETED");
+        paymentRepository.save(refundPayment);
+
+        // 6. Tạo transaction hoàn tiền
+        Transaction refundTx = new Transaction();
+        refundTx.setAccount(customer);
+        refundTx.setBookingDate(java.time.LocalDate.now());
+        refundTx.setAmount(amount);
+        refundTx.setDescription("Hoàn tiền hủy vé");
+        transactionRepository.save(refundTx);
+
+        Transaction systemTx = new Transaction();
+        systemTx.setAccount(system);
+        systemTx.setBookingDate(java.time.LocalDate.now());
+        systemTx.setAmount(amount.negate());
+        systemTx.setDescription("Hoàn tiền cho khách hàng " + customer.getAccountNumber());
+        transactionRepository.save(systemTx);
+
+        // 7. Tạo refund record
+        Refund refund = new Refund();
+        refund.setPayment(refundPayment);
+        refund.setAmount(amount);
+        refund.setReason(refundPayment.getRemittanceInfo().replace("Hoàn tiền: ", ""));
+        refund.setStatus("COMPLETED");
+        refund = refundRepository.save(refund);
+
+        logger.info("[PaymentService] confirmRefund - Refund completed: refundId={}, amount={}, status={}, createdAt={}",
+            refund.getRefundId(), refund.getAmount(), refund.getStatus(), refund.getCreatedAt()
+        );
+
+        // TODO: Call backend API to update order status and booking statuses
+        // This should be done asynchronously to avoid blocking the refund process
+        // For now, we'll just log that this needs to be implemented
+        logger.info("[PaymentService] confirmRefund - TODO: Call backend API to update order status for transactionId: {}", 
+            refundPayment.getRemittanceInfo());
+
+        return toRefundDto(refund);
     }
 } 

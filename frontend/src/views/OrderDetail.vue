@@ -694,42 +694,80 @@ async function submitPayment() {
     await proceedToPaymentGateway();
   }
 }
-
 async function confirmOtp() {
-  if (!otp.value || !paymentId.value) return;
+  console.log("=== BẮT ĐẦU XÁC NHẬN OTP ===");
+  console.log("Giá trị OTP:", otp.value);
+  console.log("Giá trị Payment ID:", paymentId.value);
+
+  if (!otp.value || !paymentId.value) {
+    console.warn("OTP hoặc Payment ID không tồn tại => Dừng xử lý");
+    return;
+  }
+
   isConfirming.value = true;
   otpError.value = "";
   otpSuccess.value = false;
+  console.log("isConfirming:", isConfirming.value);
+
   try {
+    console.log("Gọi API servicePaymentConfirm với:", {
+      paymentId: paymentId.value,
+      otp: otp.value,
+    });
+
     const res = await servicePaymentConfirm({
       paymentId: paymentId.value,
       otp: otp.value,
     });
-    if (res.data?.transactionId) {
-      otpSuccess.value = true;
-      onAccountNumberBlur();
-      order.value.status = "PAID";
-      winw.$toast("Thanh toán hoàn tất!", "success");
-      order.value.transactionId = res.data.transactionId;
-      window.$toast('Thanh toán hoàn tất!', 'success');
-      showOtpDialog.value = false;
-      try {
 
+    console.log("Kết quả trả về từ servicePaymentConfirm:", res);
+
+    if (res.data?.transactionId) {
+      console.log("Có transactionId:", res.data.transactionId);
+
+      otpSuccess.value = true;
+      console.log("otpSuccess:", otpSuccess.value);
+
+      console.log("Gọi hàm onAccountNumberBlur()");
+      onAccountNumberBlur();
+
+      order.value.status = "PAID";
+      console.log("Trạng thái order:", order.value.status);
+
+      window.$toast("Thanh toán hoàn tất!", "success");
+
+      order.value.transactionId = res.data.transactionId;
+      console.log("Gán transactionId vào order:", order.value.transactionId);
+
+      showOtpDialog.value = false;
+      console.log("Ẩn dialog OTP:", showOtpDialog.value);
+
+      try {
+        console.log("Cập nhật trạng thái đơn hàng:", orderId, res.data.transactionId);
         await markOrderSuccess(orderId, res.data.transactionId);
-        console.log(orderId, res.data.transactionId);
+        console.log("Đã cập nhật trạng thái đơn hàng thành công");
+
+        console.log("Thông báo thành công tới người dùng");
         await notifyPaymentSuccess(orderId, order.value.amount);
+        console.log("Đã gửi thông báo thành công");
+
       } catch (e) {
-        window.$toast(e.message || 'Cập nhật trạng thái đơn hàng thất bại!', 'error');
+        console.error("Lỗi khi cập nhật trạng thái đơn hàng:", e);
+        window.$toast(e.message || "Cập nhật trạng thái đơn hàng thất bại!", "error");
       }
 
     } else {
+      console.warn("OTP không đúng hoặc đã hết hạn");
       otpError.value = "OTP không đúng hoặc đã hết hạn.";
     }
-  } catch {
+  } catch (err) {
+    console.error("Lỗi khi xác nhận OTP:", err);
     otpError.value = "Xác nhận OTP thất bại!";
   } finally {
     isConfirming.value = false;
     isPaying.value = false;
+    console.log("Hoàn tất confirmOtp | isConfirming:", isConfirming.value, " | isPaying:", isPaying.value);
+    console.log("=== KẾT THÚC XÁC NHẬN OTP ===");
   }
 }
 
@@ -863,7 +901,7 @@ async function openRefundDialog() {
     window.$toast && window.$toast(errorMessage, 'error');
     return;
   }
-
+  console.log("Không có lỗi, mở dialog hủy vé");
   // If validation passes, open the dialog
   showRefundDialog.value = true;
   refundReason.value = '';
@@ -1847,6 +1885,17 @@ function prevHotelImage(hotel) {
                     </div>
                   </transition>
                 </div>
+                <div v-if="!isEditable && order.status === 'PAID'" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <button
+                    class="mt-6 w-full bg-gray-800 text-white font-medium py-3 rounded-lg hover:bg-black transition">
+                    <i class="fa-solid fa-print mr-2"></i> In hóa đơn
+                  </button>
+                  <button  @click="openRefundDialog"
+                    class="mt-6 w-full bg-red-600 text-white font-medium py-3 rounded-lg hover:bg-red-700 transition flex items-center justify-center">
+                    <i class="fa-solid fa-times-circle mr-2"></i> Hủy vé
+                  </button>
+                </div>
+
               </div>
             </div>
           </div>
@@ -2027,7 +2076,26 @@ function prevHotelImage(hotel) {
         </p>
       </div>
       <!-- Modal hủy vé -->
-      <transition name="modal" appear>
+      
+
+      <!--  -->
+
+      <div class="flex justify-end gap-3">
+        <button @click="closeDeleteConfirmModal"
+          class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
+          Hủy
+        </button>
+        <button @click="handleDeleteItem" :disabled="processingItemId"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+          <span v-if="processingItemId"
+            class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+          <i v-else class="fas fa-trash"></i>
+          {{ processingItemId ? 'Đang xóa...' : 'Xóa' }}
+        </button>
+      </div>
+    </div>
+  </div>
+  <transition name="modal" appear>
         <div v-if="showRefundDialog" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
             <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 flex justify-between items-center">
@@ -2116,24 +2184,6 @@ function prevHotelImage(hotel) {
           </div>
         </div>
       </transition>
-
-      <!--  -->
-
-      <div class="flex justify-end gap-3">
-        <button @click="closeDeleteConfirmModal"
-          class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
-          Hủy
-        </button>
-        <button @click="handleDeleteItem" :disabled="processingItemId"
-          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
-          <span v-if="processingItemId"
-            class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-          <i v-else class="fas fa-trash"></i>
-          {{ processingItemId ? 'Đang xóa...' : 'Xóa' }}
-        </button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <style scoped>

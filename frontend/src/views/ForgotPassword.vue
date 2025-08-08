@@ -76,7 +76,7 @@ export default {
   },
 
     async submitForm() {
-      const isEmailValid = this.validateEmail();
+      const isEmailValid = this.validateEmail();  
 
   },
 };

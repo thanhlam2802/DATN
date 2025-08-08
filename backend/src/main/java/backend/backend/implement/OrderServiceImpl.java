@@ -125,8 +125,10 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
         // 1. Lấy user từ context (chuẩn):
-         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-         User user = userDAO.findByEmail(username).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+        logger.info("fl status sau khi save: {}",SecurityContextHolder.getContext().getAuthentication());
+
+        User user =(User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
 
         // 2. Lấy slot và flight
         FlightSlot slot = flightSlotDAO.findById(directRequest.getFlightSlotId())

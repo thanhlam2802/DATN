@@ -24,7 +24,7 @@ public class AccountController {
     }
 
     @PreAuthorize("@authService.isAuthenticated()")
-    @PutMapping("/update")
+    @PutMapping("/profile")
     public ResponseEntity<ApiResponse<AccountDto>> updateAccount(@RequestBody AccountDto accountDto) {
         AccountDto result = accountService.updateAccount(accountDto);
         return ResponseFactory.success(result, "Update user profile success");

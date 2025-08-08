@@ -102,18 +102,6 @@ export default {
           icon: "fas fa-shield-alt",
         },
         {
-          title: "Hoạt động gần đây",
-          description: "Xem các lần đăng nhập và hoạt động gần nhất.",
-          action: "Xem",
-          icon: "fas fa-history",
-        },
-        {
-          title: "Thiết bị đã đăng nhập",
-          description: "Quản lý các thiết bị hiện đang đăng nhập vào tài khoản.",
-          action: "Xem danh sách",
-          icon: "fas fa-laptop",
-        },
-        {
           title: "Email khôi phục",
           description: "Thiết lập email phụ để khôi phục mật khẩu khi cần.",
           action: "Cập nhật",

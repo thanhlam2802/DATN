@@ -27,11 +27,10 @@ export default {
   data() {
     return {
       tabs: [
-        { name: "personal", label: "Personal info", icon: "fas fa-user" },
-        { name: "bookings", label: "All bookings", icon: "fas fa-suitcase-rolling" },
-        { name: "payment", label: "Payment details", icon: "far fa-credit-card" },
-        { name: "security", label: "Security", icon: "fas fa-lock" },
-        { name: "preferences", label: "Preferences", icon: "fas fa-sliders-h" },
+        { name: "personal", label: "Thông tin cá nhân", icon: "fas fa-user" },
+        { name: "bookings", label: "Chuyến đi của tôi", icon: "fas fa-suitcase-rolling" },
+        { name: "payment", label: "Ngân hàng", icon: "far fa-credit-card" },
+        { name: "security", label: "Bảo mật tài khoản", icon: "fas fa-lock" },
         { name: "notifications", label: "Cài đặt thông báo", icon: "far fa-bell" },
       ],
     };

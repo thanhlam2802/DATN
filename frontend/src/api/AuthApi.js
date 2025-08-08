@@ -33,6 +33,16 @@ export const AuthApi = {
             }
         }
     },
+    requestResetPassWord: async (request) => {
+        try {
+            const res = await apiClient.post("/v1/auth/forgot-password/request", request)
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response.data.errorCode
+            }
+        }
+    },
     resetPassWord: async (request) => {
         try {
             const res = await apiClient.post("/v1/auth/forgot-password/reset", request)

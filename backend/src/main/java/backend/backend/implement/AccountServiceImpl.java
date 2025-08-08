@@ -19,12 +19,16 @@ import java.util.Optional;
 public class AccountServiceImpl implements AccountService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-
+   
     @Override
     @Transactional(readOnly = true)
     public AccountDto getAccountDetails(String userEmail) {
-        Optional<User> user = userRepository.findByEmailWithRoles(userEmail);
-        return user.map(userMapper::fromEntityToProfile).orElse(null);
+    	 System.out.println("🔍 Đang tìm user với email: " + userEmail);
+    	    Optional<User> user = userRepository.findByEmailWithRoles(userEmail);
+    	    if (user.isEmpty()) {
+    	        System.out.println("❌ Không tìm thấy user với email: " + userEmail);
+    	    }
+    	    return user.map(userMapper::fromEntityToProfile).orElse(null);
     }
 
     @Override

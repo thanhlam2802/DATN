@@ -99,23 +99,23 @@ public class AuthServiceImpl implements AuthService {
         if (header == null) {
             throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
         }
-        if (!header.startsWith("Bearer ")) {
-            throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
-        }
-
-        String token = header.substring(7);
-
-        Claims claims = jwtTokenUtil.extractAllClaims(token);
-        Integer userId = jwtTokenUtil.extractUserId(token);
-        String email = jwtTokenUtil.extractUserEmail(token);
-        boolean verified = claims.get("isVerified", Boolean.class);
-        if (!verified) {
-            Map<String, String> params = new HashMap<>();
-            params.put("toEmail", email);
-            params.put("userId", userId.toString());
-            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
-            throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
-        }
+//        if (!header.startsWith("Bearer ")) {
+//            throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
+//        }
+//
+//        String token = header.substring(7);
+//
+//        Claims claims = jwtTokenUtil.extractAllClaims(token);
+//        Integer userId = jwtTokenUtil.extractUserId(token);
+//        String email = jwtTokenUtil.extractUserEmail(token);
+//        boolean verified = claims.get("isVerified", Boolean.class);
+//        if (!verified) {
+//            Map<String, String> params = new HashMap<>();
+//            params.put("toEmail", email);
+//            params.put("userId", userId.toString());
+//            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
+//            throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
+//        }
     }
 
     @Override

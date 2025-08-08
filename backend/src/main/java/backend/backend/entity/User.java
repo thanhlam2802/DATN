@@ -16,6 +16,7 @@ import jakarta.persistence.*;
 @Getter
 @Setter
 @Entity
+
 @Table(name = "users")
 public class User {
     @Id
@@ -57,37 +58,37 @@ public class User {
     private AuthProvider authProvider;
 
     @ToString.Exclude
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user",fetch = FetchType.EAGER)
     private List<UserRole> userRoles;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<Review> reviews;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<SearchHistory> searchHistories;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "owner")
     private List<Hotel> ownedHotels;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "owner")
     private List<Flight> ownedFlights;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "owner")
     private List<Bus> ownedBuses;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "owner")
     private List<Tour> ownedTours;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<UserVoucher> userVouchers;
 
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<Order> orders;
-
+    @ToString.Exclude
     @OneToMany(mappedBy = "user")
     private List<Payment> payments;
 

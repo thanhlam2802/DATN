@@ -308,10 +308,26 @@ public class TourAdminServiceImpl implements TourAdminService {
     @Override
     @Transactional(readOnly = true)
     public List<TourDetailAdminDTO> getToursByUserId(Integer userId) {
-        // Giả sử Tour entity có trường `private User owner;`
-        // return tourRepository.findByOwnerId(userId).stream()
-        //         .map(TourDetailAdminDTO::new) 
-        //         .collect(Collectors.toList());
-        return new ArrayList<>(); // Tạm thời trả về list rỗng
+        // 1. Gọi repository để tìm tất cả các tour có owner.id khớp với userId
+        List<Tour> tours = tourRepository.findByOwnerId(userId);
+
+        // 2. Dùng Stream API để chuyển đổi mỗi Tour entity thành TourDetailAdminDTO
+        return tours.stream()
+                    .map(TourDetailAdminDTO::new) // Giả định DTO có constructor nhận Tour entity
+                    .collect(Collectors.toList());
     }
+  
+    @Override
+    public long countTotalTours(Long userId) {
+        // Sửa lại để gọi phương thức đếm theo ID của chủ sở hữu (owner)
+        return tourRepository.countByOwnerId(userId);
+    }
+
+    @Override
+    public long countByStatus(Long userId, TourStatus status) {
+        // Sửa lại để gọi phương thức đếm theo cả ID chủ sở hữu và trạng thái
+        return tourRepository.countByOwnerIdAndStatus(userId, status);
+    }
+    
+    
 }

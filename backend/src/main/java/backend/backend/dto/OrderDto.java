@@ -18,7 +18,7 @@ public class OrderDto {
     private LocalDateTime createdAt;
     private String mainProduct;
     private LocalDateTime expiresAt;
-
+    private String transactionId;
     private List<BookingTourDto> tourBookings;
     private List<FlightBookingDto> flightBookings;
     private List<HotelBookingDto> hotelBookings;

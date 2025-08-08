@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, reactive, onUnmounted, onBeforeUnmount, watch } from "vue"; // Import thêm onUnmounted
 import { useRoute, useRouter } from "vue-router";
 import { getBearerToken } from "@/services/TokenService";
-import { updateCustomer, cancelFlightBooking } from '@/api/flightApi'
+import { updateCustomer, cancelFlightBooking, getFlightDetail } from '@/api/flightApi'
 import { servicePaymentMake, servicePaymentConfirm, accountLookup, refundMake, refundConfirm } from '@/api/coreBankingApi';
 import SockJS from "sockjs-client/dist/sockjs.min.js";
 import { markOrderSuccess } from '@/api/OrderApi'
@@ -114,62 +114,62 @@ const bookingsCloseToExpiry = computed(() => {
     }
   }
 
-  // Check hotel bookings
-  if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
-    for (const booking of order.value.hotelBookings) {
-      if (booking.checkInDate) {
-        const checkInDate = new Date(booking.checkInDate);
-        const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
+  // // Check hotel bookings
+  // if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
+  //   for (const booking of order.value.hotelBookings) {
+  //     if (booking.checkInDate) {
+  //       const checkInDate = new Date(booking.checkInDate);
+  //       const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
 
-        if (timeUntilCheckIn <= oneDayInMs && timeUntilCheckIn > 0) {
-          closeBookings.push({
-            type: 'hotel',
-            name: booking.hotelName || 'N/A',
-            remainingTime: formatRemainingTime(timeUntilCheckIn),
-            checkInDate: booking.checkInDate
-          });
-        }
-      }
-    }
-  }
+  //       if (timeUntilCheckIn <= oneDayInMs && timeUntilCheckIn > 0) {
+  //         closeBookings.push({
+  //           type: 'hotel',
+  //           name: booking.hotelName || 'N/A',
+  //           remainingTime: formatRemainingTime(timeUntilCheckIn),
+  //           checkInDate: booking.checkInDate
+  //         });
+  //       }
+  //     }
+  //   }
+  // }
 
-  // Check tour bookings
-  if (order.value.tourBookings && order.value.tourBookings.length > 0) {
-    for (const booking of order.value.tourBookings) {
-      if (booking.departureDate) {
-        const departureDate = new Date(booking.departureDate);
-        const timeUntilDeparture = departureDate.getTime() - now.getTime();
+  // // Check tour bookings
+  // if (order.value.tourBookings && order.value.tourBookings.length > 0) {
+  //   for (const booking of order.value.tourBookings) {
+  //     if (booking.departureDate) {
+  //       const departureDate = new Date(booking.departureDate);
+  //       const timeUntilDeparture = departureDate.getTime() - now.getTime();
 
-        if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
-          closeBookings.push({
-            type: 'tour',
-            name: booking.tourName || 'N/A',
-            remainingTime: formatRemainingTime(timeUntilDeparture),
-            departureDate: booking.departureDate
-          });
-        }
-      }
-    }
-  }
+  //       if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
+  //         closeBookings.push({
+  //           type: 'tour',
+  //           name: booking.tourName || 'N/A',
+  //           remainingTime: formatRemainingTime(timeUntilDeparture),
+  //           departureDate: booking.departureDate
+  //         });
+  //       }
+  //     }
+  //   }
+  // }
 
-  // Check bus bookings
-  if (order.value.busBookings && order.value.busBookings.length > 0) {
-    for (const booking of order.value.busBookings) {
-      if (booking.busSlot && booking.busSlot.bus && booking.busSlot.bus.departureTime) {
-        const departureTime = new Date(booking.busSlot.bus.departureTime);
-        const timeUntilDeparture = departureTime.getTime() - now.getTime();
+  // // Check bus bookings
+  // if (order.value.busBookings && order.value.busBookings.length > 0) {
+  //   for (const booking of order.value.busBookings) {
+  //     if (booking.busSlot && booking.busSlot.bus && booking.busSlot.bus.departureTime) {
+  //       const departureTime = new Date(booking.busSlot.bus.departureTime);
+  //       const timeUntilDeparture = departureTime.getTime() - now.getTime();
 
-        if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
-          closeBookings.push({
-            type: 'bus',
-            name: booking.busSlot.bus.name || 'N/A',
-            remainingTime: formatRemainingTime(timeUntilDeparture),
-            departureTime: booking.busSlot.bus.departureTime
-          });
-        }
-      }
-    }
-  }
+  //       if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
+  //         closeBookings.push({
+  //           type: 'bus',
+  //           name: booking.busSlot.bus.name || 'N/A',
+  //           remainingTime: formatRemainingTime(timeUntilDeparture),
+  //           departureTime: booking.busSlot.bus.departureTime
+  //         });
+  //       }
+  //     }
+  //   }
+  // }
 
   return closeBookings;
 });
@@ -595,7 +595,8 @@ async function confirmOtp() {
     if (res.data?.transactionId) {
       otpSuccess.value = true;
       onAccountNumberBlur();
-      order.value.status = "PAID"
+      order.value.status = "PAID";
+      order.value.transactionId = res.data.transactionId;
       window.$toast('Thanh toán hoàn tất!', 'success');
       showOtpDialog.value = false;
 
@@ -661,71 +662,76 @@ function updateRefundOtpCountdownDisplay() {
   refundOtpCountdownDisplay.value = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-function openRefundDialog() {
+async function openRefundDialog() {
   // Validate if tickets can be cancelled based on their expiry times
   const validationErrors = [];
   const now = new Date();
   const oneDayInMs = 24 * 60 * 60 * 1000; // 1 day in milliseconds
 
+  
   // Check flight bookings
   if (order.value.flightBookings && order.value.flightBookings.length > 0) {
+      console.log("trong if");
     for (const booking of order.value.flightBookings) {
-      if (booking.flightSlot && booking.flightSlot.flight && booking.flightSlot.flight.departureTime) {
-        const departureTime = new Date(booking.flightSlot.flight.departureTime);
+      
+      const flightdetail = await getFlightDetail(booking.flightId);
+      if (flightdetail.data.departureTime) {
+        const departureTime = new Date(flightdetail.data.departureTime);
         const timeUntilDeparture = departureTime.getTime() - now.getTime();
-
+        console.log('Time until departure:', timeUntilDeparture, 'ms');
+        console.log(departureTime);
         if (timeUntilDeparture <= oneDayInMs) {
           const remainingTime = formatRemainingTime(timeUntilDeparture);
-          validationErrors.push(`Chuyến bay ${booking.flightSlot.flight.name} (${booking.flightSlot.flight.flightNumber}) khởi hành trong ${remainingTime}. Không thể hủy vé.`);
+          validationErrors.push(`Chuyến bay ${flightdetail.data.name} (${flightdetail.data.flightNumber}) khởi hành trong ${remainingTime}. Không thể hủy vé.`);
         }
       }
     }
   }
 
   // Check hotel bookings
-  if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
-    for (const booking of order.value.hotelBookings) {
-      if (booking.checkInDate) {
-        const checkInDate = new Date(booking.checkInDate);
-        const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
+  // if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
+  //   for (const booking of order.value.hotelBookings) {
+  //     if (booking.checkInDate) {
+  //       const checkInDate = new Date(booking.checkInDate);
+  //       const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
 
-        if (timeUntilCheckIn <= oneDayInMs) {
-          const remainingTime = formatRemainingTime(timeUntilCheckIn);
-          validationErrors.push(`Khách sạn ${booking.hotelName || 'N/A'} nhận phòng trong ${remainingTime}. Không thể hủy đặt phòng.`);
-        }
-      }
-    }
-  }
+  //       if (timeUntilCheckIn <= oneDayInMs) {
+  //         const remainingTime = formatRemainingTime(timeUntilCheckIn);
+  //         validationErrors.push(`Khách sạn ${booking.hotelName || 'N/A'} nhận phòng trong ${remainingTime}. Không thể hủy đặt phòng.`);
+  //       }
+  //     }
+  //   }
+  // }
 
   // Check tour bookings
-  if (order.value.tourBookings && order.value.tourBookings.length > 0) {
-    for (const booking of order.value.tourBookings) {
-      if (booking.departureDate) {
-        const departureDate = new Date(booking.departureDate);
-        const timeUntilDeparture = departureDate.getTime() - now.getTime();
+  // if (order.value.tourBookings && order.value.tourBookings.length > 0) {
+  //   for (const booking of order.value.tourBookings) {
+  //     if (booking.departureDate) {
+  //       const departureDate = new Date(booking.departureDate);
+  //       const timeUntilDeparture = departureDate.getTime() - now.getTime();
 
-        if (timeUntilDeparture <= oneDayInMs) {
-          const remainingTime = formatRemainingTime(timeUntilDeparture);
-          validationErrors.push(`Tour ${booking.tourName || 'N/A'} khởi hành trong ${remainingTime}. Không thể hủy tour.`);
-        }
-      }
-    }
-  }
+  //       if (timeUntilDeparture <= oneDayInMs) {
+  //         const remainingTime = formatRemainingTime(timeUntilDeparture);
+  //         validationErrors.push(`Tour ${booking.tourName || 'N/A'} khởi hành trong ${remainingTime}. Không thể hủy tour.`);
+  //       }
+  //     }
+  //   }
+  // }
 
   // Check bus bookings (if they exist in the order structure)
-  if (order.value.busBookings && order.value.busBookings.length > 0) {
-    for (const booking of order.value.busBookings) {
-      if (booking.busSlot && booking.busSlot.bus && booking.busSlot.bus.departureTime) {
-        const departureTime = new Date(booking.busSlot.bus.departureTime);
-        const timeUntilDeparture = departureTime.getTime() - now.getTime();
+  // if (order.value.busBookings && order.value.busBookings.length > 0) {
+  //   for (const booking of order.value.busBookings) {
+  //     if (booking.busSlot && booking.busSlot.bus && booking.busSlot.bus.departureTime) {
+  //       const departureTime = new Date(booking.busSlot.bus.departureTime);
+  //       const timeUntilDeparture = departureTime.getTime() - now.getTime();
 
-        if (timeUntilDeparture <= oneDayInMs) {
-          const remainingTime = formatRemainingTime(timeUntilDeparture);
-          validationErrors.push(`Chuyến xe ${booking.busSlot.bus.name || 'N/A'} khởi hành trong ${remainingTime}. Không thể hủy vé.`);
-        }
-      }
-    }
-  }
+  //       if (timeUntilDeparture <= oneDayInMs) {
+  //         const remainingTime = formatRemainingTime(timeUntilDeparture);
+  //         validationErrors.push(`Chuyến xe ${booking.busSlot.bus.name || 'N/A'} khởi hành trong ${remainingTime}. Không thể hủy vé.`);
+  //       }
+  //     }
+  //   }
+  // }
 
   // If there are validation errors, show them and don't open the dialog
   if (validationErrors.length > 0) {
@@ -761,10 +767,9 @@ async function submitRefund() {
 
   isRefunding.value = true;
   try {
-    const res = await refundMake({
-      transactionId: order.value.transactionId,
-      reason: refundReason.value.trim()
-    });
+    console.log(order.value);
+    
+    const res = await refundMake(order.value.transactionId, refundReason.value.trim());
 
     if (res.data?.paymentId) {
       refundPaymentId.value = res.data.paymentId;

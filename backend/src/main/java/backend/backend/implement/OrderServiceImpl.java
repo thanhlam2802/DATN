@@ -244,6 +244,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setPayDate(entity.getPayDate());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setExpiresAt(entity.getExpiresAt());
+        dto.setTransactionId(entity.getTransactionId());
         if (entity.getUser() != null) dto.setUserId(entity.getUser().getId());
         if (entity.getVoucher() != null) dto.setVoucherId(entity.getVoucher().getId());
         if (entity.getDestination() != null) dto.setDestinationId(entity.getDestination().getId());

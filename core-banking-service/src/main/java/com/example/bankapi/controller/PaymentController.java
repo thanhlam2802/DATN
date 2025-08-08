@@ -171,11 +171,11 @@ public class PaymentController {
                     content = @Content(schema = @Schema(implementation = PaymentDto.class))
             )
     )
-    @PostMapping("/refunds/make")
-    public ResponseEntity<PaymentDto> makeRefund(@RequestBody Map<String, Object> req) {
-        UUID transactionId = UUID.fromString(req.get("transactionId").toString());
-        String reason = req.get("reason").toString();
-        PaymentDto paymentDto = paymentService.makeRefund(transactionId, reason);
+    @PostMapping("/refunds/make/{transactionId}")
+    public ResponseEntity<PaymentDto> makeRefund(@PathVariable String transactionId,
+                                                 @RequestBody String reason) {
+        UUID transaction = UUID.fromString(transactionId);
+        PaymentDto paymentDto = paymentService.makeRefund(transaction, reason);
         return ResponseEntity.ok(paymentDto);
     }
 

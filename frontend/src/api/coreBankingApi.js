@@ -41,8 +41,8 @@ export const refundByPaymentId = (paymentId, data) =>
 
 
 // Refund Make (Gửi OTP hủy vé)
-export const refundMake = (data) =>
-  api.post('/refunds/make', data);
+  export const refundMake = (transactionId,reason) =>
+    api.post(`/refunds/make/${transactionId}`, {reason});
 
 // Refund Confirm (Xác nhận OTP hủy vé)
 export const refundConfirm = (data) =>

@@ -2,6 +2,7 @@ package backend.backend.controller;
 
 import backend.backend.dto.AccountDto;
 import backend.backend.entity.ApiResponse;
+import backend.backend.entity.User;
 import backend.backend.service.AccountService;
 import backend.backend.utils.ResponseFactory;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,12 @@ public class AccountController {
     @PreAuthorize("@authService.isAuthenticated()")
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<AccountDto>> getProfile() {
-        AccountDto accountDto = accountService.getAccountDetails(SecurityContextHolder.getContext().getAuthentication().getName());
+    	User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    	String email = user.getEmail(); 
+
+
+        AccountDto accountDto = accountService.getAccountDetails(email);
+        
         return ResponseFactory.success(accountDto, "Get user profile success");
     }
 

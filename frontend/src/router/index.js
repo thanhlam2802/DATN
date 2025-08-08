@@ -7,10 +7,11 @@ import Hotel from "@/views/hotel/Hotel.vue";
 import Plane from "@/components/Flight/FlightHome.vue";
 import FlightDetail from "@/components/Flight/FlightDetail.vue";
 import TourDetail from "@/views/TourDetail.vue";
-
+import PostRegistrationChoice from "../views/PostRegistrationChoice.vue";
+import SupplierApplication from "../views/SupplierApplication.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import MainLayout from "@/layouts/Main.vue";
-
+import ApproveSuppliers from "@/views/Admin/ApproveSuppliers.vue";
 import AccountView from "@/views/AccountView.vue";
 import ServiceReviews from "@/components/User/Sidebar/ServiceReviews.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
@@ -68,13 +69,23 @@ const routes = [
   {
     path: "/unauthorized",
     name: "Unauthorized",
-    component: Unauthorized
+    component: Unauthorized,
   },
   {
     path: "/",
     component: MainLayout,
     children: [
       { path: "", name: "Home", component: Home },
+      {
+        path: "/post-registration-choice",
+        name: "PostRegistrationChoice",
+        component: PostRegistrationChoice,
+      },
+      {
+        path: "/supplier-application",
+        name: "SupplierApplication",
+        component: SupplierApplication,
+      },
       { path: "register", name: "Register", component: Register },
       { path: "login", name: "Login", component: Login },
       {
@@ -98,6 +109,7 @@ const routes = [
         component: FlightDetail,
         props: true,
       },
+
       {
         path: "/orders/:id",
         name: "order-detail",
@@ -289,6 +301,11 @@ const routes = [
         path: "tours",
         name: "AdminTours",
         component: TourManagement,
+      },
+      {
+        path: "/admin/approve-suppliers",
+        name: "ApproveSuppliers",
+        component: ApproveSuppliers,
       },
     ],
   },

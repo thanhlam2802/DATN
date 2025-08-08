@@ -31,12 +31,17 @@ const handleError = (error) => {
 //================================================================
 export const tourApi = {
   /**
-   * Lấy tất cả tour cho trang admin.
-   * Gọi đến: GET /api/admin/tours
+   * ✅ SỬA LẠI: Lấy tất cả tour cho một admin cụ thể.
+   * Gọi đến: GET /api/admin/tours?userId=...
+   * @param {number} userId - ID của người dùng (admin/chủ tour).
    */
-  getAll: () => {
+  getAll: (userId) => {
     return apiClient
-      .get("/api/admin/tours")
+      .get("/api/admin/tours", {
+        params: {
+          userId: userId,
+        },
+      })
       .then(handleResponse)
       .catch(handleError);
   },

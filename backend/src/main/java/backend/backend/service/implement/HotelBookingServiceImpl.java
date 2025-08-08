@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class HotelBookingServiceImpl implements HotelBookingService {
@@ -78,15 +79,34 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             if (dto.getRooms() == null || dto.getRooms() <= 0)
                 throw new IllegalArgumentException("Thiếu hoặc sai số lượng phòng đặt");
 
-            Customer customer = customerDAO.findByEmail(dto.getEmail())
-                    .orElseGet(() -> {
-                        Customer c = new Customer();
-                        c.setFullName(dto.getFullName());
-                        c.setEmail(dto.getEmail());
-                        c.setPhone(dto.getPhone());
-                        log.info("[BOOK_HOTEL] Tạo customer mới: {}", c);
-                        return customerDAO.save(c);
-                    });
+            List<Customer> existingCustomers = customerDAO.findAllByEmail(dto.getEmail());
+            Customer customer;
+            
+            if (!existingCustomers.isEmpty()) {
+                Optional<Customer> exactMatch = existingCustomers.stream()
+                    .filter(existing -> existing.getFullName().equals(dto.getFullName()) && 
+                                      existing.getPhone().equals(dto.getPhone()))
+                    .findFirst();
+                
+                if (exactMatch.isPresent()) {
+                    customer = exactMatch.get();
+                    log.info("[BOOK_HOTEL] Sử dụng thông tin customer hiện tại: {}", customer.getFullName());
+                } else {
+                    Customer newCustomer = new Customer();
+                    newCustomer.setFullName(dto.getFullName());
+                    newCustomer.setEmail(dto.getEmail());
+                    newCustomer.setPhone(dto.getPhone());
+                    customer = customerDAO.save(newCustomer);
+                    log.info("[BOOK_HOTEL] Tạo customer mới (email đã tồn tại nhưng thông tin khác): {}", newCustomer.getFullName());
+                }
+            } else {
+                Customer newCustomer = new Customer();
+                newCustomer.setFullName(dto.getFullName());
+                newCustomer.setEmail(dto.getEmail());
+                newCustomer.setPhone(dto.getPhone());
+                customer = customerDAO.save(newCustomer);
+                log.info("[BOOK_HOTEL] Tạo customer mới: {}", newCustomer.getFullName());
+            }
 
             Order order;
             if (dto.getOrderId() != null) {
@@ -108,7 +128,7 @@ public class HotelBookingServiceImpl implements HotelBookingService {
                     order.setUser(user);
                 }
                 order = orderDAO.save(order);
-                log.info("[BOOK_HOTEL] Đã tạo order: {}", order);
+                log.info("[BOOK_HOTEL] Đã tạo order với ID: {}", order.getId());
             }
 
             HotelRoomVariant variant = hotelRoomVariantDAO.findByIdWithRoom(dto.getRoomVariantId())

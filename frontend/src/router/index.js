@@ -234,6 +234,7 @@ const routes = [
   {
     path: "/hotel/admin",
     component: AdminLayout,
+    meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: "dashboard", component: Dashboard },
       { path: "hotelform", component: HotelForm },
@@ -248,7 +249,7 @@ const routes = [
     path: "/admin",
     component: AdminLayoutSuper,
     redirect: "/admin/dashboard",
-
+    meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       // Route cho dashboard chung
       {
@@ -320,6 +321,62 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach(async (to, from, next) => {
+  console.log('Navigation guard - to:', to.path, 'from:', from.path);
+  
+  const { useUserStore } = await import('@/store/UserStore.js');
+  const userStore = useUserStore();
+  
+  if (to.meta.requiresAuth) {
+    console.log('Route requires auth, checking login status...');
+    
+    if (!userStore.isLoggedIn) {
+      console.log('User not logged in, trying to restore from token...');
+      
+      const restored = await userStore.restoreUserFromToken();
+      if (!restored) {
+        console.log('Failed to restore user, redirecting to login...');
+        localStorage.setItem('intendedRoute', to.fullPath);
+        next({ name: 'Login' });
+        return;
+      }
+    }
+    
+    if (to.meta.requiresAdmin) {
+      console.log('Route requires admin, checking user roles...');
+      
+      if (!userStore.user || !userStore.user.roles) {
+        console.log('User has no roles, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+      
+      const hasAdminRole = userStore.user.roles.some(role => 
+        role === 'ADMIN_HOTELS' || 
+        role === 'HOTEL_SUPPLIER' || 
+        role === 'ADMIN_FLIGHTS' || 
+        role === 'FLIGHT_SUPPLIER' || 
+        role === 'ADMIN_TOURS' || 
+        role === 'TOUR_SUPPLIER' || 
+        role === 'ADMIN_BUSES' || 
+        role === 'BUS_SUPPLIER' || 
+        role === 'SUPER_ADMIN'
+      );
+      
+      if (!hasAdminRole) {
+        console.log('User does not have admin role, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+      
+      console.log('User has admin role, proceeding...');
+    }
+  }
+  
+  console.log('Navigation guard - proceeding to:', to.path);
+  next();
 });
 
 export default router;

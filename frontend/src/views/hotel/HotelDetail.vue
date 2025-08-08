@@ -487,6 +487,18 @@
             <div class="mt-2 text-base text-gray-900 font-normal whitespace-pre-line">{{ review.content }}</div>
             <div v-if="review.translated" class="text-xs text-gray-400 italic mt-1">translated by Google <a href="#"
                 class="text-blue-500 underline ml-1">Xem bản gốc</a></div>
+            
+            <div v-if="review.adminResponse" class="mt-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-reply text-blue-600"></i>
+                <span class="font-medium text-blue-900">Phản hồi từ khách sạn</span>
+                <span class="text-sm text-blue-600">{{ formatRelativeTime({ createdAt: review.adminResponseDate }) }}</span>
+              </div>
+              <p class="text-slate-700">{{ review.adminResponse }}</p>
+              <div class="text-xs text-blue-600 mt-1">
+                Bởi: Admin Hotel
+              </div>
+            </div>
           </div>
         </div>
       </div>

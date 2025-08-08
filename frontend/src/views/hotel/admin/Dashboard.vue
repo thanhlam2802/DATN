@@ -129,32 +129,49 @@
                     </div>
 
                     <div class="bg-white rounded-lg shadow-sm p-3 mb-4">
-                      <div class="flex justify-between items-center mb-2">
-                        <div class="flex items-center gap-3">
-                          <div class="font-medium text-lg">Biểu đồ doanh thu {{ chartTimeLabel }}</div>
-                          <div class="flex items-center gap-2 text-lg font-bold text-orange-600">
-                            <div class="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
-                              <i class="fas fa-arrow-right text-white text-xs"></i>
-                            </div>
-                            {{ formatCurrency(chartTotalRevenue) }}
-                          </div>
-                        </div>
-                        <div class="w-36">
-                          <CustomSelect
-                            v-model="selectedChartTimePeriod"
-                            :options="timeOptions"
-                            placeholder="Chọn thời gian"
-                            @update:modelValue="onChartTimePeriodChange"
-                          />
-                        </div>
-                      </div>
-                      <template v-if="revenueChartData">
-                        <RevenueChart :data="revenueChartData" :height="400" />
-                      </template>
-                      <template v-else>
-                        <div class="text-center text-gray-500 py-12 text-sm">Không có dữ liệu</div>
-                      </template>
-                    </div>
+                       <div class="flex justify-between items-center mb-1">
+                         <div class="flex items-center gap-3">
+                           <div class="font-medium text-lg">Biểu đồ doanh thu {{ chartTimeLabel }}</div>
+                           <div class="flex items-center gap-2 text-lg font-bold text-orange-600">
+                             <div class="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                               <i class="fas fa-arrow-right text-white text-xs"></i>
+                             </div>
+                             {{ formatCurrency(chartTotalRevenue) }}
+                           </div>
+                         </div>
+                         <div class="w-36">
+                           <CustomSelect
+                             v-model="selectedChartTimePeriod"
+                             :options="timeOptions"
+                             placeholder="Chọn thời gian"
+                             @update:modelValue="onChartTimePeriodChange"
+                           />
+                         </div>
+                       </div>
+                       
+                       <div class="flex mb-4">
+                         <button
+                           v-for="tab in chartTypeTabs"
+                           :key="tab.value"
+                           @click="selectedChartType = tab.value"
+                           :class="[
+                             'px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200',
+                             selectedChartType === tab.value
+                               ? 'border-orange-500 text-orange-600'
+                               : 'border-transparent text-gray-500 hover:text-gray-700'
+                           ]"
+                         >
+                           {{ tab.label }}
+                         </button>
+                       </div>
+                       
+                       <template v-if="revenueChartData">
+                         <RevenueChart :data="revenueChartData" :height="400" />
+                       </template>
+                       <template v-else>
+                         <div class="text-center text-gray-500 py-12 text-sm">Không có dữ liệu</div>
+                       </template>
+                     </div>
 
                     <div class="bg-white rounded-lg shadow-sm p-3 mb-4">
                       <div class="flex justify-between items-center mb-2">
@@ -179,7 +196,7 @@
                     <div class="bg-white rounded-lg shadow-sm p-3">
                       <div class="flex justify-between items-center mb-2">
                         <div class="flex items-center gap-3">
-                          <div class="font-medium text-lg">Top loại phòng đươc đặt nhiều nhất {{ topRoomsTimeLabel }}</div>
+                          <div class="font-medium text-lg">Top loại phòng được đặt nhiều nhất {{ topRoomsTimeLabel }}</div>
                         </div>
                         <div class="w-36">
                           <CustomSelect
@@ -251,6 +268,13 @@ const selectedChartTimePeriod = ref('this_month');
 const selectedPieChartTimePeriod = ref('this_month');
 const selectedTopRoomsTimePeriod = ref('this_month');
 const topRoomsSearchQuery = ref('');
+
+const selectedChartType = ref('by_day');
+const chartTypeTabs = [
+  { value: 'by_day', label: 'Theo ngày' },
+  { value: 'by_hour', label: 'Theo giờ' },
+  { value: 'by_weekday', label: 'Theo thứ' }
+];
 
 const timeOptions = [
   { value: 'today', label: 'Hôm nay' },
@@ -398,6 +422,11 @@ const onTopRoomsTimePeriodChange = (value) => {
   fetchTopRoomsChart();
 };
 
+watch(selectedChartType, (newType) => {
+  console.log('Chart type changed to:', newType);
+  fetchRevenueChart();
+});
+
 onMounted(() => {
   const userStore = useUserStore();
   console.log('UserStore:', userStore);
@@ -456,7 +485,9 @@ const fetchRevenueChart = async () => {
   try {
     console.log('=== REVENUE CHART DEBUG ===');
     console.log('Calling revenue chart API with period:', selectedChartTimePeriod.value);
-            const res = await hotelAdminApi.getHotelRevenueChart(selectedChartTimePeriod.value);
+    console.log('Chart type:', selectedChartType.value);
+    
+    const res = await hotelAdminApi.getHotelRevenueChart(selectedChartTimePeriod.value, selectedChartType.value);
     console.log('Revenue chart API Response:', res);
     console.log('Revenue chart data:', res.data);
     console.log('Revenue chart data.data:', res.data?.data);

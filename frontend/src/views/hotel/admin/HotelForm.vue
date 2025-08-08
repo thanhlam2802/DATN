@@ -8,7 +8,7 @@
                         <i class="fas fa-hotel text-blue-500 text-xl"></i>
                     </div>
                 </div>
-                <div class="text-3xl font-bold text-slate-900">{{ hotels.length }}</div>
+                <div class="text-3xl font-bold text-slate-900">{{ hotelStatistics.totalHotels }}</div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                 <div class="flex items-start justify-between mb-4">
@@ -19,23 +19,33 @@
                 </div>
                 <div class="text-3xl font-bold text-slate-900">{{ totalRooms }}</div>
             </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div class="bg-white rounded-xl shadow-md p-6 border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer" 
+                 :class="isNearlyOutOfStockFilterActive ? 'border-orange-400 bg-orange-50' : 'border-slate-200'" 
+                 @click="filterByRoomStatus('nearly_out_of_stock')">
                 <div class="flex items-start justify-between mb-4">
-                    <div class="text-slate-600 font-semibold">Tổng phòng còn trống</div>
-                    <div class="bg-purple-50 p-3 rounded-full">
-                        <i class="fas fa-bed text-purple-500 text-xl"></i>
+                    <div class="text-slate-600 font-semibold">Tổng phòng gần hết</div>
+                    <div class="bg-orange-50 p-3 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-orange-500 text-xl"></i>
                     </div>
                 </div>
-                <div class="text-3xl font-bold text-slate-900">{{ totalAvailableRooms }}</div>
+                <div class="text-3xl font-bold text-slate-900">{{ hotelStatistics.nearlyOutOfStockRooms }}</div>
+                <div v-if="isNearlyOutOfStockFilterActive" class="mt-2 text-xs text-orange-600 font-medium">
+                    <i class="fas fa-filter mr-1"></i>Đang lọc
+                </div>
             </div>
-            <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div class="bg-white rounded-xl shadow-md p-6 border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer" 
+                 :class="isOutOfStockFilterActive ? 'border-red-400 bg-red-50' : 'border-slate-200'" 
+                 @click="filterByRoomStatus('out_of_stock')">
                 <div class="flex items-start justify-between mb-4">
-                    <div class="text-slate-600 font-semibold">Tổng lượt đặt phòng</div>
-                    <div class="bg-yellow-50 p-3 rounded-full">
-                        <i class="fas fa-calendar-check text-yellow-500 text-xl"></i>
+                    <div class="text-slate-600 font-semibold">Số lượng phòng đã hết</div>
+                    <div class="bg-red-50 p-3 rounded-full">
+                        <i class="fas fa-times-circle text-red-500 text-xl"></i>
                     </div>
                 </div>
-                <div class="text-3xl font-bold text-slate-900">{{ totalBookings }}</div>
+                <div class="text-3xl font-bold text-slate-900">{{ hotelStatistics.outOfStockRooms }}</div>
+                <div v-if="isOutOfStockFilterActive" class="mt-2 text-xs text-red-600 font-medium">
+                    <i class="fas fa-filter mr-1"></i>Đang lọc
+                </div>
             </div>
         </div>
         <div v-if="mode === 'list'">
@@ -833,6 +843,16 @@ export default {
             roomImageUrlPopupStyle: [{}],
             roomUrlPopupRefs: [],
             hotelImageUrlPopupRef: null,
+            // Thống kê khách sạn
+            hotelStatistics: {
+                totalHotels: 0,
+                totalRooms: 0,
+                availableRooms: 0,
+                outOfStockRooms: 0,
+                nearlyOutOfStockRooms: 0
+            },
+            // Filter theo trạng thái phòng
+            roomStatusFilter: null,
         };
     },
     computed: {
@@ -870,17 +890,18 @@ export default {
             return result;
         },
         totalRooms() {
-            // Tổng số phòng (cộng roomQuantity của tất cả các phòng trong tất cả khách sạn)
-            return this.hotels.reduce((sum, h) => sum + (h.availableRooms ? h.availableRooms.reduce((s, r) => s + (r.roomQuantity || 0), 0) : 0), 0);
+            // Sử dụng thống kê từ API
+            return this.hotelStatistics.totalRooms || 0;
         },
         totalAvailableRooms() {
-            // Tổng số phòng còn trống (giả lập: bằng tổng roomQuantity, thực tế có thể lấy trường riêng nếu backend trả về)
-            return this.totalRooms;
+            // Sử dụng thống kê từ API
+            return this.hotelStatistics.availableRooms || 0;
         },
-        totalBookings() {
-            // Tổng lượt đặt phòng (giả lập: random hoặc lấy từ trường bookings nếu có)
-            // Nếu không có dữ liệu thực, có thể để 0 hoặc random
-            return this.hotels.reduce((sum, h) => sum + (h.totalBookings || 0), 0);
+        isNearlyOutOfStockFilterActive() {
+            return this.roomStatusFilter === 'nearly_out_of_stock';
+        },
+        isOutOfStockFilterActive() {
+            return this.roomStatusFilter === 'out_of_stock';
         },
     },
     watch: {
@@ -1018,9 +1039,11 @@ export default {
             this.filterCreatedAtPreset = '';
             this.filterCreatedAtFrom = '';
             this.filterCreatedAtTo = '';
+            this.roomStatusFilter = null;
             this.showFilterDropdown = false;
             this.currentPage = 1;
             this.fetchHotels();
+            this.fetchHotelStatistics();
         },
         async viewDetails(hotel) {
             this.isEditMode = true;
@@ -1139,6 +1162,7 @@ export default {
                 window.$toast('Xóa khách sạn thành công!', 'success');
                 this.backToList();
                 this.fetchHotels();
+                await this.fetchHotelStatistics();
             } catch (e) {
                 let msg = 'Xóa khách sạn thất bại!';
                 if (e?.response?.data?.message) {
@@ -1228,6 +1252,7 @@ export default {
                     maxPrice: this.filterPriceMax < 20000000 ? this.filterPriceMax : undefined,
                     createdAtFrom: this.filterCreatedAtFrom || undefined,
                     createdAtTo: this.filterCreatedAtTo || undefined,
+                    roomStatus: this.roomStatusFilter || undefined,
                     page: 0,
                     size: 1000,
                 };
@@ -1239,6 +1264,25 @@ export default {
                 }
             } catch (error) {
                 this.hotels = [];
+            }
+        },
+        
+        async fetchHotelStatistics() {
+            try {
+                const response = await hotelAdminApi.getHotelStatistics();
+                if (response.data && response.data.data) {
+                    this.hotelStatistics = response.data.data;
+                }
+            } catch (error) {
+                console.error('Error fetching hotel statistics:', error);
+                // Fallback values
+                this.hotelStatistics = {
+                    totalHotels: this.hotels.length,
+                    totalRooms: 0,
+                    availableRooms: 0,
+                    outOfStockRooms: 0,
+                    nearlyOutOfStockRooms: 0
+                };
             }
         },
         handleOutsideClick(event) {
@@ -1507,6 +1551,7 @@ export default {
                 }
                 this.backToList();
                 await this.fetchHotels();
+                await this.fetchHotelStatistics();
             } catch (err) {
                 let msg = 'Có lỗi khi lưu khách sạn!';
                 if (err?.response?.data?.message) {
@@ -1689,6 +1734,18 @@ export default {
             this.showFilterDropdown = false;
             this.currentPage = 1;
             this.fetchHotels();
+            this.fetchHotelStatistics();
+        },
+        filterByRoomStatus(roomStatus) {
+            // If clicking the same filter, clear it
+            if (this.roomStatusFilter === roomStatus) {
+                this.roomStatusFilter = null;
+            } else {
+                this.roomStatusFilter = roomStatus;
+            }
+            this.currentPage = 1;
+            this.fetchHotels();
+            this.fetchHotelStatistics();
         },
         formatDate(date) {
             return date.toISOString().slice(0, 10);
@@ -1978,6 +2035,7 @@ export default {
         
         this.fetchHotels();
         this.loadProvincesAndAmenities();
+        this.fetchHotelStatistics();
         document.addEventListener('click', this.handleOutsideClick, true);
         document.addEventListener('click', this.closeAmenityDropdown, true);
         const breadcrumbStore = useAdminBreadcrumbStore();

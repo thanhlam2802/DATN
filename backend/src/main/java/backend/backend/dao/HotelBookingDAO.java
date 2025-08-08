@@ -1,6 +1,5 @@
 package backend.backend.dao;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +68,8 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
     List<Map<String, Object>> findAllBookingsByCustomerId(@Param("customerId") Integer customerId);
 
     @Query("SELECT new backend.backend.dto.HotelBookingDto(" +
-           "b.id, c.fullName, h.name, b.createdAt, b.order.status, b.totalPrice) " +
+           "b.id, c.fullName, c.id, rv.id, b.checkInDate, b.checkOutDate, b.numAdults, b.numChildren, " +
+           "b.totalPrice, b.createdAt, b.order.id, h.name, r.roomType, rv.variantName, null, b.rooms, b.order.status) " +
            "FROM HotelBooking b " +
            "JOIN b.roomVariant rv " +
            "JOIN rv.room r " +
@@ -113,7 +113,7 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
     @Query(value = "SELECT COUNT(*) FROM hotel_bookings WHERE YEAR(created_at) = YEAR(DATEADD(MONTH, -2, GETDATE())) AND MONTH(created_at) = MONTH(DATEADD(MONTH, -2, GETDATE()))", nativeQuery = true)
     Long countTotalBookings2MonthsAgo();
 
-    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    @Query(value = "SELECT COALESCE(SUM(b.total_price), 0) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
     Long countPaidBookingsToday();
 
     @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)
@@ -641,5 +641,243 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
         return chartData;
     }
     
+    @Query(value = "SELECT h.name as hotelName, DATEPART(HOUR, b.created_at) as hour, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(HOUR, b.created_at) " +
+                   "ORDER BY h.name, hour", nativeQuery = true)
+    List<Object[]> getHotelRevenueByHourToday();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(HOUR, b.created_at) as hour, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(HOUR, b.created_at) " +
+                   "ORDER BY h.name, hour", nativeQuery = true)
+    List<Object[]> getHotelRevenueByHourYesterday();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(HOUR, b.created_at) as hour, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) >= CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(HOUR, b.created_at) " +
+                   "ORDER BY h.name, hour", nativeQuery = true)
+    List<Object[]> getHotelRevenueByHourLast7Days();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(HOUR, b.created_at) as hour, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE YEAR(b.created_at) = YEAR(GETDATE()) AND MONTH(b.created_at) = MONTH(GETDATE()) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(HOUR, b.created_at) " +
+                   "ORDER BY h.name, hour", nativeQuery = true)
+    List<Object[]> getHotelRevenueByHourThisMonth();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(HOUR, b.created_at) as hour, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE YEAR(b.created_at) = YEAR(DATEADD(MONTH, -1, GETDATE())) AND MONTH(b.created_at) = MONTH(DATEADD(MONTH, -1, GETDATE())) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(HOUR, b.created_at) " +
+                   "ORDER BY h.name, hour", nativeQuery = true)
+    List<Object[]> getHotelRevenueByHourLastMonth();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(WEEKDAY, b.created_at) as weekday, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(WEEKDAY, b.created_at) " +
+                   "ORDER BY h.name, weekday", nativeQuery = true)
+    List<Object[]> getHotelRevenueByWeekdayToday();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(WEEKDAY, b.created_at) as weekday, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(WEEKDAY, b.created_at) " +
+                   "ORDER BY h.name, weekday", nativeQuery = true)
+    List<Object[]> getHotelRevenueByWeekdayYesterday();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(WEEKDAY, b.created_at) as weekday, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE CAST(b.created_at AS DATE) >= CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(WEEKDAY, b.created_at) " +
+                   "ORDER BY h.name, weekday", nativeQuery = true)
+    List<Object[]> getHotelRevenueByWeekdayLast7Days();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(WEEKDAY, b.created_at) as weekday, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE YEAR(b.created_at) = YEAR(GETDATE()) AND MONTH(b.created_at) = MONTH(GETDATE()) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(WEEKDAY, b.created_at) " +
+                   "ORDER BY h.name, weekday", nativeQuery = true)
+    List<Object[]> getHotelRevenueByWeekdayThisMonth();
+
+    @Query(value = "SELECT h.name as hotelName, DATEPART(WEEKDAY, b.created_at) as weekday, COALESCE(SUM(b.total_price), 0) as revenue " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN hotel_room_variants rv ON r.id = rv.room_id " +
+                   "LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "LEFT JOIN orders o ON b.order_id = o.id " +
+                   "WHERE YEAR(b.created_at) = YEAR(DATEADD(MONTH, -1, GETDATE())) AND MONTH(b.created_at) = MONTH(DATEADD(MONTH, -1, GETDATE())) AND o.status = 'PAID' " +
+                   "GROUP BY h.name, DATEPART(WEEKDAY, b.created_at) " +
+                   "ORDER BY h.name, weekday", nativeQuery = true)
+    List<Object[]> getHotelRevenueByWeekdayLastMonth();
+
+    default Map<String, Object> getHotelRevenueByHourChartData(String period) {
+        List<Object[]> results;
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        
+        for (int i = 0; i < 24; i++) {
+            labels.add(String.format("%02d:00", i));
+        }
+        
+        switch (period) {
+            case "today":
+                results = getHotelRevenueByHourToday();
+                break;
+            case "yesterday":
+                results = getHotelRevenueByHourYesterday();
+                break;
+            case "last_7_days":
+                results = getHotelRevenueByHourLast7Days();
+                break;
+            case "this_month":
+                results = getHotelRevenueByHourThisMonth();
+                break;
+            case "last_month":
+                results = getHotelRevenueByHourLastMonth();
+                break;
+            default:
+                results = getHotelRevenueByHourThisMonth();
+                break;
+        }
+
+        java.util.Map<String, double[]> hotelRevenueMap = new java.util.HashMap<>();
+        for (Object[] row : results) {
+            String hotelName = (String) row[0];
+            Integer hour = (Integer) row[1];
+            java.math.BigDecimal revenue = (java.math.BigDecimal) row[2];
+            if (hour >= 0 && hour < 24) {
+                hotelRevenueMap.putIfAbsent(hotelName, new double[24]);
+                hotelRevenueMap.get(hotelName)[hour] = revenue.doubleValue();
+            }
+        }
+        
+        java.util.List<java.util.Map<String, Object>> datasets = new java.util.ArrayList<>();
+        for (String hotel : hotelRevenueMap.keySet()) {
+            java.util.Map<String, Object> ds = new java.util.HashMap<>();
+            ds.put("label", hotel);
+            ds.put("data", hotelRevenueMap.get(hotel));
+            datasets.add(ds);
+        }
+        
+        java.util.Map<String, Object> chartData = new java.util.HashMap<>();
+        chartData.put("labels", labels);
+        chartData.put("datasets", datasets);
+        return chartData;
+    }
+
+    default Map<String, Object> getHotelRevenueByWeekdayChartData(String period) {
+        List<Object[]> results;
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        
+        String[] weekdays = {"Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"};
+        for (String day : weekdays) {
+            labels.add(day);
+        }
+        
+        switch (period) {
+            case "today":
+                results = getHotelRevenueByWeekdayToday();
+                break;
+            case "yesterday":
+                results = getHotelRevenueByWeekdayYesterday();
+                break;
+            case "last_7_days":
+                results = getHotelRevenueByWeekdayLast7Days();
+                break;
+            case "this_month":
+                results = getHotelRevenueByWeekdayThisMonth();
+                break;
+            case "last_month":
+                results = getHotelRevenueByWeekdayLastMonth();
+                break;
+            default:
+                results = getHotelRevenueByWeekdayThisMonth();
+                break;
+        }
+
+        java.util.Map<String, double[]> hotelRevenueMap = new java.util.HashMap<>();
+        for (Object[] row : results) {
+            String hotelName = (String) row[0];
+            Integer weekday = (Integer) row[1];
+            java.math.BigDecimal revenue = (java.math.BigDecimal) row[2];
+            int dayIndex = weekday - 1;
+            if (dayIndex >= 0 && dayIndex < 7) {
+                hotelRevenueMap.putIfAbsent(hotelName, new double[7]);
+                hotelRevenueMap.get(hotelName)[dayIndex] = revenue.doubleValue();
+            }
+        }
+        
+        java.util.List<java.util.Map<String, Object>> datasets = new java.util.ArrayList<>();
+        for (String hotel : hotelRevenueMap.keySet()) {
+            java.util.Map<String, Object> ds = new java.util.HashMap<>();
+            ds.put("label", hotel);
+            ds.put("data", hotelRevenueMap.get(hotel));
+            datasets.add(ds);
+        }
+        
+        java.util.Map<String, Object> chartData = new java.util.HashMap<>();
+        chartData.put("labels", labels);
+        chartData.put("datasets", datasets);
+        return chartData;
+    }
     
+    @Query(value = "SELECT " +
+                   "COUNT(DISTINCT h.id) as totalHotels, " +
+                   "COALESCE(SUM(r.room_quantity), 0) as totalRooms, " +
+                   "COALESCE(SUM(r.room_quantity) - COALESCE(SUM(booked_rooms.booked_count), 0), 0) as availableRooms, " +
+                   "COUNT(DISTINCT CASE WHEN r.room_quantity <= COALESCE(booked_rooms.booked_count, 0) THEN h.id END) as outOfStockRooms, " +
+                   "COUNT(DISTINCT CASE WHEN (r.room_quantity - COALESCE(booked_rooms.booked_count, 0)) <= 5 AND (r.room_quantity - COALESCE(booked_rooms.booked_count, 0)) > 0 THEN h.id END) as nearlyOutOfStockRooms " +
+                   "FROM hotels h " +
+                   "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
+                   "LEFT JOIN ( " +
+                   "  SELECT rv.room_id, COUNT(b.id) as booked_count " +
+                   "  FROM hotel_room_variants rv " +
+                   "  LEFT JOIN hotel_bookings b ON rv.id = b.room_variant_id " +
+                   "  LEFT JOIN orders o ON b.order_id = o.id " +
+                   "  WHERE o.status = 'PAID' " +
+                   "  AND b.check_in_date <= GETDATE() " +
+                   "  AND b.check_out_date > GETDATE() " +
+                   "  GROUP BY rv.room_id " +
+                   ") booked_rooms ON r.id = booked_rooms.room_id", nativeQuery = true)
+    Map<String, Object> getHotelStatistics();
 }

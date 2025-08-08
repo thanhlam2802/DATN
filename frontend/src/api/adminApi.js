@@ -72,15 +72,19 @@ export const hotelAdminApi = {
         return adminApi.get('/api/v1/admin/hotels/bookings');
     },
 
+    getHotelBookingById: (bookingId) => {
+        return adminApi.get(`/api/v1/admin/hotels/bookings/${bookingId}`);
+    },
+
     getDashboardStatistics: (timePeriod = 'this_month') => {
         return adminApi.get('/api/v1/admin/hotels/dashboard-statistics', {
             params: { timePeriod }
         });
     },
 
-    getHotelRevenueChart: (timePeriod = 'this_month') => {
+    getHotelRevenueChart: (timePeriod = 'this_month', chartType = 'by_day') => {
         return adminApi.get('/api/v1/admin/hotels/revenue-chart', {
-            params: { timePeriod }
+            params: { timePeriod, chartType }
         });
     },
 
@@ -96,6 +100,10 @@ export const hotelAdminApi = {
         });
     },
 
+    getHotelStatistics: () => {
+        return adminApi.get('/api/v1/admin/hotels/statistics');
+    },
+
     getAllHotelReviews: () => {
         return adminApi.get('/api/v1/admin/hotels/reviews');
     },
@@ -103,6 +111,12 @@ export const hotelAdminApi = {
     deleteHotelReview: (reviewId) => {
         return adminApi.delete(`/api/v1/admin/hotels/reviews/${reviewId}`);
     }
+};
+
+export const respondToHotelReview = (reviewId, response) => {
+    return adminApi.post(`/api/v1/admin/hotels/reviews/${reviewId}/respond`, {
+        response: response
+    });
 };
 
 export default adminApi; 

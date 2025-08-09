@@ -11,7 +11,7 @@ import PostRegistrationChoice from "../views/PostRegistrationChoice.vue";
 import SupplierApplication from "../views/SupplierApplication.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import MainLayout from "@/layouts/Main.vue";
-import ApproveSuppliers from "@/views/Admin/ApproveSuppliers.vue";
+import ApproveSuppliers from "@/views/admin/ApproveSuppliers.vue";
 import AccountView from "@/views/AccountView.vue";
 import ServiceReviews from "@/components/User/Sidebar/ServiceReviews.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";

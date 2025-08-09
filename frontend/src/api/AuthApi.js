@@ -22,19 +22,16 @@ export const AuthApi = {
     },
 
     login: async (request) => {
-        try {
-            const res = await apiClient.post("/v1/auth/login", request);
-            if (res.data && res.data.accessToken) {
-                saveAccessToken(res.data.accessToken);
-            }
-            return res.data;
-        } catch (err) {
-            return {
-                errorCode: err.response?.data?.errorCode || null,
-                error: err.response?.data || err,
-            };
-        }
-    },
+    try {
+      const res = await apiClient.post("/v1/auth/login", request);
+      if (res.data && res.data.accessToken) {
+        saveAccessToken(res.data.accessToken);
+      }
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || err;
+    }
+  },
 
     requestResetPassWord: async (request) => {
         try {

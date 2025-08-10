@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Bus Admin · Wireframes (Sidebar + Table Cards)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-Sx7xq7Xc8lTg8cQeYzM6zF+q2oQ0yx8Yx1qQk5xgJr4h8kR8LJYlLv1rQb3yC2a0Gd5i5lIB+6EeT/6y6c4V0A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --surface: #ffffff;
+        --border: #dfe3ea;
+        --muted: #6b7280;
+        --title: #111827;
+        --sidebar: #f0f5ff;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; background: var(--bg); color: #111; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .app { display: flex; min-height: 100vh; }
+      .sidebar {
+        width: 260px;
+        background: linear-gradient(180deg, #ffffff 0%, var(--sidebar) 100%);
+        border-right: 1px dashed var(--border);
+        padding: 16px;
+      }
+      .brand { font-weight: 700; color: var(--title); font-size: 18px; margin-bottom: 16px; }
+      .menu { display: flex; flex-direction: column; gap: 8px; }
+      .menu-item {
+        background: var(--surface);
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: var(--title);
+        font-size: 14px;
+      }
+      .content { flex: 1; padding: 20px; }
+      .section { margin: 0 auto 24px; max-width: 1200px; display: none; }
+      .section-title { font-weight: 700; color: var(--title); font-size: 18px; margin: 0 0 8px; }
+      .note { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+      .card { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 16px; }
+      .table-card { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 16px; }
+      .actions { margin: 8px 0 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+      .btn { background: var(--surface); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #374151; cursor: pointer; }
+      .btn:hover { background: #f9fafb; }
+      .hidden { display: none; }
+      .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+      .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+      .layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+      .left-col { position: sticky; top: 16px; height: fit-content; align-self: start; }
+      .left-col .card { min-height: 120px; }
+      .menu-item.active { outline: 2px dashed #93c5fd; background: #eff6ff; }
+      .table-title { font-weight: 600; color: var(--title); font-size: 14px; margin-bottom: 10px; }
+      .table-wrap { width: 100%; overflow: auto; }
+      table { width: 100%; border-collapse: collapse; background: #fff; }
+      thead th { text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px dashed var(--border); padding: 10px 12px; }
+      thead tr.legend th { text-transform: none; font-weight: 500; color: #6b7280; font-size: 12px; }
+      /* tbody intentionally left empty previously; removed to avoid empty ruleset */
+      .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+      .mock-card { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+      .thumb { height: 120px; background: repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 12px,#eef2f7 12px,#eef2f7 24px); border-radius: 8px; }
+      .chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chip-pill { border: 1px dashed var(--border); padding: 4px 8px; border-radius: 999px; font-size: 12px; color: #374151; background: #fff; }
+      tbody tr td { padding: 10px 12px; border-bottom: 1px dashed var(--border); font-size: 13px; color: #374151; }
+      hr { border: none; border-top: 2px solid #e5e7eb; margin: 16px 0 24px; }
+      /* Overview mock layout */
+      .overview-container { display: grid; grid-template-columns: 240px 1fr; gap: 16px; align-items: start; }
+      .mini-sidebar { background: #ffffff; border: 1px dashed var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; min-height: 560px; }
+      .mini-header { font-weight: 700; color: var(--title); font-size: 18px; margin-bottom: 12px; }
+      .mini-menu { display: flex; flex-direction: column; gap: 10px; }
+      .mini-pill { background: #bae6fd; border: 1px dashed #93c5fd; color: #111827; border-radius: 12px; padding: 10px 12px; font-weight: 600; }
+      .mini-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; }
+      .content-box { background: #f9dada; border: 1px dashed var(--border); border-radius: 12px; min-height: 560px; display: flex; align-items: center; justify-content: center; font-size: 64px; letter-spacing: 2px; color: #111827; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="brand">Bus Admin</div>
+        <div class="menu">
+          <div class="menu-item" data-target="overview">Tổng quát</div>
+          <div class="menu-item" data-target="route">Tuyến đường</div>
+          <div class="menu-item" data-target="category">Loại xe</div>
+          <div class="menu-item" data-target="bus">Xe buýt</div>
+          <div class="menu-item" data-target="trip">Chuyến đi</div>
+          <div class="menu-item" data-target="price">Giá vé</div>
+          <div class="menu-item" data-target="stats">Thống kê</div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="content">
+        <!-- Overview (Tổng quát) Page Layout -->
+        <div class="section" id="section-overview"  style="background-color: #93c5fd; ">
+          <div class="overview-container" >
+          
+            <div class="content " style="width: 100vh; height: 100vh;">CONTENT</div>
+          </div>
+        </div>
+        <!-- Bus Management Page Layout -->
+        <div class="section" id="section-bus">
+          <div class="page-header">
+            <div>
+              <div class="section-title">Bus Management</div>
+              <div class="note">Phác thảo giao diện quản lý xe buýt.</div>
+            </div>
+            <div class="toolbar">
+              <div class="btn">Thêm xe buýt</div>
+              <div class="btn">Bộ lọc nâng cao</div>
+              <div class="btn">Chế độ Card</div>
+              <div class="btn">Chế độ Table</div>
+              <div class="btn">Sắp xếp</div>
+              <div class="btn">Đảo thứ tự</div>
+              <div class="btn">Xóa bộ lọc</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-600">Hiển thị:</span>
+                <div class="btn">Card</div>
+                <div class="btn">Bảng</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="btn">Bộ lọc (Tuyến/Loại/Ngày...)</div>
+                <div class="btn">Sắp xếp (Tên/Loại/Số ghế)</div>
+                <div class="btn">Tìm kiếm xe buýt (từ khóa)</div>
+              </div>
+            </div>
+          </div>
+          <!-- Lưới card mô tả layout card view -->
+          <div class="card mt-4">
+            <div class="card-grid">
+              <div class="mock-card">
+                <div class="thumb"></div>
+                <div class="chips-row justify-end"><div class="chip-pill">Badge: Loại xe</div></div>
+                <div class="section-title">Tên xe</div>
+                <div class="note">Biển số</div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <div class="text-gray-500">Loại xe</div>
+                    <div class="text-gray-700">(hiển thị tên loại)</div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Số ghế</div>
+                    <div class="text-gray-700">(hiển thị số ghế)</div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                  <div class="btn">Xem chi tiết</div>
+                  <div class="flex items-center gap-2">
+                    <div class="btn">Chỉnh sửa</div>
+                    <div class="chip-pill">🗑</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mock-card">
+                <div class="thumb"></div>
+                <div class="chips-row justify-end"><div class="chip-pill">Badge: Loại xe</div></div>
+                <div class="section-title">Tên xe</div>
+                <div class="note">Biển số</div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <div class="text-gray-500">Loại xe</div>
+                    <div class="text-gray-700">(hiển thị tên loại)</div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Số ghế</div>
+                    <div class="text-gray-700">(hiển thị số ghế)</div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                  <div class="btn">Xem chi tiết</div>
+                  <div class="flex items-center gap-2">
+                    <div class="btn">Chỉnh sửa</div>
+                    <div class="chip-pill">🗑</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Bảng mô tả layout table view -->
+          <div class="table-card mt-4">
+            <div class="table-title">Danh sách xe buýt</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ảnh</th>
+                    <th>Tên</th>
+                    <th>Biển số</th>
+                    <th>Loại xe</th>
+                    <th>Số ghế</th>
+                    <th>Ngày tạo</th>
+                    <th>Mô tả trường</th>
+                    <th>Hành động</th>
+                  </tr>
+                  
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>[IMG]</td>
+                    <td>ABC</td>
+                    <td>62F-12345</td>
+                    <td>Xe giường nằm</td>
+                    <td>45</td>
+                    <td>2025-08-09</td>
+                    <td>Xe hoạt động bình thường</td>
+                    <td>
+                      <i class="fa-regular fa-eye"></i>
+                      <i class="fa-regular fa-pen-to-square ml-2"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>[IMG]</td>
+                    <td>TEST</td>
+                    <td>62F-12314</td>
+                    <td>Xe giường nằm</td>
+                    <td>20</td>
+                    <td>2025-08-08</td>
+                    <td>Xe mới thêm gần đây</td>
+                    <td>
+                      <i class="fa-regular fa-eye"></i>
+                      <i class="fa-regular fa-pen-to-square ml-2"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Route Management Page Layout -->
+        <div class="section" id="section-route">
+          <div class="page-header">
+            <div>
+              <div class="section-title">Route Management</div>
+              <div class="note">Phác thảo giao diện quản lý tuyến đường.</div>
+            </div>
+            <div class="toolbar">
+              <div class="btn">Thêm tuyến</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="card"><div class="section-title" style="font-size:14px">Tổng tuyến</div><div class="note">(số lượng)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Khoảng cách TB</div><div class="note">(km)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Thời gian TB</div><div class="note">(giờ:phút)</div></div>
+            </div>
+          </div>
+          <div class="table-card mt-4">
+            <div class="table-title">Danh sách tuyến</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Điểm đi</th>
+                    <th>Điểm đến</th>
+                    <th>Khoảng cách (km)</th>
+                    <th>Thời lượng</th>
+                    <th>Số chuyến</th>
+                    <th>Mô tả trường</th>
+                    <th>Hành động</th>
+                  </tr>
+                  
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>#1</td>
+                    <td>Hà Nội</td>
+                    <td>TP. HCM</td>
+                    <td>1700</td>
+                    <td>30h 00m</td>
+                    <td>0</td>
+                    <td>—</td>
+                    <td>
+                      <i class="fa-regular fa-eye"></i>
+                      <i class="fa-regular fa-pen-to-square ml-2"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>#2</td>
+                    <td>Đà Nẵng</td>
+                    <td>Nha Trang</td>
+                    <td>530</td>
+                    <td>11h 00m</td>
+                    <td>0</td>
+                    <td>—</td>
+                    <td>
+                      <i class="fa-regular fa-eye"></i>
+                      <i class="fa-regular fa-pen-to-square ml-2"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trip Management Page Layout -->
+        <div class="section" id="section-trip">
+          <div class="page-header">
+            <div>
+              <div class="section-title">Trip Management</div>
+              <div class="note">Phác thảo giao diện quản lý chuyến đi.</div>
+            </div>
+            <div class="toolbar">
+              <div class="btn">Thêm chuyến xe</div>
+              <div class="btn">Bộ lọc nâng cao</div>
+              <div class="btn">Xóa bộ lọc</div>
+              <div class="btn">Auto ON/OFF</div>
+              <div class="btn">Sync</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div class="btn">Tuyến đường</div>
+              <div class="btn">Trạng thái</div>
+              <div class="btn">Ngày khởi hành</div>
+              <div class="btn">Xe buýt</div>
+            </div>
+          </div>
+          <div class="card mt-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div class="card"><div class="section-title" style="font-size:14px">Tổng chuyến xe</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Đang hoạt động</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Đã lên lịch</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Hoàn thành</div></div>
+            </div>
+          </div>
+          <div class="table-card mt-4">
+            <div class="table-title">Danh sách chuyến</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Tuyến</th>
+                    <th>Ngày</th>
+                    <th>Giờ đi</th>
+                    <th>Giờ đến</th>
+                    <th>Xe</th>
+                    <th>Trạng thái</th>
+                    <th>Đã bán/Tổng</th>
+                    <th>Giá</th>
+                    <th>Mô tả trường</th>
+                    <th>Hành động</th>
+                  </tr>
+                  
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>TRIP-001</td>
+                    <td>Hà Nội → Đà Nẵng</td>
+                    <td>2025-08-10</td>
+                    <td>08:00</td>
+                    <td>20:00</td>
+                    <td>ABC · 62F-12345</td>
+                    <td>SCHEDULED</td>
+                    <td>0/45</td>
+                    <td>500.000đ</td>
+                    <td>—</td>
+                    <td>
+                      <i class="fa-regular fa-eye"></i>
+                      <i class="fa-regular fa-pen-to-square ml-2"></i>
+                      <i class="fa-solid fa-clock-rotate-left ml-2"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>TRIP-002</td>
+                    <td>Đà Nẵng → Nha Trang</td>
+                    <td>2025-08-11</td>
+                    <td>09:30</td>
+                    <td>18:00</td>
+                    <td>TEST · 62F-12314</td>
+                    <td>IN_PROGRESS</td>
+                    <td>5/20</td>
+                    <td>350.000đ</td>
+                    <td>—</td>
+                    <td>
+                      <i class="fa-regular fa-eye"></i>
+                      <i class="fa-regular fa-pen-to-square ml-2"></i>
+                      <i class="fa-solid fa-clock-rotate-left ml-2"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Management Page Layout -->
+        <div class="section" id="section-price">
+          <div class="page-header">
+            <div>
+              <div class="section-title">Price Management</div>
+              <div class="note">Phác thảo giao diện quản lý giá vé.</div>
+            </div>
+            <div class="toolbar">
+              <div class="btn">Cập nhật hàng loạt</div>
+              <div class="btn">Thêm quy tắc giá</div>
+              <div class="btn">Lọc</div>
+              <div class="btn">Xóa</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div class="btn">Tuyến</div>
+              <div class="btn">Loại xe</div>
+              <div class="btn">Trạng thái</div>
+              <div class="btn">Lọc</div>
+            </div>
+          </div>
+          <div class="card mt-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div class="card"><div class="section-title" style="font-size:14px">Giá trung bình</div><div class="note">(đồng)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Tổng quy tắc</div><div class="note">(số lượng)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Đang hiệu lực</div><div class="note">(số lượng)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Có khuyến mãi</div><div class="note">(số lượng)</div></div>
+            </div>
+          </div>
+          <div class="table-card mt-4">
+            <div class="table-title">Quy tắc giá vé</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tuyến</th>
+                    <th>Loại xe</th>
+                    <th>Giá cơ sở</th>
+                    <th>Giá khuyến mãi</th>
+                    <th>Hiệu lực từ</th>
+                    <th>Hiệu lực đến</th>
+                    <th>Trạng thái</th>
+                    <th>Mô tả trường</th>
+                    <th>Hành động</th>
+                  </tr>
+                  
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Hà Nội → TP. HCM</td>
+                    <td>Xe giường nằm</td>
+                    <td>600.000đ</td>
+                    <td>—</td>
+                    <td>27/07/2025</td>
+                    <td>27/07/2026</td>
+                    <td>Đang hiệu lực</td>
+                    <td>—</td>
+                    <td>
+                      <i class="fa-regular fa-pen-to-square"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Đà Nẵng → Nha Trang</td>
+                    <td>Limousine VIP</td>
+                    <td>500.000đ</td>
+                    <td>—</td>
+                    <td>28/07/2025</td>
+                    <td>28/07/2026</td>
+                    <td>Đang hiệu lực</td>
+                    <td>—</td>
+                    <td>
+                      <i class="fa-regular fa-pen-to-square"></i>
+                      <i class="fa-regular fa-trash-can ml-2"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bus Category Management Page Layout -->
+        <div class="section" id="section-category">
+          <div class="page-header">
+            <div>
+              <div class="section-title">Bus Category Management</div>
+              <div class="note">Phác thảo giao diện quản lý loại xe.</div>
+            </div>
+            <div class="toolbar">
+              <div class="btn">Làm mới</div>
+              <div class="btn">Thêm loại xe</div>
+            </div>
+          </div>
+          <!-- KPI row giống ảnh: 4 ô nhỏ -->
+          <div class="card">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div class="card"><div class="section-title" style="font-size:14px">Tổng loại xe</div><div class="note">(số lượng)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Xe của bạn</div><div class="note">(đếm · trạng thái)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Phổ biến nhất</div><div class="note">(tên loại · số xe)</div></div>
+              <div class="card"><div class="section-title" style="font-size:14px">Cập nhật hôm nay</div><div class="note">(mô tả ngắn)</div></div>
+            </div>
+          </div>
+          <!-- Lưới card loại xe -->
+          <div class="card mt-4">
+            <div class="card-grid">
+              <!-- Card mẫu 1 -->
+              <div class="mock-card">
+                <div class="flex items-start justify-between">
+                  <div class="chips-row"><div class="chip-pill">🚌</div></div>
+                  <div class="chip-pill">⋮</div>
+                </div>
+                <div class="section-title">Tên loại</div>
+                <div class="note">Mã loại (#ID)</div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <div class="text-gray-500">Số xe</div>
+                    <div class="text-gray-700">(đếm)</div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Tuyến hoạt động</div>
+                    <div class="text-gray-700">(đếm)</div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                  <div class="chip-pill">Tên badge loại</div>
+                  <div class="note">ID: #</div>
+                </div>
+              </div>
+              <!-- Card mẫu 2 -->
+              <div class="mock-card">
+                <div class="flex items-start justify-between">
+                  <div class="chips-row"><div class="chip-pill">🚐</div></div>
+                  <div class="chip-pill">⋮</div>
+                </div>
+                <div class="section-title">Tên loại</div>
+                <div class="note">Mã loại (#ID)</div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <div class="text-gray-500">Số xe</div>
+                    <div class="text-gray-700">(đếm)</div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Tuyến hoạt động</div>
+                    <div class="text-gray-700">(đếm)</div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                  <div class="chip-pill">Tên badge loại</div>
+                  <div class="note">ID: #</div>
+                </div>
+              </div>
+              <!-- Card mẫu 3 -->
+              <div class="mock-card">
+                <div class="flex items-start justify-between">
+                  <div class="chips-row"><div class="chip-pill">🚘</div></div>
+                  <div class="chip-pill">⋮</div>
+                </div>
+                <div class="section-title">Tên loại</div>
+                <div class="note">Mã loại (#ID)</div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <div class="text-gray-500">Số xe</div>
+                    <div class="text-gray-700">(đếm)</div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Tuyến hoạt động</div>
+                    <div class="text-gray-700">(đếm)</div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                  <div class="chip-pill">Tên badge loại</div>
+                  <div class="note">ID: #</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistics Page Layout -->
+        <div class="section" id="section-stats">
+          <div class="page-header">
+            <div>
+              <div class="section-title">Statistics</div>
+              <div class="note">Phác thảo giao diện thống kê.</div>
+            </div>
+            <div class="toolbar">
+              <div class="btn">Chọn khoảng thời gian</div>
+              <div class="btn">Làm mới</div>
+            </div>
+          </div>
+          <div class="layout gap-6">
+            <div class="left-col">
+              <div class="card">
+                <div class="section-title" style="font-size:14px">KPI</div>
+                <div class="actions">
+                  <div class="btn">Doanh thu</div>
+                  <div class="btn">Khách hàng</div>
+                  <div class="btn">Tổng chuyến</div>
+                  <div class="btn">Lấp đầy</div>
+                </div>
+              </div>
+            </div>
+            <div class="right-col">
+              <div class="table-card">
+                <div class="table-title">Top tuyến hiệu quả</div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tuyến</th>
+                        <th>Doanh thu</th>
+                        <th>Số chuyến</th>
+                        <th>Tỷ lệ lấp đầy</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        function activateMenu(target) {
+          document.querySelectorAll('.menu-item').forEach(function (m) { m.classList.remove('active'); });
+          var active = document.querySelector('.menu-item[data-target="' + target + '"]');
+          if (active) active.classList.add('active');
+        }
+
+        function showOnly(target) {
+          document.querySelectorAll('.section').forEach(function (el) { el.style.display = 'none'; });
+          var page = document.getElementById('section-' + target);
+          if (page) page.style.display = 'block';
+          activateMenu(target);
+        }
+
+        // Toggle by sidebar menu
+        document.querySelectorAll('.menu-item').forEach(function (item) {
+          item.addEventListener('click', function () {
+            var t = item.getAttribute('data-target');
+            if (t) showOnly(t);
+          });
+        });
+
+        // Default: show Bus section
+        showOnly('bus');
+      })();
+    </script>
+  </body>
+  </html>
+
+

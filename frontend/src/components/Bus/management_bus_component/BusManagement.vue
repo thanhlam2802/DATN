@@ -663,6 +663,7 @@ import BusCreationModal from './BusCreationModal.vue'
 // @ts-ignore - Type definitions will be added later
 import { toast, confirm, handleError } from '@/utils/notifications'
 import { Trash2 } from 'lucide-vue-next'
+import { useAuth } from '@/composables/useAuth'
 
 const buses = ref<Bus[]>([]);
 const busCategories = ref<string[]>([]);
@@ -899,10 +900,13 @@ const loadBuses = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const ownerId = "11";
+    const { user } = useAuth()
+    const ownerId = user.value?.id?.toString()
+    if (!ownerId) {
+      throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+    }
     const result = await BusAPI.getBusesByOwnerId(ownerId);
     
-
     
     buses.value = result;
     

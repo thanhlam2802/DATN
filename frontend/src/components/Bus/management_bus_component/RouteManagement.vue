@@ -249,6 +249,8 @@ import type { Route } from '@/api/busApi/types/common.types'
 import { minutesToTimeString } from '@/utils/busHelper'
 // @ts-ignore
 import { toast, confirm, handleError } from '@/utils/notifications'
+// @ts-ignore
+import { useAuth } from '@/composables/useAuth'
 
 // State
 const routes = ref<Route[]>([])
@@ -262,7 +264,9 @@ const routeModal = ref<InstanceType<typeof RouteModal> | null>(null);
 const loadRoutes = async () => {
   try {
     isLoading.value = true;
-    routes.value = await RouteAPI.getAllRoutes();
+    // Tạm thời dùng userId = 11 theo yêu cầu
+    const ownerId = '11'
+    routes.value = await RouteAPI.getRoutesByOwnerId(ownerId);
   } catch (error) {
     throw error;
   } finally {
@@ -291,11 +295,11 @@ const handleEditRoute = async (route: Route) => {
   }
 }
 
-const handleRouteCreated = (newRoute: Route) => {
+const handleRouteCreated = () => {
   loadRoutes() // Reload danh sách
 }
 
-const handleRouteUpdated = (updatedRoute: Route) => {
+const handleRouteUpdated = () => {
   loadRoutes() // Reload danh sách
 }
 
@@ -324,7 +328,7 @@ const formatDate = (dateString?: string) => {
   return new Date(dateString).toLocaleDateString('vi-VN')
 }
 
-const getBusRouteCount = (routeId: string) => {
+const getBusRouteCount = (_routeId: string) => {
   // TODO: This data needs to come from the backend.
   return 0;
 }

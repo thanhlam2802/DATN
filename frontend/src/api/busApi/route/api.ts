@@ -18,6 +18,18 @@ export const RouteAPI = {
     }
   },
 
+  // TEMP: Stub method to support owner-based fetching in UI. Backend query by ownerId chưa có.
+  async getRoutesByOwnerId(_ownerId: string): Promise<Route[]> {
+    try {
+      // Hiện chưa có query filter theo ownerId trong schema Routes.graphqls
+      // Tạm thời trả về toàn bộ routes để UI hoạt động, bỏ qua ownerId
+      const response = await graphqlRequest({ query: FIND_ALL_ROUTES });
+      return response.data.findAllRoutes || [];
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async getRouteById(id: string): Promise<Route | null> {
     try {
       const response = await graphqlRequest({ 

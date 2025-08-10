@@ -60,4 +60,13 @@ type Mutation {
 type Query {
     findAllRoutes: [Route!]!
     findRouteById(id: ID!): Route
+    popularRoutes(limit: Int): [RouteCard]
+}
+
+type RouteCard {
+    id: ID!
+    origin: String!
+    destination: String!
+    imageUrl: String
+    price: Float
 }

@@ -25,7 +25,7 @@ public class BusSlot {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bus_id", nullable = false)
-    private Bus bus;
+    private Bus  bus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "route_id", nullable = false)

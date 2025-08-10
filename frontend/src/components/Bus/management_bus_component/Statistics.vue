@@ -45,7 +45,7 @@
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tổng doanh thu</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ formatCurrency(stats.totalRevenue) }}</div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ formatCurrency(kpiData.totalRevenue) }}</div>
                   <div class="flex items-center text-sm font-semibold text-green-600">
                     <svg class="flex-shrink-0 h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
@@ -71,9 +71,9 @@
             </div>
             <div class="ml-5 flex-1 min-w-0">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Tổng khách hàng</dt>
+                <dt class="text-sm font-medium text-gray-500 truncate">Tổng đặt chỗ</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ stats.totalCustomers.toLocaleString() }}</div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ kpiData.totalBookings.toLocaleString() }}</div>
                   <div class="flex items-center text-sm font-semibold text-green-600">
                     <svg class="flex-shrink-0 h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
@@ -101,7 +101,7 @@
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tổng chuyến xe</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ stats.totalTrips }}</div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ kpiData.totalTrips }}</div>
                   <div class="flex items-center text-sm font-semibold text-green-600">
                     <svg class="flex-shrink-0 h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
@@ -129,7 +129,7 @@
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tỷ lệ lấp đầy</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ stats.occupancyRate }}%</div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ kpiData.occupancyRate }}%</div>
                   <div class="flex items-center text-sm font-semibold text-red-600">
                     <svg class="flex-shrink-0 h-4 w-4 text-red-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -308,47 +308,119 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'  
+import { ref, onMounted, computed, reactive, watch } from 'vue';
+import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, PointElement, LineElement, Filler } from 'chart.js';
+import { Bar, Doughnut, Line } from 'vue-chartjs';
+import { StatisticsAPI } from '@/api/busApi/statistics/api';
+import { useAuth } from '@/composables/useAuth';
+import { toast } from '@/utils/notifications';
+import Datepicker from 'vue-datepicker-next';
+import 'vue-datepicker-next/index.css';
+
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, PointElement, LineElement, Filler);
+
 // State
-const selectedPeriod = ref('30days')
+const loading = ref(false);
+const error = ref(null);
+const filters = reactive({
+  dateRange: [new Date(new Date().setDate(new Date().getDate() - 30)), new Date()]
+});
 
-const stats = ref({
-  totalRevenue: 2450000000,
-  totalCustomers: 15420,
-  totalTrips: 890,
-  occupancyRate: 78
-})
+const kpiData = ref({
+  totalRevenue: 0,
+  totalBookings: 0,
+  totalTrips: 0,
+  occupancyRate: 0,
+});
 
-const topRoutes = ref([
-  { name: 'Hà Nội - TP.HCM', revenue: 800000000, percentage: 85 },
-  { name: 'Hà Nội - Đà Nẵng', revenue: 650000000, percentage: 70 },
-  { name: 'TP.HCM - Đà Lạt', revenue: 450000000, percentage: 60 },
-  { name: 'Hà Nội - Hải Phòng', revenue: 350000000, percentage: 45 }
-])
+const revenueData = ref({
+  labels: [],
+  datasets: [{
+    label: 'Doanh thu',
+    data: [],
+    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    fill: true,
+    tension: 0.4
+  }]
+});
 
-const recentBookings = ref([
-  { id: 1, customer: 'Nguyễn Văn A', route: 'Hà Nội - TP.HCM', amount: 800000, date: '15/01/2024' },
-  { id: 2, customer: 'Trần Thị B', route: 'TP.HCM - Đà Lạt', amount: 200000, date: '15/01/2024' },
-  { id: 3, customer: 'Lê Văn C', route: 'Hà Nội - Đà Nẵng', amount: 450000, date: '14/01/2024' },
-  { id: 4, customer: 'Phạm Thị D', route: 'Hà Nội - Hải Phòng', amount: 80000, date: '14/01/2024' },
-  { id: 5, customer: 'Hoàng Văn E', route: 'Hà Nội - TP.HCM', amount: 800000, date: '13/01/2024' }
-])
+const occupancyData = ref({
+  labels: [],
+  datasets: [{
+    label: 'Tỷ lệ lấp đầy',
+    data: [],
+    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+  }]
+});
 
-const monthlyReports = ref([
-  { month: 'Tháng 12/2023', revenue: 2200000000, trips: 850, customers: 14200, occupancy: 76, growth: 8 },
-  { month: 'Tháng 11/2023', revenue: 2100000000, trips: 820, customers: 13800, occupancy: 74, growth: 5 },
-  { month: 'Tháng 10/2023', revenue: 1950000000, trips: 780, customers: 13200, occupancy: 72, growth: -2 },
-  { month: 'Tháng 9/2023', revenue: 2050000000, trips: 800, customers: 13500, occupancy: 75, growth: 12 },
-  { month: 'Tháng 8/2023', revenue: 1850000000, trips: 720, customers: 12100, occupancy: 70, growth: -5 }
-])
+const topRoutes = ref([]);
 
-// Methods
-const formatCurrency = (amount) => {
-  return amount.toLocaleString() + 'đ'
-}
+// Chart options
+const lineChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: {
+      beginAtZero: true
+    }
+  }
+};
+
+const doughnutChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+};
+
+// Fetching data
+const fetchAllData = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    const { user } = useAuth();
+    const ownerId = user.value?.id?.toString();
+    if (!ownerId) {
+      throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+    }
+
+    const [kpi, revenue, occupancy, top] = await Promise.all([
+      StatisticsAPI.getKpiOverview(ownerId, filters.dateRange),
+      StatisticsAPI.getRevenueOverTime(ownerId, filters.dateRange),
+      StatisticsAPI.getOccupancyByRoute(ownerId, filters.dateRange),
+      StatisticsAPI.getTopPerformingRoutes(ownerId, filters.dateRange)
+    ]);
+
+    const defaultKpi = { totalRevenue: 0, totalBookings: 0, totalTrips: 0, occupancyRate: 0 };
+    kpiData.value = kpi && typeof kpi === 'object' ? { ...defaultKpi, ...kpi } : defaultKpi;
+
+    revenueData.value = {
+      labels: (revenue && revenue.labels) ? revenue.labels : [],
+      datasets: [{ ...revenueData.value.datasets[0], data: (revenue && revenue.data) ? revenue.data : [] }]
+    };
+    occupancyData.value = {
+      labels: (occupancy && occupancy.labels) ? occupancy.labels : [],
+      datasets: [{ ...occupancyData.value.datasets[0], data: (occupancy && occupancy.data) ? occupancy.data : [] }]
+    };
+    topRoutes.value = Array.isArray(top) ? top : [];
+
+  } catch (err) {
+    error.value = err.message || "Đã có lỗi xảy ra khi tải dữ liệu thống kê.";
+    toast.error(error.value);
+  } finally {
+    loading.value = false;
+  }
+};
 
 const exportReport = () => {
-  // Logic xuất báo cáo
-  alert('Chức năng xuất báo cáo đang được phát triển')
-}
+  toast.info('Chức năng xuất báo cáo đang được phát triển.');
+};
+
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0);
+};
+
+watch(filters, fetchAllData, { deep: true });
+
+onMounted(fetchAllData);
 </script> 

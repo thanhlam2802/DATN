@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import { PriceAPI, PriceStatus, RouteAPI, BusCategoryAPI } from '@/api/busApi'
+import { useAuth } from '@/composables/useAuth'
 
 export function usePriceManagement() {
   // === REACTIVE STATE ===
@@ -133,8 +134,12 @@ export function usePriceManagement() {
 
   async function loadAllRoutes() {
     try {
-      
-      const fetchedRoutes = await RouteAPI.getAllRoutes()
+      const { user } = useAuth()
+      const ownerId = user.value?.id?.toString()
+      if (!ownerId) {
+        throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+      }
+      const fetchedRoutes = await RouteAPI.getRoutesByOwnerId(ownerId)
       allRoutes.value = fetchedRoutes
       
     } catch (err) {
@@ -145,8 +150,12 @@ export function usePriceManagement() {
 
   async function loadAllBusCategories() {
     try {
-      
-      const fetchedCategories = await BusCategoryAPI.getAllBusCategories()
+      const { user } = useAuth()
+      const ownerId = user.value?.id?.toString()
+      if (!ownerId) {
+        throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+      }
+      const fetchedCategories = await BusCategoryAPI.getCategoriesByOwnerId(ownerId)
       allBusCategories.value = fetchedCategories
       
     } catch (err) {

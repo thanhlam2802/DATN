@@ -2,6 +2,7 @@ import { ref, computed, watch } from 'vue'
 import { BusSlotAPI, BusSlotStatus, DelayReason } from '@/api/busApi/busSlot'
 import { graphqlRequest, gql } from '@/api/graphqlClient'
 import { RouteAPI } from '@/api/busApi/route/api'
+import { useAuth } from '@/composables/useAuth'
 
 // GraphQL queries cho buses
 const GET_BUSES_BY_OWNER = gql`
@@ -15,9 +16,6 @@ const GET_BUSES_BY_OWNER = gql`
     }
   }
 `
-
-// DEV MODE: Hardcode user ID
-const DEV_USER_ID = '11'
 
 export function useTripManagement() {
   // Core State
@@ -169,9 +167,15 @@ export function useTripManagement() {
     try {
       loadingBuses.value = true
       
+      const { user } = useAuth()
+      const ownerId = user.value?.id?.toString()
+      if (!ownerId) {
+        throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+      }
+
       const response = await graphqlRequest({
         query: GET_BUSES_BY_OWNER,
-        variables: { ownerId: DEV_USER_ID }
+        variables: { ownerId }
       })
       
       if (!response?.data?.findBusesByOwnerId) {

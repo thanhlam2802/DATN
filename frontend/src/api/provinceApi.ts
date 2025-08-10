@@ -18,7 +18,7 @@ export interface District {
   division_type: string;
   codename: string;
   province_code: number;
-  wards: Ward[];
+  wards: Ward[] | null; // v2: có thể null ở depth=2
 }
 
 export interface Province {
@@ -27,20 +27,22 @@ export interface Province {
   division_type: string;
   codename: string;
   phone_code: number;
-  districts: District[];
+  districts: District[]; // có thể không kèm wards khi depth=2
 }
 
 // Simple types for dropdown usage
 export interface ProvinceOption {
   code: number;
   name: string;
-  value: string;
+  label: string; // hiển thị
+  value: string; // code dưới dạng string để dùng làm value ổn định
 }
 
 export interface DistrictOption {
   code: number;
   name: string;
-  value: string;
+  label: string; // hiển thị
+  value: string; // code dưới dạng string để dùng làm value ổn định
 }
 
 // Cache để tránh fetch lại nhiều lần
@@ -48,7 +50,7 @@ let provincesCache: Province[] | null = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
 
-const API_URL = 'https://provinces.open-api.vn/api/?depth=2';
+const API_URL = 'https://provinces.open-api.vn/api/v2/?depth=2';
 
 /**
  * Fetch tất cả tỉnh thành và quận huyện
@@ -118,7 +120,8 @@ export const getProvinceList = async (): Promise<ProvinceOption[]> => {
   return provinces.map(province => ({
     code: province.code,
     name: province.name,
-    value: province.name // Để sử dụng trong dropdown
+    label: province.name,
+    value: String(province.code)
   }));
 };
 
@@ -133,10 +136,11 @@ export const getDistrictsByProvince = async (provinceName: string): Promise<Dist
     return [];
   }
   
-  return province.districts.map(district => ({
+  return (province.districts || []).map(district => ({
     code: district.code,
     name: district.name,
-    value: district.name // Để sử dụng trong dropdown
+    label: district.name,
+    value: String(district.code)
   }));
 };
 
@@ -202,12 +206,31 @@ export const formatFullAddress = (addressDetails?: string, district?: string, pr
   return parts.join(', ');
 };
 
+// Các hàm tiện ích mới theo code (không phá vỡ tương thích cũ)
+export const getProvinceByCode = async (provinceCode: number): Promise<Province | undefined> => {
+  const provinces = await fetchProvinces();
+  return provinces.find(p => p.code === provinceCode);
+};
+
+export const getDistrictsByProvinceCode = async (provinceCode: number): Promise<DistrictOption[]> => {
+  const province = await getProvinceByCode(provinceCode);
+  if (!province) return [];
+  return (province.districts || []).map(district => ({
+    code: district.code,
+    name: district.name,
+    label: district.name,
+    value: String(district.code)
+  }));
+};
+
 // Export default object for easier import (with backward compatibility)
 const ProvinceAPI = {
   fetchProvinces,
   getAllProvinces, // ADDED: For backward compatibility
   getProvinceList,
   getDistrictsByProvince,
+  getProvinceByCode,
+  getDistrictsByProvinceCode,
   searchProvinces,
   searchDistricts,
   validateProvinceDistrict,

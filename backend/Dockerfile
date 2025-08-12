@@ -1,8 +1,25 @@
-FROM eclipse-temurin:21-jre-alpine
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-COPY target/backend-0.0.1-SNAPSHOT.jar app.jar
+COPY pom.xml .
+COPY mvnw .
+COPY mvnw.cmd .
+COPY .mvn .mvn
+
+RUN mvn dependency:go-offline -B
+
+COPY src src
+
+RUN mvn clean package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Ho_Chi_Minh
+
+WORKDIR /app
+
+COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 

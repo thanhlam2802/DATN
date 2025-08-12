@@ -27,13 +27,27 @@ public class HotelBookingDto {
     private Short rooms;
     private String status;
 
-    public HotelBookingDto(Integer id, String customerName, String hotelName, LocalDateTime createdAt, String status, BigDecimal totalPrice) {
+    public HotelBookingDto(Integer id, String customerName, Integer userId, Integer roomVariantId, LocalDate checkInDate, 
+                          LocalDate checkOutDate, Short numAdults, Short numChildren, BigDecimal totalPrice, 
+                          LocalDateTime createdAt, Integer orderId, String hotelName, String roomType, 
+                          String variantName, String imageUrl, Short rooms, String status) {
         this.id = id;
         this.customerName = customerName;
-        this.hotelName = hotelName;
-        this.createdAt = createdAt;
-        this.status = status;
+        this.userId = userId;
+        this.roomVariantId = roomVariantId;
+        this.checkInDate = checkInDate;
+        this.checkOutDate = checkOutDate;
+        this.numAdults = numAdults;
+        this.numChildren = numChildren;
         this.totalPrice = totalPrice;
+        this.createdAt = createdAt;
+        this.orderId = orderId;
+        this.hotelName = hotelName;
+        this.roomType = roomType;
+        this.variantName = variantName;
+        this.imageUrl = imageUrl;
+        this.rooms = rooms;
+        this.status = status;
     }
 
     public HotelBookingDto() {

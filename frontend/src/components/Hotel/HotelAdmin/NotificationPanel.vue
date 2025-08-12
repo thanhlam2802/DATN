@@ -198,6 +198,12 @@ const removeNotification = (id) => {
     window.dispatchEvent(new CustomEvent('notificationsUpdated', { 
       detail: { notifications: notifications.value, nextId: notificationId.value }
     }));
+    
+    if (window.$toast) {
+      window.$toast('Đã xóa thông báo', 'success');
+    } else {
+      showCustomToast('system', 'Thông báo', 'Đã xóa thông báo');
+    }
   }
 };
 
@@ -208,6 +214,12 @@ const clearAllNotifications = () => {
   window.dispatchEvent(new CustomEvent('notificationsUpdated', { 
     detail: { notifications: [], nextId: 0 }
   }));
+  
+  if (window.$toast) {
+    window.$toast('Đã xóa tất cả thông báo', 'success');
+  } else {
+    showCustomToast('system', 'Thông báo', 'Đã xóa tất cả thông báo');
+  }
 };
 
 const clearOldNotifications = () => {
@@ -514,13 +526,13 @@ const showCustomToast = (type, title, message) => {
   const toastId = 'toast-' + Date.now();
   toast.id = toastId;
   
-  const bgColor = type === 'payment' ? 'bg-green-500' : 
-                  type === 'cancellation' ? 'bg-red-500' : 
-                  type === 'review' ? 'bg-yellow-500' : 
-                  type === 'booking' ? 'bg-blue-500' : 
-                  type === 'hotel-created' ? 'bg-green-500' : 
-                  type === 'hotel-updated' ? 'bg-blue-500' : 
-                  type === 'hotel-deleted' ? 'bg-red-500' : 'bg-gray-500';
+  const bgColor = type === 'payment' ? 'bg-green-600' : 
+                  type === 'cancellation' ? 'bg-red-600' : 
+                  type === 'review' ? 'bg-yellow-600' : 
+                  type === 'booking' ? 'bg-blue-600' : 
+                  type === 'hotel-created' ? 'bg-green-600' : 
+                  type === 'hotel-updated' ? 'bg-blue-600' : 
+                  type === 'hotel-deleted' ? 'bg-red-600' : 'bg-gray-600';
   
   const icon = type === 'payment' ? 'fas fa-check-circle' : 
                type === 'cancellation' ? 'fas fa-times-circle' : 
@@ -530,18 +542,18 @@ const showCustomToast = (type, title, message) => {
                type === 'hotel-updated' ? 'fas fa-edit' : 
                type === 'hotel-deleted' ? 'fas fa-trash' : 'fas fa-bell';
 
-  toast.className = `${bgColor} text-white p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 translate-x-full opacity-0`;
+  toast.className = `${bgColor} text-white p-4 rounded-lg shadow-xl border border-white/20 max-w-sm transform transition-all duration-300 translate-x-full opacity-0 backdrop-blur-sm`;
   toast.innerHTML = `
     <div class="flex items-start">
       <div class="flex-shrink-0">
-        <i class="${icon} text-lg"></i>
+        <i class="${icon} text-lg text-white"></i>
       </div>
       <div class="ml-3 flex-1">
-        <p class="text-sm font-medium">${title}</p>
-        <p class="text-sm opacity-90 mt-1">${message}</p>
+        <p class="text-sm font-semibold text-white">${title}</p>
+        <p class="text-sm text-white/90 mt-1">${message}</p>
       </div>
       <div class="ml-4 flex-shrink-0">
-        <button class="text-white hover:text-gray-200 close-toast-btn">
+        <button class="text-white hover:text-gray-200 close-toast-btn transition-colors">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -595,26 +607,6 @@ onMounted(() => {
   window.addEventListener('storage', handleStorageChange);
   
   window.addEventListener('notificationsUpdated', handleNotificationsUpdate);
-
-  if (notifications.value.length === 0) {
-    setTimeout(() => {
-      if (!isConnected.value) {
-        addNotification('booking', 'Đặt phòng mới', 'Khách hàng Nguyễn Văn A vừa đặt phòng tại Grand Hotel');
-      }
-    }, 2000);
-
-    setTimeout(() => {
-      if (!isConnected.value) {
-        addNotification('payment', 'Thanh toán thành công', 'Đơn hàng #12345 đã được thanh toán');
-      }
-    }, 4000);
-
-    setTimeout(() => {
-      if (!isConnected.value) {
-        addNotification('review', 'Đánh giá mới', 'Khách hàng đã đánh giá 5 sao cho Seaside Resort');
-      }
-    }, 6000);
-  }
 });
 
 const createToastContainer = () => {

@@ -16,6 +16,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findById(Integer userId); // <- Nam add
     Optional<User> findByPhone(String phone);
 
-    @Query("SELECT u FROM User u LEFT JOIN FETCH u.userRoles ur LEFT JOIN FETCH ur.role WHERE u.email = :email")
-    Optional<User> findByEmailWithRoles(@Param("email") String email);
+    @Query("SELECT DISTINCT u FROM User u " +
+    	       "LEFT JOIN FETCH u.userRoles ur " +
+    	       "LEFT JOIN FETCH ur.role " +
+    	       "WHERE u.email = :email")
+    	Optional<User> findByEmailWithRoles(@Param("email") String email);
+
+
 }

@@ -36,18 +36,10 @@ public class FlightServiceImpl implements FlightService {
         String requestId = UUID.randomUUID().toString();
         long startTime = System.currentTimeMillis();
 
-        log.info("[SEARCH_FLIGHTS_REQUEST] RequestId: {}, Input Params:", requestId);
-        log.info("  - DepartureAirportId: {}", request.getDepartureAirportId());
-        log.info("  - ArrivalAirportId:   {}", request.getArrivalAirportId());
-        log.info("  - DepartureDate:      {}", request.getDepartureDate());
-        log.info("  - AirlineId:          {}", request.getAirlineId());
-        log.info("  - TimeWindow:         {}", request.getTimeWindow());
-        log.info("  - MinPrice:           {}", request.getMinPrice());
-        log.info("  - MaxPrice:           {}", request.getMaxPrice());
-        log.info("  - getCategoryId:           {}", request.getCategoryId());
+       
         try {
             List<Flight> flights = flightDAO.findAllUpcomingFlights();
-            log.info("[{}] Tổng chuyến bay ban đầu: {}", requestId, flights.size());
+           
             Integer startHour= null;
             Integer endHour =null;
             if (request.getTimeWindow()!=null) {
@@ -74,16 +66,16 @@ public class FlightServiceImpl implements FlightService {
             );
             List<FlightDto> result = new ArrayList<>();
             for (Flight flight : ls) {
-                log.info("[FORR]  id flight: {}",flight.getId());
+               
                 FlightDto flightDto = this.toFlightDto(flight);
                 result.add(flightDto);
             }
-            log.info("[SEARCH_FLIGHTS_SUCCESS] RequestId: {}, Tổng kết quả: {}", requestId, result.size());
+           
 
             return result;
 
         } catch (Exception e) {
-            log.info("[SEARCH_FLIGHTS_FAILED] RequestId: {}, Exception: {}", requestId, e.getMessage(), e);
+          
             throw e;
         }
     }
@@ -93,18 +85,18 @@ public class FlightServiceImpl implements FlightService {
     @Override
     public FlightDto getFlightDetail(Integer flightId) {
         String requestId = UUID.randomUUID().toString();
-        log.info("GET_FLIGHT_DETAIL_REQUEST  - RequestId: {}, flightId: {}", requestId, flightId);
+      
         try {
             Flight f = flightDAO.findById(flightId).orElse(null);
             if (f == null) {
-                log.warn("GET_FLIGHT_DETAIL_NOT_FOUND- RequestId: {}, flightId: {}", requestId, flightId);
+               
                 return null;
             }
             FlightDto dto = toFlightDto(f);
-            log.info("GET_FLIGHT_DETAIL_SUCCESS  - RequestId: {}, flightId: {}", requestId, flightId);
+            
             return dto;
         } catch (Exception e) {
-            log.error("GET_FLIGHT_DETAIL_FAILED   - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+          
             throw e;
         }
     }
@@ -113,16 +105,16 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public List<FlightDto> getAllFlights() {
         String requestId = UUID.randomUUID().toString();
-        log.info("GET_ALL_FLIGHTS_REQUEST   - RequestId: {}", requestId);
+       
         try {
             List<FlightDto> list = flightDAO.findAll()
                     .stream()
                     .map(this::toFlightDto)
                     .collect(Collectors.toList());
-            log.info("GET_ALL_FLIGHTS_SUCCESS   - RequestId: {}, count: {}", requestId, list.size());
+           
             return list;
         } catch (Exception e) {
-            log.error("GET_ALL_FLIGHTS_FAILED    - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            
             throw e;
         }
     }
@@ -131,21 +123,21 @@ public class FlightServiceImpl implements FlightService {
     @Transactional
     public int getAvailableSeats(Integer flightId) {
         String requestId = UUID.randomUUID().toString();
-        log.info("GET_AVAILABLE_SEATS_REQ   - RequestId: {}, flightId: {}", requestId, flightId);
+        
         try {
             Optional<Flight> opt = flightDAO.findById(flightId);
             if (opt.isEmpty()) {
-                log.warn("GET_AVAILABLE_SEATS_NOT_FOUND - RequestId: {}, flightId: {}", requestId, flightId);
+               
                 return 0;
             }
             Flight flight = opt.get();
             int sold = flightBookingDAO.countSoldSeatsByFlightId(flightId);
             int total = flight.getFlightSlots().size();
             int available = total - sold;
-            log.info("GET_AVAILABLE_SEATS_SUCCESS - RequestId: {}, flightId: {}, available: {}", requestId, flightId, available);
+       
             return available;
         } catch (Exception e) {
-            log.error("GET_AVAILABLE_SEATS_FAILED    - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+           
             throw e;
         }
     }
@@ -154,7 +146,7 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public Map<String, Integer> getAvailableSeatsDetail(Integer flightId) {
         String requestId = UUID.randomUUID().toString();
-        log.info("GET_SEATS_DETAIL_REQUEST  - RequestId: {}, flightId: {}", requestId, flightId);
+       
         try {
             Map<String, Integer> result = new HashMap<>();
             result.put("total",             flightSlotDAO.countAvailableSlotsByFlightId(flightId));
@@ -164,28 +156,28 @@ public class FlightServiceImpl implements FlightService {
             result.put("economyAisle",      flightSlotDAO.countAvailableEconomyAisleSlotsByFlightId(flightId));
             result.put("businessWindow",    flightSlotDAO.countAvailableBusinessWindowSlotsByFlightId(flightId));
             result.put("businessAisle",     flightSlotDAO.countAvailableBusinessAisleSlotsByFlightId(flightId));
-            log.info("GET_SEATS_DETAIL_SUCCESS  - RequestId: {}, flightId: {}, details: {}", requestId, flightId, result);
+
             return result;
         } catch (Exception e) {
-            log.error("GET_SEATS_DETAIL_FAILED   - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+           
             throw e;
         }
     }
     private FlightDto toFlightDto(Flight flight) {
-        log.debug("MAPPING_FLIGHT_TO_DTO       - flightId: {}", flight.getId());
+       
         List<FlightImageDto> images = Optional.ofNullable(flight.getFlightImages())
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(this::toFlightImageDto)
                 .collect(Collectors.toList());
-        log.debug("MAPPED_FLIGHT_IMAGES        - flightId: {}, imageCount: {}", flight.getId(), images.size());
+       
 
         List<FlightSlotDto> slots = Optional.ofNullable(flight.getFlightSlots())
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(this::toFlightSlotDto)
                 .collect(Collectors.toList());
-        log.debug("MAPPED_FLIGHT_SLOTS         - flightId: {}, slotCount: {}", flight.getId(), slots.size());
+       
 
         Double minPrice = slots.stream()
                 .map(FlightSlotDto::getPrice)
@@ -220,7 +212,7 @@ public class FlightServiceImpl implements FlightService {
                 .maxPrice(Double.isNaN(maxPrice) ? null : maxPrice)
                 .totalAvailableSeats(flightDAO.countByBookingId(flight.getId()))
                 .build();
-        log.debug("MAPPING_FLIGHT_TO_DTO_DONE  - flightId: {}", flight.getId());
+   
         return dto;
     }
 
@@ -237,7 +229,7 @@ public class FlightServiceImpl implements FlightService {
                 .isAisle(slot.getIsAisle())
                 .carryOnLuggage(slot.getCarryOnLuggage())
                 .build();
-        log.debug("MAPPING_SLOT_TO_DTO_DONE    - slotId: {}", slot.getId());
+     
         return dto;
     }
 
@@ -252,37 +244,36 @@ public class FlightServiceImpl implements FlightService {
                 .altText(img != null ? img.getAltText() : null)
                 .uploadedAt(img != null ? img.getUploadedAt() : null)
                 .build();
-        log.debug("MAPPING_IMAGE_TO_DTO_DONE   - flightImageId: {}", fi.getId());
+       
         return dto;
     }
 
     private AirportDto toAirportDto(Airport airport) {
-        log.debug("MAPPING_AIRPORT_TO_DTO      - airportId: {}", airport.getId());
+        
         AirportDto dto = AirportDto.builder()
                 .id(airport.getId())
                 .name(airport.getName())
                 .build();
-        log.debug("MAPPING_AIRPORT_TO_DTO_DONE - airportId: {}", airport.getId());
+  
         return dto;
     }
 
     private AirlineDto toAirlineDto(Airline airline) {
-        log.debug("MAPPING_AIRLINE_TO_DTO      - airlineId: {}", airline.getId());
         AirlineDto dto = AirlineDto.builder()
                 .id(airline.getId())
                 .name(airline.getName())
                 .build();
-        log.debug("MAPPING_AIRLINE_TO_DTO_DONE - airlineId: {}", airline.getId());
+       
         return dto;
     }
 
     private FlightCategoryDto toFlightCategoryDto(FlightCategory category) {
-        log.debug("MAPPING_CATEGORY_TO_DTO     - categoryId: {}", category.getId());
+        
         FlightCategoryDto dto = FlightCategoryDto.builder()
                 .id(category.getId())
                 .name(category.getName())
                 .build();
-        log.debug("MAPPING_CATEGORY_TO_DTO_DONE- categoryId: {}", category.getId());
+      
         return dto;
     }
 
@@ -290,7 +281,7 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public Optional<FlightSlotDto> findFirstAvailableSlot(FindAvailableSlotRequestDto request) {
         String requestId = UUID.randomUUID().toString();
-        log.info("FIND_FIRST_AVAILABLE_SLOT_REQUEST - RequestId: {}, request: {}", requestId, request);
+      
         try {
             Optional<FlightSlot> slot = flightSlotDAO.findFirstAvailableSlotByCriteria(
                     request.getFlightId(),
@@ -300,10 +291,10 @@ public class FlightServiceImpl implements FlightService {
             );
             
             Optional<FlightSlotDto> result = slot.map(this::toFlightSlotDto);
-            log.info("FIND_FIRST_AVAILABLE_SLOT_SUCCESS - RequestId: {}, found: {}", requestId, result.isPresent());
+          
             return result;
         } catch (Exception e) {
-            log.error("FIND_FIRST_AVAILABLE_SLOT_FAILED - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+       
             throw e;
         }
     }

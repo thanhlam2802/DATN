@@ -1,6 +1,7 @@
 package backend.backend.implement;
 
 import backend.backend.dao.BookingTourDAO;
+import backend.backend.dto.TopTourDTO;
 import backend.backend.dao.DepartureDAO;
 import backend.backend.dao.TourDAO;
 import backend.backend.dao.UserDAO;
@@ -8,6 +9,7 @@ import backend.backend.dao.OrderDAO;
 import backend.backend.dto.BookingTourDto;
 import backend.backend.dto.BookingTourRequestDto;
 import backend.backend.dto.MyTourBookingDTO;
+import backend.backend.dto.StatsDTO;
 import backend.backend.entity.BookingTour;
 import backend.backend.entity.Departure;
 import backend.backend.entity.Tour;
@@ -18,6 +20,9 @@ import backend.backend.service.BookingTourService;
 import backend.backend.specification.BookingTourSpecification;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -212,4 +218,44 @@ public class BookingTourServiceImpl implements BookingTourService {
 
         return dto;
     }
+
+    @Override
+    public StatsDTO getStatsByDateRange(Long userId,LocalDate startDate, LocalDate endDate) {
+    	return bookingTourDAO.getStatsByDateRange(userId, startDate, endDate);
+    }
+
+    @Override
+    public List<TopTourDTO> getTopSellingTours(Long userId,LocalDate startDate, LocalDate endDate, int limit) {
+        // Tạo Pageable để chỉ lấy `limit` kết quả đầu tiên
+        Pageable pageable = PageRequest.of(0, limit);
+        return bookingTourDAO.findTopSellingTours(userId, startDate, endDate, pageable);
+    }
+
+    @Override
+    public Page<MyTourBookingDTO> getPaidBookingsByDateRange(Long userId,LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        // 1. Tạo các tham số để build specification
+        Map<String, String> params = new HashMap<>();
+        if (userId != null) {
+            params.put("ownerId", userId.toString());
+        }
+        if (startDate != null) {
+            params.put("startDate", startDate.toString());
+        }
+        if (endDate != null) {
+            params.put("endDate", endDate.toString());
+        }
+        // Chỉ lấy các booking đã thanh toán hoặc xác nhận
+        params.put("status", "PAID,CONFIRMED"); // Giả sử specification có thể xử lý list status
+
+        // 2. Build Specification
+        Specification<BookingTour> spec = BookingTourSpecification.findByCriteria(params);
+
+        // 3. Gọi DAO để lấy Page<BookingTour>
+        Page<BookingTour> bookingTourPage = bookingTourDAO.findAll(spec, pageable);
+
+        // 4. Chuyển đổi Page<BookingTour> sang Page<MyTourBookingDTO>
+        return bookingTourPage.map(this::mapToMyBookingDTO);
+    }
+
+    
 }

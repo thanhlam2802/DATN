@@ -185,23 +185,21 @@ const filteredTours = computed(() => {
       tour.departurePoint.toLowerCase().includes(lowerCaseSearch)
   );
 });
+import { useUserStore } from "@/store/UserStore";
 
-// --- API & DATA HANDLING ---
+const userStore = useUserStore();
+
 async function fetchTours() {
   isLoading.value = true;
-  console.log(
-    "--- [ToursTab] Bắt đầu gọi API để lấy danh sách tour (fetchTours) ---"
-  );
   try {
-    const tourList = await apiService.getAllTours();
-    console.log(
-      "--- [ToursTab] Nhận được danh sách tour thành công từ API: ---",
-      tourList
-    );
+    const userId = userStore.user.id;
+    if (!userId) {
+      throw new Error("Không tìm thấy ID người dùng.");
+    }
+    const tourList = await apiService.getAllTours(userId);
     tours.value = tourList;
   } catch (error) {
     alert("Lỗi khi tải danh sách tour: " + error.message);
-    console.error("Lỗi khi fetchTours:", error);
   } finally {
     isLoading.value = false;
   }

@@ -20,12 +20,17 @@ import java.util.Map;
 import backend.backend.dto.CustomerDto;
 import backend.backend.dao.HotelBookingDAO;
 import backend.backend.dto.HotelBookingDto;
+import backend.backend.dto.HotelBookingDetailDto;
 import backend.backend.dao.ReviewDAO;
 import backend.backend.dao.Hotel.HotelDAO;
 import backend.backend.dto.Hotel.AdminReviewDto;
 import backend.backend.entity.Hotel;
 import backend.backend.dao.UserDAO;
 import org.springframework.http.HttpStatus;
+import backend.backend.entity.HotelBooking;
+import backend.backend.entity.Review;
+import backend.backend.entity.User;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/admin/hotels")
@@ -213,6 +218,51 @@ public class HotelAdminController {
         return ResponseFactory.success(bookings, "Lấy danh sách booking thành công");
     }
 
+    @GetMapping("/bookings/{bookingId}")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<HotelBookingDetailDto>> getHotelBookingById(@PathVariable Integer bookingId) {
+        String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+        if (currentUserEmail == null) {
+            return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Không có quyền truy cập", null);
+        }
+
+        try {
+            HotelBooking booking = hotelBookingDAO.findById(bookingId).orElse(null);
+            if (booking == null) {
+                return ResponseFactory.error(HttpStatus.NOT_FOUND, "Không tìm thấy booking với ID: " + bookingId, null);
+            }
+
+            HotelBookingDetailDto bookingDto = new HotelBookingDetailDto(
+                booking.getId(),
+                booking.getCustomer() != null ? booking.getCustomer().getFullName() : null,
+                booking.getCustomer() != null ? booking.getCustomer().getPhone() : null,
+                booking.getCustomer() != null ? booking.getCustomer().getEmail() : null,
+                booking.getCustomer() != null ? booking.getCustomer().getId() : null,
+                booking.getRoomVariant() != null ? booking.getRoomVariant().getId() : null,
+                booking.getCheckInDate(),
+                booking.getCheckOutDate(),
+                booking.getNumAdults(),
+                booking.getNumChildren(),
+                booking.getTotalPrice(),
+                booking.getCreatedAt(),
+                booking.getOrder() != null ? booking.getOrder().getId() : null,
+                booking.getRoomVariant() != null && booking.getRoomVariant().getRoom() != null && 
+                booking.getRoomVariant().getRoom().getHotel() != null ? booking.getRoomVariant().getRoom().getHotel().getName() : null,
+                booking.getRoomVariant() != null && booking.getRoomVariant().getRoom() != null ? booking.getRoomVariant().getRoom().getRoomType() : null,
+                booking.getRoomVariant() != null ? booking.getRoomVariant().getVariantName() : null,
+                null,
+                booking.getRooms(),
+                booking.getOrder() != null ? booking.getOrder().getStatus() : null,
+                null
+            );
+
+            return ResponseFactory.success(bookingDto, "Lấy thông tin booking thành công");
+        } catch (Exception e) {
+            logger.error("Error getting booking by ID {}: {}", bookingId, e.getMessage(), e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi lấy thông tin booking", null);
+        }
+    }
+
     @GetMapping("/dashboard-statistics")
     @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardStatistics(
@@ -271,7 +321,8 @@ public class HotelAdminController {
     @GetMapping("/revenue-chart")
     @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getRevenueChart(
-            @RequestParam(defaultValue = "this_month") String timePeriod) {
+            @RequestParam(defaultValue = "this_month") String timePeriod,
+            @RequestParam(defaultValue = "by_day") String chartType) {
         try {
             String currentUserEmail = SecurityUtils.getCurrentUserEmail();
             if (currentUserEmail == null) {
@@ -280,8 +331,22 @@ public class HotelAdminController {
 
             System.out.println("=== REVENUE CHART DEBUG ===");
             System.out.println("Time period requested: " + timePeriod);
+            System.out.println("Chart type requested: " + chartType);
 
-            Map<String, Object> chartData = hotelBookingDAO.getHotelRevenueByDayChartData(timePeriod);
+            Map<String, Object> chartData;
+            
+            switch (chartType) {
+                case "by_hour":
+                    chartData = hotelBookingDAO.getHotelRevenueByHourChartData(timePeriod);
+                    break;
+                case "by_weekday":
+                    chartData = hotelBookingDAO.getHotelRevenueByWeekdayChartData(timePeriod);
+                    break;
+                case "by_day":
+                default:
+                    chartData = hotelBookingDAO.getHotelRevenueByDayChartData(timePeriod);
+                    break;
+            }
 
             System.out.println("Chart data returned: " + chartData);
             System.out.println("Labels: " + chartData.get("labels"));
@@ -404,6 +469,12 @@ public class HotelAdminController {
                 dto.setContent(review.getContent());
                 dto.setCreatedAt(review.getCreatedAt());
                 dto.setUpdatedAt(review.getCreatedAt());
+                
+                dto.setAdminResponse(review.getAdminResponse());
+                dto.setAdminResponseAt(review.getAdminResponseAt());
+                if (review.getAdminResponseBy() != null) {
+                    dto.setAdminResponseByName(review.getAdminResponseBy().getName());
+                }
 
                 if (review.getUser() != null) {
                     String userName = review.getUser().getName();
@@ -461,6 +532,63 @@ public class HotelAdminController {
         } catch (Exception e) {
             logger.error("[REVIEWS] Error deleting review {}: {}", reviewId, e.getMessage(), e);
             return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi xóa đánh giá", null);
+        }
+    }
+
+    @PostMapping("/reviews/{reviewId}/respond")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<Void>> respondToReview(
+            @PathVariable Integer reviewId,
+            @Valid @RequestBody backend.backend.dto.Hotel.ReviewResponseRequestDto request) {
+        try {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (currentUserEmail == null) {
+                return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Không có quyền truy cập", null);
+            }
+
+            Review review = reviewDAO.findById(reviewId).orElse(null);
+            if (review == null) {
+                return ResponseFactory.error(HttpStatus.NOT_FOUND, "Không tìm thấy đánh giá", null);
+            }
+
+            if (!"Hotel".equals(review.getEntityType())) {
+                return ResponseFactory.error(HttpStatus.BAD_REQUEST, "Đánh giá này không thuộc về khách sạn", null);
+            }
+
+            User currentAdmin = userDAO.findByEmail(currentUserEmail).orElse(null);
+            if (currentAdmin == null) {
+                return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin admin", null);
+            }
+
+            review.setAdminResponse(request.getResponse());
+            review.setAdminResponseAt(java.time.LocalDateTime.now());
+            review.setAdminResponseBy(currentAdmin);
+
+            reviewDAO.save(review);
+
+            logger.info("[REVIEWS] Admin {} responded to review {}", currentUserEmail, reviewId);
+            return ResponseFactory.success(null, "Phản hồi đánh giá thành công");
+        } catch (Exception e) {
+            logger.error("[REVIEWS] Error responding to review {}: {}", reviewId, e.getMessage(), e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi phản hồi đánh giá", null);
+        }
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getHotelStatistics() {
+        try {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (currentUserEmail == null) {
+                return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Không có quyền truy cập", null);
+            }
+
+            Map<String, Object> statistics = hotelBookingDAO.getHotelStatistics();
+            
+            return ResponseFactory.success(statistics, "Lấy thống kê khách sạn thành công");
+        } catch (Exception e) {
+            logger.error("Error getting hotel statistics: ", e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi lấy thống kê khách sạn", null);
         }
     }
 

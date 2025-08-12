@@ -1,10 +1,24 @@
 import axios from 'axios';
+import { getBearerToken } from '@/services/TokenService.js';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const api = axios.create({
   baseURL: API_BASE_URL
 });
+
+api.interceptors.request.use(
+  (config) => {
+    const token = getBearerToken();
+    if (token) {
+      config.headers.Authorization = token;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Customer CRUD
 export const getAllCustomers = () => api.get('/v1/customers');

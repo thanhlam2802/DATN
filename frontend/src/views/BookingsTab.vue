@@ -178,6 +178,9 @@ import {
   FilterIcon,
 } from "lucide-vue-next";
 import { tourApi, bookingApi } from "@/api/bookingTourApi.js";
+import { useUserStore } from "@/store/UserStore";
+
+const userStore = useUserStore();
 
 // --- State ---
 const bookings = ref([]);
@@ -206,7 +209,11 @@ const fetchBookings = async () => {
     if (filters.status && filters.status !== "all") {
       params.status = filters.status;
     }
-    bookings.value = await bookingApi.getAdminBookings(params);
+    const userId = userStore.user.id;
+    if (!userId) {
+      throw new Error("Không tìm thấy ID người dùng.");
+    }
+    bookings.value = await bookingApi.getAdminBookings(params, userId);
   } catch (err) {
     error.value = err;
   } finally {

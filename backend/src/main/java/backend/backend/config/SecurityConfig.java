@@ -76,10 +76,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/account/**").permitAll()
                         .requestMatchers("/api/v1/websocket/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/v1/suppliers/apply").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").authenticated()
                         .requestMatchers("/api/admin/**").authenticated()
+                        .requestMatchers("/api/v1/suppliers/applications/**").hasRole("SUPER_ADMIN")
                         .anyRequest().permitAll()
+                        
+                        
                 )
                 .oauth2Login(oauth2Login -> oauth2Login
                         .userInfoEndpoint((userInfo) -> {

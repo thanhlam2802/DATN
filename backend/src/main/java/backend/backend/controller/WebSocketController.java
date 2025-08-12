@@ -28,7 +28,15 @@ public class WebSocketController {
         try {
             logger.info("Received hotel room booking notification: {}", bookingNotification);
 
-            Integer hotelId = (Integer) bookingNotification.get("hotelId");
+            Object hotelIdObj = bookingNotification.get("hotelId");
+            Integer hotelId = null;
+            
+            if (hotelIdObj instanceof String) {
+                hotelId = Integer.valueOf((String) hotelIdObj);
+            } else if (hotelIdObj instanceof Integer) {
+                hotelId = (Integer) hotelIdObj;
+            }
+            
             if (hotelId != null) {
                 messagingTemplate.convertAndSend(
                         "/topic/hotels/" + hotelId + "/booking-notifications",
@@ -50,7 +58,15 @@ public class WebSocketController {
         try {
             logger.info("Received room update notification: {}", roomUpdate);
 
-            Integer hotelId = (Integer) roomUpdate.get("hotelId");
+            Object hotelIdObj = roomUpdate.get("hotelId");
+            Integer hotelId = null;
+            
+            if (hotelIdObj instanceof String) {
+                hotelId = Integer.valueOf((String) hotelIdObj);
+            } else if (hotelIdObj instanceof Integer) {
+                hotelId = (Integer) hotelIdObj;
+            }
+            
             if (hotelId != null) {
                 messagingTemplate.convertAndSend(
                         "/topic/hotels/" + hotelId + "/room-updates",
@@ -71,7 +87,15 @@ public class WebSocketController {
         try {
             logger.info("Received viewer notification: {}", viewerNotification);
 
-            Integer hotelId = (Integer) viewerNotification.get("hotelId");
+            Object hotelIdObj = viewerNotification.get("hotelId");
+            Integer hotelId = null;
+            
+            if (hotelIdObj instanceof String) {
+                hotelId = Integer.valueOf((String) hotelIdObj);
+            } else if (hotelIdObj instanceof Integer) {
+                hotelId = (Integer) hotelIdObj;
+            }
+            
             if (hotelId != null) {
                 messagingTemplate.convertAndSend(
                         "/topic/hotels/" + hotelId + "/viewer-notifications",

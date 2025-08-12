@@ -8,6 +8,7 @@ import backend.backend.dto.Hotel.HotelBookingRequestDto;
 import backend.backend.dto.Hotel.UpdateHotelBookingRequestDto;
 import backend.backend.dto.OrderDto;
 import backend.backend.entity.ApiResponse;
+import backend.backend.entity.User;
 import backend.backend.service.HotelService;
 import backend.backend.service.HotelBookingService;
 import backend.backend.utils.ResponseFactory;
@@ -69,7 +70,14 @@ public class HotelPublicController {
         if (authentication == null) {
             return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để gửi đánh giá!", null);
         }
-        String email = authentication.getName();
+        String email;
+        if (authentication.getPrincipal() instanceof User) {
+            User user = (User) authentication.getPrincipal();
+            email = user.getEmail();
+        } else {
+            email = authentication.getName();
+        }
+        
         hotelService.createHotelReview(id, email, req.rating, req.content);
         return ResponseFactory.success(null, "Đánh giá đã được gửi thành công");
     }

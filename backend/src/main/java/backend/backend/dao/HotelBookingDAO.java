@@ -865,8 +865,8 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
                    "COUNT(DISTINCT h.id) as totalHotels, " +
                    "COALESCE(SUM(r.room_quantity), 0) as totalRooms, " +
                    "COALESCE(SUM(r.room_quantity) - COALESCE(SUM(booked_rooms.booked_count), 0), 0) as availableRooms, " +
-                   "COUNT(DISTINCT CASE WHEN r.room_quantity <= COALESCE(booked_rooms.booked_count, 0) THEN h.id END) as outOfStockRooms, " +
-                   "COUNT(DISTINCT CASE WHEN (r.room_quantity - COALESCE(booked_rooms.booked_count, 0)) <= 5 AND (r.room_quantity - COALESCE(booked_rooms.booked_count, 0)) > 0 THEN h.id END) as nearlyOutOfStockRooms " +
+                   "COUNT(CASE WHEN r.room_quantity <= COALESCE(booked_rooms.booked_count, 0) THEN r.id END) as outOfStockRooms, " +
+                   "COUNT(CASE WHEN (r.room_quantity - COALESCE(booked_rooms.booked_count, 0)) <= 5 AND (r.room_quantity - COALESCE(booked_rooms.booked_count, 0)) > 0 THEN r.id END) as nearlyOutOfStockRooms " +
                    "FROM hotels h " +
                    "LEFT JOIN hotel_rooms r ON h.id = r.hotel_id " +
                    "LEFT JOIN ( " +

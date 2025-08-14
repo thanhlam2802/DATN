@@ -40,13 +40,13 @@ public interface AdminFlightService {
     List<FlightStatisticsDto> getFlightStatistics(String type, String value);
     
     // Thống kê theo tháng
-    MonthlyFlightStatisticsDto getMonthlyFlightStatistics(Integer year, Integer month);
-    
-    // Thống kê đặt chỗ theo điểm đến
-    List<BookingByDestinationDto> getBookingsByDestination(Integer year, Integer month);
-    
-    // Thống kê doanh thu theo nhóm ghế
-    List<RevenueBySeatClassDto> getRevenueBySeatClass(Integer year, Integer month);
+        MonthlyFlightStatisticsDto getMonthlyFlightStatistics(Integer year, Integer month);
+
+        // Thống kê đặt chỗ theo điểm đến
+        List<BookingByDestinationDto> getBookingsByDestination(Integer year, Integer month);
+
+        // Thống kê doanh thu theo nhóm ghế
+        List<RevenueBySeatClassDto> getRevenueBySeatClass(Integer year, Integer month);
 
     // Quản lý sân bay
     List<AirportDto> getAirports();

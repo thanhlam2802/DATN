@@ -38,8 +38,6 @@
             <p v-if="otpError" class="text-red-500 text-xs mt-1">{{ otpError }}</p>
 
           </div>
-
-
           <button
               type="submit"
               class="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-2 rounded-md"

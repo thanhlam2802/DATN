@@ -1,5 +1,6 @@
 package backend.backend.entity;
 
+import backend.backend.dto.GenderEnum;
 import backend.backend.dto.auth.AuthProvider;
 import lombok.Data;
 import lombok.Getter;
@@ -30,7 +31,8 @@ public class User {
     private String email;
 
     @Column(name = "gender")
-    private String gender;
+    @Enumerated(EnumType.STRING)
+    private GenderEnum gender;
 
     @Column(name = "birthday")
     private Date birthday;

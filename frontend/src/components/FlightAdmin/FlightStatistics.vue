@@ -293,30 +293,6 @@ const availableYears = computed(() => {
   return [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
 });
 
-// Mock data for top routes (keeping this for now)
-const topRoutes = ref([
-  {
-    route: 'Hà Nội - TP.HCM',
-    flights: 45,
-    bookings: 450,
-    revenue: 450000000,
-    occupancyRate: 90
-  },
-  {
-    route: 'TP.HCM - Đà Nẵng',
-    flights: 30,
-    bookings: 300,
-    revenue: 300000000,
-    occupancyRate: 85
-  },
-  {
-    route: 'Hà Nội - Đà Nẵng',
-    flights: 25,
-    bookings: 250,
-    revenue: 250000000,
-    occupancyRate: 80
-  }
-]);
 
 // Chart options
 const barChartOptions = {

@@ -32,4 +32,18 @@ export const AccountApi = {
             }
         }
     },
+    updateProfile: async (request) => {
+        try {
+            const res = await apiClient.put("/v1/account/profile", request, {
+                headers: {
+                    Authorization: getBearerToken()
+                }
+            })
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response.data.errorCode
+            }
+        }
+    },
 }

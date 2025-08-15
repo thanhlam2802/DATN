@@ -16,6 +16,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import backend.backend.dto.DirectFlightReservationRequestDto;
@@ -121,5 +122,21 @@ public class OrderController {
         // Giả sử OrderService có phương thức applyVoucherToOrder
         OrderDto updatedOrder = orderService.applyVoucherToOrder(id, request.getVoucherCode());
         return ResponseFactory.success(updatedOrder, "Áp dụng mã giảm giá thành công.");
+    }
+
+    /**
+     * Endpoint để hủy đơn hàng khi hoàn tiền thành công
+     */
+    @PutMapping("/{id}/cancel-after-refund")
+    public ResponseEntity<ApiResponse<OrderDto>> cancelOrderAfterRefund(@PathVariable Integer id) {
+        logger.info("Bắt đầu hủy đơn hàng sau hoàn tiền cho Order ID: {}", id);
+        try {
+            OrderDto cancelledOrder = orderService.cancelOrderAfterRefund(id);
+            logger.info("Hủy đơn hàng thành công cho Order ID: {}", id);
+            return ResponseFactory.success(cancelledOrder, "Hủy đơn hàng thành công.");
+        } catch (Exception e) {
+            logger.error("Lỗi khi hủy đơn hàng cho Order ID: {}. Chi tiết lỗi: {}", id, e.getMessage());
+            return ResponseFactory.error(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 }

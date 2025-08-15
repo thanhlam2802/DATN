@@ -35,11 +35,7 @@ public class FlightServiceImpl implements FlightService {
     public List<FlightDto> searchFlights(FlightSearchRequestDto request) {
         String requestId = UUID.randomUUID().toString();
         long startTime = System.currentTimeMillis();
-
-       
         try {
-            List<Flight> flights = flightDAO.findAllUpcomingFlights();
-           
             Integer startHour= null;
             Integer endHour =null;
             if (request.getTimeWindow()!=null) {
@@ -66,7 +62,7 @@ public class FlightServiceImpl implements FlightService {
             );
             List<FlightDto> result = new ArrayList<>();
             for (Flight flight : ls) {
-               
+
                 FlightDto flightDto = this.toFlightDto(flight);
                 result.add(flightDto);
             }

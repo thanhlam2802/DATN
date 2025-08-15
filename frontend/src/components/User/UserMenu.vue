@@ -13,15 +13,15 @@
         <i class="fas fa-user-plus text-blue-500"></i>
         Register
       </li>
-      <li @click="handleLogout()"
-          class="flex items-center gap-2 px-4 py-3 hover:bg-blue-50 hover:text-blue-600 cursor-pointer">
-        <i class="fas fa-sign-out-alt text-red-500"></i>
-        Logout
-      </li>
-      <li @click="handleNavigate('/account/personal')"
+      <li v-if="userStore.isLoggedIn" @click="handleNavigate('/account/personal')"
           class="flex items-center gap-2 px-4 py-3 hover:bg-blue-50 hover:text-blue-600 cursor-pointer">
         <i class="fas fa-cog text-gray-500"></i>
         Account Settings
+      </li>
+      <li v-if="userStore.isLoggedIn" @click="handleLogout()"
+          class="flex items-center gap-2 px-4 py-3 hover:bg-blue-50 hover:text-blue-600 cursor-pointer">
+        <i class="fas fa-sign-out-alt text-red-500"></i>
+        Logout
       </li>
     </ul>
   </div>

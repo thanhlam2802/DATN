@@ -159,6 +159,9 @@ export const flightFormSchema = {
   arrivalAirport: { 
     required: true,
     custom: (value, formData) => {
+
+      console.log(formData);
+      
       if (value && formData.departureAirport && value.id === formData.departureAirport.id) {
         return 'Sân bay đến phải khác sân bay đi'
       }

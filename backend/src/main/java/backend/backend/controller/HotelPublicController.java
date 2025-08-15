@@ -99,4 +99,11 @@ public class HotelPublicController {
         OrderDto order = hotelBookingService.updateHotelBooking(dto, authentication);
         return ResponseFactory.success(order, "Cập nhật booking thành công.");
     }
+
+    @GetMapping("/popular-by-bookings")
+    public ResponseEntity<ApiResponse<List<HotelDto>>> getPopularHotelsByBookings(
+            @RequestParam(defaultValue = "10") int size) {
+        List<HotelDto> popularHotels = hotelService.getPopularHotelsByBookings(size);
+        return ResponseFactory.success(popularHotels, "Lấy danh sách khách sạn phổ biến theo đơn hàng thành công");
+    }
 }

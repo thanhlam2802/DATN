@@ -154,6 +154,15 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="w-full sm:w-[218px] ml-17">
+                            <CustomSelect
+                                v-model="filterProvince"
+                                :options="[{ label: 'Tất cả thành phố', value: '' }, ...provinces.map(p => ({ label: p.name, value: p.id }))]"
+                                placeholder="Tất cả thành phố"
+                                class="w-full h-12 [&>button]:h-12 [&>button]:py-3 [&>button]:text-sm"
+                                :direction="'down'"
+                            />
+                        </div>
                     </div>
                     <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm w-full sm:w-auto whitespace-nowrap">
                         Thêm khách sạn
@@ -299,7 +308,7 @@
             </div>
         </div>
         <div v-else-if="mode === 'edit'">
-            <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-5xl mx-auto">
+            <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-6xl mx-auto">
                 <div class="flex justify-between items-center border-b border-slate-200 pb-4 mb-4">
                     <h2 class="text-xl font-bold">
                         <span v-if="isEditMode && !isViewMode">Chỉnh sửa khách sạn</span>
@@ -811,6 +820,7 @@ export default {
             filterCreatedAtPreset: '',
             filterCreatedAtFrom: '',
             filterCreatedAtTo: '',
+            filterProvince: '',
             createdAtPresets: [
                 { label: 'Hôm nay', value: 'today' },
                 { label: 'Hôm qua', value: 'yesterday' },
@@ -907,6 +917,7 @@ export default {
     watch: {
         searchQuery() { this.currentPage = 1; this.fetchHotels(); },
         itemsPerPageStr() { this.currentPage = 1; this.fetchHotels(); },
+        filterProvince() { this.currentPage = 1; this.fetchHotels(); },
         mode() {
             this.$nextTick(() => this.updateBreadcrumb());
         },
@@ -1039,6 +1050,7 @@ export default {
             this.filterCreatedAtPreset = '';
             this.filterCreatedAtFrom = '';
             this.filterCreatedAtTo = '';
+            this.filterProvince = '';
             this.roomStatusFilter = null;
             this.showFilterDropdown = false;
             this.currentPage = 1;
@@ -1252,6 +1264,7 @@ export default {
                     maxPrice: this.filterPriceMax < 20000000 ? this.filterPriceMax : undefined,
                     createdAtFrom: this.filterCreatedAtFrom || undefined,
                     createdAtTo: this.filterCreatedAtTo || undefined,
+                    provinceId: this.filterProvince || undefined,
                     roomStatus: this.roomStatusFilter || undefined,
                     page: 0,
                     size: 1000,

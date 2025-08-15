@@ -231,7 +231,23 @@
             <div class="p-6">
                <div class="flex items-center justify-between mb-4">
                  <span class="text-sm font-medium text-slate-500">#{{ index + 1 }}</span>
-                 <span :class="statusClass(b.status) + ' px-3 py-1 rounded-full font-semibold text-xs'">{{ statusLabel(b.status) }}</span>
+                 <div class="flex items-center gap-2">
+                   <span :class="statusClass(b.status) + ' px-3 py-1 rounded-full font-semibold text-xs'">{{ statusLabel(b.status) }}</span>
+                   <div class="relative">
+                                           <button @click.stop="toggleGridDropdown(b.id)" 
+                        :data-grid-dropdown="b.id"
+                        class="inline-flex justify-center items-center w-8 h-8 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none transition-all duration-200">
+                        <i class="fas fa-ellipsis-v flex items-center justify-center text-sm"></i>
+                      </button>
+                     <div v-if="activeGridDropdown === b.id" 
+                       class="grid-dropdown-menu absolute right-0 top-full mt-1 min-w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+                       <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
+                         @click.stop="viewBookingDetail(b)"><i class="fas fa-eye mr-2"></i>Xem chi tiết</button>
+                       <button class="block w-full text-left px-4 py-2 hover:bg-green-50 text-green-600"
+                         @click.stop="exportInvoice(b)"><i class="fas fa-file-invoice mr-2"></i>Xuất hóa đơn</button>
+                     </div>
+                   </div>
+                 </div>
                </div>
 
                              <div class="mb-3">
@@ -455,6 +471,9 @@ const activeDropdown = ref(null);
 const dropdownMenuPosition = ref({ top: 0, left: 0 });
 const dropdownBtnRefMap = ref({});
 
+// Grid dropdown variables
+const activeGridDropdown = ref(null);
+
 const createdAtPresets = [
   { label: 'Hôm nay', value: 'today' },
   { label: 'Hôm qua', value: 'yesterday' },
@@ -541,10 +560,36 @@ onMounted(async () => {
 });
 
 function handleOutsideClick(event) {
+  // Handle table dropdown
   if (activeDropdown.value !== null) {
     const btn = dropdownBtnRefMap.value && dropdownBtnRefMap.value[activeDropdown.value];
-    if (!btn || !btn.contains(event.target)) {
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+    if (!btn || (!btn.contains(event.target) && (!dropdownMenu || !dropdownMenu.contains(event.target)))) {
       activeDropdown.value = null;
+    }
+  }
+  
+  // Handle grid dropdown
+  if (activeGridDropdown.value !== null) {
+    const gridDropdownMenus = document.querySelectorAll('.grid-dropdown-menu');
+    const gridDropdownButtons = document.querySelectorAll('[data-grid-dropdown]');
+    let clickedInsideGridDropdown = false;
+    
+    gridDropdownMenus.forEach(menu => {
+      if (menu.contains(event.target)) {
+        clickedInsideGridDropdown = true;
+      }
+    });
+    
+    gridDropdownButtons.forEach(button => {
+      if (button.contains(event.target)) {
+        clickedInsideGridDropdown = true;
+      }
+    });
+    
+    if (!clickedInsideGridDropdown) {
+      console.log('Click outside grid dropdown, closing...');
+      activeGridDropdown.value = null;
     }
   }
   
@@ -839,9 +884,22 @@ function toggleDropdown(id) {
   });
 }
 
+// Grid dropdown function
+function toggleGridDropdown(id) {
+  console.log('Toggle grid dropdown for ID:', id, 'Current active:', activeGridDropdown.value);
+  if (activeGridDropdown.value === id) {
+    activeGridDropdown.value = null;
+    console.log('Closing dropdown');
+  } else {
+    activeGridDropdown.value = id;
+    console.log('Opening dropdown');
+  }
+}
+
 function viewBookingDetail(booking) {
   showBookingDetail(booking);
   activeDropdown.value = null;
+  activeGridDropdown.value = null;
 }
 
 function exportInvoice(booking) {
@@ -868,6 +926,7 @@ function exportInvoice(booking) {
   }
   
   activeDropdown.value = null;
+  activeGridDropdown.value = null;
 }
 
 function formatDate(date) {

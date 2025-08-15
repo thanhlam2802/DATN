@@ -113,7 +113,7 @@ public interface HotelBookingDAO extends JpaRepository<HotelBooking, Integer> {
     @Query(value = "SELECT COUNT(*) FROM hotel_bookings WHERE YEAR(created_at) = YEAR(DATEADD(MONTH, -2, GETDATE())) AND MONTH(created_at) = MONTH(DATEADD(MONTH, -2, GETDATE()))", nativeQuery = true)
     Long countTotalBookings2MonthsAgo();
 
-    @Query(value = "SELECT COALESCE(SUM(b.total_price), 0) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(GETDATE() AS DATE) AND o.status = 'PAID'", nativeQuery = true)
     Long countPaidBookingsToday();
 
     @Query(value = "SELECT COUNT(*) FROM hotel_bookings b LEFT JOIN orders o ON b.order_id = o.id WHERE CAST(b.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AND o.status = 'PAID'", nativeQuery = true)

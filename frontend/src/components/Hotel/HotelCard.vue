@@ -1,6 +1,6 @@
 <template>
     <article v-if="viewMode === 'list'"
-        class="lg:w-[996px] flex border border-gray-200 rounded-xl overflow-hidden shadow-md bg-white cursor-pointer lg:h-[226px] mb-8"
+        class="w-full max-w-6xl mx-auto flex border border-gray-200 rounded-xl overflow-hidden shadow-md bg-white cursor-pointer lg:h-[226px] mb-8"
         @click="$emit('click')">
         <div class="w-80 flex-shrink-0 relative">
             <div class="w-full h-full flex flex-col">

@@ -26,4 +26,6 @@ public interface HotelService {
     void deleteHotel(Integer id);
 
     void createHotelReview(Integer hotelId, String email, Integer rating, String content);
+
+    List<HotelDto> getPopularHotelsByBookings(int size);
 }

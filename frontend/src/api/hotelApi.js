@@ -8,6 +8,10 @@ export const searchHotels = (params) => {
     return axios.get(API_BASE_URL, { params });
 };
 
+export const getPopularHotelsByBookings = (size = 10) => {
+    return axios.get(`${API_BASE_URL}/popular-by-bookings`, { params: { size } });
+};
+
 export const getHotelById = (id, params) => {
     return axios.get(`${API_BASE_URL}/${id}`, { params });
 };

@@ -10,7 +10,7 @@ export const getRedirectPath = (user) => {
   }
 
   if (roles.includes("ADMIN_FLIGHTS") || roles.includes("FLIGHT_SUPPLIER")) {
-    return "/admin/flights";
+    return "/plane/admin";
   }
 
   if (roles.includes("ADMIN_TOURS") || roles.includes("TOUR_SUPPLIER")) {

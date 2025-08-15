@@ -125,8 +125,10 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
         // 1. Lấy user từ context (chuẩn):
-         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-         User user = userDAO.findByEmail(username).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+        logger.info("fl status sau khi save: {}",SecurityContextHolder.getContext().getAuthentication());
+
+        User user =(User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
 
         // 2. Lấy slot và flight
         FlightSlot slot = flightSlotDAO.findById(directRequest.getFlightSlotId())
@@ -244,6 +246,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setPayDate(entity.getPayDate());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setExpiresAt(entity.getExpiresAt());
+        dto.setTransactionId(entity.getTransactionId());
         if (entity.getUser() != null) dto.setUserId(entity.getUser().getId());
         if (entity.getVoucher() != null) dto.setVoucherId(entity.getVoucher().getId());
         if (entity.getDestination() != null) dto.setDestinationId(entity.getDestination().getId());
@@ -385,9 +388,6 @@ public class OrderServiceImpl implements OrderService {
             eventPublisher.publishEvent(new VoucherUsedUpEvent(this, updatedVoucher.getCode()));
         }
 
-
-      
-
         Order updatedOrder = orderDAO.save(order);
 
         return convertToDto(updatedOrder); 
@@ -426,10 +426,9 @@ public class OrderServiceImpl implements OrderService {
         }
         return BigDecimal.ZERO;
     }
-    
-    private OrderDto convertToDto(Order order) {
-    	if (order == null) return null;
 
+    private OrderDto convertToDto(Order order) {
+        if (order == null) return null;
         // This method combines the logic of toOrderDTO and toDetailedOrderDto,
         // and also maps the 'originalAmount' which is crucial after applying a voucher.
         OrderDto dto = new OrderDto();
@@ -450,12 +449,60 @@ public class OrderServiceImpl implements OrderService {
         if (order.getDestination() != null) {
             dto.setDestinationId(order.getDestination().getId());
         }
-
-        // Add all booking details for a complete response, similar to toDetailedOrderDto
         dto.setTourBookings(bookingTourDAO.findByOrderId(order.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
         dto.setFlightBookings(flightBookingDAO.findByOrderId(order.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
         dto.setHotelBookings(hotelBookingDAO.findByOrderId(order.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
-
         return dto;
+    }
+
+    @Override
+    @Transactional
+    public OrderDto cancelOrderAfterRefund(Integer orderId) {
+        logger.info("Bắt đầu hủy đơn hàng sau hoàn tiền cho Order ID: {}", orderId);
+        
+        Order order = orderDAO.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));
+
+        if (!"PAID".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể hủy đơn hàng đã thanh toán.");
+        }
+
+        // Cập nhật trạng thái đơn hàng thành CANCELLED
+        order.setStatus("CANCELLED");
+        orderDAO.save(order);
+
+        // Xử lý các booking trong đơn hàng
+        // 1. Flight bookings - cập nhật flight slots thành AVAILABLE
+        if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
+            for (FlightBooking flightBooking : order.getFlightBookings()) {
+                FlightSlot flightSlot = flightBooking.getFlightSlot();
+                if (flightSlot != null) {
+                    flightSlot.setStatus("AVAILABLE");
+                    flightSlotDAO.save(flightSlot);
+                    logger.info("Đã cập nhật flight slot {} thành AVAILABLE", flightSlot.getId());
+                }
+            }
+        }
+
+        // 2. Hotel bookings - placeholder logic
+        if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
+            logger.info("Đơn hàng có {} hotel bookings - xử lý placeholder", order.getHotelBookings().size());
+            // TODO: Implement hotel booking cancellation logic
+        }
+
+        // 3. Tour bookings - placeholder logic
+        if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
+            logger.info("Đơn hàng có {} tour bookings - xử lý placeholder", order.getBookingTours().size());
+            // TODO: Implement tour booking cancellation logic
+        }
+
+        // 4. Bus bookings - placeholder logic
+        if (order.getBusBookings() != null && !order.getBusBookings().isEmpty()) {
+            logger.info("Đơn hàng có {} bus bookings - xử lý placeholder", order.getBusBookings().size());
+            // TODO: Implement bus booking cancellation logic
+        }
+
+        logger.info("Hủy đơn hàng thành công cho Order ID: {}", orderId);
+        return toOrderDTO(order);
     }
 }

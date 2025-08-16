@@ -9,6 +9,7 @@ import backend.backend.dto.BusDTO.BusBookingDto;
 import backend.backend.dto.BusDTO.DirectBusReservationRequestDto;
 import backend.backend.entity.*;
 import backend.backend.entity.enumBus.BusBookingStatus;
+import backend.backend.event.VoucherUsedUpEvent;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +24,18 @@ import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Log4j2
 public class OrderServiceImpl implements OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
      private final BusBookingDAO busBookingDAO;
@@ -44,7 +51,18 @@ public class OrderServiceImpl implements OrderService {
     private final UserDAO userDAO;
     private final BusSlotDAO busSlotDAO;
     private final BusSeatDAO busSeatDAO;
-    
+    private final  ApplicationEventPublisher eventPublisher;
+
+    private User mustGetCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            throw new AuthenticationCredentialsNotFoundException("Bạn chưa đăng nhập");
+        }
+        Object p = auth.getPrincipal();
+        if (p instanceof User u) return u;
+        // (Trong filter của bạn principal = User rồi, fallback vẫn trả 401)
+        throw new AuthenticationCredentialsNotFoundException("Bạn chưa đăng nhập");
+    }
 
     @Override
     @Transactional
@@ -112,6 +130,7 @@ public class OrderServiceImpl implements OrderService {
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(savedOrder);
         bookingTour.setCustomerName(directRequest.getCustomerName());
+        bookingTour.setEmail(directRequest.getEmail());
         bookingTour.setPhone(directRequest.getPhone());
         bookingTour.setNumberOfAdults(directRequest.getNumberOfAdults());
         bookingTour.setNumberOfChildren(directRequest.getNumberOfChildren());
@@ -127,11 +146,10 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest) {
         // 1. Lấy user từ context (chuẩn):
-        // String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        // User user = userDAO.findByUsername(username).orElseThrow(...);
-        // Tạm thời hardcode:
-        User user = userDAO.findById(1)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+        logger.info("fl status sau khi save: {}",SecurityContextHolder.getContext().getAuthentication());
+
+        User user =(User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
 
         // 2. Lấy slot và flight
         FlightSlot slot = flightSlotDAO.findById(directRequest.getFlightSlotId())
@@ -139,7 +157,7 @@ public class OrderServiceImpl implements OrderService {
         Flight flight = slot.getFlight();
 
         // 3. Kiểm tra slot đã được đặt chưa
-        boolean slotBooked = flightBookingDAO.findByFlightSlotId(slot.getId()).size() > 0;
+        boolean slotBooked = slot.getStatus().equalsIgnoreCase("used");
         if (slotBooked) {
             throw new IllegalStateException("Vé này đã có người khác đặt. Bạn đã thao tác chậm, vui lòng chọn vé khác!");
         }
@@ -180,7 +198,9 @@ public class OrderServiceImpl implements OrderService {
         booking.setTotalPrice(totalPrice);
         booking.setCustomer(savedCustomer);
         flightBookingDAO.save(booking);
-
+        slot.setStatus("USED");
+        FlightSlot fl =  flightSlotDAO.save(slot);
+        logger.info("fl status sau khi save: {}",fl.getStatus());
         return flightBookingDAO.save(booking).getId();
     }
 
@@ -192,35 +212,32 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Phải chọn ít nhất một ghế.");
         }
 
-
-        // 1. Lấy user và bus slot
-        User user = userDAO.findById(directRequest.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user."));
+        User user = mustGetCurrentUser(); // ✅ KHÔNG lấy từ request nữa
 
         BusSlot busSlot = busSlotDAO.findById(directRequest.getBusSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến xe."));
 
-
-        // 2. Kiểm tra ghế còn trống
-        List<BusSeat> selectedSeats = new ArrayList<>();
-        for (String seatNumber : selectedSeatNumbers) {
-            BusSeat seat = busSeatDAO.findByBusSlotIdAndSeatNumber(busSlot.getId(), seatNumber)
-                    .orElseThrow(() -> new ResourceNotFoundException("Ghế " + seatNumber + " không tồn tại."));
-
-            if (seat.getIsBooked()) {
-                throw new IllegalStateException("Ghế " + seatNumber + " đã có người đặt.");
-            }
-
-            selectedSeats.add(seat);
+        // ✅ LOCK GHẾ theo seat numbers
+        List<BusSeat> selectedSeats = busSeatDAO.lockSeatsForUpdate(busSlot.getId(), selectedSeatNumbers);
+        if (selectedSeats.size() != selectedSeatNumbers.size()) {
+            throw new IllegalStateException("Một số ghế không tồn tại.");
         }
 
+        // ✅ Check ghế đã booked chưa
+        List<String> alreadyBooked = selectedSeats.stream()
+                .filter(BusSeat::getIsBooked)
+                .map(BusSeat::getSeatNumber)
+                .collect(Collectors.toList());
+        if (!alreadyBooked.isEmpty()) {
+            throw new IllegalStateException("Các ghế đã có người đặt: " + String.join(", ", alreadyBooked));
+        }
 
-        // 3. Tính tổng tiền (dựa trên giá từng ghế)
+        // ✅ Tính tiền
         BigDecimal totalPrice = selectedSeats.stream()
                 .map(BusSeat::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 4. Tạo order
+        // ✅ Tạo order
         Order order = new Order();
         order.setUser(user);
         order.setAmount(totalPrice);
@@ -229,32 +246,32 @@ public class OrderServiceImpl implements OrderService {
         order.setCreatedAt(LocalDateTime.now());
         Order savedOrder = orderDAO.save(order);
 
-        // 5. Tạo customer
+        // ✅ Customer
         Customer customer = new Customer();
         customer.setFullName(directRequest.getCustomerName());
         customer.setPhone(directRequest.getPhone());
         customer.setEmail(directRequest.getEmail());
         Customer savedCustomer = customerDAO.save(customer);
 
-        BusBooking busBooking = new BusBooking();
-        busBooking.setBusSlot(busSlot);
-        busBooking.setOrder(savedOrder);
-        busBooking.setCustomer(savedCustomer);
-        busBooking.setStatus(BusBookingStatus.RESERVED);
-        busBooking.setNumPassengers(selectedSeats.size());
-        busBooking.setTotalPrice(totalPrice);
-        busBooking.setBookingDate(LocalDateTime.now());
-        busBooking.setSelectedSeats(selectedSeats); // ✅ SET SELECTED SEATS
+        // ✅ Booking
+        BusBooking booking = new BusBooking();
+        booking.setBusSlot(busSlot);
+        booking.setOrder(savedOrder);
+        booking.setCustomer(savedCustomer);
+        booking.setStatus(BusBookingStatus.RESERVED);
+        booking.setNumPassengers(selectedSeats.size());
+        booking.setTotalPrice(totalPrice);
+        booking.setBookingDate(LocalDateTime.now());
+        booking.setSelectedSeats(selectedSeats);
+        busBookingDAO.save(booking);
 
-        BusBooking savedBooking = busBookingDAO.save(busBooking);
+        // ✅ Đánh dấu ghế đã booked (vẫn trong cùng transaction/lock)
+        selectedSeats.forEach(s -> s.setIsBooked(true));
+        busSeatDAO.saveAll(selectedSeats);
 
-        // 7. ✅ SET GHÊÝ THÀNH BOOKED (để cleanup service có thể hoàn lại)
-        for (BusSeat seat : selectedSeats) {
-            seat.setIsBooked(true);
-            busSeatDAO.save(seat);
-        }
-        return savedOrder.getId(); // ✅ Trả về orderId để redirect đến PaymentView
+        return savedOrder.getId();
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -271,6 +288,8 @@ public class OrderServiceImpl implements OrderService {
             order.setTransactionId(transactionId);
             order.setStatus("PAID");
             order.setPayDate(LocalDateTime.now());
+
+
             orderDAO.save(order);
             logger.info("––– Order Saved –––");
         }
@@ -315,7 +334,6 @@ public class OrderServiceImpl implements OrderService {
                 }
                 mainProductName = busName + routeInfo;
             }
-
         }
 
         dto.setMainProduct(totalItems > 1 ? "Nhiều dịch vụ" : mainProductName);
@@ -331,6 +349,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setPayDate(entity.getPayDate());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setExpiresAt(entity.getExpiresAt());
+        dto.setTransactionId(entity.getTransactionId());
         if (entity.getUser() != null) dto.setUserId(entity.getUser().getId());
         if (entity.getVoucher() != null) dto.setVoucherId(entity.getVoucher().getId());
         if (entity.getDestination() != null) dto.setDestinationId(entity.getDestination().getId());
@@ -466,16 +485,21 @@ public class OrderServiceImpl implements OrderService {
         // 7. Cập nhật thông tin đơn hàng
         order.setOriginalAmount(originalAmount); 
         order.setAmount(newAmount);              
-        order.setVoucher(voucher);             
-
-        // 8. Tăng số lượt đã sử dụng của voucher
+        order.setVoucher(voucher);
         voucher.setUsageCount(voucher.getUsageCount() + 1);
-        voucherDAO.save(voucher);
+        Voucher updatedVoucher = voucherDAO.save(voucher);
+
+        // KIỂM TRA VÀ PHÁT SỰ KIỆN NẾU VOUCHER ĐÃ HẾT
+        if (updatedVoucher.getUsageLimit() != null && updatedVoucher.getUsageCount() >= updatedVoucher.getUsageLimit()) {
+            eventPublisher.publishEvent(new VoucherUsedUpEvent(this, updatedVoucher.getCode()));
+        }
 
         Order updatedOrder = orderDAO.save(order);
 
-        return convertToDto(updatedOrder);
+        return convertToDto(updatedOrder); 
     }
+
+
     private void validateVoucher(Voucher voucher, BigDecimal orderAmount) {
         if (voucher.getStatus() != VoucherStatus.ACTIVE) {
             throw new RuntimeException("Mã giảm giá này không còn hoạt động.");
@@ -508,7 +532,7 @@ public class OrderServiceImpl implements OrderService {
         }
         return BigDecimal.ZERO;
     }
-    
+
     // ✅ ADD MISSING getSimpleLocationName METHOD
     private String getSimpleLocationName(Location location) {
         if (location == null) return "N/A";
@@ -533,36 +557,89 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // ✅ FIX BROKEN convertToDto METHOD
+
     private OrderDto convertToDto(Order order) {
         if (order == null) return null;
-
+        // This method combines the logic of toOrderDTO and toDetailedOrderDto,
+        // and also maps the 'originalAmount' which is crucial after applying a voucher.
         OrderDto dto = new OrderDto();
         dto.setId(order.getId());
         dto.setAmount(order.getAmount());
-        dto.setOriginalAmount(order.getOriginalAmount()); // ✅ ADD
+        dto.setOriginalAmount(order.getOriginalAmount());
         dto.setStatus(order.getStatus());
         dto.setPayDate(order.getPayDate());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setExpiresAt(order.getExpiresAt());
-        dto.setTransactionId(order.getTransactionId()); // ✅ ADD
 
         if (order.getUser() != null) {
             dto.setUserId(order.getUser().getId());
         }
-
         if (order.getVoucher() != null) {
             dto.setVoucherId(order.getVoucher().getId());
-            dto.setVoucherCode(order.getVoucher().getCode()); // ✅ ADD
         }
-
         if (order.getDestination() != null) {
             dto.setDestinationId(order.getDestination().getId());
         }
-
+        dto.setTourBookings(bookingTourDAO.findByOrderId(order.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
+        dto.setFlightBookings(flightBookingDAO.findByOrderId(order.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
+        dto.setHotelBookings(hotelBookingDAO.findByOrderId(order.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
+        dto.setBusBookings(busBookingDAO.findByOrderId(order.getId()).stream().map(this::toBusBookingDto).collect(Collectors.toList()));
         return dto;
     }
+
+    @Override
+    @Transactional
+    public OrderDto cancelOrderAfterRefund(Integer orderId) {
+        logger.info("Bắt đầu hủy đơn hàng sau hoàn tiền cho Order ID: {}", orderId);
+
+        Order order = orderDAO.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));
+
+        if (!"PAID".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể hủy đơn hàng đã thanh toán.");
+        }
+
+        // Cập nhật trạng thái đơn hàng thành CANCELLED
+        order.setStatus("CANCELLED");
+        orderDAO.save(order);
+
+        // Xử lý các booking trong đơn hàng
+        // 1. Flight bookings - cập nhật flight slots thành AVAILABLE
+        if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
+            for (FlightBooking flightBooking : order.getFlightBookings()) {
+                FlightSlot flightSlot = flightBooking.getFlightSlot();
+                if (flightSlot != null) {
+                    flightSlot.setStatus("AVAILABLE");
+                    flightSlotDAO.save(flightSlot);
+                    logger.info("Đã cập nhật flight slot {} thành AVAILABLE", flightSlot.getId());
+                }
+            }
+        }
+
+        // 2. Hotel bookings - placeholder logic
+        if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
+            logger.info("Đơn hàng có {} hotel bookings - xử lý placeholder", order.getHotelBookings().size());
+            // TODO: Implement hotel booking cancellation logic
+        }
+
+        // 3. Tour bookings - placeholder logic
+        if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
+            logger.info("Đơn hàng có {} tour bookings - xử lý placeholder", order.getBookingTours().size());
+            // TODO: Implement tour booking cancellation logic
+        }
+
+        // 4. Bus bookings - placeholder logic
+        if (order.getBusBookings() != null && !order.getBusBookings().isEmpty()) {
+            logger.info("Đơn hàng có {} bus bookings - xử lý placeholder", order.getBusBookings().size());
+            // TODO: Implement bus booking cancellation logic
+        }
+
+        logger.info("Hủy đơn hàng thành công cho Order ID: {}", orderId);
+        return toOrderDTO(order);
+    }
+
     @Transactional(readOnly = true)
-    private BusBookingDto toBusBookingDto(BusBooking busBooking) {
+    protected BusBookingDto toBusBookingDto(BusBooking busBooking) {
         BusBookingDto dto = new BusBookingDto();
 
         // Basic info
@@ -598,7 +675,7 @@ public class OrderServiceImpl implements OrderService {
             if (busBooking.getBusSlot().getBus() != null) {
                 dto.setBusName(busBooking.getBusSlot().getBus().getName());
                 dto.setBusLicensePlate(busBooking.getBusSlot().getBus().getLicensePlate());
-                
+
                 // ✅ ADD: Map bus category name only (avoid lazy loading)
                 if (busBooking.getBusSlot().getBus().getCategory() != null) {
                     dto.setBusCategoryName(busBooking.getBusSlot().getBus().getCategory().getName());

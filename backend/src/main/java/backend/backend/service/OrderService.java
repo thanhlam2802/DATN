@@ -29,4 +29,11 @@ public interface OrderService {
 	
 	OrderDto applyVoucherToOrder(Integer orderId, String voucherCode);
 	
+	/**
+	 * Hủy đơn hàng sau khi hoàn tiền thành công
+	 * @param orderId ID của đơn hàng cần hủy
+	 * @return OrderDto của đơn hàng đã được hủy
+	 */
+	OrderDto cancelOrderAfterRefund(Integer orderId);
+	
 }

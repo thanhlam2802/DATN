@@ -2,18 +2,16 @@
   <div class="bg-white rounded-lg shadow-sm p-3">
     <div :style="{ height: height + 'px', overflow: 'hidden' }">
       <canvas
-        v-if="dataKey"
         ref="canvas"
         :height="height"
         style="width: 100%"
-        :key="dataKey"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, computed, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 let chartInstance = null;
 const props = defineProps({
   data: Object,
@@ -23,11 +21,33 @@ const props = defineProps({
   }
 });
 const canvas = ref(null);
-const dataKey = computed(() => JSON.stringify(props.data));
 
 const COLORS = [
   '#FFB300', '#42A5F5', '#66BB6A', '#AB47BC', '#FFA726', '#26C6DA', '#EC407A', '#7E57C2', '#FF7043', '#8D6E63', '#789262', '#D4E157', '#FF8A65', '#BA68C8', '#4DD0E1', '#9575CD', '#AED581', '#FFD54F', '#90A4AE', '#F06292'
 ];
+
+const getXAxisTitle = () => {
+  if (!props.data?.labels || props.data.labels.length === 0) {
+    return 'Khách sạn';
+  }
+  
+  const firstLabel = props.data.labels[0];
+  
+  if (firstLabel.includes(':') && firstLabel.length === 5) {
+    return 'Giờ';
+  }
+  
+  const weekdays = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  if (weekdays.includes(firstLabel)) {
+    return 'Ngày trong tuần';
+  }
+  
+  if (firstLabel.includes('/') && firstLabel.length === 5) {
+    return 'Ngày';
+  }
+  
+  return 'Khách sạn';
+};
 
 onMounted(() => {
   renderChart();
@@ -47,15 +67,10 @@ async function renderChart() {
   console.log('RevenueChart renderChart - datasets:', props.data?.datasets);
 
   if (chartInstance) {
-    try {
-      chartInstance.destroy();
-      chartInstance = null;
-    } catch (error) {
-      console.log('Error destroying chart:', error);
-    }
+    chartInstance.destroy();
+    chartInstance = null;
   }
 
-  canvas.value.height = props.height;
   const Chart = (await import("chart.js/auto")).default;
 
   let chartData;
@@ -113,6 +128,10 @@ async function renderChart() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 1000,
+          easing: 'easeInOutQuart'
+        },
         plugins: {
           legend: { 
             display: true, 
@@ -148,7 +167,7 @@ async function renderChart() {
             stacked: false,
             title: { 
               display: true, 
-              text: props.data?.datasets ? 'Ngày' : 'Khách sạn',
+              text: getXAxisTitle(),
               font: {
                 size: 10
               }
@@ -157,6 +176,16 @@ async function renderChart() {
               font: {
                 size: 9
               }
+            },
+            grid: {
+              display: true,
+              color: 'rgba(0, 0, 0, 0.15)',
+              borderDash: [6, 6],
+              borderWidth: 1,
+              drawBorder: false,
+              drawOnChartArea: true,
+              drawTicks: false,
+              lineWidth: 1
             }
           },
           y: {
@@ -175,6 +204,16 @@ async function renderChart() {
               callback: function(value) {
                 return value >= 1e9 ? (value/1e9)+ ' tỷ' : value >= 1e6 ? (value/1e6) + ' triệu' : value;
               }
+            },
+            grid: {
+              display: true,
+              color: 'rgba(0, 0, 0, 0.15)',
+              borderDash: [6, 6],
+              borderWidth: 1,
+              drawBorder: false,
+              drawOnChartArea: true,
+              drawTicks: false,
+              lineWidth: 1
             }
           },
         },

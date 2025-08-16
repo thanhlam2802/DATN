@@ -14,60 +14,76 @@
         </div>
       </div>
       <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
-        <div class="overflow-x-auto">
-          <table class="min-w-[900px] w-full divide-y divide-slate-200">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách hàng</th>
-                <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Email</th>
-                <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện thoại</th>
-                <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số lượt đặt</th>
-                <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày đặt phòng gần nhất</th>
-                <th class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Hành động</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-slate-100">
-              <tr v-if="paginatedCustomers.length === 0">
-                <td colspan="6" class="px-6 py-12 text-center text-slate-500">Không tìm thấy khách hàng nào</td>
-              </tr>
-              <tr v-for="c in paginatedCustomers" :key="c.id" class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer" @click="viewCustomer(c)">
-                <td class="px-3 py-5 whitespace-nowrap font-semibold text-slate-900">{{ c.fullName }}</td>
-                <td class="px-3 py-5 whitespace-nowrap">{{ c.email }}</td>
-                <td class="px-3 py-5 whitespace-nowrap">{{ c.phone }}</td>
-                <td class="px-3 py-5 whitespace-nowrap">{{ c.bookingCount ?? 0 }}</td>
-                <td class="px-3 py-5 whitespace-nowrap">{{ formatDateTime(c.latestBookingDate) }}</td>
-                <td class="px-3 py-5 whitespace-nowrap text-right align-middle">
-                  <div class="relative inline-block text-left flex items-center justify-end h-full">
-                    <button :ref="el => setDropdownBtnRef(el, c.id)"
-                      @click.stop="toggleDropdown(c.id)" type="button"
-                      class="inline-flex justify-center items-center w-10 h-10 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none transition-all duration-200 shadow-sm">
-                      <i class="fas fa-ellipsis-v flex items-center justify-center text-sm"></i>
-                    </button>
-                    <teleport to="body">
-                      <div v-if="activeDropdown === c.id"
-                        :style="{ position: 'absolute', top: dropdownMenuPosition.top + 'px', left: dropdownMenuPosition.left + 'px', right: 'auto', zIndex: 9999 }"
-                        class="min-w-40 bg-white border border-slate-200 rounded-lg shadow-lg">
-                        <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
-                          @click.stop="viewCustomer(c)"><i class="fas fa-eye mr-2"></i>Xem chi tiết</button>
-                        <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
-                          @click.stop="editCustomer(c)"><i class="fas fa-edit mr-2"></i>Chỉnh sửa</button>
-                      </div>
-                    </teleport>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-if="loading" class="flex items-center justify-center h-[452px]">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p class="text-slate-600">Đang tải dữ liệu...</p>
+          </div>
+        </div>
+        <div v-else class="overflow-x-auto">
+          <div class="overflow-y-auto h-[452px]">
+            <table class="min-w-[1000px] w-full divide-y divide-slate-200">
+              <thead class="bg-slate-100">
+                <tr>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách
+                    hàng</th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Email</th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện
+                    thoại</th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Số lượt đặt
+                  </th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày đặt
+                    phòng gần nhất</th>
+                  <th class="sticky top-0 bg-slate-100 px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider z-9999">Hành động
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-100">
+                <tr v-if="paginatedCustomers.length === 0">
+                  <td colspan="7" class="px-6 py-12 text-center text-slate-500">Không tìm thấy khách hàng nào</td>
+                </tr>
+                <tr v-for="(c, index) in paginatedCustomers" :key="c.id"
+                  class="hover:bg-slate-50 transition-colors duration-150 cursor-pointer" @click="viewCustomer(c)">
+                  <td class="px-3 py-5 whitespace-nowrap">
+                    <div class="text-sm font-medium text-slate-700 text-center">
+                      {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                    </div>
+                  </td>
+                  <td class="px-3 py-5 whitespace-nowrap font-semibold text-slate-900">{{ c.fullName }}</td>
+                  <td class="px-3 py-5 whitespace-nowrap">{{ c.email }}</td>
+                  <td class="px-3 py-5 whitespace-nowrap">{{ c.phone }}</td>
+                  <td class="px-3 py-5 whitespace-nowrap">{{ c.bookingCount ?? 0 }}</td>
+                  <td class="px-3 py-5 whitespace-nowrap">{{ formatDateTime(c.latestBookingDate) }}</td>
+                  <td class="px-3 py-5 whitespace-nowrap text-right align-middle">
+                    <div class="relative inline-block text-left flex items-center justify-end h-full">
+                      <button :ref="el => setDropdownBtnRef(el, c.id)" @click.stop="toggleDropdown(c.id)" type="button"
+                        class="inline-flex justify-center items-center w-10 h-10 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none transition-all duration-200 shadow-sm">
+                        <i class="fas fa-ellipsis-v flex items-center justify-center text-sm"></i>
+                      </button>
+                      <teleport to="body">
+                        <div v-if="activeDropdown === c.id"
+                          :style="{ position: 'absolute', top: dropdownMenuPosition.top + 'px', left: dropdownMenuPosition.left + 'px', right: 'auto', zIndex: 9999 }"
+                          class="min-w-40 bg-white border border-slate-200 rounded-lg shadow-lg">
+                          <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
+                            @click.stop="viewCustomer(c)"><i class="fas fa-eye mr-2"></i>Xem chi tiết</button>
+                          <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
+                            @click.stop="editCustomer(c)"><i class="fas fa-edit mr-2"></i>Chỉnh sửa</button>
+                        </div>
+                      </teleport>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <div class="flex items-center justify-end gap-4 px-4 py-3 bg-white border-t border-slate-200 rounded-b-xl">
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-700 whitespace-nowrap">Số dòng</span>
-            <CustomSelect
-              v-model="itemsPerPageStr"
+            <CustomSelect v-model="itemsPerPageStr"
               :options="itemsPerPageOptions.map(opt => ({ label: String(opt), value: String(opt) }))"
-              class="w-20 min-w-[100px] h-8 [&>button]:h-8 [&>button]:py-1 [&>button]:text-sm"
-              :direction="'up'"
-            />
+              class="w-20 min-w-[100px] h-8 [&>button]:h-8 [&>button]:py-1 [&>button]:text-sm" :direction="'up'" />
           </div>
           <nav v-if="totalPages > 1 && itemsPerPageStr !== 'Tất cả'" aria-label="Pagination">
             <ul class="inline-flex items-center space-x-1">
@@ -99,18 +115,26 @@
     <div v-else-if="mode === 'detail'">
       <div class="mb-6">
         <div class="flex border-b border-slate-200 mb-6">
-          <button :class="['px-6 py-3 font-semibold', activeTab === 0 ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-700']" @click="activeTab = 0">Chi tiết</button>
-          <button :class="['px-6 py-3 font-semibold', activeTab === 1 ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-700']" @click="activeTab = 1">Lịch sử đặt phòng</button>
+          <button
+            :class="['px-6 py-3 font-semibold', activeTab === 0 ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-700']"
+            @click="activeTab = 0">Chi tiết</button>
+          <button
+            :class="['px-6 py-3 font-semibold', activeTab === 1 ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-700']"
+            @click="activeTab = 1">Lịch sử đặt phòng</button>
         </div>
         <div v-if="activeTab === 0">
           <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-10 w-full max-w-4xl mx-auto relative">
             <div class="flex justify-between items-center mb-8">
               <h2 class="text-xl font-bold">Thông tin khách hàng</h2>
               <div class="flex items-center gap-2">
-                <button @click="enableEditMode" class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200" title="Chỉnh sửa">
+                <button @click="enableEditMode"
+                  class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200"
+                  title="Chỉnh sửa">
                   <i class="fas fa-pencil-alt text-xl"></i>
                 </button>
-                <button @click="handleBack" class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200" title="Quay lại">
+                <button @click="handleBack"
+                  class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200"
+                  title="Quay lại">
                   <i class="fas fa-arrow-left text-xl"></i>
                 </button>
               </div>
@@ -118,35 +142,45 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Họ tên</label>
-                <input :value="selectedCustomer.fullName || '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input :value="selectedCustomer.fullName || '--'" disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Email</label>
-                <input :value="selectedCustomer.email || '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input :value="selectedCustomer.email || '--'" disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Số điện thoại</label>
-                <input :value="selectedCustomer.phone || '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input :value="selectedCustomer.phone || '--'" disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Ngày sinh</label>
-                <input :value="selectedCustomer.dob || '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input :value="selectedCustomer.dob || '--'" disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Số hộ chiếu</label>
-                <input :value="selectedCustomer.passport || '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input :value="selectedCustomer.passport || '--'" disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Giới tính</label>
-                <input :value="selectedCustomer.gender === true ? 'Nam' : selectedCustomer.gender === false ? 'Nữ' : '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input
+                  :value="selectedCustomer.gender === true ? 'Nam' : selectedCustomer.gender === false ? 'Nữ' : '--'"
+                  disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Số lượt đặt</label>
-                <input :value="selectedCustomer.bookingCount != null ? selectedCustomer.bookingCount : '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input :value="selectedCustomer.bookingCount != null ? selectedCustomer.bookingCount : '--'" disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Ngày đặt phòng gần nhất</label>
-                <input :value="formatDateTime(selectedCustomer.latestBookingDate) || '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+                <input :value="formatDateTime(selectedCustomer.latestBookingDate) || '--'" disabled
+                  class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
               </div>
             </div>
           </div>
@@ -155,7 +189,9 @@
           <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-10 w-full max-w-6xl mx-auto">
             <div class="flex justify-between items-center mb-8">
               <h2 class="text-xl font-bold mb-6">Lịch sử đặt phòng</h2>
-              <button @click="handleBack" class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200" title="Quay lại">
+              <button @click="handleBack"
+                class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200"
+                title="Quay lại">
                 <i class="fas fa-arrow-left text-xl"></i>
               </button>
             </div>
@@ -163,18 +199,22 @@
               <table class="min-w-full w-full border-separate border-spacing-0">
                 <thead>
                   <tr class="bg-slate-100">
-                    <th class="px-6 py-4 text-left text-base font-bold text-slate-700 uppercase rounded-tl-2xl">Ngày đặt</th>
+                    <th class="px-6 py-4 text-left text-base font-bold text-slate-700 uppercase rounded-tl-2xl">Ngày đặt
+                    </th>
                     <th class="px-6 py-4 text-left text-base font-bold text-slate-700 uppercase">Tên khách sạn</th>
                     <th class="px-6 py-4 text-left text-base font-bold text-slate-700 uppercase">Loại phòng</th>
-                    <th class="px-6 py-4 text-left text-base font-bold text-slate-700 uppercase rounded-tr-2xl">Tên gói phòng</th>
+                    <th class="px-6 py-4 text-left text-base font-bold text-slate-700 uppercase rounded-tr-2xl">Tên gói
+                      phòng</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="bookedRooms.length === 0">
                     <td colspan="4" class="px-6 py-12 text-center text-slate-500">Khách hàng chưa đặt phòng nào</td>
                   </tr>
-                  <tr v-for="(r, idx) in bookedRooms" :key="idx" class="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                    <td class="px-6 py-4 whitespace-nowrap text-slate-900 font-semibold">{{ formatDateTime(r.createdAt) }}</td>
+                  <tr v-for="(r, idx) in bookedRooms" :key="idx"
+                    class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                    <td class="px-6 py-4 whitespace-nowrap text-slate-900 font-semibold">{{ formatDateTime(r.createdAt)
+                      }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">{{ r.hotelName }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">{{ r.roomType }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">{{ r.variantName }}</td>
@@ -192,7 +232,9 @@
           <div class="flex justify-between items-center mb-8">
             <h2 class="text-xl font-bold">Chỉnh sửa thông tin khách hàng</h2>
             <div class="flex items-center gap-2">
-              <button @click="handleBack" class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200" title="Quay lại">
+              <button @click="handleBack"
+                class="flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors duration-200"
+                title="Quay lại">
                 <i class="fas fa-arrow-left text-xl"></i>
               </button>
             </div>
@@ -200,23 +242,28 @@
           <form @submit.prevent="handleSave" class="grid grid-cols-1 sm:grid-cols-2 gap-8">
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Họ tên</label>
-              <input v-model="editForm.fullName" type="text" class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
+              <input v-model="editForm.fullName" type="text"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Email</label>
-              <input v-model="editForm.email" type="email" class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
+              <input v-model="editForm.email" type="email"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Số điện thoại</label>
-              <input v-model="editForm.phone" type="text" class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
+              <input v-model="editForm.phone" type="text"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Ngày sinh</label>
-              <input v-model="editForm.dob" type="date" class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
+              <input v-model="editForm.dob" type="date"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Số hộ chiếu</label>
-              <input v-model="editForm.passport" type="text" placeholder="Nhập số hộ chiếu" class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
+              <input v-model="editForm.passport" type="text" placeholder="Nhập số hộ chiếu"
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900" />
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Giới tính</label>
@@ -224,35 +271,42 @@
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Số lượt đặt</label>
-              <input :value="selectedCustomer.bookingCount != null ? selectedCustomer.bookingCount : '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+              <input :value="selectedCustomer.bookingCount != null ? selectedCustomer.bookingCount : '--'" disabled
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-1">Ngày đặt phòng gần nhất</label>
-              <input :value="formatDateTime(selectedCustomer.latestBookingDate) || '--'" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
+              <input :value="formatDateTime(selectedCustomer.latestBookingDate) || '--'" disabled
+                class="w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 bg-gray-100 cursor-not-allowed" />
             </div>
             <div class="col-span-2 flex justify-end mt-8">
-              <button type="submit" class="font-semibold text-white bg-black rounded-md px-6 py-2 hover:bg-gray-800 transition shadow-sm">Lưu</button>
-              <button type="button" @click="cancelEdit" class="ml-3 font-semibold text-slate-700 bg-slate-100 rounded-md px-6 py-2 hover:bg-slate-200 transition shadow-sm">Hủy</button>
+              <button type="submit"
+                class="font-semibold text-white bg-black rounded-md px-6 py-2 hover:bg-gray-800 transition shadow-sm">Lưu</button>
+              <button type="button" @click="cancelEdit"
+                class="ml-3 font-semibold text-slate-700 bg-slate-100 rounded-md px-6 py-2 hover:bg-slate-200 transition shadow-sm">Hủy</button>
             </div>
           </form>
         </div>
       </div>
     </div>
-    <ConfirmDialog v-if="showConfirmDialog" :message="confirmMessage" @confirm="onConfirmDelete" @cancel="showConfirmDialog = false" />
+    <ConfirmDialog v-if="showConfirmDialog" :message="confirmMessage" @confirm="onConfirmDelete"
+      @cancel="showConfirmDialog = false" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue';
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi } from '@/api/adminApi';
 import * as customerApi from '@/api/CustomerApi';
 import CustomSelect from '@/components/CustomSelect.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 
 const editForm = ref({});
 const searchQuery = ref('');
-const itemsPerPageStr = ref('10');
+const itemsPerPageStr = ref('5');
 const itemsPerPageOptions = [5, 10, 20, 50, 'Tất cả'];
 const currentPage = ref(1);
 
@@ -388,12 +442,37 @@ function toggleDropdown(customerId) {
     }
   });
 }
-onMounted(() => {
+const { requireAdmin } = useAdminAuth();
+const userStore = useUserStore();
+
+onMounted(async () => {
+  console.log('UserStore:', userStore);
+  console.log('User:', userStore.user);
+  console.log('User roles:', userStore.user?.roles);
+
+  if (!userStore.user) {
+    console.log('No user data, trying to restore...');
+    await userStore.restoreUserFromToken();
+    console.log('After restore - User:', userStore.user);
+    console.log('After restore - User roles:', userStore.user?.roles);
+  }
+
+  if (!requireAdmin('hotel')) {
+    console.log('Không có quyền admin hotel');
+    return;
+  }
+
+  console.log('Có quyền admin hotel, loading data...');
+  fetchCustomers();
+  updateBreadcrumb();
+
   document.addEventListener('click', handleOutsideClick, true);
 });
+
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick, true);
 });
+
 function handleOutsideClick(event) {
   if (activeDropdown.value !== null) {
     const btn = dropdownBtnRefMap.value && dropdownBtnRefMap.value[activeDropdown.value];
@@ -407,13 +486,18 @@ async function fetchCustomers() {
   loading.value = true;
   error.value = '';
   try {
-    const res = await hotelApi.getAllHotelCustomers();
+    console.log('Calling getAllHotelCustomers API...');
+    const res = await hotelAdminApi.getAllHotelCustomers();
+    console.log('API response:', res);
     if (res.data && res.data.data) {
       customers.value = res.data.data;
+      console.log('Customers loaded:', customers.value.length);
     } else {
       customers.value = [];
+      console.log('No customers data');
     }
   } catch (e) {
+    console.error('Error fetching customers:', e);
     error.value = 'Không lấy được danh sách khách hàng!';
     customers.value = [];
   } finally {
@@ -421,23 +505,25 @@ async function fetchCustomers() {
   }
 }
 
-onMounted(() => {
-  fetchCustomers();
-  updateBreadcrumb();
-});
-
 watch([mode, formMode], () => {
   updateBreadcrumb();
 });
 
 const filteredCustomers = computed(() => {
-  if (!searchQuery.value) return customers.value;
-  const q = searchQuery.value.toLowerCase();
-  return customers.value.filter(c =>
-    (c.fullName || '').toLowerCase().includes(q) ||
-    (c.email || '').toLowerCase().includes(q) ||
-    (c.phone || '').includes(q)
-  );
+  let filtered = customers.value;
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(c =>
+      (c.fullName || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.phone || '').includes(q)
+    );
+  }
+  return filtered.sort((a, b) => {
+    const dateA = a.latestBookingDate ? new Date(a.latestBookingDate) : new Date(0);
+    const dateB = b.latestBookingDate ? new Date(b.latestBookingDate) : new Date(0);
+    return dateB - dateA;
+  });
 });
 
 const itemsPerPage = computed(() => itemsPerPageStr.value === 'Tất cả' ? filteredCustomers.value.length : Number(itemsPerPageStr.value));
@@ -535,7 +621,7 @@ async function onConfirmDelete() {
 async function fetchBookedRooms(customerId) {
   bookedRooms.value = [];
   try {
-    const res = await hotelApi.getCustomerBookedRooms(customerId);
+    const res = await hotelAdminApi.getCustomerBookedRooms(customerId);
     if (res.data && res.data.data) {
       bookedRooms.value = res.data.data;
     }
@@ -549,8 +635,16 @@ async function fetchBookedRooms(customerId) {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
-</style> 
+</style>

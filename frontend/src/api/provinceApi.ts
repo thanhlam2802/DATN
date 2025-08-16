@@ -9,7 +9,8 @@ export interface Ward {
   code: number;
   division_type: string;
   codename: string;
-  district_code: number;
+  short_codename?: string;
+  district_code?: number;
 }
 
 export interface District {
@@ -17,8 +18,9 @@ export interface District {
   code: number;
   division_type: string;
   codename: string;
-  province_code: number;
-  wards: Ward[] | null; // v2: có thể null ở depth=2
+  short_codename?: string;
+  province_code?: number;
+  wards?: Ward[];
 }
 
 export interface Province {
@@ -27,7 +29,7 @@ export interface Province {
   division_type: string;
   codename: string;
   phone_code: number;
-  districts: District[]; // có thể không kèm wards khi depth=2
+  districts?: District[];
 }
 
 // Simple types for dropdown usage
@@ -45,12 +47,27 @@ export interface DistrictOption {
   value: string; // code dưới dạng string để dùng làm value ổn định
 }
 
+export interface WardOption {
+  code: number;
+  name: string;
+  label: string;
+  value: string; // Changed to ward.name for GraphQL compatibility
+  short_codename?: string;
+}
+
 // Cache để tránh fetch lại nhiều lần
 let provincesCache: Province[] | null = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
 
-const API_URL = 'https://provinces.open-api.vn/api/v2/?depth=2';
+// Clear cache function để force reload khi cần
+export const clearProvinceCache = () => {
+  provincesCache = null;
+  lastFetchTime = 0;
+};
+
+const API_BASE_URL = 'https://provinces.open-api.vn/api/v1';
+const API_URL = `${API_BASE_URL}/?depth=2`; // API v1 với depth=2 để lấy tỉnh + huyện
 
 /**
  * Fetch tất cả tỉnh thành và quận huyện
@@ -121,8 +138,15 @@ export const getProvinceList = async (): Promise<ProvinceOption[]> => {
     code: province.code,
     name: province.name,
     label: province.name,
-    value: String(province.code)
+    value: province.name // Use name instead of code for consistency
   }));
+};
+
+/**
+ * Lấy danh sách tỉnh thành với full data (bao gồm districts và wards)
+ */
+export const getFullProvinceList = async (): Promise<Province[]> => {
+  return await fetchProvinces();
 };
 
 /**
@@ -223,6 +247,76 @@ export const getDistrictsByProvinceCode = async (provinceCode: number): Promise<
   }));
 };
 
+// Removed getWardsByProvince - using districts instead
+
+/**
+ * Lấy danh sách phường/xã theo quận/huyện
+ */
+export const getWardsByDistrict = async (provinceName: string, districtName: string): Promise<WardOption[]> => {
+  const provinces = await fetchProvinces();
+  const province = provinces.find(p => p.name === provinceName);
+  
+  if (!province) return [];
+  
+  // Tìm trong districts
+  const district = province.districts?.find(d => d.name === districtName);
+  if (district && district.wards) {
+    return district.wards.map(ward => ({
+      code: ward.code,
+      name: ward.name,
+      label: ward.name,
+      value: String(ward.code),
+      short_codename: ward.short_codename
+    }));
+  }
+  
+  return [];
+};
+
+/**
+ * Lấy danh sách phường/xã theo mã quận/huyện
+ */
+export const getWardsByDistrictCode = async (districtCode: number): Promise<WardOption[]> => {
+  try {
+    // API v1 không hỗ trợ endpoint riêng, dùng cache
+    const provinces = await fetchProvinces();
+    for (const province of provinces) {
+      const district = province.districts?.find(d => d.code === districtCode);
+      if (district && district.wards) {
+        return district.wards.map(ward => ({
+          code: ward.code,
+          name: ward.name,
+          label: ward.name,
+          value: String(ward.code),
+          short_codename: ward.short_codename
+        }));
+      }
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching wards by district code:', error);
+    return [];
+  }
+};
+
+/**
+ * Tìm phường/xã theo tên trong một quận/huyện
+ */
+export const searchWards = async (provinceName: string, districtName: string, searchTerm: string): Promise<WardOption[]> => {
+  const wards = await getWardsByDistrict(provinceName, districtName);
+  
+  if (!searchTerm) {
+    return wards;
+  }
+  
+  const term = searchTerm.toLowerCase().trim();
+  return wards.filter(ward => 
+    ward.name.toLowerCase().includes(term) ||
+    ward.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(term)
+  );
+};
+
 // Export default object for easier import (with backward compatibility)
 const ProvinceAPI = {
   fetchProvinces,
@@ -231,8 +325,11 @@ const ProvinceAPI = {
   getDistrictsByProvince,
   getProvinceByCode,
   getDistrictsByProvinceCode,
+  getWardsByDistrict,
+  getWardsByDistrictCode,
   searchProvinces,
   searchDistricts,
+  searchWards,
   validateProvinceDistrict,
   formatFullAddress
 };

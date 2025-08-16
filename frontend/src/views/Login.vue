@@ -12,7 +12,10 @@
           <h2 class="text-center font-extrabold text-xl mb-6">Sign in</h2>
 
           <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="email">Email</label>
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="email">
+              <span class="text-red-500">*</span>
+              Email
+            </label>
             <div class="relative">
               <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <i class="fas fa-envelope"></i>
@@ -29,7 +32,9 @@
           </div>
 
           <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-900 mb-1" for="password">Password</label>
+            <label class="block text-xs font-semibold text-gray-900 mb-1" for="password">
+              <span class="text-red-500">*</span>
+              Password</label>
             <div class="relative">
               <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
                 <i class="fas fa-lock"></i>
@@ -86,18 +91,14 @@
           </div>
 
           <div class="mt-6 flex justify-center space-x-4">
-            <button type="button" class="w-10 h-10 rounded-full bg-red-700 text-white hover:bg-red-600">G</button>
+            <button @click="googleLogin()" type="button"
+                    class="w-10 h-10 rounded-full bg-red-700 text-white hover:bg-red-600">G
+            </button>
             <button
                 type="button"
                 class="w-10 h-10 rounded-full bg-blue-700 text-white hover:bg-blue-600"
             >
               <i class="fab fa-facebook-f"></i>
-            </button>
-            <button
-                type="button"
-                class="w-10 h-10 rounded-full bg-black text-white hover:bg-gray-900"
-            >
-              <i class="fab fa-apple"></i>
             </button>
           </div>
         </form>
@@ -116,10 +117,15 @@
 import {ref} from "vue";
 import {useRouter} from "vue-router";
 import {AuthApi} from "@/api/AuthApi.js";
+import {AccountApi} from "@/api/AccountApi.js";
 import {saveAccessToken} from "@/services/TokenService.js";
 import {useUserStore} from "@/store/UserStore.js";
 import {ErrorCodes} from "@/data/ErrorCode.js";
 import {useLoadingStore} from "@/store/GlobalStore.js";
+import {getRedirectPath} from "@/utils/redirectUtils.js";
+
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 
 const loadingStore = useLoadingStore();
 
@@ -157,6 +163,10 @@ const validatePassword = () => {
   return true;
 };
 
+const googleLogin = () => {
+  window.location.href = `${BASE_URL}/oauth2/authorization/google`;
+}
+
 const submitForm = async () => {
   const isEmailValid = validateEmail();
   const isPasswordValid = validatePassword();
@@ -190,8 +200,33 @@ const submitForm = async () => {
 
 
     saveAccessToken(res.accessToken);
-    userStore.login();
-    await router.push("/");
+    
+    try {
+      const profileRes = await AccountApi.getProfile();
+      if (!profileRes.errorCode) {
+        userStore.login(profileRes.data, res.accessToken);
+        
+        const intendedRoute = localStorage.getItem('intendedRoute');
+        console.log('Login success - intended route:', intendedRoute);
+        
+        if (intendedRoute) {
+          console.log('Redirecting to intended route:', intendedRoute);
+          localStorage.removeItem('intendedRoute');
+          await router.push(intendedRoute);
+        } else {
+          const redirectPath = getRedirectPath(profileRes.data);
+          console.log('Redirecting to default path:', redirectPath);
+          await router.push(redirectPath);
+        }
+      } else {
+        userStore.login(null, res.accessToken);
+        await router.push("/");
+      }
+    } catch (error) {
+      console.error("Failed to get user profile:", error);
+      userStore.login(null, res.accessToken);
+      await router.push("/");
+    }
 
     emailError.value = "";
     passwordError.value = "";

@@ -23,6 +23,7 @@ import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import backend.backend.dto.DirectFlightReservationRequestDto;
@@ -73,12 +74,10 @@ public class OrderController {
      */
     @PostMapping("/checkout")
     public ResponseEntity<ApiResponse<OrderDto>> checkout(@RequestBody CheckoutDto checkoutDto) {
-        log.info("Processing checkout for orderId={}", checkoutDto.getOrderId());
-
-        // Gọi service, giờ đây trả về OrderDto (đã có logic confirm bus booking)
+        // Gọi service, giờ đây trả về OrderDto
         OrderDto createdOrder = orderService.placeOrder(checkoutDto);
-
-        log.info("Checkout completed successfully for orderId={}", checkoutDto.getOrderId());
+        
+        // Trả về hóa đơn vừa được tạo
         return ResponseFactory.created(createdOrder, "Thanh toán và tạo hóa đơn thành công!");
     }
 
@@ -133,34 +132,5 @@ public class OrderController {
         // Giả sử OrderService có phương thức applyVoucherToOrder
         OrderDto updatedOrder = orderService.applyVoucherToOrder(id, request.getVoucherCode());
         return ResponseFactory.success(updatedOrder, "Áp dụng mã giảm giá thành công.");
-    }
-
-
-//    Endpoint xu li giu cho cho bus
-    @PostMapping("/reserve-bus-direct")
-    public ResponseEntity<ApiResponse<Integer>> createDirectBusReservation(@RequestBody DirectBusReservationRequestDto directRequest) {
-        Integer bookingId = orderService.createDirectBusReservation(directRequest);
-        return ResponseFactory.created(bookingId, "Giữ chỗ xe thành công. Vui lòng hoàn tất thanh toán trong 30 phút.");
-    }
-
-    /**
-     * Alternative endpoint để confirm specific bus booking (nếu cần)
-     */
-    @PostMapping("/orders/{orderId}/confirm-bus-bookings")
-    public ResponseEntity<ApiResponse<String>> confirmBusBookingsForOrder(@PathVariable Integer orderId) {
-        log.info("Confirming bus bookings for orderId={}", orderId);
-        try {
-            // Logic này sẽ được move vào OrderService.placeOrder()
-            List<BusBooking> busBookings = busBookingDAO.findByOrderId(orderId);
-            for (BusBooking booking : busBookings) {
-                if (booking.getStatus() == BusBookingStatus.RESERVED) {
-                    busBookingService.confirmBusBooking(booking.getId());
-                }
-            }
-            return ResponseFactory.success("OK", "Xác nhận tất cả đặt vé xe thành công.");
-        } catch (Exception e) {
-            log.error("Error confirming bus bookings for orderId {}: {}", orderId, e.getMessage());
-            throw e;
-        }
     }
 }

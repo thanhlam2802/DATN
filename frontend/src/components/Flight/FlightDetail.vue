@@ -31,99 +31,7 @@
       <!-- Main content 2 cột -->
       <div class="flex flex-col md:flex-row gap-8 p-8">
         <!-- Cột trái: Thông tin chuyến bay, tiện ích, gallery -->
-        <div class="flex-1 min-w-[320px] space-y-6">
-          <!-- Thông tin chuyến bay -->
-          <div class="bg-indigo-50 rounded-xl p-6 shadow-inner">
-            <div class="flex flex-col gap-2 text-gray-700">
-              <div class="flex items-center gap-2">
-                <i class="fas fa-plane-departure text-indigo-500"></i>
-                <span class="font-semibold">Đi:</span>
-                {{ formatTime(flightDetail.departureTime) }} -
-                {{ flightDetail.departureAirport?.name }}
-              </div>
-              <div class="flex items-center gap-2">
-                <i class="fas fa-plane-arrival text-indigo-500"></i>
-                <span class="font-semibold">Đến:</span>
-                {{ formatTime(flightDetail.arrivalTime) }} -
-                {{ flightDetail.arrivalAirport?.name }}
-              </div>
-              <div class="flex items-center gap-2">
-                <i class="fas fa-clock text-indigo-500"></i>
-                <span class="font-semibold">Thời lượng:</span>
-                {{ durationDisplay }}
-              </div>
-              <div class="flex items-center gap-2">
-                <i class="fas fa-calendar text-indigo-500"></i>
-                <span class="font-semibold">Ngày tạo:</span>
-                {{ formatDate(flightDetail.createdAt) }}
-              </div>
-              <div class="flex items-center gap-2">
-                <i class="fas fa-sync text-indigo-500"></i>
-                <span class="font-semibold">Cập nhật:</span>
-                {{ formatDate(flightDetail.updatedAt) }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Gallery ảnh nếu có nhiều ảnh -->
-          <div v-if="flightDetail.images && flightDetail.images.length > 1"
-            class="bg-white rounded-xl p-4 shadow-inner">
-            <div class="font-semibold text-gray-700 mb-2">Hình ảnh khác:</div>
-            <div class="flex gap-4 overflow-x-auto">
-              <img v-for="img in flightDetail.images" :key="img.imageId" :src="img.imageUrl" :alt="img.altText"
-                class="w-32 h-24 object-cover rounded-lg border border-gray-200" />
-            </div>
-          </div>
-          <div class="bg-indigo-50 rounded-xl p-6 shadow-inner mt-8">
-            <h3 class="text-lg font-bold text-indigo-700 mb-4 flex items-center gap-2">
-              <i class="fa-solid fa-ticket-alt"></i> Thông tin vé đã chọn
-            </h3>
-            <div v-if="selectedGroup">
-              <div class="flex flex-col gap-2 text-gray-700">
-                <div>
-                  <span class="font-semibold">Loại vé:</span>
-                  <span v-if="selectedGroup.isBusiness" class="text-yellow-700 font-bold">Thương gia</span><span v-else
-                    class="text-indigo-700 font-bold">Phổ thông</span>
-                </div>
-                <div>
-                  <span class="font-semibold">Số ghế:</span>
-                  {{ selectedGroup.slots[0]?.seatNumber }}
-                </div>
-                <div>
-                  <span class="font-semibold">Vị trí:</span>
-                  <span v-if="selectedGroup.slots[0]?.isWindow"> Cửa sổ</span>
-                  <span v-else-if="selectedGroup.slots[0]?.isAisle"> Lối đi</span>
-                  <span v-else>Khác</span>
-                </div>
-                <div>
-                  <span class="font-semibold">Giá: </span>
-                  <span class="font-bold text-green-700"> {{
-                    formatCurrency(selectedGroup.slots[0]?.price)
-                  }}</span>
-                </div>
-                <div v-if="selectedGroup.isWindow" class="text-xs text-indigo-500 italic">
-                  Đã cộng thêm 200,000 VND do chọn ghế cửa sổ
-                </div>
-                <div>
-                  <span class="font-semibold">Hành lý xách tay:</span>
-                  {{ selectedGroup.slots[0]?.carryOnLuggage }} kg
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-gray-400 italic">
-              Vui lòng chọn một vé để xem chi tiết.
-            </div>
-            <button @click="handleBooking"
-              class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-lg shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!selectedGroup">
-              Đặt chỗ
-            </button>
-          </div>
-        </div>
-
-        <!-- Cột phải: Danh sách vé + tổng quan vé đã chọn -->
-        <div class="flex-1 min-w-[320px] space-y-8">
-          <!-- Danh sách vé -->
+        <div class="flex-[2] min-w-[320px] space-y-6">
           <div>
             <h2 class="text-xl font-bold text-indigo-700 mb-2">
               Chọn vé của bạn
@@ -174,7 +82,107 @@
               </template>
             </div>
           </div>
-          <!-- Tổng quan vé đã chọn & thanh toán -->
+          <!-- Thông tin chuyến bay -->
+          
+
+          <!-- Gallery ảnh nếu có nhiều ảnh -->
+          <div v-if="flightDetail.images && flightDetail.images.length > 1"
+            class="bg-white rounded-xl p-4 shadow-inner">
+            <div class="flex-shrink-0 mb-4 md:mb-0">
+                <img
+                  :src="currentGalleryImage?.imageUrl"
+                  :alt="currentGalleryImage?.altText"
+                  class="w-full h-auto object-cover rounded-xl border border-gray-300 shadow"
+                />
+              </div>
+            <div class="font-semibold text-gray-700 my-2">Hình ảnh khác:</div>
+            <div class="flex gap-4 overflow-x-auto">
+              <img v-for="img in flightDetail.images" :key="img.imageId" :src="img.imageUrl" :alt="img.altText"
+                class="w-32 h-24 object-cover rounded-lg border border-gray-200"  @mouseenter="setCurrentGalleryImage(img)" />
+            </div>
+          </div>
+          
+        </div>
+
+        <!-- Cột phải: Danh sách vé + tổng quan vé đã chọn -->
+        <div class="flex-1 min-w-[320px] space-y-8">
+          <!-- Danh sách vé -->
+          <div class="bg-indigo-50 rounded-xl p-6 shadow-inner">
+            <div class="flex flex-col gap-2 text-gray-700">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-plane-departure text-indigo-500"></i>
+                <span class="font-semibold">Đi:</span>
+                {{ formatTime(flightDetail.departureTime) }} -
+                {{ flightDetail.departureAirport?.name }}
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fas fa-plane-arrival text-indigo-500"></i>
+                <span class="font-semibold">Đến:</span>
+                {{ formatTime(flightDetail.arrivalTime) }} -
+                {{ flightDetail.arrivalAirport?.name }}
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fas fa-clock text-indigo-500"></i>
+                <span class="font-semibold">Thời lượng:</span>
+                {{ durationDisplay }}
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fas fa-calendar text-indigo-500"></i>
+                <span class="font-semibold">Ngày tạo:</span>
+                {{ formatDate(flightDetail.createdAt) }}
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fas fa-sync text-indigo-500"></i>
+                <span class="font-semibold">Cập nhật:</span>
+                {{ formatDate(flightDetail.updatedAt) }}
+              </div>
+            </div>
+          </div>
+         <div class="bg-indigo-50 rounded-xl p-6 shadow-inner mt-8">
+            <h3 class="text-lg font-bold text-indigo-700 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-ticket-alt"></i> Thông tin vé đã chọn
+            </h3>
+            <div v-if="selectedGroup">
+              <div class="flex flex-col gap-2 text-gray-700">
+                <div>
+                  <span class="font-semibold">Loại vé:</span>
+                  <span v-if="selectedGroup.isBusiness" class="text-yellow-700 font-bold">Thương gia</span><span v-else
+                    class="text-indigo-700 font-bold">Phổ thông</span>
+                </div>
+                <div>
+                  <span class="font-semibold">Số ghế:</span>
+                  {{ selectedGroup.slots[0]?.seatNumber }}
+                </div>
+                <div>
+                  <span class="font-semibold">Vị trí:</span>
+                  <span v-if="selectedGroup.slots[0]?.isWindow"> Cửa sổ</span>
+                  <span v-else-if="selectedGroup.slots[0]?.isAisle"> Lối đi</span>
+                  <span v-else>Khác</span>
+                </div>
+                <div>
+                  <span class="font-semibold">Giá: </span>
+                  <span class="font-bold text-green-700"> {{
+                    formatCurrency(selectedGroup.slots[0]?.price)
+                  }}</span>
+                </div>
+                <div v-if="selectedGroup.isWindow" class="text-xs text-indigo-500 italic">
+                  Đã cộng thêm 200,000 VND do chọn ghế cửa sổ
+                </div>
+                <div>
+                  <span class="font-semibold">Hành lý xách tay:</span>
+                  {{ selectedGroup.slots[0]?.carryOnLuggage }} kg
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-gray-400 italic">
+              Vui lòng chọn một vé để xem chi tiết.
+            </div>
+            <button @click="handleBooking"
+              class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-lg shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="!selectedGroup">
+              Đặt chỗ
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -182,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted ,watch} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getFlightDetail, getAvailableSeats } from "@/api/flightApi";
 import FindAvailableSlotRequestDto from "@/dto/FindAvailableSlotRequestDto";
@@ -196,11 +204,20 @@ const flightDetail = ref({
 const loading = ref(true);
 const error = ref("");
 
-// Load airlines từ API
-onMounted(async () => {
+const currentGalleryImage = ref(null);
 
-});
-
+function setCurrentGalleryImage(img) {
+  currentGalleryImage.value = img;
+}
+watch(
+  () => flightDetail.value.images,
+  (imgs) => {
+    if (imgs && imgs.length > 0) {
+      currentGalleryImage.value = imgs[0];
+    }
+  },
+  { immediate: true }
+);
 const mainImage = computed(() =>
   flightDetail.value.images && flightDetail.value.images.length > 0
     ? flightDetail.value.images[0].imageUrl
@@ -239,21 +256,14 @@ const durationDisplay = computed(() => {
   const m = diff % 60;
   return `${h}h ${m}m`;
 });
-
-  let  economycountWindow = null;
-  let  economycountAisle =null;
-  let  businesscountWindow = null;
-  let  businesscountAisle =null;
+const availableSeats = ref({
+  economyWindow: 0,
+  economyAisle: 0,
+  businessWindow: 0,
+  businessAisle: 0,
+});
 const seatGroups = computed(() => {
-    getAvailableSeats( route.params.id).then(res => {
-    const availableSeats = res.data;
-    economycountWindow = availableSeats.economyWindow;
-    economycountAisle= availableSeats.economyAisle;
-    businesscountWindow = availableSeats.businessWindow;
-    businesscountAisle = availableSeats.businessAisle;
-  });
   const slots = flightDetail.value.flightSlots || [];
-  // 4 nhóm: phổ thông lối đi, phổ thông cửa sổ, thương gia lối đi, thương gia cửa sổ
   const groups = [
     {
       key: "eco-aisle",
@@ -289,10 +299,10 @@ const seatGroups = computed(() => {
           !!s.isAisle === !g.isWindow
       );
       let scount;
-      if (g.isBusiness && g.isWindow) scount = businesscountWindow;
-      else if (g.isBusiness && g.isAisle) scount = businesscountAisle;
-      else if (g.economy && g.isAisle) scount = economycountAisle;
-      else  scount = economycountWindow;
+      if (g.isBusiness && g.isWindow) scount = availableSeats.value.businessWindow;
+      else if (g.isBusiness && !g.isWindow) scount = availableSeats.value.businessAisle;
+      else if (!g.isBusiness && !g.isWindow) scount = availableSeats.value.economyAisle;
+      else  scount = availableSeats.value.economyWindow;
       return {
         ...g,
         count: scount,
@@ -301,7 +311,7 @@ const seatGroups = computed(() => {
         slots: filtered,
       };
     })
-    .filter((g) => g.count > 0);
+    ;
 });
 
 onMounted(async () => {
@@ -316,6 +326,10 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+  const resavailableSeats = await getAvailableSeats(route.params.id);
+  availableSeats.value = resavailableSeats.data;
+  console.log(availableSeats.value);
+  
 });
 
 const router = useRouter();

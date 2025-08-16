@@ -11,18 +11,15 @@ public class OrderDto {
     private Integer id;
     private Integer userId;
     private BigDecimal amount;
-    private BigDecimal originalAmount;  // ✅ ADD: Cho voucher logic
+    private BigDecimal originalAmount;
     private String status;
     private LocalDateTime payDate;
     private Integer voucherId;
-    private String voucherCode;        // ✅ ADD: Hiển thị mã voucher
     private Integer destinationId;
     private LocalDateTime createdAt;
     private String mainProduct;
     private LocalDateTime expiresAt;
-    private String transactionId;      // ✅ ADD: Transaction ID từ payment
-
-    // ✅ EXISTING: Booking lists
+    private String transactionId;
     private List<BookingTourDto> tourBookings;
     private List<FlightBookingDto> flightBookings;
     private List<HotelBookingDto> hotelBookings;

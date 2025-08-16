@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${subject}">Thông báo Kết quả Đăng ký</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: Arial, sans-serif;">
+
+    <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;"
+         th:text="'Cập nhật về đơn đăng ký của bạn tại ' + ${companyName}">
+    </div>
+
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f3f4f6;">
+        <tr>
+            <td align="center">
+                <table width="600" border="0" cellpadding="0" cellspacing="0" role="presentation"
+                       style="width: 100%; max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    
+                    <tr>
+                        <td align="center" style="background-color: #4f46e5; padding: 40px 20px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;" th:text="${companyName}">Travela</h1>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 32px; color: #374151; line-height: 1.6; font-size: 16px;">
+                            <h2 style="font-size: 22px; font-weight: 700; color: #111827; margin-top: 0;">
+                                Cập nhật về đơn đăng ký nhà cung cấp của bạn
+                            </h2>
+                            <p style="margin: 0 0 16px;">Kính gửi <strong th:text="${applicantName}">[Tên người đăng ký]</strong>,</p>
+                            <p style="margin: 0 0 16px;">
+                                Lời đầu tiên, đội ngũ <strong th:text="${companyName}">Travela</strong> xin chân thành cảm ơn bạn đã quan tâm và dành thời gian đăng ký trở thành đối tác cung cấp dịch vụ của chúng tôi.
+                            </p>
+
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; margin: 24px 0;">
+                                <tr>
+                                    <td style="padding: 24px 0;">
+                                        <div th:if="${decision == 'accepted'}">
+                                            <h3 style="margin-top:0;font-size:20px;font-weight:700;color:#059669;">Chúc mừng! Đơn đăng ký của bạn đã được phê duyệt.</h3>
+                                            <p style="margin: 0 0 16px;">Chúng tôi rất vui mừng chào đón bạn gia nhập mạng lưới đối tác của <strong th:text="${companyName}">Travela</strong>. Chúng tôi tin rằng sự hợp tác này sẽ mang lại nhiều giá trị cho cả hai bên.</p>
+                                            <p style="margin: 0 0 16px;">Bộ phận hỗ trợ đối tác sẽ sớm liên hệ với bạn để hướng dẫn các bước tiếp theo.</p>
+                                            <a href="#" th:href="${dashboardLink}"
+                                               style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 20px;">
+                                                Truy cập trang đối tác
+                                            </a>
+                                        </div>
+
+                                        <div th:if="${decision == 'rejected'}">
+                                            <h3 style="margin-top:0;font-size:20px;font-weight:700;color:#dc2626;">Thông tin về đơn đăng ký của bạn</h3>
+                                            <p style="margin: 0 0 16px;">Sau khi xem xét cẩn thận, chúng tôi rất tiếc phải thông báo rằng đơn đăng ký của bạn chưa phù hợp với các tiêu chí hiện tại của chúng tôi.</p>
+                                            <p style="margin: 0;">Hồ sơ của bạn đã được lưu lại. Chúng tôi sẽ liên hệ nếu có cơ hội hợp tác phù hợp trong tương lai. Chúc bạn mọi điều tốt đẹp nhất.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 0;">Trân trọng,<br>Đội ngũ <strong th:text="${companyName}">Travela</strong></p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="background-color: #f9fafb; padding: 24px; font-size: 12px; color: #6b7280; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+                            <p style="margin: 0 0 4px;"><strong th:text="${companyName}">Travela</strong></p>
+                            <p style="margin: 0 0 4px;" th:text="${address}">123 Đường ABC, Quận 1, TP.HCM</p>
+                            <p style="margin: 0;">
+                                <a th:href="'mailto:' + ${contactEmail}" th:text="${contactEmail}" style="color: #4f46e5; text-decoration: none;">hotro@travela.com</a> |
+                                <a th:href="'tel:' + ${hotline}" th:text="${hotline}" style="color: #4f46e5; text-decoration: none;">1900 1234</a>
+                            </p>
+                            <p style="margin: 16px 0 0;">
+                                Bạn nhận được email này vì đã đăng ký tại website của chúng tôi.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -1,12 +1,15 @@
 package backend.backend.implement;
 
 import backend.backend.dao.BookingTourDAO;
+import backend.backend.dto.TopTourDTO;
 import backend.backend.dao.DepartureDAO;
 import backend.backend.dao.TourDAO;
 import backend.backend.dao.UserDAO;
 import backend.backend.dao.OrderDAO;
 import backend.backend.dto.BookingTourDto;
 import backend.backend.dto.BookingTourRequestDto;
+import backend.backend.dto.MyTourBookingDTO;
+import backend.backend.dto.StatsDTO;
 import backend.backend.entity.BookingTour;
 import backend.backend.entity.Departure;
 import backend.backend.entity.Tour;
@@ -14,12 +17,25 @@ import backend.backend.entity.User;
 import backend.backend.entity.Order;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.BookingTourService;
+import backend.backend.specification.BookingTourSpecification;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class BookingTourServiceImpl implements BookingTourService {
@@ -116,4 +132,130 @@ public class BookingTourServiceImpl implements BookingTourService {
                 .totalPrice(entity.getTotalPrice())
                 .build();
     }
+    /**
+     * Lấy và lọc danh sách tất cả booking cho trang quản trị.
+     * Phương pháp này sử dụng JPA Specifications để tạo câu lệnh query động,
+     * giúp lọc hiệu quả ở tầng cơ sở dữ liệu.
+     *
+     * @param params Các tham số để lọc (ví dụ: tourId, departureDate, status).
+     * @return Một danh sách các booking đã được lọc và chuyển đổi sang DTO.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<MyTourBookingDTO> filterAdminBookings(Map<String, String> params) {
+        // 1. Tạo đối tượng Specification từ các tham số lọc.
+        Specification<BookingTour> spec = BookingTourSpecification.findByCriteria(params);
+
+        // 2. Dùng DAO để thực thi câu lệnh query.
+        // GHI CHÚ TỐI ƯU: Để tránh vấn đề N+1 query, bạn có thể sử dụng EntityGraph
+        // hoặc Fetch Join trong Specification để lấy các thực thể liên quan trong 1 câu lệnh.
+        List<BookingTour> filteredBookings = bookingTourDAO.findAll(spec);
+
+        // 3. Chuyển đổi kết quả sang DTO và trả về.
+        return filteredBookings.stream()
+                .map(this::mapToMyBookingDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy danh sách các booking của người dùng đang đăng nhập.
+     *
+     * @return Danh sách booking của người dùng hiện tại.
+     * @throws ResourceNotFoundException nếu không tìm thấy người dùng.
+     * @throws IllegalStateException nếu không có người dùng nào được xác thực.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<MyTourBookingDTO> getMyTourBookings() {
+        // CẢI TIẾN: Kiểm tra trạng thái xác thực trước khi lấy thông tin
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDetails)) {
+            throw new IllegalStateException("Không có người dùng nào được xác thực để thực hiện hành động này.");
+        }
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        User currentUser = userDAO.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email: " + userDetails.getUsername()));
+
+        List<BookingTour> bookings = bookingTourDAO.findByOrder_User(currentUser);
+
+        return bookings.stream()
+                .map(this::mapToMyBookingDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Phương thức helper để chuyển đổi một Entity BookingTour sang MyTourBookingDTO.
+     * Đã được làm cho an toàn hơn bằng cách kiểm tra null.
+     *
+     * @param booking Đối tượng Entity BookingTour.
+     * @return Đối tượng DTO tương ứng.
+     */
+    private MyTourBookingDTO mapToMyBookingDTO(BookingTour booking) {
+        MyTourBookingDTO dto = new MyTourBookingDTO();
+        dto.setBookingId(booking.getId());
+
+        // CẢI TIẾN: Thêm các kiểm tra null để tránh NullPointerException
+        if (booking.getOrder() != null) {
+            dto.setOrderStatus(booking.getOrder().getStatus());
+        }
+
+        if (booking.getDeparture() != null) {
+            dto.setDepartureDate(booking.getDeparture().getDepartureDate());
+            if (booking.getDeparture().getTour() != null) {
+                dto.setTourName(booking.getDeparture().getTour().getName());
+            }
+        }
+
+        dto.setTotalPrice(booking.getTotalPrice());
+        dto.setNumberOfAdults(booking.getNumberOfAdults());
+        dto.setNumberOfChildren(booking.getNumberOfChildren());
+        dto.setBookingDate(booking.getBookingDate());
+        dto.setName(booking.getCustomerName());
+        dto.setPhone(booking.getPhone());
+        dto.setNote(booking.getNotes());
+        dto.setEmail(booking.getEmail());
+
+        return dto;
+    }
+
+    @Override
+    public StatsDTO getStatsByDateRange(Long userId,LocalDate startDate, LocalDate endDate) {
+    	return bookingTourDAO.getStatsByDateRange(userId, startDate, endDate);
+    }
+
+    @Override
+    public List<TopTourDTO> getTopSellingTours(Long userId,LocalDate startDate, LocalDate endDate, int limit) {
+        // Tạo Pageable để chỉ lấy `limit` kết quả đầu tiên
+        Pageable pageable = PageRequest.of(0, limit);
+        return bookingTourDAO.findTopSellingTours(userId, startDate, endDate, pageable);
+    }
+
+    @Override
+    public Page<MyTourBookingDTO> getPaidBookingsByDateRange(Long userId,LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        // 1. Tạo các tham số để build specification
+        Map<String, String> params = new HashMap<>();
+        if (userId != null) {
+            params.put("ownerId", userId.toString());
+        }
+        if (startDate != null) {
+            params.put("startDate", startDate.toString());
+        }
+        if (endDate != null) {
+            params.put("endDate", endDate.toString());
+        }
+        // Chỉ lấy các booking đã thanh toán hoặc xác nhận
+        params.put("status", "PAID,CONFIRMED"); // Giả sử specification có thể xử lý list status
+
+        // 2. Build Specification
+        Specification<BookingTour> spec = BookingTourSpecification.findByCriteria(params);
+
+        // 3. Gọi DAO để lấy Page<BookingTour>
+        Page<BookingTour> bookingTourPage = bookingTourDAO.findAll(spec, pageable);
+
+        // 4. Chuyển đổi Page<BookingTour> sang Page<MyTourBookingDTO>
+        return bookingTourPage.map(this::mapToMyBookingDTO);
+    }
+
+    
 }

@@ -64,12 +64,14 @@
                         <!-- Origin District -->
                         <div class="mb-4">
                           <label for="originDistrict" class="block text-sm font-medium text-gray-700 mb-1">
-                            Quận/Huyện
+                            Quận/Huyện <span class="text-red-500">*</span>
                           </label>
                           <select
                             id="originDistrict"
                             v-model="form.originLocation.district"
+                            @change="onOriginDistrictChange"
                             :disabled="!originDistricts.length"
+                            required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
                           >
                             <option value="">Chọn quận/huyện</option>
@@ -77,7 +79,26 @@
                               {{ district.name }}
                             </option>
                           </select>
-                    </div>
+                          <p v-if="errors.originDistrict" class="text-red-500 text-xs mt-1">{{ errors.originDistrict }}</p>
+                        </div>
+
+                        <!-- Origin Ward -->
+                        <div class="mb-4">
+                          <label for="originWard" class="block text-sm font-medium text-gray-700 mb-1">
+                            Phường/Xã
+                          </label>
+                          <select
+                            id="originWard"
+                            v-model="form.originLocation.ward"
+                            :disabled="!originWards.length"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
+                          >
+                            <option value="">Chọn phường/xã</option>
+                            <option v-for="ward in originWards" :key="ward.code" :value="ward.name">
+                              {{ ward.name }}
+                            </option>
+                          </select>
+                        </div>
 
                         <!-- Origin Address Details -->
                     <div>
@@ -143,17 +164,38 @@
                         <!-- Destination District -->
                         <div class="mb-4">
                           <label for="destinationDistrict" class="block text-sm font-medium text-gray-700 mb-1">
-                            Quận/Huyện
+                            Quận/Huyện <span class="text-red-500">*</span>
                           </label>
                           <select
                             id="destinationDistrict"
                             v-model="form.destinationLocation.district"
+                            @change="onDestinationDistrictChange"
                             :disabled="!destinationDistricts.length"
+                            required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
                           >
                             <option value="">Chọn quận/huyện</option>
                             <option v-for="district in destinationDistricts" :key="district.code" :value="district.name">
                               {{ district.name }}
+                            </option>
+                          </select>
+                          <p v-if="errors.destinationDistrict" class="text-red-500 text-xs mt-1">{{ errors.destinationDistrict }}</p>
+                        </div>
+
+                        <!-- Destination Ward -->
+                        <div class="mb-4">
+                          <label for="destinationWard" class="block text-sm font-medium text-gray-700 mb-1">
+                            Phường/Xã
+                          </label>
+                          <select
+                            id="destinationWard"
+                            v-model="form.destinationLocation.ward"
+                            :disabled="!destinationWards.length"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
+                          >
+                            <option value="">Chọn phường/xã</option>
+                            <option v-for="ward in destinationWards" :key="ward.code" :value="ward.name">
+                              {{ ward.name }}
                             </option>
                           </select>
                         </div>
@@ -440,24 +482,28 @@ const editingRouteId = ref(null)
 const provinces = ref([])
 const originDistricts = ref([])
 const destinationDistricts = ref([])
+const originWards = ref([])
+const destinationWards = ref([])
 
 // Existing state
 const busCategories = ref([])
 const today = new Date().toISOString().split('T')[0]
 const existingCategoryIds = ref([])
 
-// Form data (UPDATED for Location objects)
+// Form data 
 const form = reactive({
   originLocation: {
     name: '',
     provinceCity: '',
     district: '',
+    ward: '',
     addressDetails: ''
   },
   destinationLocation: {
     name: '',
     provinceCity: '',
     district: '',
+    ward: '',
     addressDetails: ''
   },
   distanceKm: null,
@@ -472,12 +518,14 @@ const form = reactive({
   notes: ''
 })
 
-// Errors (UPDATED)
+// Errors 
 const errors = reactive({
   originName: '',
   originProvince: '',
+  originDistrict: '',
   destinationName: '',
   destinationProvince: '',
+  destinationDistrict: '',
   distanceKm: '',
   estimatedMinutes: '',
   selectedCategories: '',
@@ -504,12 +552,15 @@ const loadProvinces = async () => {
 }
 
 const onOriginProvinceChange = async () => {
-  form.originLocation.district = '' // Reset district
+  form.originLocation.district = ''
+  form.originLocation.ward = ''
+  originWards.value = []
   if (form.originLocation.provinceCity) {
     try {
       originDistricts.value = await ProvinceAPI.getDistrictsByProvince(form.originLocation.provinceCity)
     } catch (error) {
       console.error('❌ Error loading origin districts:', error)
+      originDistricts.value = []
     }
   } else {
     originDistricts.value = []
@@ -517,22 +568,54 @@ const onOriginProvinceChange = async () => {
 }
 
 const onDestinationProvinceChange = async () => {
-  form.destinationLocation.district = '' // Reset district
+  form.destinationLocation.district = ''
+  form.destinationLocation.ward = ''
+  destinationWards.value = []
   if (form.destinationLocation.provinceCity) {
     try {
       destinationDistricts.value = await ProvinceAPI.getDistrictsByProvince(form.destinationLocation.provinceCity)
     } catch (error) {
       console.error('❌ Error loading destination districts:', error)
+      destinationDistricts.value = []
     }
   } else {
     destinationDistricts.value = []
   }
 }
 
-// Helper display methods (UPDATED)
+const onOriginDistrictChange = async () => {
+  form.originLocation.ward = ''
+  if (form.originLocation.district && form.originLocation.provinceCity) {
+    try {
+      originWards.value = await ProvinceAPI.getWardsByDistrict(form.originLocation.provinceCity, form.originLocation.district)
+    } catch (error) {
+      console.error('❌ Error loading origin wards:', error)
+      originWards.value = []
+    }
+  } else {
+    originWards.value = []
+  }
+}
+
+const onDestinationDistrictChange = async () => {
+  form.destinationLocation.ward = ''
+  if (form.destinationLocation.district && form.destinationLocation.provinceCity) {
+    try {
+      destinationWards.value = await ProvinceAPI.getWardsByDistrict(form.destinationLocation.provinceCity, form.destinationLocation.district)
+    } catch (error) {
+      console.error('❌ Error loading destination wards:', error)
+      destinationWards.value = []
+    }
+  } else {
+    destinationWards.value = []
+  }
+}
+
+// Helper display methods
 const getFullOriginName = () => {
   const parts = [
     form.originLocation.name,
+    form.originLocation.ward,
     form.originLocation.district,
     form.originLocation.provinceCity
   ].filter(Boolean)
@@ -542,6 +625,7 @@ const getFullOriginName = () => {
 const getFullDestinationName = () => {
   const parts = [
     form.destinationLocation.name,
+    form.destinationLocation.ward,
     form.destinationLocation.district,
     form.destinationLocation.provinceCity
   ].filter(Boolean)
@@ -695,6 +779,11 @@ const validateForm = () => {
     isValid = false
   }
   
+  if (!form.originLocation.district) {
+    errors.originDistrict = 'Quận/huyện điểm đi là bắt buộc'
+    isValid = false
+  }
+  
   // Destination validation
   if (!form.destinationLocation.name.trim()) {
     errors.destinationName = 'Tên điểm đến là bắt buộc'
@@ -703,6 +792,11 @@ const validateForm = () => {
   
   if (!form.destinationLocation.provinceCity) {
     errors.destinationProvince = 'Tỉnh/thành phố điểm đến là bắt buộc'
+    isValid = false
+  }
+  
+  if (!form.destinationLocation.district) {
+    errors.destinationDistrict = 'Quận/huyện điểm đến là bắt buộc'
     isValid = false
   }
   
@@ -798,9 +892,11 @@ const resetForm = () => {
     errors[key] = ''
   })
   
-  // Reset district lists
+  // Reset district and ward lists
   originDistricts.value = []
   destinationDistricts.value = []
+  originWards.value = []
+  destinationWards.value = []
   existingCategoryIds.value = []
 }
 
@@ -855,6 +951,25 @@ const openForEdit = async (route, existingPriceData = null) => {
   // ✅ THEN set district values (after districts are loaded)
   form.originLocation.district = route.originLocation.district || ''
   form.destinationLocation.district = route.destinationLocation.district || ''
+  form.originLocation.ward = route.originLocation.ward || ''
+  form.destinationLocation.ward = route.destinationLocation.ward || ''
+  
+  // Load wards if districts are set
+  if (form.originLocation.district) {
+    try {
+      originWards.value = await ProvinceAPI.getWardsByDistrict(form.originLocation.provinceCity, form.originLocation.district)
+    } catch (error) {
+      console.error('❌ Error loading origin wards:', error)
+    }
+  }
+  
+  if (form.destinationLocation.district) {
+    try {
+      destinationWards.value = await ProvinceAPI.getWardsByDistrict(form.destinationLocation.provinceCity, form.destinationLocation.district)
+    } catch (error) {
+      console.error('❌ Error loading destination wards:', error)
+    }
+  }
   
   // Fill route data
   form.distanceKm = route.distanceKm

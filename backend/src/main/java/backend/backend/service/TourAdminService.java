@@ -2,6 +2,8 @@ package backend.backend.service;
 
 import backend.backend.dto.TourDetailAdminDTO;
 import backend.backend.dto.TourRequestDTO;
+import backend.backend.entity.TourStatus;
+
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
@@ -53,4 +55,10 @@ public interface TourAdminService {
      * @throws jakarta.persistence.EntityNotFoundException nếu không tìm thấy tour.
      */
     void deleteTour(Long id);
+
+
+	long countTotalTours(Long userId);
+
+
+	long countByStatus(Long userId,TourStatus status);
 }

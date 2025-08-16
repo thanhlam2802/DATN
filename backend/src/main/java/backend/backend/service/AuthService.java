@@ -22,5 +22,12 @@ public interface AuthService {
 
     void requestResetPassword(RequestResetPasswordRequestDto requestDto);
 
+
     JwtResultDto verifyAccount(VerifyAccountRequestDto verifyAccountRequestDto);
+
+    void verifyAccountResend(String email);
+
+    JwtResultDto refreshToken(RefreshTokenRequestDto refreshTokenRequestDto);
+
+    JwtResultDto loginOAuth2(OAuth2LoginRequestDto requestDto);
 }

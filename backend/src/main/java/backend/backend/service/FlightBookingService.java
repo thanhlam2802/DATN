@@ -10,7 +10,8 @@ public interface FlightBookingService {
     PaymentStatusDto payForFlight(PaymentRequestDto paymentRequestDto);
     List<FlightBookingDetailDto> getCustomerFlightBookings(Integer customerId);
     FlightBookingDetailDto getFlightBookingDetail(Integer bookingId);
-    PaymentStatusDto cancelFlightBooking(Integer bookingId);
+    void cancelFlightBooking(Integer bookingId);
     FlightOrderReservationDto getFlightReservationSummary(Integer orderId);
     FlightBooking createFlightBooking(Integer orderId, AddItemRequestDto genericRequest);
+    void cancelBooking(Integer bookingId);
 } 

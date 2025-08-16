@@ -9,7 +9,11 @@
         <form @submit.prevent="save">
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Số ghế</label>
-            <input v-model="localSeat.seatNumber" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition" />
+            <input v-model="localSeat.seatNumber" type="text" 
+              :class="`w-full border rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition ${validationErrors.seatNumber ? 'border-red-500' : 'border-gray-300'}`" />
+            <div v-if="validationErrors.seatNumber" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.seatNumber[0] }}
+            </div>
           </div>
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Loại vé</label>
@@ -28,16 +32,28 @@
           </div>
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Giá</label>
-            <input v-model.number="localSeat.price" type="number" class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition" />
+            <input v-model.number="localSeat.price" type="number" 
+              :class="`w-full border rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition ${validationErrors.price ? 'border-red-500' : 'border-gray-300'}`" />
+            <div v-if="validationErrors.price" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.price[0] }}
+            </div>
           </div>
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Hành lý (kg)</label>
-            <input v-model.number="localSeat.carryOnLuggage" type="number" class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition" />
+            <input v-model.number="localSeat.carryOnLuggage" type="number" 
+              :class="`w-full border rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition ${validationErrors.carryOnLuggage ? 'border-red-500' : 'border-gray-300'}`" />
+            <div v-if="validationErrors.carryOnLuggage" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.carryOnLuggage[0] }}
+            </div>
           </div>
           <div class="flex justify-end gap-3 mt-8">
             <button type="button" @click="$emit('close')" class="px-5 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 font-semibold transition">Hủy</button>
-            <button type="button" @click="remove" class="px-5 py-2 bg-red-500 text-white rounded-xl hover:bg-red-700 font-semibold transition">Xóa</button>
-            <button type="submit" class="px-6 py-2 bg-sky-500 text-white rounded-xl hover:bg-sky-600 font-semibold shadow transition">Lưu</button>
+          <button type="submit" class="px-6 py-2 bg-sky-500 text-white rounded-xl hover:bg-sky-600 font-semibold shadow transition" :disabled="loading">
+            <span v-if="loading">
+              <i class="fa fa-spinner fa-spin"></i>
+            </span>
+            <span v-else>Lưu</span>
+          </button>
           </div>
         </form>
         <button @click="$emit('close')" class="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-xl"><i class="fa fa-times"></i></button>
@@ -46,11 +62,12 @@
   </div>
 </template>
 <script setup>
-import { reactive, watch, toRefs } from 'vue'
+import { reactive, watch, toRefs, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { updateAdminSeat, deleteAdminSeat } from '@/api/flightApi'
+import { validateForm, seatFormSchema } from '@/utils/validation'
 const props = defineProps({ seat: Object })
-const emit = defineEmits(['close', 'saved', 'deleted'])
+const emit = defineEmits(['close', 'saved'])
 const localSeat = reactive({
   id: '',
   seatNumber: '',
@@ -59,8 +76,11 @@ const localSeat = reactive({
   price: 0,
   carryOnLuggage: 0
 })
+const loading = ref(false)
 const route = useRoute()
-const flightId = route.params.id || route.params.flightId
+
+// Validation errors
+const validationErrors = ref({})
 watch(() => props.seat, (val) => {
   if (val) {
     localSeat.id = val.id
@@ -72,6 +92,16 @@ watch(() => props.seat, (val) => {
   }
 }, { immediate: true })
 async function save() {
+  // Validate form before save
+  const { isValid, errors } = validateForm(localSeat, seatFormSchema)
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin ghế!', 'error')
+    return
+  }
+  
+  loading.value = true;
   try {
     const payload = {
       id: localSeat.id,
@@ -81,20 +111,15 @@ async function save() {
       isAisle: localSeat.position === 'aisle',
       price: localSeat.price,
       carryOnLuggage: localSeat.carryOnLuggage
-    }
-    const res = await updateAdminSeat(flightId, localSeat.id, payload)
+    } 
+    const res = await updateAdminSeat( localSeat.id, payload)
     emit('saved', res.data)
+    window.$toast('Cập nhật ghế thành công!', 'success');
   } catch (e) {
-    alert('Cập nhật ghế thất bại!')
-  }
-}
-async function remove() {
-  if (!confirm('Bạn có chắc muốn xóa ghế này?')) return
-  try {
-    await deleteAdminSeat(flightId, localSeat.id)
-    emit('deleted', localSeat.id)
-  } catch (e) {
-    alert('Xóa ghế thất bại!')
+    const message = e?.response?.data?.message || e.message || 'Lỗi không xác định'
+    window.$toast('Cập nhật ghế thất bại!\n' + message, 'error');
+  } finally {
+    loading.value = false;
   }
 }
 </script> 

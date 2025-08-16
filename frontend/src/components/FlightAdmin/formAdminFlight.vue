@@ -37,8 +37,9 @@
                 class="flex flex-col items-center justify-center w-full max-w-xs px-4 py-6 bg-white border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition">
                 
                 <span class="text-sm text-gray-600">Chọn ảnh (có thể chọn nhiều)</span>
-                <input type="file" multiple accept="image/*" @change="onImageChange" class="hidden" />
+                <input type="file" multiple accept="image/*" @change="onImageChange" class="hidden" :disabled="loadingImage" />
               </label>
+              <div v-if="loadingImage" class="text-indigo-600 text-sm flex items-center gap-2 mb-2"><span class="animate-spin w-4 h-4 border-2 border-indigo-500 border-t-white rounded-full"></span> Đang tải ảnh...</div>
 
               <div class="flex flex-wrap gap-2">
                 <div v-for="(img, idx) in images" :key="idx" class="relative w-24 h-24">
@@ -57,74 +58,123 @@
                 placeholder="Sẽ tự sinh khi nhập đủ thông tin" />
             </div>
 
-            <!-- Name -->
+            <!-- Tỉnh/Thành phố đi và đến -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tên chuyến bay</label>
-              <input v-model="flight.name" type="text" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="VD: Hà Nội - Đà Nẵng" />
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tỉnh/Thành phố đi</label>
+              <select v-model="departureCity" required
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.departureCity ? 'border-red-500' : 'border-gray-300'}`">
+                <option value="">Chọn tỉnh/thành phố đi</option>
+                <option v-for="city in allCities" :key="city" :value="city">{{ city }}</option>
+              </select>
+              <div v-if="validationErrors.departureCity" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.departureCity[0] }}
+              </div>
+              <div v-if="departureCity && arrivalCity && departureCity === arrivalCity" class="text-red-500 text-sm mt-1">
+                Tỉnh/thành phố đi không được trùng với tỉnh/thành phố đến
+              </div>
             </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tỉnh/Thành phố đến</label>
+              <select v-model="arrivalCity" required
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.arrivalCity ? 'border-red-500' : 'border-gray-300'}`">
+                <option value="">Chọn tỉnh/thành phố đến</option>
+                <option v-for="city in allCities" :key="city" :value="city">{{ city }}</option>
+              </select>
+              <div v-if="validationErrors.arrivalCity" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.arrivalCity[0] }}
+              </div>
+              <div v-if="departureCity && arrivalCity && departureCity === arrivalCity" class="text-red-500 text-sm mt-1">
+                Tỉnh/thành phố đến không được trùng với tỉnh/thành phố đi
+              </div>
+            </div>
+            
+            
 
             <!-- Hãng hàng không -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Hãng hàng không</label>
               <select v-model="flight.airline" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.airline ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn hãng</option>
                 <option v-for="airline in airlines" :key="airline.id" :value="airline">
                   {{ airline.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.airline" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.airline[0] }}
+              </div>
             </div>
 
             <!-- Departure Airport -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Sân bay đi</label>
               <select v-model="flight.departureAirport" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.departureAirport ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn sân bay đi</option>
                 <option v-for="airport in airports" :key="airport.id" :value="airport">
                   {{ airport.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.departureAirport" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.departureAirport[0] }}
+              </div>
+              <div v-if="flight.departureAirport && flight.arrivalAirport && flight.departureAirport.id === flight.arrivalAirport.id" class="text-red-500 text-sm mt-1">
+                Sân bay đi không được trùng với sân bay đến
+              </div>
             </div>
 
             <!-- Arrival Airport -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Sân bay đến</label>
               <select v-model="flight.arrivalAirport" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.arrivalAirport ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn sân bay đến</option>
                 <option v-for="airport in airports" :key="airport.id" :value="airport">
                   {{ airport.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.arrivalAirport" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.arrivalAirport[0] }}
+              </div>
+              <div v-if="flight.departureAirport && flight.arrivalAirport && flight.departureAirport.id === flight.arrivalAirport.id" class="text-red-500 text-sm mt-1">
+                Sân bay đến không được trùng với sân bay đi
+              </div>
             </div>
 
             <!-- Departure Time -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian khởi hành</label>
               <input v-model="flight.departureTime" type="datetime-local" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.departureTime ? 'border-red-500' : 'border-gray-300'}`" />
+              <div v-if="validationErrors.departureTime" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.departureTime[0] }}
+              </div>
             </div>
 
             <!-- Arrival Time -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Thời gian đến</label>
               <input v-model="flight.arrivalTime" type="datetime-local" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.arrivalTime ? 'border-red-500' : 'border-gray-300'}`" />
+              <div v-if="validationErrors.arrivalTime" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.arrivalTime[0] }}
+              </div>
             </div>
 
             <!-- Category -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
               <select v-model="flight.category"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                :class="`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.category ? 'border-red-500' : 'border-gray-300'}`">
                 <option value="">Chọn danh mục</option>
                 <option v-for="category in flightCategories" :key="category.id" :value="category">
                   {{ category.name }}
                 </option>
               </select>
+              <div v-if="validationErrors.category" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.category[0] }}
+              </div>
             </div>
 
             <!-- Tổng số vé -->
@@ -136,7 +186,10 @@
                   }}</button>
               </div>
               <input v-model.number="ticketForm.total" type="number" min="1" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Tổng số vé" />
+                :class="`w-full border rounded-lg px-4 py-2 ${validationErrors.total ? 'border-red-500' : 'border-gray-300'}`" placeholder="Tổng số vé" />
+              <div v-if="validationErrors.total" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.total[0] }}
+              </div>
             </div>
 
             <!-- Tỷ lệ phổ thông/thương gia -->
@@ -221,29 +274,41 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Giá vé phổ thông (VND)</label>
               <input v-model.number="ticketForm.economyPrice" type="number" min="0" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Giá vé phổ thông" />
+                :class="`w-full border rounded-lg px-4 py-2 ${validationErrors.economyPrice ? 'border-red-500' : 'border-gray-300'}`" placeholder="Giá vé phổ thông" />
+              <div v-if="validationErrors.economyPrice" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.economyPrice[0] }}
+              </div>
             </div>
             <!-- Giá vé thương gia -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Giá vé thương gia (VND)</label>
               <input v-model.number="ticketForm.businessPrice" type="number" min="0" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2" placeholder="Giá vé thương gia" />
+                :class="`w-full border rounded-lg px-4 py-2 ${validationErrors.businessPrice ? 'border-red-500' : 'border-gray-300'}`" placeholder="Giá vé thương gia" />
+              <div v-if="validationErrors.businessPrice" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.businessPrice[0] }}
+              </div>
             </div>
 
             <!-- Trọng lượng hành lý phổ thông -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Hành lý phổ thông (kg)</label>
               <input v-model.number="ticketForm.economyLuggage" type="number" min="1" max="50" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2"
+                :class="`w-full border rounded-lg px-4 py-2 ${validationErrors.economyLuggage ? 'border-red-500' : 'border-gray-300'}`"
                 placeholder="Trọng lượng hành lý phổ thông" />
+              <div v-if="validationErrors.economyLuggage" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.economyLuggage[0] }}
+              </div>
             </div>
 
             <!-- Trọng lượng hành lý thương gia -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Hành lý thương gia (kg)</label>
               <input v-model.number="ticketForm.businessLuggage" type="number" min="1" max="50" required
-                class="w-full border border-gray-300 rounded-lg px-4 py-2"
+                :class="`w-full border rounded-lg px-4 py-2 ${validationErrors.businessLuggage ? 'border-red-500' : 'border-gray-300'}`"
                 placeholder="Trọng lượng hành lý thương gia" />
+              <div v-if="validationErrors.businessLuggage" class="text-red-500 text-sm mt-1">
+                {{ validationErrors.businessLuggage[0] }}
+              </div>
             </div>
           </div>
 
@@ -329,6 +394,66 @@ const flightCategories = ref([])
 const isEdit = ref(false)
 const loading = ref(false)
 const error = ref('')
+
+// Danh sách tỉnh thành phố
+const allCities = [
+  'Hà Nội',
+  'TP Hồ Chí Minh',
+  'Hải Phòng',
+  'Đà Nẵng',
+  'Cần Thơ',
+  'Thừa Thiên Huế',
+  'Cao Bằng',
+  'Lạng Sơn',
+  'Quảng Ninh',
+  'Lai Châu',
+  'Điện Biên',
+  'Sơn La',
+  'Tuyên Quang',
+  'Lào Cai',
+  'Thái Nguyên',
+  'Phú Thọ',
+  'Bắc Ninh',
+  'Nam Định',
+  'Hà Nam',
+  'Thanh Hóa',
+  'Nghệ An',
+  'Hà Tĩnh',
+  'Quảng Bình',
+  'Quảng Nam',
+  'Kon Tum',
+  'Đắk Lắk',
+  'Lâm Đồng',
+  'Khánh Hòa',
+  'Bình Định',
+  'Đồng Nai',
+  'Long An',
+  'Tiền Giang',
+  'Vĩnh Long',
+  'Cà Mau'
+]
+
+// Biến lưu tỉnh/thành phố đi và đến
+const departureCity = ref('')
+const arrivalCity = ref('')
+
+// Validation errors
+const validationErrors = ref({})
+
+// Tự động tạo tên chuyến bay từ tỉnh/thành phố đi và đến
+const flightName = computed(() => {
+  if (departureCity.value && arrivalCity.value) {
+    return `${departureCity.value} - ${arrivalCity.value}`
+  }
+  return ''
+})
+
+// Cập nhật flight.name khi flightName thay đổi
+watch(flightName, (newName) => {
+  if (newName) {
+    flight.value.name = newName
+  }
+})
 
 // Thông tin vé
 const ticketForm = ref({
@@ -441,31 +566,52 @@ const seatPreviewRows = computed(() => {
 });
 
 const previewFlightNumber = computed(() => {
-  if (!flight.value.name || !flight.value.airline || !flight.value.departureTime) return '';
-  const nameAcronym = flight.value.name
-    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-    .split(/\s+/).map(w => w[0]).join('').toUpperCase();
+  if (!flightName.value || !flight.value.airline || !flight.value.departureTime) return '';
+  
+  // Tạo viết tắt từ tên chuyến bay (từ tỉnh/thành phố đi và đến)
+  const nameAcronym = flightName.value
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '') // Loại bỏ dấu
+    .split(/\s+/).map(w => w[0]).join('').toUpperCase(); // Lấy chữ cái đầu của mỗi từ
+  
+  // Tạo viết tắt từ tên hãng hàng không
   const airlineAcronym = flight.value.airline ? flight.value.airline.name.split(' ').map(w => w[0]).join('').toUpperCase() : '';
+  
+  // Lấy giờ và phút từ thời gian khởi hành
   const d = new Date(flight.value.departureTime);
   const hour = d.getHours().toString().padStart(2, '0');
   const min = d.getMinutes().toString().padStart(2, '0');
+  
+  // Tạo số ngẫu nhiên
   const rand = Math.floor(10000 + Math.random() * 90000);
+  
+  // Kết hợp các thành phần để tạo mã chuyến bay
   return `${nameAcronym}-${airlineAcronym}-${hour}${min}-${rand}`;
 })
 
 const images = ref([])
+const loadingImage = ref(false)
 function onImageChange(e) {
   const files = Array.from(e.target.files)
-  for (const file of files) {
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      images.value.push({ file, preview: ev.target.result })
+  if (files.length === 0) return
+  loadingImage.value = true
+  try {
+    for (const file of files) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        images.value.push({ file, preview: ev.target.result })
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
+    window.$toast('Thêm ảnh thành công!', 'success')
+  } catch (error) {
+    window.$toast('Lỗi khi thêm ảnh!', 'error')
+  } finally {
+    loadingImage.value = false
   }
 }
 function removeImage(idx) {
   images.value.splice(idx, 1)
+  window.$toast('Xóa ảnh thành công!', 'success')
 }
 
 onMounted(async () => {
@@ -483,7 +629,116 @@ onMounted(async () => {
   }
 })
 
+// Hàm validate trực tiếp trong component
+function validateFlight() {
+  const errors = {}
+  let isValid = true
+
+  // Validate tỉnh/thành phố đi và đến
+  if (!departureCity.value) {
+    errors.departureCity = ['Tỉnh/thành phố đi là bắt buộc']
+    isValid = false
+  }
+  
+  if (!arrivalCity.value) {
+    errors.arrivalCity = ['Tỉnh/thành phố đến là bắt buộc']
+    isValid = false
+  } else if (departureCity.value && arrivalCity.value === departureCity.value) {
+    errors.arrivalCity = ['Tỉnh/thành phố đến phải khác tỉnh/thành phố đi']
+    isValid = false
+  }
+  
+  // Validate tên chuyến bay
+  if (!flight.value.name || flight.value.name.trim() === '') {
+    errors.name = ['Tên chuyến bay là bắt buộc']
+    isValid = false
+  } else if (flight.value.name.length < 3) {
+    errors.name = ['Tên chuyến bay phải có ít nhất 3 ký tự']
+    isValid = false
+  }
+
+  // Validate hãng hàng không
+  if (!flight.value.airline) {
+    errors.airline = ['Hãng hàng không là bắt buộc']
+    isValid = false
+  }
+
+  // Validate sân bay đi
+  if (!flight.value.departureAirport) {
+    errors.departureAirport = ['Sân bay đi là bắt buộc']
+    isValid = false
+  }
+
+  // Validate sân bay đến
+  if (!flight.value.arrivalAirport) {
+    errors.arrivalAirport = ['Sân bay đến là bắt buộc']
+    isValid = false
+  } else if (flight.value.departureAirport && flight.value.arrivalAirport.id === flight.value.departureAirport.id) {
+    errors.arrivalAirport = ['Sân bay đến phải khác sân bay đi']
+    isValid = false
+  }
+
+  // Validate thời gian khởi hành
+  if (!flight.value.departureTime) {
+    errors.departureTime = ['Thời gian khởi hành là bắt buộc']
+    isValid = false
+  }
+
+  // Validate thời gian đến
+  if (!flight.value.arrivalTime) {
+    errors.arrivalTime = ['Thời gian đến là bắt buộc']
+    isValid = false
+  } else if (flight.value.departureTime && new Date(flight.value.arrivalTime) <= new Date(flight.value.departureTime)) {
+    errors.arrivalTime = ['Thời gian đến phải sau thời gian đi']
+    isValid = false
+  }
+  
+  // Validate danh mục
+  if (!flight.value.category) {
+    errors.category = ['Danh mục là bắt buộc']
+    isValid = false
+  }
+
+  // Validate thông tin vé
+  if (ticketForm.value.total <= 0) {
+    errors.total = ['Tổng số vé phải lớn hơn 0']
+    isValid = false
+  }
+
+  if (ticketForm.value.economyPrice < 0) {
+    errors.economyPrice = ['Giá vé phổ thông không được âm']
+    isValid = false
+  }
+
+  if (ticketForm.value.businessPrice < 0) {
+    errors.businessPrice = ['Giá vé thương gia không được âm']
+    isValid = false
+  }
+  
+  // Validate trọng lượng hành lý
+  if (ticketForm.value.economyLuggage < 1 || ticketForm.value.economyLuggage > 50) {
+    errors.economyLuggage = ['Trọng lượng hành lý phổ thông phải từ 1 đến 50 kg']
+    isValid = false
+  }
+  
+  if (ticketForm.value.businessLuggage < 1 || ticketForm.value.businessLuggage > 50) {
+    errors.businessLuggage = ['Trọng lượng hành lý thương gia phải từ 1 đến 50 kg']
+    isValid = false
+  }
+
+  return { isValid, errors }
+}
+
 async function submitFlight() {
+  // Validate form before submit
+  const { isValid, errors } = validateFlight()
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin chuyến bay!', 'error')
+    return
+  }
+  
   loading.value = true
 
   // Sinh mã chuyến bay tự động

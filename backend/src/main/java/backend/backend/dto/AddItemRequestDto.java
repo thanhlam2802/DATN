@@ -33,10 +33,9 @@ public class AddItemRequestDto {
 
     // Dành cho Flight
     private Integer flightSlotId;
+    
 
-
-
-
+    // Dành cho Bus
     private Integer busSlotId;
     private List<Integer> selectedSeatIds;    // Specific to Bus (like roomId for Hotel)
     private String notes;                     // General purpose notes

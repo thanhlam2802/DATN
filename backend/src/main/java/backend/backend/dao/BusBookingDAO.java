@@ -6,6 +6,8 @@ import java.util.Optional;
 
 import backend.backend.entity.enumBus.BusBookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import backend.backend.entity.BusBooking;
 import org.springframework.data.jpa.repository.Query;
@@ -67,4 +69,6 @@ public interface BusBookingDAO extends JpaRepository<BusBooking, Integer> {
 
 	@Query("SELECT bb FROM BusBooking bb WHERE bb.customer.id = :customerId ORDER BY bb.bookingDate DESC LIMIT 10")
 	List<BusBooking> findRecentBookingsByCustomerId(@Param("customerId") Integer customerId);
+
+
 }

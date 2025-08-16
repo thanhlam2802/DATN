@@ -4,11 +4,12 @@ import backend.backend.entity.Customer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface CustomerDAO extends JpaRepository<Customer, Integer> {
     Optional<Customer> findByEmail(String email);
-    // ✅ CHỈ THÊM METHOD NÀY:
-    Optional<Customer> findByPhone(String phone);
-} 
+    List<Customer> findAllByEmail(String email);
+    Optional<Customer> findByPhone(String passengerPhone);
+}

@@ -3,6 +3,7 @@ package backend.backend.dao.Bus;
 import backend.backend.entity.BusSeat;
 import backend.backend.entity.enumBus.BusSeatType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -10,6 +11,9 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 
 @Repository
 public interface BusSeatDAO extends JpaRepository<BusSeat, Integer> {
@@ -119,4 +123,22 @@ public interface BusSeatDAO extends JpaRepository<BusSeat, Integer> {
      */
     @Query("SELECT bs.isBooked, COUNT(bs) FROM BusSeat bs WHERE bs.busSlot.id = :busSlotId GROUP BY bs.isBooked")
     List<Object[]> getBookingStatisticsByBusSlotId(@Param("busSlotId") Integer busSlotId);
+
+
+    // ✅ Lock danh sách ghế theo slot + seat numbers
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT bs FROM BusSeat bs WHERE bs.busSlot.id = :busSlotId AND bs.seatNumber IN :seatNumbers")
+    List<BusSeat> lockSeatsForUpdate(@Param("busSlotId") Integer busSlotId,
+                                     @Param("seatNumbers") List<String> seatNumbers);
+
+    // ✅ Bulk mark booked nếu còn trống (tuỳ chọn dùng thay saveAll)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE BusSeat bs SET bs.isBooked = true WHERE bs.id IN :ids AND bs.isBooked = false")
+    int markBookedIfFree(@Param("ids") List<Integer> ids);
+
+    // ✅ Bulk unlock (khi hủy/expire)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE BusSeat bs SET bs.isBooked = false WHERE bs.id IN :ids")
+    int unlockSeats(@Param("ids") List<Integer> ids);
+
 }

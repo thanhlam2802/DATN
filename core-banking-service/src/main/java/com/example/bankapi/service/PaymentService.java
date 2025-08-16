@@ -15,9 +15,11 @@ public interface PaymentService {
     PaymentDto initiatePayment(String debtorAccountNumber, String debtorBankCode, String creditorAccountNumber, String creditorBankCode, java.math.BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey);
     PaymentDto payServicePayment(String customerAccountNumber, String customerBankCode, java.math.BigDecimal amount, String currency, String remittanceInfo, String idempotencyKey);
     RefundDto refundPayment(UUID paymentId, java.math.BigDecimal amount, String reason);
-    RefundDto refundByTransactionId(UUID transactionId, String reason);
+
     PaymentDto getStatus(UUID paymentId);
     void cancelPayment(UUID paymentId);
     PaymentDto makeServicePayment(ServicePaymentRequestDto req);
     TransactionDto confirmServicePayment(String paymentId, String otp);
+    PaymentDto makeRefund(UUID transactionId, String reason);
+    RefundDto confirmRefund(String paymentId, String otp);
 } 

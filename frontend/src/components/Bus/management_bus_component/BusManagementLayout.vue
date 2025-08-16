@@ -290,7 +290,7 @@ const tripBadge = computed(() => statsData.value.todayTrips > 0 ? statsData.valu
 const menuItems = ref([
   { id: 'route', name: 'Tuyến đường', icon: MapIcon, routeName: 'RouteManagement' },
   { id: 'category', name: 'Loại xe', icon: LayoutGridIcon, routeName: 'BusCategoryManagement' },
-  { id: 'bus', name: 'Xe buýt', icon: BusIcon, routeName: 'BusManagement', badge: busBadge },
+  { id: 'bus', name: 'Xe buýt', icon: BusIcon, routeName: 'BusManagementPage', badge: busBadge },
   { id: 'trip', name: 'Chuyến đi', icon: TicketIcon, routeName: 'TripManagement', badge: tripBadge },
   { id: 'price', name: 'Giá vé', icon: CircleDollarSignIcon, routeName: 'PriceManagement' },
   { id: 'statistics', name: 'Thống kê', icon: BarChart3Icon, routeName: 'Statistics' }

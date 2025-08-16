@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import ProvinceAPI from '@/api/provinceApi'
+import ProvinceAPI, { clearProvinceCache } from '@/api/provinceApi'
 import { graphqlRequest } from '@/api/graphqlClient'
 import { toast } from '@/utils/notifications'
 
@@ -58,12 +58,13 @@ const loadDepartureDistricts = async (provinceName) => {
     departureDistricts.value = []
     return
   }
-  
+
   try {
     loadingDepartureDistricts.value = true
-    const districtList = await ProvinceAPI.getDistrictsByProvince(provinceName)
-    departureDistricts.value = districtList
+    const districts = await ProvinceAPI.getDistrictsByProvince(provinceName)
+    departureDistricts.value = districts
   } catch (error) {
+    console.error('❌ Error loading departure districts:', error)
     departureDistricts.value = []
   } finally {
     loadingDepartureDistricts.value = false
@@ -75,12 +76,13 @@ const loadArrivalDistricts = async (provinceName) => {
     arrivalDistricts.value = []
     return
   }
-  
+
   try {
     loadingArrivalDistricts.value = true
-    const districtList = await ProvinceAPI.getDistrictsByProvince(provinceName)
-    arrivalDistricts.value = districtList
+    const districts = await ProvinceAPI.getDistrictsByProvince(provinceName)
+    arrivalDistricts.value = districts
   } catch (error) {
+    console.error('❌ Error loading arrival districts:', error)
     arrivalDistricts.value = []
   } finally {
     loadingArrivalDistricts.value = false
@@ -106,14 +108,25 @@ watch(() => searchForm.value.arrivalProvince, (newProvince) => {
   }
 })
 
+
+
 const handleSearch = async () => {
   if (!isFormValid.value) {
     alert('Vui lòng điền đầy đủ thông tin tìm kiếm')
     return
   }
 
+  console.log('🔍 DEBUG: Starting search with form data:', {
+    departureProvince: searchForm.value.departureProvince,
+    departureDistrict: searchForm.value.departureDistrict,
+    arrivalProvince: searchForm.value.arrivalProvince,
+    arrivalDistrict: searchForm.value.arrivalDistrict,
+    departureDate: searchForm.value.departureDate,
+    seats: searchForm.value.seats
+  })
+
   try {
-    // Tạo search criteria với tên tỉnh/huyện
+    // Tạo search criteria
   const searchCriteria = {
       departureProvince: searchForm.value.departureProvince,
       departureDistrict: searchForm.value.departureDistrict || null,
@@ -122,6 +135,8 @@ const handleSearch = async () => {
       slotDate: searchForm.value.departureDate,
       minAvailableSeats: searchForm.value.seats
     }
+
+    console.log('📋 DEBUG: Search criteria:', searchCriteria)
 
     // Gọi GraphQL query
     const response = await graphqlRequest({
@@ -202,6 +217,9 @@ const handleSearch = async () => {
       }
     })
 
+    console.log('📡 DEBUG: GraphQL response:', response)
+    console.log('🚌 DEBUG: Bus slots found:', response.data?.searchBusSlotsDetailed?.length || 0)
+
     // Transform data và emit với format mong đợi của BusSearchModal
     const searchResults = {
       busSlots: response.data.searchBusSlotsDetailed,
@@ -215,9 +233,12 @@ const handleSearch = async () => {
       }
     }
 
+    console.log('✅ DEBUG: Emitting search results:', searchResults)
+
     // Emit kết quả tìm kiếm
     emit('search', searchResults)
   } catch (error) {
+    console.error('❌ DEBUG: Search error:', error)
     toast.warning('Không tìm thấy kết quả')
   }
 }
@@ -227,8 +248,9 @@ const today = new Date().toISOString().split('T')[0]
 searchForm.value.departureDate = today
 
 // Load provinces on mount
-onMounted(() => {
-  loadProvinces()
+onMounted(async () => {
+  clearProvinceCache()
+  await loadProvinces()
 })
 </script>
 
@@ -268,10 +290,10 @@ onMounted(() => {
           </select>
         </div>
 
-        <!-- Departure District -->
+        <!-- Departure District (Optional) -->
         <div class="space-y-2">
           <label class="block text-xs sm:text-sm font-medium text-gray-700">
-            Quận/Huyện đi
+            Quận/Huyện đi (tùy chọn)
             <span v-if="loadingDepartureDistricts" class="text-blue-500 ml-1">
               <i class="fas fa-spinner fa-spin text-xs"></i>
             </span>
@@ -282,8 +304,8 @@ onMounted(() => {
             class="w-full px-3 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option value="">Tất cả quận/huyện</option>
-            <option v-for="district in departureDistricts" :key="district.code" :value="district.name">
-              {{ district.name }}
+            <option v-for="district in departureDistricts" :key="district.code" :value="district.value">
+              {{ district.label }}
             </option>
           </select>
         </div>
@@ -311,10 +333,10 @@ onMounted(() => {
           </select>
         </div>
 
-        <!-- Arrival District -->
+        <!-- Arrival District (Optional) -->
         <div class="space-y-2">
           <label class="block text-xs sm:text-sm font-medium text-gray-700">
-            Quận/Huyện đến
+            Quận/Huyện đến (tùy chọn)
             <span v-if="loadingArrivalDistricts" class="text-blue-500 ml-1">
               <i class="fas fa-spinner fa-spin text-xs"></i>
             </span>
@@ -325,8 +347,8 @@ onMounted(() => {
             class="w-full px-3 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option value="">Tất cả quận/huyện</option>
-            <option v-for="district in arrivalDistricts" :key="district.code" :value="district.name">
-              {{ district.name }}
+            <option v-for="district in arrivalDistricts" :key="district.code" :value="district.value">
+              {{ district.label }}
             </option>
           </select>
         </div>

@@ -16,6 +16,7 @@ input CreateLocationInput {
 input CreateRouteInput {
     originLocationDetails: CreateLocationInput!
     destinationLocationDetails: CreateLocationInput!
+    ownerId: ID!
     distanceKm: Float
     estimatedDurationMinutes: Int
 }
@@ -61,6 +62,8 @@ type Query {
     findAllRoutes: [Route!]!
     findRouteById(id: ID!): Route
     popularRoutes(limit: Int): [RouteCard]
+    # ✅ THÊM MỚI: Lấy routes theo ownerId
+    getRoutesByOwnerId(ownerId: ID!): [Route!]!
 }
 
 type RouteCard {

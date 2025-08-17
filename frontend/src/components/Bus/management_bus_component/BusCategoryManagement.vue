@@ -273,7 +273,7 @@ const isLoadingStats = ref(false)
 const error = ref<string | null>(null)
 const activeDropdown = ref<string | null>(null)
 const lastRefreshTime = ref<Date | null>(null)
-const autoRefreshInterval = ref<NodeJS.Timeout | null>(null)
+const autoRefreshInterval = ref<any>(null)
 
 // Modal ref
 const categoryModal = ref<InstanceType<typeof BusCategoryModal> | null>(null)
@@ -363,6 +363,7 @@ const loadCategories = async () => {
   error.value = null
   
   try {
+    // ✅ Load all global categories (BusCategory là global cho tất cả nhà xe)
     categories.value = await BusCategoryAPI.getAllBusCategories()
   } catch (err) {
     error.value = 'Không thể tải danh sách loại xe'
@@ -376,13 +377,9 @@ const loadUserBusData = async () => {
   isLoadingStats.value = true
   
   try {
-    const { user } = useAuth()
-    const currentUserId = user.value?.id?.toString()
-    
-    if (!currentUserId) {
-      console.warn('⚠️ [DEBUG] No user ID available')
-      return
-    }
+    // ✅ Sử dụng requireUserId thay vì user.value?.id
+    const { requireUserId } = useAuth()
+    const currentUserId = requireUserId()
     
     // Load user's buses
     userBuses.value = await BusAPI.getBusesByOwnerId(currentUserId)

@@ -663,6 +663,7 @@ import BusCreationModal from './BusCreationModal.vue'
 // @ts-ignore - Type definitions will be added later
 import { toast, confirm, handleError } from '@/utils/notifications'
 import { Trash2 } from 'lucide-vue-next'
+// @ts-ignore
 import { useAuth } from '@/composables/useAuth'
 
 const buses = ref<Bus[]>([]);
@@ -900,11 +901,8 @@ const loadBuses = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const { user } = useAuth()
-    const ownerId = user.value?.id?.toString()
-    if (!ownerId) {
-      throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
-    }
+    const { requireUserId } = useAuth()
+    const ownerId = requireUserId() // ✅ Sử dụng requireUserId từ enhanced useAuth
     const result = await BusAPI.getBusesByOwnerId(ownerId);
     
     
@@ -938,7 +936,7 @@ const loadBusCategories = async () => {
       }
     });
     
-    // From API (optional - load all available categories)
+    // ✅ From API - load all global categories
     try {
       const { getAllBusCategories } = await import('@/api/busApi/bus/categoryApi');
       const allCategories = await getAllBusCategories();

@@ -31,6 +31,13 @@ public class Route {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "destination_location_id", nullable = false) // Đây là khóa ngoại trỏ tới bảng 'locations'
     private Location destinationLocation; // Điểm đến của tuyến đường
+    
+    // ✅ THÊM MỚI: Route thuộc về doanh nghiệp/nhà xe
+    @NotNull
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner; // Route thuộc về doanh nghiệp này
+    
     @Column(name = "distance_km")
     private Double distanceKm;
 

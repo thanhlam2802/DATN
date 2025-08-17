@@ -19,6 +19,8 @@ const GET_ALL_BUS_CATEGORIES = gql`
   ${BUS_CATEGORY_FRAGMENT}
 `;
 
+// ❌ REMOVED: getBusCategoriesByOwnerId - BusCategory là global
+
 const CREATE_BUS_CATEGORY = gql`
   mutation CreateBusCategory($input: CreateBusCategoryInput!) {
     createBusCategory(input: $input) {
@@ -51,6 +53,9 @@ export const getAllBusCategories = async (): Promise<BusCategory[]> => {
     throw error;
   }
 };
+
+// ❌ REMOVED: getBusCategoriesByOwnerId - BusCategory là global
+// Tất cả nhà xe đều sử dụng getAllBusCategories()
 
 export async function createBusCategory(input: CreateBusCategoryInput): Promise<BusCategory> {
   try {

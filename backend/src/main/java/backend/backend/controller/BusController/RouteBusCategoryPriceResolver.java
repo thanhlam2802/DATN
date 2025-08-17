@@ -86,4 +86,12 @@ public class RouteBusCategoryPriceResolver {
         }
     }
 
+    // ✅ THÊM MỚI: Lấy prices theo ownerId và routeId
+    @QueryMapping
+    public List<RouteBusCategoryPriceResponse> findPricesByOwnerIdAndRoute(
+            @Argument Integer ownerId, 
+            @Argument Integer routeId) {
+        return routeBusCategoryPriceService.findPricesByOwnerIdAndRoute(ownerId, routeId);
+    }
+
 }

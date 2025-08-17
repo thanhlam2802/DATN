@@ -24,4 +24,8 @@ public interface RouteDAO extends JpaRepository<Route, Integer> {
 
     Optional<Route> findByOriginLocation_IdAndDestinationLocation_Id(Integer originLocationId, Integer destinationLocationId);
 
+    // ✅ UPDATED: Tìm Routes theo ownerId trực tiếp (Route có owner)
+    @Query("SELECT r FROM Route r WHERE r.owner.id = :ownerId")
+    List<Route> findByOwnerId(@Param("ownerId") Integer ownerId);
+
 }

@@ -41,6 +41,12 @@ export interface CreateRouteInput {
   destinationLocationDetails: CreateLocationInput;
   
   /**
+   * ID doanh nghiệp sở hữu route
+   * @validation NotNull - route phải thuộc về doanh nghiệp
+   */
+  ownerId: number;
+  
+  /**
    * Khoảng cách (km) - tùy chọn
    */
   distanceKm?: number;

@@ -2,7 +2,8 @@ import { graphqlRequest, graphqlMutation } from '@/api/graphqlClient'
 import {
   FIND_ALL_ROUTE_BUS_CATEGORY_PRICES,
   FIND_ROUTE_BUS_CATEGORY_PRICE_BY_ID,
-  FIND_ACTIVE_ROUTE_BUS_CATEGORY_PRICE
+  FIND_ACTIVE_ROUTE_BUS_CATEGORY_PRICE,
+  FIND_PRICES_BY_OWNER_ID_AND_ROUTE
 } from './queries'
 import {
   CREATE_ROUTE_BUS_CATEGORY_PRICE,
@@ -32,6 +33,22 @@ export class PriceAPI {
         variables: {} 
       })
       const prices = response.data?.findAllRouteBusCategoryPrices || []
+      return prices
+    } catch (error) {
+      throw error
+    }
+  }
+
+  /**
+   * ✅ THÊM MỚI: Lấy prices theo ownerId và routeId
+   */
+  static async findPricesByOwnerIdAndRoute(ownerId: string, routeId: string): Promise<RouteBusCategoryPrice[]> {
+    try {
+      const response = await graphqlRequest({ 
+        query: FIND_PRICES_BY_OWNER_ID_AND_ROUTE,
+        variables: { ownerId, routeId } 
+      })
+      const prices = response.data?.findPricesByOwnerIdAndRoute || []
       return prices
     } catch (error) {
       throw error

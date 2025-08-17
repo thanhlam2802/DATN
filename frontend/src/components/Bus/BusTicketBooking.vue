@@ -8,6 +8,7 @@ import { createCustomer } from '@/api/CustomerApi'
 import { addItemToCart } from '@/api/OrderApi'
 import BusSeatSelection from './BusSeatSelection.vue'
 import { getUserIdFromToken } from '@/services/TokenService' // ✅ THÊM
+import { useAuth } from '@/composables/useAuth'
 
 // DEV MODE: No auth required for booking
 
@@ -462,7 +463,7 @@ const bookDirectly = async () => {
       phone: bookingData.value.passengerInfo.phoneNumber.replace(/\s/g, ''),
       email: bookingData.value.passengerInfo.email || undefined,
       notes: bookingData.value.passengerInfo.notes,
-      userId: getUserIdFromToken() || 1 // ✅ THÊM userId với fallback
+      userId: useAuth().requireUserId() // ✅ Sử dụng enhanced useAuth
     }
 
     // Validate direct booking request

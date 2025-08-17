@@ -44,6 +44,8 @@ extend type Query {
     findRouteBusCategoryPriceById(id: ID!): RouteBusCategoryPrice
     # Tìm quy tắc giá hiệu lực vào một ngày cụ thể cho cặp tuyến/loại xe
     findActiveRouteBusCategoryPrice(routeId: ID!, busCategoryId: ID!, date: String!): RouteBusCategoryPrice
+    # ✅ THÊM MỚI: Tìm prices theo ownerId và routeId
+    findPricesByOwnerIdAndRoute(ownerId: ID!, routeId: ID!): [RouteBusCategoryPrice!]!
 }
 
 # --- Định nghĩa các Mutation (ghi dữ liệu) cho Quy tắc giá ---

@@ -271,6 +271,8 @@ import {
 import { ImageAPI } from '@/api/busApi/imageApi';
 import { BusAPI } from '@/api/busApi/bus/api';
 import * as BusCategoryAPI from '@/api/busApi/bus/categoryApi';
+// @ts-ignore
+import { useAuth } from '@/composables/useAuth';
 import type { CreateBusInput, UpdateBusInput } from '@/api/busApi/bus/types';
 import type { BusCategory } from '@/api/busApi/types/common.types';
 import type { Bus } from '@/api/busApi/types/common.types';
@@ -326,6 +328,7 @@ const toggleAmenity = (amenityName: string) => {
 };
 
 onMounted(async () => {
+  // ✅ Load all global categories (BusCategory là global cho tất cả nhà xe)
   categories.value = await BusCategoryAPI.getAllBusCategories();
 });
 
@@ -432,7 +435,8 @@ const handleSubmit = async () => {
     }
 
     // 2. Create or Update bus
-    const ownerId = 11; // TODO: Get ownerId from logged-in user state
+    const { requireUserId } = useAuth();
+    const ownerId = parseInt(requireUserId()); // ✅ Sử dụng token động
     
     if (isEditMode.value && editingBusId.value) {
       // Update existing bus

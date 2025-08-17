@@ -19,5 +19,8 @@ public interface RouteService {
 
     List<RouteResponse> findAllRouteDetails(); // THÊM: Phương thức mới trả về List<RouteResponse>
     Optional<RouteResponse> findRouteDetailsById(Integer id); // THÊM: Phương thức mới trả về Optional<RouteResponse>
+    
+    // ✅ THÊM MỚI: Lấy routes theo ownerId
+    List<Route> getRoutesByOwnerId(Integer ownerId);
 
 }

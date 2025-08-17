@@ -210,6 +210,14 @@ public class RouteBusCategoryPriceServiceImpl implements RouteBusCategoryPriceSe
                 .map(this::convertToRouteBusCategoryPriceResponse);
     }
 
-
+    // ✅ THÊM MỚI: Lấy prices theo ownerId và routeId
+    @Override
+    @Transactional(readOnly = true)
+    public List<RouteBusCategoryPriceResponse> findPricesByOwnerIdAndRoute(Integer ownerId, Integer routeId) {
+        return routeBusCategoryPriceDAO.findByOwnerIdAndRoute(ownerId, routeId)
+                .stream()
+                .map(this::convertToRouteBusCategoryPriceResponse)
+                .collect(Collectors.toList());
+    }
 
 }

@@ -260,12 +260,14 @@ const error = ref(null)
 // Modal ref
 const routeModal = ref<InstanceType<typeof RouteModal> | null>(null);
 
+// Auth
+const { requireUserId } = useAuth()
+
 // Methods
 const loadRoutes = async () => {
   try {
     isLoading.value = true;
-    // Tạm thời dùng userId = 11 theo yêu cầu
-    const ownerId = '11'
+    const ownerId = requireUserId() // ✅ Sử dụng token động
     routes.value = await RouteAPI.getRoutesByOwnerId(ownerId);
   } catch (error) {
     throw error;
@@ -280,11 +282,10 @@ const handleAddRoute = () => {
 
 const handleEditRoute = async (route: Route) => {
   try {
-    // Load price information for this route before opening modal
-    const routePrices = await PriceAPI.findAllPrices()
-    const routePriceData = routePrices.filter(price => 
-      price.route && String(price.route.id) === String(route.id)
-    )
+    // ✅ Load price information by owner ID and route
+    const ownerId = requireUserId()
+    const routePrices = await PriceAPI.findPricesByOwnerIdAndRoute(ownerId, route.id)
+    const routePriceData = routePrices
     
     // Pass price data to modal
     routeModal.value?.openForEdit(route, routePriceData)

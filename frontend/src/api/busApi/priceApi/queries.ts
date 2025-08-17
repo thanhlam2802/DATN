@@ -67,4 +67,14 @@ export const FIND_ACTIVE_ROUTE_BUS_CATEGORY_PRICE = gql`
     }
   }
   ${ROUTE_BUS_CATEGORY_PRICE_FRAGMENT}
+`;
+
+// ✅ THÊM MỚI: Query cho findPricesByOwnerIdAndRoute
+export const FIND_PRICES_BY_OWNER_ID_AND_ROUTE = gql`
+  query FindPricesByOwnerIdAndRoute($ownerId: ID!, $routeId: ID!) {
+    findPricesByOwnerIdAndRoute(ownerId: $ownerId, routeId: $routeId) {
+      ...RouteBusCategoryPriceFragment
+    }
+  }
+  ${ROUTE_BUS_CATEGORY_PRICE_FRAGMENT}
 `; 

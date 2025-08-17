@@ -9,6 +9,7 @@ import { CartAPI, CustomerAPI, BookingAPI } from '@/api/busAPI_Client/busbooking
 import { createCustomer } from '@/api/CustomerApi'
 import { addItemToCart } from '@/api/OrderApi'
 import { getUserIdFromToken, getBearerToken } from '@/services/TokenService'
+import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
   show: {
@@ -782,7 +783,7 @@ const bookDirectly = async () => {
       phone: bookingData.value.passengerInfo.phoneNumber.replace(/\s/g, ''),
       email: bookingData.value.passengerInfo.email || undefined,
       notes: bookingData.value.passengerInfo.notes,
-      userId: getUserIdFromToken() || 1
+      userId: useAuth().requireUserId() // ✅ Sử dụng enhanced useAuth
     }
 
     // Validate request

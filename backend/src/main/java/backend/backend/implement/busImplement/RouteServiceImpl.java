@@ -4,12 +4,14 @@ import backend.backend.dao.Bus.BusSlotDAO;
 import backend.backend.dao.Bus.LocationDAO;
 import backend.backend.dao.Bus.RouteBusCategoryPriceDAO;
 import backend.backend.dao.Bus.RouteDAO;
+import backend.backend.dao.UserDAO;
 import backend.backend.dto.BusDTO.CreateLocationInput;
 import backend.backend.dto.BusDTO.CreateRouteRequest;
 import backend.backend.dto.BusDTO.RouteResponse; // Đảm bảo đã import
 import backend.backend.dto.BusDTO.UpdateRouteRequest;
 import backend.backend.entity.Location; // Đảm bảo đã import
 import backend.backend.entity.Route;
+import backend.backend.entity.User;
 import backend.backend.service.busService.RouteService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class RouteServiceImpl implements RouteService {
         private final LocationDAO locationDAO; // Đã inject LocationDAO
         private final BusSlotDAO busSlotDAO;
         private final RouteBusCategoryPriceDAO  routeBusCategoryPriceDAO;
+        private final UserDAO userDAO; // ✅ THÊM MỚI: Để validate owner
 
     // Các phương thức trả về Route entity nguyên bản (cho GraphQL Resolver)
     @Override
@@ -52,8 +55,13 @@ public class RouteServiceImpl implements RouteService {
         Location originLocation = findOrCreateLocation(routeDTO.originLocationDetails());
         Location destinationLocation = findOrCreateLocation(routeDTO.destinationLocationDetails());
 
+        // ✅ THÊM MỚI: Set owner cho Route
+        User owner = userDAO.findById(routeDTO.ownerId())
+                .orElseThrow(() -> new EntityNotFoundException("Owner with ID " + routeDTO.ownerId() + " not found."));
+
         route.setOriginLocation(originLocation);
         route.setDestinationLocation(destinationLocation);
+        route.setOwner(owner);
         route.setDistanceKm(routeDTO.distanceKm());
         route.setEstimatedDurationMinutes(routeDTO.estimatedDurationMinutes());
 
@@ -131,6 +139,13 @@ public class RouteServiceImpl implements RouteService {
     public Optional<RouteResponse> findRouteDetailsById(Integer id) {
         return routeDAO.findByIdWithLocations(id)
                 .map(RouteResponse::new); // Sử dụng constructor của RouteResponse để ánh xạ
+    }
+    
+    // ✅ THÊM MỚI: Lấy routes theo ownerId
+    @Override
+    @Transactional(readOnly = true)
+    public List<Route> getRoutesByOwnerId(Integer ownerId) {
+        return routeDAO.findByOwnerId(ownerId);
     }
 }
 

@@ -3,7 +3,7 @@
  */
 
 import { graphqlRequest } from '../../graphqlClient';
-import { FIND_ALL_ROUTES, FIND_ROUTE_BY_ID } from './queries';
+import { FIND_ALL_ROUTES, FIND_ROUTE_BY_ID, GET_ROUTES_BY_OWNER_ID } from './queries';
 import { CREATE_ROUTE, UPDATE_ROUTE, DELETE_ROUTE } from './mutations';
 import type { Route, CreateRouteInput, UpdateRouteInput } from './types';
 
@@ -18,13 +18,14 @@ export const RouteAPI = {
     }
   },
 
-  // TEMP: Stub method to support owner-based fetching in UI. Backend query by ownerId chưa có.
-  async getRoutesByOwnerId(_ownerId: string): Promise<Route[]> {
+  // ✅ UPDATED: Thực sự lấy routes theo ownerId từ backend
+  async getRoutesByOwnerId(ownerId: string): Promise<Route[]> {
     try {
-      // Hiện chưa có query filter theo ownerId trong schema Routes.graphqls
-      // Tạm thời trả về toàn bộ routes để UI hoạt động, bỏ qua ownerId
-      const response = await graphqlRequest({ query: FIND_ALL_ROUTES });
-      return response.data.findAllRoutes || [];
+      const response = await graphqlRequest({ 
+        query: GET_ROUTES_BY_OWNER_ID, 
+        variables: { ownerId } 
+      });
+      return response.data.getRoutesByOwnerId || [];
     } catch (error) {
       throw error;
     }

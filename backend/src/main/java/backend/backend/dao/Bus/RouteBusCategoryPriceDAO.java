@@ -43,4 +43,18 @@ public interface RouteBusCategoryPriceDAO extends JpaRepository<RouteBusCategory
         Optional<RouteBusCategoryPrice> findByIdWithDetails(@Param("id") Integer id);
 
         void deleteByRoute_Id(Integer routeId);
+        
+        // ✅ THÊM MỚI: Tìm prices theo ownerId và routeId
+        @Query("SELECT rbc FROM RouteBusCategoryPrice rbc " +
+               "JOIN FETCH rbc.route r " +
+               "JOIN FETCH r.originLocation " +
+               "JOIN FETCH r.destinationLocation " +
+               "JOIN FETCH rbc.busCategory " +
+               "INNER JOIN BusRoute br ON br.route.id = r.id " +
+               "INNER JOIN Bus b ON br.bus.id = b.id " +
+               "WHERE b.owner.id = :ownerId AND r.id = :routeId")
+        List<RouteBusCategoryPrice> findByOwnerIdAndRoute(
+                @Param("ownerId") Integer ownerId, 
+                @Param("routeId") Integer routeId
+        );
 }

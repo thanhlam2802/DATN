@@ -13,6 +13,10 @@ public record CreateRouteRequest(
         @NotNull(message = "Destination location details must not be null")
         CreateLocationInput destinationLocationDetails,
 
+        // ✅ THÊM MỚI: Route phải thuộc về doanh nghiệp
+        @NotNull(message = "Owner ID must not be null")
+        Integer ownerId,
+
         Double distanceKm,
         Integer estimatedDurationMinutes
 ) {}

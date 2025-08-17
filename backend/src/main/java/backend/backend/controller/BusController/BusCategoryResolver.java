@@ -32,6 +32,8 @@ public class BusCategoryResolver {
         return busCategoryService.getAllBusCategories();
     }
 
+    // ❌ REMOVED: getBusCategoriesByOwnerId() - BusCategory là global
+
     // --- Mutation Mappings ---
     @MutationMapping
     public BusCategory createBusCategory(@Argument CreateBusCategoryRequest input) {

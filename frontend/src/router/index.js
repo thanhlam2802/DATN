@@ -11,7 +11,7 @@ import PostRegistrationChoice from "../views/PostRegistrationChoice.vue";
 import SupplierApplication from "../views/SupplierApplication.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import MainLayout from "@/layouts/Main.vue";
-import ApproveSuppliers from "@/views/Admin/ApproveSuppliers.vue";
+import ApproveSuppliers from "@/views/admin/ApproveSuppliers.vue";
 import AccountView from "@/views/AccountView.vue";
 import ServiceReviews from "@/components/User/Sidebar/ServiceReviews.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
@@ -204,8 +204,9 @@ const routes = [
   },
   {
     path: "/bus-management",
-    name: "BusManagement",
+    name: "BusManagement", 
     component: BusManagementLayout,
+    meta: { requiresAuth: true, requiresBusSupplier: true }, // ✅ Thêm authentication
     children: [
       { path: "", redirect: "route" },
       { path: "route", name: "RouteManagement", component: () => import("@/components/Bus/management_bus_component/RouteManagement.vue") },
@@ -381,6 +382,31 @@ router.beforeEach(async (to, from, next) => {
       }
 
       console.log('User has admin role, proceeding...');
+    }
+
+    // ✅ Check for bus supplier access
+    if (to.meta.requiresBusSupplier) {
+      console.log('Route requires bus supplier, checking user roles...');
+
+      if (!userStore.user || !userStore.user.roles) {
+        console.log('User has no roles, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      const hasBusSupplierRole = userStore.user.roles.some(role =>
+        role === 'BUS_SUPPLIER' ||
+        role === 'ADMIN_BUSES' ||
+        role === 'SUPER_ADMIN'
+      );
+
+      if (!hasBusSupplierRole) {
+        console.log('User does not have bus supplier role, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      console.log('User has bus supplier role, proceeding...');
     }
   }
 

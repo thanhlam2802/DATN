@@ -46,4 +46,10 @@ public class RouteResolver {
     public Optional<Route> findRouteById(@Argument Integer id) { // Trả về Optional<Route> entity
         return routeService.findRouteById(id); // Gọi phương thức trả về Route entity
     }
+
+    // ✅ THÊM MỚI: Lấy routes theo ownerId
+    @QueryMapping
+    public List<Route> getRoutesByOwnerId(@Argument Integer ownerId) {
+        return routeService.getRoutesByOwnerId(ownerId);
+    }
 }

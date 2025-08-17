@@ -88,4 +88,6 @@ public class BusCategoryServiceImpl implements BusCategoryService {
     public List<BusCategory> getAllBusCategories() {
         return busCategoryRepository.findAll();
     }
+    
+    // ❌ REMOVED: getBusCategoriesByOwnerId() - BusCategory là global
 }

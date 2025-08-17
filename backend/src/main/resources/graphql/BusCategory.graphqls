@@ -19,8 +19,9 @@ input UpdateBusCategoryInput {
 extend type Query {
     # Lấy một danh mục theo ID
     getBusCategoryById(id: ID!): BusCategory
-    # Lấy tất cả các danh mục
+    # Lấy tất cả các danh mục (global cho tất cả nhà xe)
     getAllBusCategories: [BusCategory!]!
+    # ❌ REMOVED: getBusCategoriesByOwnerId - BusCategory là global
 }
 
 # Mở rộng Mutation Type để thêm các thao tác tạo, cập nhật, xóa BusCategory

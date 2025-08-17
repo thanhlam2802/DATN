@@ -305,10 +305,14 @@ const currentPageTitle = computed(() => {
 // Load real stats data
 const loadStatsData = async () => {
   try {
+    // Import auth composable
+    const { useAuth } = await import('@/composables/useAuth')
+    const { requireUserId } = useAuth()
+    
     // Use BusAPI for better error handling and debugging
-         const { BusAPI } = await import('@/api/busApi/bus/api')
-     const ownerId = "11" // DEV_USER_ID
-     const buses = await BusAPI.getBusesByOwnerId(ownerId)
+    const { BusAPI } = await import('@/api/busApi/bus/api')
+    const ownerId = requireUserId() // ✅ Sử dụng token động
+    const buses = await BusAPI.getBusesByOwnerId(ownerId)
      
      statsData.value.totalBuses = buses.length
      

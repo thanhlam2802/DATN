@@ -167,11 +167,9 @@ export function useTripManagement() {
     try {
       loadingBuses.value = true
       
-      const { user } = useAuth()
-      const ownerId = user.value?.id?.toString()
-      if (!ownerId) {
-        throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
-      }
+      // ✅ Sử dụng requireUserId thay vì user.value?.id
+      const { requireUserId } = useAuth()
+      const ownerId = requireUserId()
 
       const response = await graphqlRequest({
         query: GET_BUSES_BY_OWNER,
@@ -202,7 +200,11 @@ export function useTripManagement() {
     try {
       loadingRoutes.value = true
       
-      const routes = await RouteAPI.getAllRoutes()
+      // ✅ Sử dụng token động
+      const { requireUserId } = useAuth()
+      const ownerId = requireUserId()
+      
+      const routes = await RouteAPI.getRoutesByOwnerId(ownerId)
       allRoutes.value = routes.map(route => ({
         id: route.id,
         origin: route.originLocation.name,

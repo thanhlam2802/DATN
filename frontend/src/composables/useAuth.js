@@ -1,37 +1,46 @@
 import { ref, computed } from 'vue'
+import { useAuthToken } from './useAuthToken'
 
-// Hardcoded user for bus management
-const HARDCODED_USER_ID = 11
-
+/**
+ * Enhanced useAuth using real JWT authentication
+ * Replaces hardcoded values with real token-based auth
+ */
 export const useAuth = () => {
-  // State
-  const isAuthenticated = ref(true) // Always authenticated for bus management
-  const user = ref({
-    id: HARDCODED_USER_ID,
-    name: 'Bus Manager',
-    email: 'bus.manager@example.com'
+  const authToken = useAuthToken()
+  
+  // Real JWT-based state
+  const isAuthenticated = computed(() => authToken.isAuthenticated.value)
+  const user = computed(() => {
+    if (!authToken.isAuthenticated.value || !authToken.userId.value) {
+      return null
+    }
+    
+    return {
+      id: authToken.userId.value,
+      name: 'User', // TODO: Get from JWT claims or API
+      email: 'user@example.com' // TODO: Get from JWT claims or API
+    }
   })
-  const userRole = ref('BUS_SUPPLIER') // Hardcoded role for bus management
+  const userRole = ref('BUS_SUPPLIER') // TODO: Get from JWT claims
 
   // Computed properties
-  const isAdmin = computed(() => false) // Not admin
-  const isBusAdmin = computed(() => true) // Is bus supplier/admin
+  const isAdmin = computed(() => false) // TODO: Based on role from JWT
+  const isBusAdmin = computed(() => isAuthenticated.value) // Any authenticated user can manage buses
 
   // Methods
   const checkAuth = async () => {
-    // Always return true for bus management
-    return Promise.resolve(true)
+    return authToken.checkAuth()
   }
 
   const logout = () => {
-    // Reset to default state
-    isAuthenticated.value = false
-    user.value = null
+    // Clear tokens and reset state
+    const { clearToken } = require('@/services/TokenService')
+    clearToken()
     userRole.value = null
   }
 
   return {
-    // State
+    // State (compatible with old useAuth)
     isAuthenticated,
     user,
     userRole,
@@ -42,6 +51,10 @@ export const useAuth = () => {
     
     // Methods
     checkAuth,
-    logout
+    logout,
+    
+    // Enhanced methods from useAuthToken
+    requireUserId: authToken.requireUserId,
+    debugAuth: authToken.debugAuth
   }
 } 

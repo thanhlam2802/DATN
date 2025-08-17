@@ -460,6 +460,8 @@ import { PriceAPI } from '@/api/busApi';
 import ProvinceAPI from '@/api/provinceApi';
 // @ts-ignore
 import { toast, handleError } from '@/utils/notifications'
+// @ts-ignore
+import { useAuth } from '@/composables/useAuth'
 
 // Emits
 const emit = defineEmits(['route-created', 'route-updated'])
@@ -680,6 +682,7 @@ const getFormattedPrice = () => {
 // Existing methods (keep but update for Location objects)
 const loadBusCategories = async () => {
   try {
+    // ✅ Load all global categories (BusCategory là global cho tất cả nhà xe)
     const categories = await BusCategoryAPI.getAllBusCategories()
     busCategories.value = categories
   } catch (error) {
@@ -693,10 +696,10 @@ const loadExistingPriceRules = async (routeId) => {
   if (!routeId) return
   
   try {
-    const routePrices = await PriceAPI.findAllPrices()
-    const filteredPrices = routePrices.filter(price => 
-      price.route && String(price.route.id) === String(routeId)
-    )
+    // ✅ Load prices by owner ID and route
+    const { requireUserId } = useAuth()
+    const ownerId = requireUserId()
+    const filteredPrices = await PriceAPI.findPricesByOwnerIdAndRoute(ownerId, routeId)
     
     if (filteredPrices.length > 0) {
       // Map existing prices to form
@@ -1040,6 +1043,10 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
+    // ✅ THÊM MỚI: Lấy ownerId cho Route
+    const { requireUserId } = useAuth()
+    const ownerId = parseInt(requireUserId())
+    
     const routeData = {
       originLocationDetails: {
         name: form.originLocation.name.trim(),
@@ -1053,6 +1060,7 @@ const handleSubmit = async () => {
         district: form.destinationLocation.district || null,
         addressDetails: form.destinationLocation.addressDetails || null
       },
+      ownerId: ownerId, // ✅ Route thuộc về doanh nghiệp này
       distanceKm: form.distanceKm,
       estimatedDurationMinutes: estimatedDurationMinutes.value
     }

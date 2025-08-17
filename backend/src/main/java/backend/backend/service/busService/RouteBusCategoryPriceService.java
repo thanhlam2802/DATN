@@ -15,6 +15,8 @@ public interface RouteBusCategoryPriceService {
     Optional<RouteBusCategoryPriceResponse> findRouteBusCategoryPriceById(Integer id);
     List<RouteBusCategoryPriceResponse> findAllRouteBusCategoryPrices();
     Optional<RouteBusCategoryPriceResponse> findActiveRouteBusCategoryPrice(Integer routeId, Integer busCategoryId, LocalDate date);
-
+    
+    // ✅ THÊM MỚI: Lấy prices theo ownerId và routeId
+    List<RouteBusCategoryPriceResponse> findPricesByOwnerIdAndRoute(Integer ownerId, Integer routeId);
 
 }

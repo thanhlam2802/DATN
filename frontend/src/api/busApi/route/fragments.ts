@@ -27,6 +27,7 @@ export const ROUTE_FRAGMENT = gql`
     destinationLocation {
       ...LocationInfo
     }
+    ownerId
     distanceKm
     estimatedDurationMinutes
     createdAt

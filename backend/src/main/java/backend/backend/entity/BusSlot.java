@@ -31,6 +31,11 @@ public class BusSlot {
     @JoinColumn(name = "route_id", nullable = false)
     private Route route;
 
+    // ✅ THÊM: Owner ID để đảm bảo multi-tenant isolation
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
     @Column(name = "slot_date", nullable = false)
     private LocalDate slotDate;
 

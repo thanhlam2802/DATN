@@ -14,7 +14,7 @@ public interface BusCategoryService {
     BusCategory getBusCategoryById(Integer id);
     List<BusCategory> getAllBusCategories();
 
-    // ❌ REMOVED: BusCategory là global cho tất cả nhà xe
-    // Chỉ cần getAllBusCategories() là đủ
+    // ✅ RESTORED: BusCategory thuộc về owner
+    List<BusCategory> getBusCategoriesByOwnerId(Integer ownerId);
 
 }

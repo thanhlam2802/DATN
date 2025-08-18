@@ -667,8 +667,7 @@ import { getAllProvinces } from "@/api/provinceApi.js";
 import HotelCard from '@/components/Home/HotelCard.vue';
 import HtmlContent from '@/components/HtmlContent.vue';
 import CustomSelect from '@/components/CustomSelect.vue';
-import SockJS from "sockjs-client/dist/sockjs.min.js";
-import Stomp from "stompjs";
+import { createWebSocketConnection } from '@/utils/webSocketUtils';
 
 const hotel = ref(null);
 const reviewsList = ref([]);
@@ -837,8 +836,10 @@ const connectWebSocket = () => {
   if (!hotelId || (stompClient.value && isSocketConnected.value)) return;
 
   const socket = new SockJS("http://localhost:8080/ws");
-  stompClient.value = Stomp.over(socket);
-  stompClient.value.debug = null;
+  stompClient.value = Stomp.over(() => socket);
+  stompClient.value.debug = function (str) {
+    // Silent debug
+  };
 
     stompClient.value.connect({}, (frame) => {
     console.log("WebSocket Connected for Hotel Detail:", frame);

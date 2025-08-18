@@ -682,8 +682,10 @@ const getFormattedPrice = () => {
 // Existing methods (keep but update for Location objects)
 const loadBusCategories = async () => {
   try {
-    // ✅ Load all global categories (BusCategory là global cho tất cả nhà xe)
-    const categories = await BusCategoryAPI.getAllBusCategories()
+    // ✅ Load categories by owner ID (BusCategory thuộc về doanh nghiệp)
+    const { requireUserId } = useAuth()
+    const ownerId = requireUserId()
+    const categories = await BusCategoryAPI.getBusCategoriesByOwnerId(ownerId)
     busCategories.value = categories
   } catch (error) {
     console.error('❌ Error loading bus categories:', error)

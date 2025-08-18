@@ -17,6 +17,45 @@ const GET_BUSES_BY_OWNER = gql`
   }
 `
 
+// ✅ THÊM: GraphQL query cho bus slots by owner
+const GET_BUS_SLOTS_BY_OWNER = gql`
+  query GetBusSlotsByOwner($ownerId: ID!) {
+    findBusSlotsByOwnerId(ownerId: $ownerId) {
+      id
+      bus {
+        id
+        name
+        licensePlate
+      }
+      route {
+        id
+        originLocation {
+          id
+          name
+          provinceCity
+          district
+        }
+        destinationLocation {
+          id
+          name
+          provinceCity
+          district
+        }
+      }
+      ownerId
+      slotDate
+      departureTime
+      arrivalTime
+      price
+      totalSeats
+      availableSeats
+      status
+      createdAt
+      updatedAt
+    }
+  }
+`
+
 export function useTripManagement() {
   // Core State
   const busSlots = ref([])
@@ -65,8 +104,11 @@ export function useTripManagement() {
     return allRoutes.value
   })
   
-  // Helper function to check if bus has conflicting trip
-  function hasConflictingTrip(busId, slotDate, departureTime) {
+  // Helper function to check if bus has conflicting trip TRONG CÙNG OWNER
+  function hasConflictingTrip(busId, slotDate, departureTime, arrivalTime) {
+    const { requireUserId } = useAuth()
+    const currentOwnerId = requireUserId()
+    
     const conflictingSlots = busSlots.value.filter(slot => {
       // Skip completed or cancelled trips
       if (slot.status === BusSlotStatus.COMPLETED || slot.status === BusSlotStatus.CANCELLED) {
@@ -78,50 +120,62 @@ export function useTripManagement() {
         return false
       }
       
+      // ✅ MULTI-TENANT: Chỉ check conflict trong cùng owner
+      if (String(slot.ownerId) !== String(currentOwnerId)) {
+        return false // Skip trips từ owners khác
+      }
+      
       // Check same bus and same date
       if (slot.bus?.id !== busId || slot.slotDate !== slotDate) {
         return false
       }
       
-      // Check time overlap with 1 hour buffer
-      const slotDepartureMinutes = timeToMinutes(slot.departureTime)
-      const newDepartureMinutes = timeToMinutes(departureTime)
+      // ✅ NEW LOGIC: Check thời gian overlap thông minh
+      const existingStart = timeToMinutes(slot.departureTime)
+      const existingEnd = timeToMinutes(slot.arrivalTime)
+      const newStart = timeToMinutes(departureTime)
+      const newEnd = timeToMinutes(arrivalTime)
       
-      return Math.abs(slotDepartureMinutes - newDepartureMinutes) < 60 // 1 hour buffer
+      // Kiểm tra overlap: Chuyến mới overlap với chuyến hiện tại
+      // Overlap xảy ra khi: newStart < existingEnd && newEnd > existingStart
+      const hasOverlap = newStart < existingEnd && newEnd > existingStart
+      
+      if (hasOverlap) {
+        console.warn(`⚠️ [VALIDATION] Time overlap detected:`, {
+          existing: `${slot.departureTime} - ${slot.arrivalTime}`,
+          new: `${departureTime} - ${arrivalTime}`,
+          busId,
+          slotDate
+        })
+        return true
+      }
+      
+      return false
     })
     
     return conflictingSlots.length > 0
   }
   
-  // Helper function để check duplicate bus-route-date combination
-  function hasDuplicateTrip(busId, routeId, slotDate) {
-    if (!busId || !routeId || !slotDate) return false
+  // ✅ NEW LOGIC: Cho phép nhiều chuyến cùng xe, cùng tuyến, cùng ngày
+  // Chỉ kiểm tra time overlap thông qua hasConflictingTrip
+  function hasDuplicateTrip(busId, routeId, slotDate, departureTime, arrivalTime) {
+    if (!busId || !routeId || !slotDate || !departureTime || !arrivalTime) return false
     
-    return busSlots.value.some(slot => {
-      // Skip completed/cancelled trips
-      if (slot.status === BusSlotStatus.COMPLETED || slot.status === BusSlotStatus.CANCELLED) {
-        return false
-      }
-      
-      // Skip current editing trip
-      if (editingTripId.value && String(slot.id) === String(editingTripId.value)) {
-        return false
-      }
-      
-      // Check exact match
-      return String(slot.bus?.id) === String(busId) && 
-             String(slot.route?.id) === String(routeId) && 
-             slot.slotDate === slotDate
-    })
+    // ✅ CHỈ CHECK TIME OVERLAP - không còn restrict exact match
+    return hasConflictingTrip(busId, slotDate, departureTime, arrivalTime)
   }
   
-  // Helper function để lấy tất cả chuyến xe của một bus trong một ngày
+  // Helper function để lấy tất cả chuyến xe của một bus trong một ngày TRONG CÙNG OWNER
   function getTripsForBusAndDate(busId, slotDate) {
     if (!busId || !slotDate) return []
+    
+    const { requireUserId } = useAuth()
+    const currentOwnerId = requireUserId()
     
     return busSlots.value.filter(slot => {
       return slot.bus?.id === busId && 
              slot.slotDate === slotDate &&
+             String(slot.ownerId) === String(currentOwnerId) && // ✅ MULTI-TENANT filter
              ['SCHEDULED', 'IN_PROGRESS'].includes(slot.status)
     })
   }
@@ -132,6 +186,70 @@ export function useTripManagement() {
     const hours = parseInt(timeParts[0])
     const minutes = parseInt(timeParts[1])
     return hours * 60 + minutes
+  }
+
+  function minutesToTime(minutes) {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+  }
+
+  // ✅ NEW: Tìm thời gian available tiếp theo cho bus
+  function getNextAvailableTime(busId, slotDate, preferredDepartureTime) {
+    const { requireUserId } = useAuth()
+    const currentOwnerId = requireUserId()
+    
+    const busTripsOnDate = busSlots.value.filter(slot => {
+      return String(slot.bus?.id) === String(busId) && 
+             slot.slotDate === slotDate &&
+             String(slot.ownerId) === String(currentOwnerId) &&
+             ['SCHEDULED', 'IN_PROGRESS'].includes(slot.status)
+    }).sort((a, b) => timeToMinutes(a.departureTime) - timeToMinutes(b.departureTime))
+
+    if (busTripsOnDate.length === 0) {
+      return preferredDepartureTime // Không có chuyến nào, dùng thời gian mong muốn
+    }
+
+    const preferredMinutes = timeToMinutes(preferredDepartureTime)
+    
+    // Tìm slot trống phù hợp
+    for (let i = 0; i < busTripsOnDate.length; i++) {
+      const currentTrip = busTripsOnDate[i]
+      const currentEnd = timeToMinutes(currentTrip.arrivalTime)
+      
+      // Check nếu preferred time có thể fit trước chuyến đầu tiên
+      if (i === 0) {
+        const firstStart = timeToMinutes(currentTrip.departureTime)
+        if (preferredMinutes + 60 <= firstStart) { // 1h buffer
+          return preferredDepartureTime
+        }
+      }
+      
+      // Check gap giữa các chuyến
+      if (i < busTripsOnDate.length - 1) {
+        const nextTrip = busTripsOnDate[i + 1]
+        const nextStart = timeToMinutes(nextTrip.departureTime)
+        const gapMinutes = nextStart - currentEnd
+        
+        if (gapMinutes >= 120) { // Cần ít nhất 2h gap cho 1 chuyến mới
+          const suggestedStart = currentEnd + 30 // 30 phút nghỉ
+          if (suggestedStart >= preferredMinutes) {
+            return minutesToTime(suggestedStart)
+          }
+        }
+      }
+    }
+    
+    // Không tìm được gap, suggest sau chuyến cuối
+    const lastTrip = busTripsOnDate[busTripsOnDate.length - 1]
+    const lastEnd = timeToMinutes(lastTrip.arrivalTime)
+    const suggestedStart = lastEnd + 30 // 30 phút nghỉ
+    
+    if (suggestedStart < 24 * 60) { // Không quá 24h
+      return minutesToTime(suggestedStart)
+    }
+    
+    return null // Không thể thêm chuyến nào trong ngày
   }
   
   // Track editing trip ID for conflict checking
@@ -219,6 +337,33 @@ export function useTripManagement() {
       error.value = 'Không thể tải danh sách tuyến đường'
     } finally {
       loadingRoutes.value = false
+    }
+  }
+
+  // === TRIP LOADING ===
+  
+  async function loadBusSlots() {
+    try {
+      loading.value = true
+      const { requireUserId } = useAuth()
+      const ownerId = requireUserId()
+      
+      console.log('🚌 [TRIP] Loading bus slots for owner:', ownerId)
+      
+      const response = await graphqlRequest({
+        query: GET_BUS_SLOTS_BY_OWNER,
+        variables: { ownerId }
+      })
+      
+      busSlots.value = response.data.findBusSlotsByOwnerId || []
+      console.log('✅ [TRIP] Loaded bus slots:', busSlots.value.length)
+      
+    } catch (err) {
+      console.error('❌ [TRIP] Load bus slots error:', err)
+      error.value = err.message || 'Không thể tải danh sách chuyến đi'
+      busSlots.value = []
+    } finally {
+      loading.value = false
     }
   }
 
@@ -545,11 +690,14 @@ export function useTripManagement() {
   }
   
   function validateAndFormatTripData(tripData) {
+    const { requireUserId } = useAuth()
+    
     // Ensure all required fields are present and properly formatted
     const formatted = {
       ...tripData,
       departureTime: formatTimeForBackend(tripData.departureTime),
-      arrivalTime: formatTimeForBackend(tripData.arrivalTime)
+      arrivalTime: formatTimeForBackend(tripData.arrivalTime),
+      ownerId: requireUserId() // ✅ THÊM: ownerId cho multi-tenant
     }
     
     // Additional validation
@@ -557,11 +705,12 @@ export function useTripManagement() {
       throw new Error('Thiếu thông tin bắt buộc: xe bus, tuyến đường, hoặc ngày khởi hành')
     }
 
-    // Check for duplicate trip (final validation before sending to backend)
-    if (hasDuplicateTrip(formatted.busId, formatted.routeId, formatted.slotDate)) {
-      throw new Error('Chuyến xe này đã tồn tại! Xe bus đã có lịch trình trên tuyến đường này vào ngày đã chọn.')
+    // ✅ NEW VALIDATION: Check time overlap thay vì exact duplicate
+    if (hasDuplicateTrip(formatted.busId, formatted.routeId, formatted.slotDate, formatted.departureTime, formatted.arrivalTime)) {
+      throw new Error('Thời gian chuyến xe bị trùng lặp! Vui lòng chọn thời gian khác để tránh xung đột với chuyến đã có.')
     }
 
+    console.log('🚌 [TRIP] Formatted trip data with ownerId:', formatted.ownerId)
     return formatted
   }
 
@@ -764,7 +913,11 @@ export function useTripManagement() {
     clearError,
     setEditingTrip,
     hasDuplicateTrip,
+    hasConflictingTrip,
     getTripsForBusAndDate,
+    getNextAvailableTime,
+    timeToMinutes,
+    minutesToTime,
     
     // Lifecycle
     initialize,

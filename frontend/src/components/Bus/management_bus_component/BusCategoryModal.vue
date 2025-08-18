@@ -129,6 +129,8 @@ import { BusCategoryAPI } from '@/api/busApi'
 import type { BusCategory, CreateBusCategoryInput, UpdateBusCategoryInput } from '@/api/busApi/bus/types'
 // @ts-ignore
 import { toast, handleError } from '@/utils/notifications'
+// @ts-ignore
+import { useAuth } from '@/composables/useAuth'
 
 // Emits
 const emit = defineEmits(['category-created', 'category-updated'])
@@ -225,8 +227,13 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
+    // ✅ Thêm ownerId cho multi-tenant
+    const { requireUserId } = useAuth()
+    const ownerId = parseInt(requireUserId())
+    
     const input: CreateBusCategoryInput = {
       name: form.name.trim(),
+      ownerId: ownerId
     };
     
     let response: BusCategory;

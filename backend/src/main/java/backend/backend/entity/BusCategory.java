@@ -18,6 +18,11 @@ public class BusCategory {
     @Column(nullable = false, length = 100)
     private String name;
 
+    // ✅ THÊM MỚI: BusCategory thuộc về doanh nghiệp
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
     @JsonIgnore
     @OneToMany(mappedBy = "category")
     private List<Bus> buses;

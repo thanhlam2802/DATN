@@ -1,7 +1,7 @@
 package backend.backend.implement.busImplement;
 
 import backend.backend.dao.Bus.*;
-
+import backend.backend.dao.UserDAO;
 import backend.backend.dao.BusBookingDAO;
 import backend.backend.dto.BusDTO.*; // Giữ các DTO imports
 
@@ -12,6 +12,7 @@ import backend.backend.entity.*;
 
 import backend.backend.entity.enumBus.BusSlotStatus;
 import backend.backend.implement.busImplement.helper.CreateSeatBusSlotHelper;
+import backend.backend.service.BusSlotSchedulerService;
 import backend.backend.service.busService.BusSlotService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,9 @@ public class BusSlotServiceImpl implements BusSlotService {
     private final RouteDAO routeDAO;
     private final BusCategoryDAO busCategoryDAO;
     private final BusBookingDAO busBookingDAO; // ✅ ADD: Để xóa bookings
+    private final UserDAO userDAO; // ✅ ADD: Để validate owner
     private final CreateSeatBusSlotHelper  createSeatBusSlotHelper;
+    private final BusSlotSchedulerService  busSlotSchedulerService;
     // --- Helper Methods to Convert Entities to DTOs ---
 
     private BusResponse convertToBusResponse(Bus bus) {
@@ -62,6 +65,7 @@ public class BusSlotServiceImpl implements BusSlotService {
                 .id(busSlot.getId())
                 .bus(convertToBusResponse(busSlot.getBus()))
                 .route(convertToRouteResponse(busSlot.getRoute()))
+                .ownerId(Optional.ofNullable(busSlot.getOwner()).map(User::getId).orElse(null))
                 .slotDate(busSlot.getSlotDate())
                 .departureTime(Optional.ofNullable(busSlot.getDepartureTime())
                         .map(lt -> lt.atDate(busSlot.getSlotDate()).atOffset(ZoneOffset.ofHours(7)))
@@ -137,57 +141,16 @@ public class BusSlotServiceImpl implements BusSlotService {
         Route route = routeDAO.findById(request.getRouteId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tuyến đường với ID: " + request.getRouteId()));
 
-        // Lấy các giá trị cần kiểm tra từ request
-        LocalDate slotDate = request.getSlotDate();
-        LocalTime departureTime = LocalTime.parse(request.getDepartureTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
+        // Parse thời gian cho validation
 
-        // THÊM ĐOẠN MÃ KIỂM TRA TẠI ĐÂY:
-        Optional<BusSlot> existingBusSlot = busSlotDAO.findByBusAndRouteAndSlotDateAndDepartureTime(
-                bus.getId(),
-                route.getId(),
-                slotDate,
-                request.getDepartureTime()
-        );
-
-        if (existingBusSlot.isPresent()) {
-            throw new IllegalArgumentException(
-                    String.format("Chuyến xe với xe bus '%s', tuyến đường '%s', ngày '%s' và thời gian khởi hành '%s' đã tồn tại.",
-                            bus.getName(), route.getOriginLocation().getName() +"-"+ route.getDestinationLocation().getName()
-                            , slotDate, departureTime)
-            );
-        }
-
-        List<BusSlot> overlappingSlots = busSlotDAO.findOverlappingActiveBusSlots(
-                bus.getId(),
-                slotDate,
-                LocalTime.parse(request.getDepartureTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")),
-                LocalTime.parse(request.getArrivalTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))
-        );
-
-        if (!overlappingSlots.isEmpty()) {
-            throw new IllegalArgumentException(
-                    String.format("Thời gian chuyến xe từ %s đến %s bị trùng với lịch trình hiện tại.",
-                            request.getDepartureTime(), request.getArrivalTime())
-            );
-        }
-
-        // Kiểm tra trùng thời gian với logic chính xác hơn
+        // ✅ NEW VALIDATION: CHỈ CHECK TIME OVERLAP CHO CÙNG XE, CÙNG NGÀY
         LocalTime newStart = LocalTime.parse(request.getDepartureTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
         LocalTime newEnd = LocalTime.parse(request.getArrivalTime(), java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-        log.info("Kiểm tra trùng thời gian cho xe bus ID: {}, ngày: {}, thời gian: {} - {}",
+        log.info("🚌 [VALIDATION] Checking time overlap for bus ID: {}, date: {}, time: {} - {}",
                 bus.getId(), request.getSlotDate(), newStart, newEnd);
 
-        // Debug: Kiểm tra tất cả chuyến xe của bus này trong ngày
-        List<BusSlot> allBusSlots = busSlotDAO.findByBusIdWithDetails(bus.getId());
-        log.info("Tất cả chuyến xe của bus {}: {}", bus.getId(), allBusSlots.size());
-        for (BusSlot slot : allBusSlots) {
-            if (slot.getSlotDate().equals(request.getSlotDate())) {
-                log.info("Chuyến xe cùng ngày: ID={}, Thời gian={}-{}, Trạng thái={}",
-                        slot.getId(), slot.getDepartureTime(), slot.getArrivalTime(), slot.getStatus());
-            }
-        }
-
+        // ✅ SỬ DỤNG: Logic overlap detection thông minh
         List<BusSlot> conflicts = busSlotDAO.findConflictingSlots(
                 bus.getId(),
                 request.getSlotDate(),
@@ -195,19 +158,30 @@ public class BusSlotServiceImpl implements BusSlotService {
                 newEnd
         );
 
+        // ✅ MULTI-TENANT: Chỉ check conflict trong cùng owner (nếu có ownerId)
+        if (request.getOwnerId() != null) {
+            conflicts = conflicts.stream()
+                    .filter(slot -> slot.getOwner() != null && 
+                                   slot.getOwner().getId().equals(request.getOwnerId()))
+                    .collect(Collectors.toList());
+            log.info("🏢 [MULTI-TENANT] Filtered conflicts by ownerId {}: {} remaining", 
+                    request.getOwnerId(), conflicts.size());
+        }
+
         if (!conflicts.isEmpty()) {
-            log.warn("Tìm thấy {} chuyến xe trùng thời gian", conflicts.size());
+            log.warn("⚠️ [VALIDATION] Found {} conflicting trips for bus {}", conflicts.size(), bus.getName());
             for (BusSlot conflict : conflicts) {
-                log.warn("Chuyến xe trùng: ID={}, Thời gian={}-{}, Trạng thái={}",
+                log.warn("   Conflict: ID={}, Time={}-{}, Status={}",
                         conflict.getId(), conflict.getDepartureTime(), conflict.getArrivalTime(), conflict.getStatus());
             }
             throw new IllegalArgumentException(
-                    String.format("Thời gian chuyến xe từ %s đến %s bị trùng với lịch trình hiện tại của xe bus '%s'.",
+                    String.format("Thời gian chuyến xe từ %s đến %s bị trùng lặp với chuyến đã có của xe '%s'. " +
+                                 "Vui lòng chọn thời gian khác để tránh xung đột.",
                             request.getDepartureTime(), request.getArrivalTime(), bus.getName())
             );
         }
 
-        log.info("Không có chuyến xe nào trùng thời gian");
+        log.info("✅ [VALIDATION] No time conflicts found - trip can be created");
 
         // === TẠO BUS SLOT ===
         BusSlot newBusSlot = new BusSlot();
@@ -220,6 +194,16 @@ public class BusSlotServiceImpl implements BusSlotService {
         newBusSlot.setTotalSeats(request.getTotalSeats());
         newBusSlot.setAvailableSeats(request.getTotalSeats());
         newBusSlot.setStatus(BusSlotStatus.SCHEDULED);
+        
+        // ✅ THÊM: Set owner từ request
+        if (request.getOwnerId() != null) {
+            User owner = userDAO.findById(request.getOwnerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy owner với ID: " + request.getOwnerId()));
+            newBusSlot.setOwner(owner);
+        } else {
+            // Fallback: lấy owner từ bus
+            newBusSlot.setOwner(bus.getOwner());
+        }
 
         Optional.ofNullable(request.getCurrentLocation()).ifPresent(newBusSlot::setCurrentLocation);
         Optional.ofNullable(request.getDriverContactInfo()).ifPresent(newBusSlot::setDriverContactInfo);
@@ -237,6 +221,15 @@ public class BusSlotServiceImpl implements BusSlotService {
 
         // === LƯU BUS SLOT VÀ GHẾ ===
         BusSlot savedBusSlot = busSlotDAO.save(newBusSlot);
+        
+        // ✅ QUARTZ: Tự động lập lịch cho bus slot mới
+        try {
+            busSlotSchedulerService.scheduleBusSlot(savedBusSlot);
+            log.info("✅ [SCHEDULER] Auto-scheduled jobs for new BusSlot ID: {}", savedBusSlot.getId());
+        } catch (Exception e) {
+            log.error("❌ [SCHEDULER] Failed to schedule new BusSlot ID: {}", savedBusSlot.getId(), e);
+        }
+        
         log.info("Đã tạo BusSlot mới với ID: {} và {} ghế", savedBusSlot.getId(), seats.size());
 
         return convertToBusSlotResponse(savedBusSlot);
@@ -293,7 +286,16 @@ public class BusSlotServiceImpl implements BusSlotService {
         Optional.ofNullable(request.getAutoStatusUpdate()).ifPresent(existingBusSlot::setAutoStatusUpdate);
         Optional.ofNullable(request.getAutoResetSeats()).ifPresent(existingBusSlot::setAutoResetSeats);
 
+        // ✅ THÊM: Cập nhật owner nếu có
+        Optional.ofNullable(request.getOwnerId()).ifPresent(ownerId -> {
+            User owner = userDAO.findById(ownerId)
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy owner với ID: " + ownerId));
+            existingBusSlot.setOwner(owner);
+            log.info("Updated BusSlot ID: {} owner to: {}", existingBusSlot.getId(), ownerId);
+        });
 
+
+        // ✅ NEW VALIDATION FOR UPDATE: CHỈ CHECK TIME OVERLAP, EXCLUDE CURRENT SLOT
         List<BusSlot> overlappingSlots = busSlotDAO.findOverlappingActiveBusSlotsExcludingCurrent(
                 existingBusSlot.getBus().getId(),
                 existingBusSlot.getSlotDate(),
@@ -303,11 +305,17 @@ public class BusSlotServiceImpl implements BusSlotService {
         );
 
         if (!overlappingSlots.isEmpty()) {
+            log.warn("⚠️ [UPDATE] Found {} overlapping slots when updating BusSlot ID: {}", 
+                    overlappingSlots.size(), existingBusSlot.getId());
+            
             throw new IllegalArgumentException(
-                    String.format("Không thể cập nhật. Thời gian mới (%s - %s) trùng với lịch trình đã có.",
+                    String.format("Không thể cập nhật. Thời gian mới (%s - %s) bị trùng lặp với chuyến đã có. " +
+                                 "Vui lòng chọn thời gian khác.",
                             existingBusSlot.getDepartureTime(), existingBusSlot.getArrivalTime())
             );
         }
+
+        log.info("✅ [UPDATE] No time conflicts found for BusSlot ID: {}", existingBusSlot.getId());
 
         Optional.ofNullable(request.getTotalSeats()).ifPresent(newTotalSeats -> {
             if (newTotalSeats != existingBusSlot.getTotalSeats()) {
@@ -327,6 +335,17 @@ public class BusSlotServiceImpl implements BusSlotService {
 
 
         BusSlot updatedBusSlot = busSlotDAO.save(existingBusSlot);
+        
+        // ✅ QUARTZ: Cập nhật lịch khi thay đổi thời gian
+        if (request.getDepartureTime() != null || request.getArrivalTime() != null || request.getSlotDate() != null) {
+            try {
+                busSlotSchedulerService.updateScheduleBusSlot(updatedBusSlot);
+                log.info("✅ [SCHEDULER] Updated schedule for BusSlot ID: {}", updatedBusSlot.getId());
+            } catch (Exception e) {
+                log.error("❌ [SCHEDULER] Failed to update schedule for BusSlot ID: {}", updatedBusSlot.getId(), e);
+            }
+        }
+        
         log.info("Đã cập nhật BusSlot với ID: {}", updatedBusSlot.getId());
         return convertToBusSlotResponse(updatedBusSlot);
     }
@@ -336,6 +355,14 @@ public class BusSlotServiceImpl implements BusSlotService {
     public void deleteBusSlot(Integer id) {
         BusSlot busSlot = busSlotDAO.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy BusSlot với ID: " + id));
+        
+        // ✅ QUARTZ: Hủy lịch trước khi xóa
+        try {
+            busSlotSchedulerService.unscheduleBusSlot(id);
+            log.info("✅ [SCHEDULER] Unscheduled jobs for BusSlot ID: {} before deletion", id);
+        } catch (Exception e) {
+            log.error("❌ [SCHEDULER] Failed to unschedule BusSlot ID: {} before deletion", id, e);
+        }
         
         // ✅ STEP 1: Xóa tất cả BusBookings liên quan trước
         if (busSlot.getBusBookings() != null && !busSlot.getBusBookings().isEmpty()) {
@@ -609,5 +636,49 @@ public class BusSlotServiceImpl implements BusSlotService {
         BusSlot updated = busSlotDAO.save(busSlot);
         log.info("Archived BusSlot ID: {}", id);
         return convertToBusSlotResponse(updated);
+    }
+
+    // ✅ THÊM MỚI: Owner-specific methods
+    @Override
+    @Transactional(readOnly = true)
+    public List<BusSlotResponse> findBusSlotsByOwnerId(Integer ownerId) {
+        log.info("🔍 [QUERY] Finding BusSlots by owner ID: {}", ownerId);
+        List<BusSlot> slots = busSlotDAO.findByOwnerIdWithDetails(ownerId);
+        log.info("✅ [QUERY] Found {} BusSlots for owner {}", slots.size(), ownerId);
+        
+        // Debug: Log existing trips for this owner
+        if (log.isDebugEnabled()) {
+            slots.forEach(slot -> 
+                log.debug("   Slot: ID={}, Bus={}, Route={}, Date={}, Time={}-{}", 
+                    slot.getId(), 
+                    slot.getBus().getName(),
+                    slot.getRoute().getOriginLocation().getName() + "→" + slot.getRoute().getDestinationLocation().getName(),
+                    slot.getSlotDate(),
+                    slot.getDepartureTime(), 
+                    slot.getArrivalTime())
+            );
+        }
+        
+        return slots.stream()
+                .map(this::convertToBusSlotResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BusSlotResponse> findBusSlotsByOwnerIdAndStatus(Integer ownerId, BusSlotStatus status) {
+        log.info("Finding BusSlots by owner ID: {} and status: {}", ownerId, status);
+        return busSlotDAO.findByOwnerIdAndStatusWithDetails(ownerId, status).stream()
+                .map(this::convertToBusSlotResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BusSlotResponse> findBusSlotsByOwnerIdAndSlotDate(Integer ownerId, LocalDate slotDate) {
+        log.info("Finding BusSlots by owner ID: {} and slot date: {}", ownerId, slotDate);
+        return busSlotDAO.findByOwnerIdAndSlotDateWithDetails(ownerId, slotDate).stream()
+                .map(this::convertToBusSlotResponse)
+                .collect(Collectors.toList());
     }
 }

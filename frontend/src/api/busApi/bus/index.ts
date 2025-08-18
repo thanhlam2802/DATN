@@ -13,4 +13,5 @@ export * from './types';
 export const BusAPI = BusAPIObject;
 export { BusCategoryAPI };
 
-// ❌ REMOVED: getBusCategoriesByOwnerId export - BusCategory là global 
+// ✅ RESTORED: Re-export specific functions for convenience
+export { getBusCategoriesByOwnerId } from './categoryApi'; 

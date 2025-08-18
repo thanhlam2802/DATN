@@ -82,4 +82,83 @@ public class WebSocketController {
         }
     }
 
+    // ✅ THÊM: Bus WebSocket endpoints
+    @MessageMapping("/bus/status-update")
+    public void handleBusStatusUpdate(Map<String, Object> statusUpdate) {
+        try {
+            logger.info("🚌 [WebSocket] Received bus status update: {}", statusUpdate);
+
+            Integer busSlotId = (Integer) statusUpdate.get("busSlotId");
+            Integer ownerId = (Integer) statusUpdate.get("ownerId");
+            
+            if (busSlotId != null && ownerId != null) {
+                // Send to specific owner's dashboard
+                messagingTemplate.convertAndSend(
+                        "/topic/bus/owner/" + ownerId + "/status-updates",
+                        statusUpdate);
+                
+                // Send to public bus tracking (for passengers)
+                messagingTemplate.convertAndSend(
+                        "/topic/bus/slots/" + busSlotId + "/status",
+                        statusUpdate);
+                
+                logger.info("🚌 [WebSocket] Sent status update for BusSlot ID: {} to owner: {}", 
+                           busSlotId, ownerId);
+            }
+        } catch (Exception e) {
+            logger.error("❌ [WebSocket] Error handling bus status update", e);
+        }
+    }
+
+    @MessageMapping("/bus/owner-connect")
+    public void handleBusOwnerConnect(Map<String, Object> connectionInfo) {
+        try {
+            logger.info("🚌 [WebSocket] Bus owner connected: {}", connectionInfo);
+            
+            Integer ownerId = (Integer) connectionInfo.get("ownerId");
+            if (ownerId != null) {
+                Map<String, Object> welcomeMessage = new java.util.HashMap<>();
+                welcomeMessage.put("type", "CONNECTION_CONFIRMED");
+                welcomeMessage.put("message", "Kết nối thành công đến hệ thống bus real-time");
+                welcomeMessage.put("timestamp", System.currentTimeMillis());
+                
+                messagingTemplate.convertAndSend(
+                        "/topic/bus/owner/" + ownerId + "/notifications",
+                        welcomeMessage);
+            }
+        } catch (Exception e) {
+            logger.error("❌ [WebSocket] Error handling bus owner connection", e);
+        }
+    }
+
+    // ✅ PUBLIC: Method để gửi bus status update từ Quartz Job
+    public void sendBusStatusUpdate(Integer busSlotId, Integer ownerId, String status, 
+                                   String busName, String routeInfo, String action) {
+        try {
+            Map<String, Object> statusUpdate = new java.util.HashMap<>();
+            statusUpdate.put("busSlotId", busSlotId);
+            statusUpdate.put("ownerId", ownerId);
+            statusUpdate.put("status", status);
+            statusUpdate.put("busName", busName);
+            statusUpdate.put("routeInfo", routeInfo);
+            statusUpdate.put("action", action);
+            statusUpdate.put("timestamp", System.currentTimeMillis());
+
+            // Send to owner dashboard
+            messagingTemplate.convertAndSend(
+                    "/topic/bus/owner/" + ownerId + "/status-updates",
+                    statusUpdate);
+
+            // Send to public tracking
+            messagingTemplate.convertAndSend(
+                    "/topic/bus/slots/" + busSlotId + "/status",
+                    statusUpdate);
+
+            logger.info("🚌 [WebSocket] Auto-sent status update: {} for BusSlot ID: {}", 
+                       action, busSlotId);
+        } catch (Exception e) {
+            logger.error("❌ [WebSocket] Failed to send bus status update", e);
+        }
+    }
+
 }

@@ -936,10 +936,12 @@ const loadBusCategories = async () => {
       }
     });
     
-    // ✅ From API - load all global categories
+    // ✅ From API - load categories by owner ID
     try {
-      const { getAllBusCategories } = await import('@/api/busApi/bus/categoryApi');
-      const allCategories = await getAllBusCategories();
+      const { getBusCategoriesByOwnerId } = await import('@/api/busApi/bus/categoryApi');
+      const { requireUserId } = useAuth()
+      const ownerId = requireUserId()
+      const allCategories = await getBusCategoriesByOwnerId(ownerId);
       allCategories.forEach(cat => uniqueCategories.add(cat.name));
     } catch (err) {
       // Error loading categories from API is not critical

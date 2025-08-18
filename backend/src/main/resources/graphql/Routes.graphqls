@@ -46,6 +46,7 @@ type Route {
     id: ID!
     originLocation: Location!      # <-- ĐÃ THAY ĐỔI: Giờ là một đối tượng Location
     destinationLocation: Location! # <-- ĐÃ THAY ĐỔI: Giờ là một đối tượng Location
+    ownerId: ID! # ID của doanh nghiệp sở hữu route
     distanceKm: Float
     estimatedDurationMinutes: Int
     createdAt: Instant # Đảm bảo kiểu thời gian này khớp với Route.java

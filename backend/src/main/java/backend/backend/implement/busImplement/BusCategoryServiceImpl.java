@@ -1,9 +1,11 @@
 package backend.backend.implement.busImplement;
 
 import backend.backend.dao.Bus.BusCategoryDAO;
+import backend.backend.dao.UserDAO;
 import backend.backend.dto.BusDTO.CreateBusCategoryRequest;
 import backend.backend.dto.BusDTO.UpdateBusCategoryRequest;
 import backend.backend.entity.BusCategory;
+import backend.backend.entity.User;
 import backend.backend.service.busService.BusCategoryService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import java.util.Optional;
 public class BusCategoryServiceImpl implements BusCategoryService {
 
     private final BusCategoryDAO busCategoryRepository;
+    private final UserDAO userDAO;
 
 
 
@@ -31,12 +34,18 @@ public class BusCategoryServiceImpl implements BusCategoryService {
             throw new IllegalArgumentException("Tên danh mục không được để trống.");
         }
 
-        if (busCategoryRepository.existsByName(trimmedName)) {
-            throw new IllegalArgumentException("Tên danh mục '" + trimmedName + "' đã tồn tại.");
+        // ✅ MULTI-TENANT: Kiểm tra tên trùng trong cùng owner
+        if (busCategoryRepository.existsByNameAndOwnerId(trimmedName, dto.ownerId())) {
+            throw new IllegalArgumentException("Tên danh mục '" + trimmedName + "' đã tồn tại trong doanh nghiệp của bạn.");
         }
+
+        // ✅ Validate owner exists
+        User owner = userDAO.findById(dto.ownerId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy doanh nghiệp với ID: " + dto.ownerId()));
 
         BusCategory busCategory = new BusCategory();
         busCategory.setName(trimmedName);
+        busCategory.setOwner(owner);
 
         return busCategoryRepository.save(busCategory);
     }
@@ -52,11 +61,11 @@ public class BusCategoryServiceImpl implements BusCategoryService {
                 .filter(newName -> !newName.isEmpty())
                 .ifPresent(newName -> {
 
-                        // Kiểm tra xem tên mới có trùng với danh mục khác không (trừ chính nó)
-                        if (busCategoryRepository.findByName(newName)
+                        // ✅ MULTI-TENANT: Kiểm tra tên trùng trong cùng owner (trừ chính nó)
+                        if (busCategoryRepository.findByNameAndOwnerId(newName, existingCategory.getOwner().getId())
                                 .filter(category -> !category.getId().equals(id))
                                 .isPresent()) {
-                            throw new IllegalArgumentException("Tên danh mục đã tồn tại, vui lòng chọn tên khác.");
+                            throw new IllegalArgumentException("Tên danh mục '" + newName + "' đã tồn tại trong doanh nghiệp của bạn.");
                         }
                         existingCategory.setName(newName);
 
@@ -89,5 +98,10 @@ public class BusCategoryServiceImpl implements BusCategoryService {
         return busCategoryRepository.findAll();
     }
     
-    // ❌ REMOVED: getBusCategoriesByOwnerId() - BusCategory là global
+    // ✅ RESTORED: BusCategory thuộc về owner
+    @Override
+    @Transactional(readOnly = true)
+    public List<BusCategory> getBusCategoriesByOwnerId(Integer ownerId) {
+        return busCategoryRepository.findByOwnerId(ownerId);
+    }
 }

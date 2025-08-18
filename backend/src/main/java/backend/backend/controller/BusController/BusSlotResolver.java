@@ -54,6 +54,12 @@ public class BusSlotResolver {
         return busSlotService.findBusSlotsByStatus(status);
     }
 
+    // ✅ THÊM MỚI: Owner-specific queries
+    @QueryMapping
+    public List<BusSlotResponse> findBusSlotsByOwnerId(@Argument Integer ownerId) {
+        return busSlotService.findBusSlotsByOwnerId(ownerId);
+    }
+
     @QueryMapping
     public List<BusSlotResponse> searchBusSlotsDetailed(
             @Argument String departureProvince,

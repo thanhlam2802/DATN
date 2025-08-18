@@ -44,12 +44,16 @@ graphqlAxios.interceptors.response.use(
   (error) => {
     // Handle authentication errors
     if (error.response?.status === 401) {
-      // Clear invalid token
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      // Redirect to login if needed
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      // Trigger global session expired handler
+      if (window.globalSessionExpiredHandler) {
+        window.globalSessionExpiredHandler();
+      } else {
+        // Fallback: Direct redirect if handler not available
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

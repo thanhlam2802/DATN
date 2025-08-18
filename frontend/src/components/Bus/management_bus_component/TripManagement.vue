@@ -9,47 +9,24 @@
       <div class="mt-4 sm:mt-0 flex items-center space-x-3">
         <!-- Auto-management controls -->
         <div class="flex items-center space-x-2">
-          <button
-            @click="tripManager.toggleAutoManager"
+          <!-- WebSocket Connection Status -->
+          <div 
             :class="[
-              'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors border',
-              tripManager.autoManagerEnabled.value 
-                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
-                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+              'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border',
+              busWebSocket.isConnected.value 
+                ? 'bg-green-50 text-green-700 border-green-200' 
+                : 'bg-red-50 text-red-700 border-red-200'
             ]"
-            title="Toggle automatic trip status management"
+            :title="busWebSocket.isConnected.value ? 'Real-time connected' : 'Real-time disconnected'"
           >
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
             </svg>
-            {{ tripManager.autoManagerEnabled.value ? '🟢 Auto ON' : '🔴 Auto OFF' }}
-          </button>
+            {{ busWebSocket.isConnected.value ? ' Ôn định' : ' Mất kết nối' }}
+          </div>
           
-          <button
-            @click="handleManualSync"
-            :disabled="tripManager.syncLoading.value"
-            :class="[
-              'inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors border',
-              tripManager.syncLoading.value 
-                ? 'bg-blue-50 text-blue-400 border-blue-200 opacity-70 cursor-not-allowed' 
-                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-            ]"
-            title="Manually trigger auto-management check"
-          >
-            <template v-if="tripManager.syncLoading.value">
-              <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Đang đồng bộ...
-            </template>
-            <template v-else>
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-              Sync
-            </template>
-          </button>
+         
+          
           
           
         </div>
@@ -679,9 +656,13 @@ import TripFormModal from './TripFormModal.vue'
 import { BusSlotStatus, DelayReason } from '@/api/busApi/busSlot'
 // @ts-ignore
 import { toast, confirm, handleError } from '@/utils/notifications'
+import { useBusWebSocket } from '@/composables/useBusWebSocket'
 
 // Initialize trip management composable
 const tripManager = useTripManagement()
+
+// ✅ Initialize WebSocket for real-time updates
+const busWebSocket = useBusWebSocket()
 
 // UI State
 const showAddModal = ref(false)
@@ -1255,6 +1236,31 @@ const getOccupancyBadgeClass = (totalSeats, availableSeats) => {
 onMounted(async () => {
   await tripManager.initialize()
   initializeFilters() // Call initializeFilters after data is loaded
+  
+  // ✅ Setup WebSocket handlers for real-time updates
+  busWebSocket.onStatusUpdate((update) => {
+    console.log('🔄 [TripManagement] Received status update:', update)
+    
+    // Update local trip data
+    const tripIndex = tripManager.busSlots.value.findIndex(
+      trip => trip.id === update.busSlotId.toString()
+    )
+    
+    if (tripIndex !== -1) {
+      // Update trip status in local state
+      tripManager.busSlots.value[tripIndex].status = update.status
+      console.log(`✅ [TripManagement] Updated trip ${update.busSlotId} status to ${update.status}`)
+    }
+    
+    // Refresh data to get latest from server
+    setTimeout(() => {
+      tripManager.refreshData()
+    }, 1000)
+  })
+  
+  busWebSocket.onNotification((notification) => {
+    console.log('🔔 [TripManagement] Received notification:', notification)
+  })
 })
 
 onUnmounted(() => {

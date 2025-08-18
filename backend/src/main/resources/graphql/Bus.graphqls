@@ -40,7 +40,6 @@ type Bus { # Có thể đổi tên thành BusResponse nếu bạn muốn rõ rà
     categoryId: ID!
     categoryName: String
     ownerId: ID!
-    ownerName: String
     busImages: [BusImageResponse!]
     amenities: [BusAmenity!] # <-- BỔ SUNG: Thêm trường amenities
     createdAt: DateTime

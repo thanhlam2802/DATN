@@ -12,9 +12,9 @@ import { useRoute, useRouter } from "vue-router";
 import { updateHotelBooking, notifyPaymentSuccess, notifyHotelCancellation } from "@/api/hotelApi";
 import { updateCustomer, cancelFlightBooking, getFlightDetail } from '@/api/flightApi'
 import { servicePaymentMake, servicePaymentConfirm, accountLookup, refundMake, refundConfirm } from '@/api/coreBankingApi';
-import SockJS from "sockjs-client/dist/sockjs.min.js";
 import { markOrderSuccess } from "@/api/OrderApi";
-import Stomp from "stompjs";
+import { createWebSocketConnection } from '@/utils/webSocketUtils';
+import { WS_TOPICS, wsHelpers } from '@/config/webSocketConfig';
 import { getBearerToken } from "@/services/TokenService"; // Import getBearerToken
 import { BusBookingDetailAPI } from "@/api/busAPI_Client/busbookingApi/busBookingDetailApi"; // ✅ NEW: Import bus booking detail API
 
@@ -460,30 +460,41 @@ const getVoucherDiscountText = (voucher) => {
   return "";
 };
 
+// ✅ Sử dụng WebSocket utility chung
+const wsConnection = ref(null);
+
 const connectWebSocket = () => {
-  if (!orderId || (stompClient.value && isSocketConnected.value)) return;
-  const socket = new SockJS("http://localhost:8080/ws");
-  stompClient.value = Stomp.over(socket);
-  stompClient.value.debug = null;
-  stompClient.value.connect({}, (frame) => {
-    console.log("WebSocket Connected:", frame);
-    isSocketConnected.value = true;
-    stompClient.value.subscribe(`/topic/orders/${orderId}`, (response) => {
-      handleVoucherResponse(JSON.parse(response.body));
-    });
-    stompClient.value.subscribe(`/topic/vouchers/updates`, (response) => {
-      const update = JSON.parse(response.body);
-      if (update.status === "UNAVAILABLE") {
-        console.log(`Voucher ${update.voucherCode} đã hết! Cập nhật UI.`);
-        const usedVoucher = suggestedVouchers.value.find(
-          (v) => v.code === update.voucherCode
-        );
-        if (usedVoucher) {
-          usedVoucher.disabled = true;
+  if (!orderId || (wsConnection.value && isSocketConnected.value)) return;
+  
+  wsConnection.value = createWebSocketConnection({
+    componentName: 'OrderDetail',
+    onConnect: (frame) => {
+      wsHelpers.log("Connected to Order system", frame);
+      isSocketConnected.value = true;
+      
+      // ✅ Subscribe using config topics
+      wsConnection.value.subscribe(WS_TOPICS.ORDER.ORDER_UPDATES(orderId), handleVoucherResponse);
+      
+      // Subscribe to voucher updates
+      wsConnection.value.subscribe(WS_TOPICS.ORDER.VOUCHER_UPDATES, (update) => {
+        if (update.status === "UNAVAILABLE") {
+          console.log(`Voucher ${update.voucherCode} đã hết! Cập nhật UI.`);
+          const usedVoucher = suggestedVouchers.value.find(
+            (v) => v.code === update.voucherCode
+          );
+          if (usedVoucher) {
+            usedVoucher.disabled = true;
+          }
         }
-      }
-    });
+      });
+    },
+    onError: (error) => {
+      wsHelpers.logError("Order WebSocket connection error", error);
+      isSocketConnected.value = false;
+    }
   });
+  
+  wsConnection.value.connect();
 };
 
 /**
@@ -537,9 +548,8 @@ async function CancelFlightBooking(id) {
 }
 
 onUnmounted(() => {
-  if (stompClient.value && isSocketConnected.value) {
-    stompClient.value.disconnect();
-    console.log("WebSocket Disconnected.");
+  if (wsConnection.value && isSocketConnected.value) {
+    wsConnection.value.disconnect();
   }
   clearInterval(timerInterval.value);
   clearInterval(refundOtpTimer);

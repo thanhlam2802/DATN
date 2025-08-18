@@ -19,7 +19,15 @@ const GET_ALL_BUS_CATEGORIES = gql`
   ${BUS_CATEGORY_FRAGMENT}
 `;
 
-// ❌ REMOVED: getBusCategoriesByOwnerId - BusCategory là global
+// ✅ RESTORED: Query cho getBusCategoriesByOwnerId
+const GET_BUS_CATEGORIES_BY_OWNER_ID = gql`
+  query GetBusCategoriesByOwnerId($ownerId: ID!) {
+    getBusCategoriesByOwnerId(ownerId: $ownerId) {
+      ...BusCategoryFragment
+    }
+  }
+  ${BUS_CATEGORY_FRAGMENT}
+`;
 
 const CREATE_BUS_CATEGORY = gql`
   mutation CreateBusCategory($input: CreateBusCategoryInput!) {
@@ -54,8 +62,18 @@ export const getAllBusCategories = async (): Promise<BusCategory[]> => {
   }
 };
 
-// ❌ REMOVED: getBusCategoriesByOwnerId - BusCategory là global
-// Tất cả nhà xe đều sử dụng getAllBusCategories()
+// ✅ RESTORED: Lấy categories theo ownerId
+export const getBusCategoriesByOwnerId = async (ownerId: string): Promise<BusCategory[]> => {
+  try {
+    const response = await graphqlRequest({ 
+      query: GET_BUS_CATEGORIES_BY_OWNER_ID, 
+      variables: { ownerId } 
+    });
+    return response.data.getBusCategoriesByOwnerId || [];
+  } catch (error) {
+    throw error;
+  }
+};
 
 export async function createBusCategory(input: CreateBusCategoryInput): Promise<BusCategory> {
   try {

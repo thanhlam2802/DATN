@@ -3,6 +3,7 @@ import {createI18n} from 'vue-i18n'
 import { createPinia } from 'pinia'
 import ToastContainer from './components/ToastContainer.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
+import SessionExpiredModal from './components/SessionExpiredModal.vue'
 import { setupNotifications } from './utils/notifications.js'
 import App from "./App.vue";
 import router from "./router";
@@ -44,6 +45,19 @@ const confirmRoot = document.createElement('div')
 document.body.appendChild(confirmRoot)
 const confirmApp = createApp(ConfirmDialog)
 const confirmInstance = confirmApp.mount(confirmRoot)
+
+// Mount global session expired modal
+const sessionExpiredRoot = document.createElement('div')
+document.body.appendChild(sessionExpiredRoot)
+const sessionExpiredApp = createApp(SessionExpiredModal)
+const sessionExpiredInstance = sessionExpiredApp.mount(sessionExpiredRoot)
+
+// Setup global session expired handler for GraphQL client
+window.globalSessionExpiredHandler = () => {
+  if (sessionExpiredInstance && typeof sessionExpiredInstance.show === 'function') {
+    sessionExpiredInstance.show()
+  }
+}
 
 // Setup notifications system
 setupNotifications(toastInstance, confirmInstance)

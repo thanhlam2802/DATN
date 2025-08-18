@@ -28,6 +28,11 @@ public class RouteBusCategoryPrice {
     @JoinColumn(name = "bus_category_id", nullable = false)
     private BusCategory busCategory;
 
+    // ✅ THÊM: Owner ID để đảm bảo multi-tenant isolation
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
     @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal basePrice;
 

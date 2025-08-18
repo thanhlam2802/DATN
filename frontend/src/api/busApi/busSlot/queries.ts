@@ -12,12 +12,12 @@ export const BUS_SLOT_DETAIL_FRAGMENT = gql`
       totalSeats
       categoryId
       categoryName
-      ownerId
-      ownerName
+                ownerId
     }
     route {
       ...RouteInfo
     }
+              ownerId
     slotDate
     
     # Scheduled vs Actual Times
@@ -141,6 +141,16 @@ export const FIND_COMPLETED_TRIPS_FOR_ARCHIVE = gql`
 export const FIND_TRIPS_NEEDING_STATUS_UPDATE = gql`
   query FindTripsNeedingStatusUpdate {
     findTripsNeedingStatusUpdate {
+      ...BusSlotDetailFragment
+    }
+  }
+  ${BUS_SLOT_DETAIL_FRAGMENT}
+`
+
+// ✅ THÊM MỚI: Owner-specific queries
+export const FIND_BUS_SLOTS_BY_OWNER_ID = gql`
+  query FindBusSlotsByOwnerId($ownerId: ID!) {
+    findBusSlotsByOwnerId(ownerId: $ownerId) {
       ...BusSlotDetailFragment
     }
   }

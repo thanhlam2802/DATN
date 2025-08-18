@@ -19,6 +19,12 @@ export interface CreateBusCategoryInput {
    * @validation Size max=100 - không được vượt quá 100 ký tự
    */
   name: string;
+  
+  /**
+   * ID của doanh nghiệp sở hữu category
+   * @validation NotNull - không được để trống
+   */
+  ownerId: number;
 }
 
 export interface UpdateBusCategoryInput {

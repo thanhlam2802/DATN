@@ -15,6 +15,7 @@ export const CREATE_BUS_SLOT = gql`
       route {
         ...RouteInfo
       }
+      ownerId
       slotDate
       departureTime
       arrivalTime
@@ -46,6 +47,7 @@ export const UPDATE_BUS_SLOT = gql`
       route {
         ...RouteInfo
       }
+      ownerId
       slotDate
       departureTime
       arrivalTime

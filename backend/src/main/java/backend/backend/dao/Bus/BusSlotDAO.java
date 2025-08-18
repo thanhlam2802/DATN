@@ -155,4 +155,16 @@ public interface BusSlotDAO extends JpaRepository<BusSlot, Integer> {
     void deleteByRouteId(Integer routeId);
     void deleteByBusId(Integer busId);
 
+    // ✅ THÊM MỚI: Owner-specific queries
+    @Query("SELECT bs FROM BusSlot bs LEFT JOIN FETCH bs.bus LEFT JOIN FETCH bs.route WHERE bs.owner.id = :ownerId")
+    List<BusSlot> findByOwnerIdWithDetails(@Param("ownerId") Integer ownerId);
+
+    @Query("SELECT bs FROM BusSlot bs LEFT JOIN FETCH bs.bus LEFT JOIN FETCH bs.route " +
+           "WHERE bs.owner.id = :ownerId AND bs.status = :status")
+    List<BusSlot> findByOwnerIdAndStatusWithDetails(@Param("ownerId") Integer ownerId, @Param("status") BusSlotStatus status);
+
+    @Query("SELECT bs FROM BusSlot bs LEFT JOIN FETCH bs.bus LEFT JOIN FETCH bs.route " +
+           "WHERE bs.owner.id = :ownerId AND bs.slotDate = :slotDate")
+    List<BusSlot> findByOwnerIdAndSlotDateWithDetails(@Param("ownerId") Integer ownerId, @Param("slotDate") LocalDate slotDate);
+
 }

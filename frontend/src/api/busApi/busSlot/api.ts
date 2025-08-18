@@ -19,6 +19,7 @@ import {
   FIND_BUS_SLOTS_BY_BUS_ID,
   FIND_BUS_SLOTS_BY_ROUTE_ID,
   FIND_BUS_SLOTS_BY_STATUS,
+  FIND_BUS_SLOTS_BY_OWNER_ID,
   SEARCH_BUS_SLOTS,
   FIND_TRIPS_NEEDING_STATUS_UPDATE,
   FIND_COMPLETED_TRIPS_FOR_ARCHIVE
@@ -65,6 +66,12 @@ export class BusSlotAPI {
   static async findBusSlotsByStatus(status: BusSlotStatus): Promise<BusSlotResponse[]> {
     const response = await graphqlRequest({ query: FIND_BUS_SLOTS_BY_STATUS, variables: { status } })
     return response.data.findBusSlotsByStatus
+  }
+
+  // ✅ THÊM MỚI: Owner-specific queries
+  static async findBusSlotsByOwnerId(ownerId: string): Promise<BusSlotResponse[]> {
+    const response = await graphqlRequest({ query: FIND_BUS_SLOTS_BY_OWNER_ID, variables: { ownerId } })
+    return response.data.findBusSlotsByOwnerId
   }
 
   static async searchBusSlots(searchParams: {

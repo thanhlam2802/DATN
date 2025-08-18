@@ -27,6 +27,7 @@ public class BusSlotResponse {
     private Integer id;
     private BusResponse bus;
     private RouteResponse route;
+    private Integer ownerId; // ✅ THÊM: ID doanh nghiệp sở hữu slot
     private LocalDate slotDate;
     private OffsetDateTime departureTime;
     private OffsetDateTime arrivalTime;

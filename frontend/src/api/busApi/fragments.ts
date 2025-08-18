@@ -14,6 +14,7 @@ export const BUS_CATEGORY_FRAGMENT = gql`
   fragment BusCategoryFragment on BusCategory {
     id
     name
+    ownerId
   }
 `;
 
@@ -48,7 +49,6 @@ export const BUS_FRAGMENT = gql`
     categoryId
     categoryName
     ownerId
-    ownerName
     busImages {
       busId
       imageId
@@ -76,7 +76,6 @@ export const BUS_FRAGMENT_SIMPLE = gql`
     categoryId
     categoryName
     ownerId
-    ownerName
     createdAt
     updatedAt
   }
@@ -92,7 +91,6 @@ export const BUS_FRAGMENT_WITH_IMAGES = gql`
     categoryId
     categoryName
     ownerId
-    ownerName
     busImages {
       busId
       imageId
@@ -115,6 +113,7 @@ export const BUS_SLOT_FRAGMENT = gql`
     route {
       ...RouteFragment
     }
+    ownerId
     slotDate
     departureTime
     arrivalTime

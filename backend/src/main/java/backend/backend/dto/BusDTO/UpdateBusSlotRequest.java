@@ -21,6 +21,7 @@ import java.time.OffsetDateTime; // Cho actualDepartureTime/actualArrivalTime n�
 public class UpdateBusSlotRequest {
     private Integer busId;
     private Integer routeId;
+    private Integer ownerId; // ✅ THÊM: ID doanh nghiệp sở hữu - cho multi-tenant
     private LocalDate slotDate;
     private String departureTime; // String từ GraphQL
     private String arrivalTime;   // String từ GraphQL

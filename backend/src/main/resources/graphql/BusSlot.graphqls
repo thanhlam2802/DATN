@@ -45,6 +45,7 @@ type BusSlot {
     id: ID!
     bus: Bus!
     route: Route!
+    ownerId: ID! # ID doanh nghiệp sở hữu slot
     slotDate: Date!
     departureTime: DateTime!
     arrivalTime: DateTime!
@@ -75,6 +76,7 @@ type BusSlot {
 input CreateBusSlotInput {
     busId: ID!
     routeId: ID!
+    ownerId: ID! # ID doanh nghiệp sở hữu - bắt buộc
     slotDate: String!   # <-- THÊM LẠI TRƯỜNG NÀY (dạng "YYYY-MM-DD")
     departureTime: String! # <-- Chuyển thành String (dạng "HH:MM:SS")
     arrivalTime: String!   # <-- Chuyển thành String (dạng "HH:MM:SS")
@@ -87,6 +89,7 @@ input CreateBusSlotInput {
 input UpdateBusSlotInput {
     busId: ID
     routeId: ID
+    ownerId: ID # ✅ THÊM: ID doanh nghiệp sở hữu - cho multi-tenant
     slotDate: String
     departureTime: String
     arrivalTime: String
@@ -137,6 +140,8 @@ extend type Query {
     findBusSlotsByBusId(busId: ID!): [BusSlot!]!
     findBusSlotsByRouteId(routeId: ID!): [BusSlot!]!
     findBusSlotsByStatus(status: BusSlotStatus!): [BusSlot!]!
+    # ✅ THÊM MỚI: Owner-specific queries
+    findBusSlotsByOwnerId(ownerId: ID!): [BusSlot!]!
 
     searchBusSlotsDetailed(
         departureProvince: String!

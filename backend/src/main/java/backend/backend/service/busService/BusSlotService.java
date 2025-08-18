@@ -20,6 +20,11 @@ public interface BusSlotService {
     List<BusSlotResponse> findBusSlotsByRouteId(Integer routeId);
     List<BusSlotResponse> findBusSlotsByStatus(BusSlotStatus status);
 
+    // ✅ THÊM MỚI: Owner-specific queries
+    List<BusSlotResponse> findBusSlotsByOwnerId(Integer ownerId);
+    List<BusSlotResponse> findBusSlotsByOwnerIdAndStatus(Integer ownerId, BusSlotStatus status);
+    List<BusSlotResponse> findBusSlotsByOwnerIdAndSlotDate(Integer ownerId, LocalDate slotDate);
+
 
     List<BusSlotResponse> searchBusSlotsDetailed(
             String departureProvince,

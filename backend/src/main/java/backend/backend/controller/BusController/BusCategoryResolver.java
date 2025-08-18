@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
@@ -32,7 +33,11 @@ public class BusCategoryResolver {
         return busCategoryService.getAllBusCategories();
     }
 
-    // ❌ REMOVED: getBusCategoriesByOwnerId() - BusCategory là global
+    // ✅ RESTORED: BusCategory thuộc về owner
+    @QueryMapping
+    public List<BusCategory> getBusCategoriesByOwnerId(@Argument Integer ownerId) {
+        return busCategoryService.getBusCategoriesByOwnerId(ownerId);
+    }
 
     // --- Mutation Mappings ---
     @MutationMapping
@@ -49,5 +54,18 @@ public class BusCategoryResolver {
     public Boolean deleteBusCategory(@Argument Integer id) {
         busCategoryService.deleteBusCategory(id);
         return true;
+    }
+
+    // ✅ UNIFIED: Schema mapping hỗ trợ cả BusCategory entity và BusCategoryResponse DTO
+    @SchemaMapping(typeName = "BusCategory", field = "ownerId")
+    public Integer ownerId(Object source) {
+        if (source instanceof BusCategory) {
+            BusCategory busCategory = (BusCategory) source;
+            return busCategory.getOwner() != null ? busCategory.getOwner().getId() : null;
+        } else if (source instanceof backend.backend.dto.BusDTO.BusCategoryResponse) {
+            backend.backend.dto.BusDTO.BusCategoryResponse categoryResponse = (backend.backend.dto.BusDTO.BusCategoryResponse) source;
+            return categoryResponse.getOwnerId();
+        }
+        return null; // Fallback nếu không match type nào
     }
 }

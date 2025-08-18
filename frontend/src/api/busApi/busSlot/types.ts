@@ -6,6 +6,7 @@ import { BusSlot, BusSlotStatus } from '../types/common.types';
 export interface CreateBusSlotInput {
   busId: string;
   routeId: string;
+  ownerId: string;         // ✅ THÊM: ID doanh nghiệp sở hữu slot
   slotDate: string;        // Ngày chuyến đi (YYYY-MM-DD)
   departureTime: string;   // Thời gian khởi hành (HH:MM:SS)
   arrivalTime: string;     // Thời gian đến (HH:MM:SS)
@@ -17,6 +18,7 @@ export interface CreateBusSlotInput {
 export interface UpdateBusSlotInput {
   busId?: string;
   routeId?: string;
+  ownerId?: string;               // ✅ THÊM: ID doanh nghiệp sở hữu slot
   slotDate?: string;
   departureTime?: string;
   arrivalTime?: string;

@@ -17,6 +17,7 @@ import java.time.LocalDate;
 public class CreateBusSlotRequest {
     private Integer busId;
     private Integer routeId;
+    private Integer ownerId; // ✅ THÊM: ID doanh nghiệp sở hữu slot
     private LocalDate slotDate;
     private String departureTime; // String từ GraphQL
     private String arrivalTime;   // String từ GraphQL

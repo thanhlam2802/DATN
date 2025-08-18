@@ -65,6 +65,38 @@ export const useAuthToken = () => {
   }
 
   /**
+   * Logout user và clear toàn bộ session data
+   */
+  const logout = () => {
+    // Clear tokens
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    
+    // Clear session storage
+    sessionStorage.clear()
+    
+    // Clear any cached user data
+    localStorage.removeItem('activeCartId')
+    
+    console.log('🔓 [AUTH] User logged out - tokens cleared')
+  }
+
+  /**
+   * Handle session expiration - trigger logout và show modal nếu cần
+   */
+  const handleSessionExpired = () => {
+    console.warn('⚠️ [AUTH] Session expired detected')
+    
+    // Clear session data
+    logout()
+    
+    // Trigger global session expired modal if available
+    if (window.globalSessionExpiredHandler) {
+      window.globalSessionExpiredHandler()
+    }
+  }
+
+  /**
    * Debug authentication state
    */
   const debugAuth = () => {
@@ -88,6 +120,8 @@ export const useAuthToken = () => {
     requireUserId,
     getUserIdOrFallback,
     requireAuthOrRedirect,
+    logout,
+    handleSessionExpired,
     debugAuth
   }
 }

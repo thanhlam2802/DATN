@@ -363,8 +363,10 @@ const loadCategories = async () => {
   error.value = null
   
   try {
-    // ✅ Load all global categories (BusCategory là global cho tất cả nhà xe)
-    categories.value = await BusCategoryAPI.getAllBusCategories()
+    // ✅ Load categories by owner ID (BusCategory thuộc về doanh nghiệp)
+    const { requireUserId } = useAuth()
+    const ownerId = requireUserId()
+    categories.value = await BusCategoryAPI.getBusCategoriesByOwnerId(ownerId)
   } catch (err) {
     error.value = 'Không thể tải danh sách loại xe'
     console.error('Error loading categories:', err)

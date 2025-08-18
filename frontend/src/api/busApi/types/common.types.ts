@@ -18,6 +18,7 @@ export interface Image {
 export interface BusCategory {
   id: string;
   name: string;
+  ownerId: string; // ID doanh nghiệp sở hữu category
 }
 
 export interface BusAmenity {
@@ -56,6 +57,7 @@ export interface Route {
   id: string;
   originLocation: Location;
   destinationLocation: Location;
+  ownerId: string; // ID doanh nghiệp sở hữu route
   distanceKm: number;
   estimatedDurationMinutes: number;
   createdAt?: string;
@@ -116,6 +118,7 @@ export interface BusSlot {
   id: string;
   bus: Bus;
   route: Route;
+  ownerId: string; // ID doanh nghiệp sở hữu slot
   
   // Scheduled times (dự kiến)
   departureTime: string;
@@ -160,6 +163,7 @@ export interface BusSlotResponse {
   id: string
   bus: BusResponse
   route: RouteResponse
+  ownerId: string // ID doanh nghiệp sở hữu slot
   slotDate: string
   
   // Scheduled vs Actual Times
@@ -201,7 +205,6 @@ export interface BusResponse {
   categoryId: string
   categoryName?: string
   ownerId: string
-  ownerName?: string
   createdAt?: string
   updatedAt?: string
 }

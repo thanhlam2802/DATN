@@ -5,6 +5,8 @@ import lombok.Data;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Data
 @Entity
 @Table(name = "provinces")
@@ -19,7 +21,7 @@ public class Province {
 
     @Column(name = "image_url", length = 300)
     private String imageUrl;
-
+    @JsonIgnore 
     @OneToMany(mappedBy = "province")
     private List<Hotel> hotels;
 

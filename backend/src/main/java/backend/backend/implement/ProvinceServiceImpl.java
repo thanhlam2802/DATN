@@ -2,6 +2,7 @@ package backend.backend.implement;
 
 import backend.backend.dao.Hotel.ProvinceDAO;
 import backend.backend.dto.Hotel.ProvinceDto;
+import backend.backend.entity.Province;
 import backend.backend.service.ProvinceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,4 +24,10 @@ public class ProvinceServiceImpl implements ProvinceService {
                 .map(ProvinceDto::fromEntity)
                 .collect(Collectors.toList());
     }
+
+	@Override
+	public List<Province> getAll() {
+		
+		return provinceDAO.findAll();
+	}
 }

@@ -2,6 +2,7 @@ package backend.backend.controller;
 
 import backend.backend.dto.Hotel.ProvinceDto;
 import backend.backend.entity.ApiResponse;
+import backend.backend.entity.Province;
 import backend.backend.service.ProvinceService;
 import backend.backend.utils.ResponseFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,4 +31,11 @@ public class ProvinceController {
         List<ProvinceDto> provinces = provinceService.getAllProvinces();
         return ResponseFactory.success(provinces, "Lấy danh sách tỉnh thành công");
     }
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<Province>>> getAll() {
+        List<Province> provinces = provinceService.getAll();
+        return ResponseFactory.success(provinces, "Lấy danh sách tỉnh thành công");
+    }
+    
+    
 }

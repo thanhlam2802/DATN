@@ -1,5 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
+// FIX 1: Import axios để có thể sử dụng
+import axios from "axios";
 import SearchBar from "../components/Tours/SearchBar.vue";
 import SideBar from "../components/Tours/Sidebar.vue";
 import TourGrid from "../components/Tours/TourGrid.vue";
@@ -9,46 +11,42 @@ import { FilterIcon, XIcon } from "lucide-vue-next";
 // --- CÁC HẰNG SỐ VÀ TRẠNG THÁI GIAO DIỆN ---
 const BANNER_IMAGE =
   "https://ik.imagekit.io/tvlk/xpe-asset/AyJ40ZAo1DOyPyKLZ9c3RGQHTP2oT4ZXW+QmPVVkFQiXFSv42UaHGzSmaSzQ8DO5QIbWPZuF+VkYVRk6gh-Vg4ECbfuQRQ4pHjWJ5Rmbtkk=/5255025890550/Phong-Nha-Ke-Bang-National-Park-Tour-from-Hue-158e7222-35b7-4296-95bb-690972765d35.jpeg?_src=imagekit&tr=dpr-2,c-at_max,h-400,q-100,w-1280";
-const isOpen = ref(false); // State cho modal chọn điểm đến
-const isFilterOpen = ref(false); // State cho sidebar mobile
+// FIX 2: Định nghĩa hằng số API_BASE_URL
+const API_BASE_URL = "http://localhost:8080";
 
-// --- TRẠNG THÁI DỮ LIỆU ---
+const isOpen = ref(false);
+const isFilterOpen = ref(false);
+const provinces = ref([]);
+const isLoading = ref(true);
+const error = ref(null);
 const tourList = ref([]);
 const tourCount = ref(0);
 
-// --- QUẢN LÝ TRẠNG THÁI BỘ LỌC TẬP TRUNG ---
-// Tất cả các bộ lọc từ sidebar và dropdown sắp xếp sẽ được quản lý tại đây.
 const filters = reactive({
   destination: "",
   minPrice: 0,
   maxPrice: 5000000,
   minRating: 0,
   tags: [],
-  sortBy: "popular", // `sortBy` từ state cũ giờ là một phần của filters
+  sortBy: "popular",
   page: 0,
   size: 12,
 });
 
 // --- CÁC HÀM XỬ LÝ ---
 
-// 1. Hàm nhận dữ liệu bộ lọc từ Sidebar
 const handleUpdateFilters = (sidebarFilters) => {
-  // Cập nhật các giá trị từ Sidebar
   filters.destination = sidebarFilters.destination;
   filters.minPrice = sidebarFilters.minPrice;
   filters.maxPrice = sidebarFilters.maxPrice;
   filters.minRating = sidebarFilters.minRating;
   filters.tags = sidebarFilters.tags;
-  // Reset về trang đầu tiên mỗi khi có bộ lọc mới
   filters.page = 0;
 };
 
-// 2. Hàm gọi API đã được nâng cấp để sử dụng tất cả bộ lọc
 const fetchTours = async () => {
   try {
     const params = new URLSearchParams();
-
-    // Chỉ thêm các tham số có giá trị vào URL
     if (filters.destination) params.append("destination", filters.destination);
     if (filters.minPrice > 0) params.append("minPrice", filters.minPrice);
     if (filters.maxPrice < 5000000) params.append("maxPrice", filters.maxPrice);
@@ -56,14 +54,13 @@ const fetchTours = async () => {
     if (filters.tags && filters.tags.length > 0) {
       filters.tags.forEach((tag) => params.append("tags", tag));
     }
-
-    // Luôn thêm các tham số sắp xếp và phân trang
     params.append("sortBy", filters.sortBy);
     params.append("page", filters.page);
     params.append("size", filters.size);
 
+    // Sử dụng API_BASE_URL đã định nghĩa
     const response = await fetch(
-      `http://localhost:8080/api/v1/tours?${params.toString()}`
+      `${API_BASE_URL}/api/v1/tours?${params.toString()}`
     );
     const responseData = await response.json();
 
@@ -75,7 +72,6 @@ const fetchTours = async () => {
         imageUrl: tour.imageUrl,
         price: tour.price.toLocaleString("vi-VN"),
         location: tour.location,
-
         rating:
           tour.reviewCount > 0
             ? {
@@ -96,8 +92,32 @@ const fetchTours = async () => {
   }
 };
 
-// 3. Watcher theo dõi toàn bộ đối tượng filters
-// Bất kỳ thay đổi nào trong `filters` (từ sidebar hoặc dropdown) đều sẽ kích hoạt lại `fetchTours`
+const fetchProvinces = async () => {
+  isLoading.value = true;
+  error.value = null;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/v1/provinces/all`);
+
+    // SỬA LẠI ĐIỀU KIỆN KIỂM TRA TẠI ĐÂY
+    if (response.data && response.data.statusCode === 200) {
+      provinces.value = response.data.data;
+    } else {
+      throw new Error(response.data.message || "Failed to fetch provinces");
+    }
+  } catch (err) {
+    console.error("Error fetching provinces:", err);
+    error.value = "Không thể tải danh sách địa điểm. Vui lòng thử lại sau.";
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// IMPROVEMENT 1: Thêm hàm để xử lý khi người dùng chọn một tỉnh
+const selectDestination = (provinceName) => {
+  filters.destination = provinceName; // Cập nhật bộ lọc
+  closeModal(); // Đóng modal sau khi chọn
+};
+
 watch(
   filters,
   () => {
@@ -106,23 +126,22 @@ watch(
   { deep: true }
 );
 
-// Tải dữ liệu lần đầu khi component được tạo
-onMounted(fetchTours);
-
-// Các hàm còn lại không thay đổi
-const { getCurrentLocation } = useGeolocation();
-const destinations = [
-  /* ... */
-];
-const handleLocationClick = async () => {
-  /* ... */
+const openModal = () => {
+  isOpen.value = true;
 };
 const closeModal = () => {
   isOpen.value = false;
 };
-const openModal = () => {
-  isOpen.value = true;
+
+const handleLocationClick = () => {
+  console.log("Get current location clicked");
 };
+
+// FIX 3: Gộp 2 hàm onMounted thành một để code gọn gàng hơn
+onMounted(() => {
+  fetchTours();
+  fetchProvinces();
+});
 </script>
 
 <template>
@@ -194,39 +213,40 @@ const openModal = () => {
                         class="text-lg font-medium text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
                         @click="handleLocationClick"
                       >
-                        Thành phố Quy Nhơn, Vietnam
+                        Sử dụng vị trí hiện tại
                       </h2>
                     </div>
-                    <SearchBar
-                      class="col-span-1"
-                      placeholder="Tìm thành phố hoặc khu vực"
-                    />
                   </div>
+
+                  <div v-if="isLoading" class="text-center p-8">
+                    Đang tải...
+                  </div>
+                  <div v-else-if="error" class="text-center p-8 text-red-500">
+                    {{ error }}
+                  </div>
+
                   <div
+                    v-else
                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-white"
                   >
                     <div
-                      v-for="destination in destinations"
-                      :key="destination.id"
+                      v-for="province in provinces"
+                      :key="province.id"
+                      @click="selectDestination(province.name)"
                       class="rounded-lg overflow-hidden shadow-md cursor-pointer group transition-all duration-300 hover:shadow-xl"
                     >
                       <div class="relative overflow-hidden">
                         <img
-                          :src="destination.image"
-                          :alt="destination.name"
+                          :src="province.imageUrl"
+                          :alt="province.name"
                           class="w-full h-32 object-cover transition-transform duration-500 group-hover:scale-110"
                         />
-                        <div
-                          class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300"
-                        ></div>
                       </div>
                       <div class="p-3 bg-white">
                         <h3 class="font-medium text-gray-800 mb-1">
-                          {{ destination.name }}
+                          {{ province.name }}
                         </h3>
-                        <p class="text-sm text-gray-500">
-                          {{ destination.description }}
-                        </p>
+                        <p class="text-sm text-gray-500">Khám phá ngay</p>
                       </div>
                     </div>
                   </div>

@@ -10,13 +10,14 @@ import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
 import backend.backend.utils.ResponseFactory;
 import jakarta.validation.Valid;
-
+import org.springframework.http.HttpHeaders;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import backend.backend.dto.DirectFlightReservationRequestDto;
@@ -137,6 +138,39 @@ public class OrderController {
         } catch (Exception e) {
             logger.error("Lỗi khi hủy đơn hàng cho Order ID: {}. Chi tiết lỗi: {}", id, e.getMessage());
             return ResponseFactory.error(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+ // ========================================================================================
+    // MỚI: API ĐỂ TẠO VÀ TRẢ VỀ FILE HÓA ĐƠN (PDF)
+    // ========================================================================================
+    /**
+     * Lấy file PDF hóa đơn cho một đơn hàng cụ thể.
+     * @param id ID của đơn hàng cần in hóa đơn.
+     * @return Một file PDF để trình duyệt hiển thị hoặc tải về.
+     */
+    @GetMapping("/{id}/invoice")
+    public ResponseEntity<byte[]> getInvoicePdf(@PathVariable Integer id) {
+        try {
+          
+            byte[] pdfBytes = orderService.generateInvoicePdf(id);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+
+            String filename = "invoice-" + id + ".pdf";
+            headers.setContentDispositionFormData("inline", filename);
+            
+            headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+            
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (ResourceNotFoundException e) {
+           
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+          
+            logger.error("Không thể tạo PDF cho hóa đơn ID: " + id, e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

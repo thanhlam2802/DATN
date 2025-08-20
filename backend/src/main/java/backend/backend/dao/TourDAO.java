@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import backend.backend.dto.TourDetailAdminDTO;
 import backend.backend.entity.Tour;
 import backend.backend.entity.TourStatus;
+import backend.backend.entity.User;
 
 @Repository
 public interface TourDAO  extends JpaRepository<Tour, Long> ,JpaSpecificationExecutor<Tour>{
@@ -25,6 +26,10 @@ public interface TourDAO  extends JpaRepository<Tour, Long> ,JpaSpecificationExe
 	     * @return Danh sách các tour thuộc về người dùng đó.
 	     */
 	    List<Tour> findByOwnerId(Integer ownerId);
+
+		long countByOwner(User vendorUser);
+
+		
 
 
 

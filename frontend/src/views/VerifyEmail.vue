@@ -129,6 +129,7 @@ const submitCode = async () => {
     email: email.value
   }
   const res = await AuthApi.verifyAccount(request);
+  console.log("Verify acc res",res)
   if (res["errorCode"] === ErrorCodes.otpNotMatch) {
     otpError.value = "Invalid OTP!!!"
     loadingStore.stopLoading();
@@ -145,8 +146,7 @@ const submitCode = async () => {
     return;
   }
   otpError.value = "";
-  saveAccessToken(res.accessToken);
-  userStore.login();
+  userStore.login(null,res.accessToken);
   await router.push("/");
   loadingStore.stopLoading();
 };

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -166,5 +167,27 @@ public interface BusSlotDAO extends JpaRepository<BusSlot, Integer> {
     @Query("SELECT bs FROM BusSlot bs LEFT JOIN FETCH bs.bus LEFT JOIN FETCH bs.route " +
            "WHERE bs.owner.id = :ownerId AND bs.slotDate = :slotDate")
     List<BusSlot> findByOwnerIdAndSlotDateWithDetails(@Param("ownerId") Integer ownerId, @Param("slotDate") LocalDate slotDate);
+
+    // 📊 STATISTICS METHODS
+    @Query("SELECT COUNT(bs) FROM BusSlot bs WHERE bs.owner.id = :ownerId")
+    Long countByOwnerId(@Param("ownerId") Integer ownerId);
+
+    @Query("SELECT COUNT(bs) FROM BusSlot bs WHERE bs.owner.id = :ownerId AND bs.slotDate BETWEEN :startDate AND :endDate")
+    Long countByOwnerIdAndDateRange(@Param("ownerId") Integer ownerId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    // 📊 Thống kê chuyến đi theo ngày trong khoảng thời gian
+    @Query("SELECT CAST(bs.slotDate AS DATE) as slotDate, " +
+           "COUNT(bs) as tripCount " +
+           "FROM BusSlot bs " +
+           "WHERE bs.owner.id = :ownerId " +
+           "AND CAST(bs.slotDate AS DATE) BETWEEN :startDate AND :endDate " +
+           "GROUP BY CAST(bs.slotDate AS DATE) " +
+           "ORDER BY CAST(bs.slotDate AS DATE)")
+    List<Object[]> getDailyTripStatsByDateRange(@Param("ownerId") Integer ownerId, 
+                                               @Param("startDate") LocalDate startDate, 
+                                               @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT COUNT(bs) FROM BusSlot bs WHERE bs.route.id = :routeId")
+    Long countByRouteId(@Param("routeId") Integer routeId);
 
 }

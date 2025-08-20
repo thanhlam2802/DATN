@@ -107,7 +107,6 @@ export function useBusAvailability() {
       return { available: true }
       
     } catch (error) {
-      console.error('❌ Error checking bus availability:', error)
       
       // Trong trường hợp lỗi, cho phép tạo chuyến (fail-safe)
       conflictError.value = 'Không thể kiểm tra lịch trình xe. Vui lòng kiểm tra thủ công.'

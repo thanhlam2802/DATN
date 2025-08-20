@@ -296,7 +296,7 @@ const busStatsByCategory = computed(() => {
       categoryId = (bus as any).categoryId
       categoryName = (bus as any).categoryName || 'Unknown'
     } else {
-      console.warn('⚠️ [DEBUG] Unknown bus structure:', bus)
+              // Unknown bus structure
       return
     }
     
@@ -369,7 +369,6 @@ const loadCategories = async () => {
     categories.value = await BusCategoryAPI.getBusCategoriesByOwnerId(ownerId)
   } catch (err) {
     error.value = 'Không thể tải danh sách loại xe'
-    console.error('Error loading categories:', err)
   } finally {
     isLoading.value = false
   }
@@ -389,7 +388,6 @@ const loadUserBusData = async () => {
     // Load bus slots for route information
     const busSlotPromises = userBuses.value.map(bus => 
       BusSlotAPI.findBusSlotsByBusId(bus.id).catch(err => {
-        console.warn(`⚠️ [DEBUG] Failed to load slots for bus ${bus.id}:`, err)
         return []
       })
     )
@@ -401,7 +399,6 @@ const loadUserBusData = async () => {
     lastRefreshTime.value = new Date()
     
   } catch (err) {
-    console.error('❌ [DEBUG] Error loading user bus data:', err)
     // Don't show error to user for stats, just log it
   } finally {
     isLoadingStats.value = false
@@ -468,7 +465,6 @@ const handleDeleteCategory = async (categoryId: string) => {
     await loadUserBusData()
     toast.deleted('loại xe')
   } catch (err) {
-    console.error('Error deleting category:', err)
     handleError.api(err, 'xóa loại xe')
   } finally {
     activeDropdown.value = null

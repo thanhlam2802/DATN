@@ -948,8 +948,7 @@ const loadBusCategories = async () => {
     }
     
     busCategories.value = Array.from(uniqueCategories).sort();
-  } catch (error) {
-    console.error('Error loading bus categories:', error);
+      } catch (error) {
   }
 };
 
@@ -1003,8 +1002,7 @@ const handleModalSubmit = async (bus: any) => {
       toast.updated(`xe buýt ${bus?.name || bus?.id || ''}`);
     }
     
-  } catch (err) {
-    console.error('Error reloading buses:', err);
+      } catch (err) {
     handleError.api(err, 'tải lại danh sách xe buýt');
   }
 };
@@ -1028,7 +1026,6 @@ const confirmDelete = async (bus: Bus) => {
       toast.deleted('xe buýt');
       
     } catch (err) {
-      console.error('Error deleting bus:', err);
       
       // Handle specific error types
       const errorMessage = (err as any)?.message || '';

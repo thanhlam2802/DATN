@@ -25,13 +25,13 @@ export function useBusWebSocket() {
    */
   const connect = () => {
     if (wsConnection.value && isConnected.value) {
-      console.log('🚌 [WebSocket] Already connected')
+      // Already connected
       return
     }
     
     try {
       const ownerId = requireUserId()
-      console.log('🚌 [WebSocket] Connecting for owner:', ownerId)
+      // Connecting for owner
       
       // ✅ Sử dụng WebSocket utility với config centralized
       wsConnection.value = createWebSocketConnection({
@@ -68,7 +68,6 @@ export function useBusWebSocket() {
       wsConnection.value.connect()
       
     } catch (error) {
-      console.error('❌ [WebSocket] Setup error:', error)
       connectionError.value = error.message
     }
   }
@@ -88,15 +87,14 @@ export function useBusWebSocket() {
    * Xử lý status updates
    */
   const handleStatusUpdate = (update) => {
-    console.log('🔄 [WebSocket] Received status update:', update)
+    // Received status update
     lastUpdate.value = update
     
     // Notify all handlers
     statusUpdateHandlers.value.forEach(handler => {
       try {
         handler(update)
-      } catch (error) {
-        console.error('❌ [WebSocket] Error in status update handler:', error)
+          } catch (error) {
       }
     })
     
@@ -112,14 +110,13 @@ export function useBusWebSocket() {
    * Xử lý notifications
    */
   const handleNotification = (notification) => {
-    console.log('🔔 [WebSocket] Received notification:', notification)
+    // Received notification
     
     // Notify all handlers
     notificationHandlers.value.forEach(handler => {
       try {
         handler(notification)
-      } catch (error) {
-        console.error('❌ [WebSocket] Error in notification handler:', error)
+          } catch (error) {
       }
     })
     
@@ -158,7 +155,7 @@ export function useBusWebSocket() {
    */
   const sendStatusUpdate = (busSlotId, status, action = 'MANUAL_UPDATE') => {
     if (!wsConnection.value || !isConnected.value) {
-      console.warn('⚠️ [WebSocket] Cannot send - not connected')
+      // Cannot send - not connected
       return false
     }
     
@@ -174,11 +171,10 @@ export function useBusWebSocket() {
       
       const success = wsConnection.value.send(WS_DESTINATIONS.BUS.STATUS_UPDATE, update)
       if (success) {
-        console.log('📤 [WebSocket] Sent status update:', update)
+        // Sent status update
       }
       return success
     } catch (error) {
-      console.error('❌ [WebSocket] Failed to send status update:', error)
       return false
     }
   }

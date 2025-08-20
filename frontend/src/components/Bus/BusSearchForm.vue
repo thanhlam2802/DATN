@@ -63,8 +63,7 @@ const loadDepartureDistricts = async (provinceName) => {
     loadingDepartureDistricts.value = true
     const districts = await ProvinceAPI.getDistrictsByProvince(provinceName)
     departureDistricts.value = districts
-  } catch (error) {
-    console.error('❌ Error loading departure districts:', error)
+      } catch (error) {
     departureDistricts.value = []
   } finally {
     loadingDepartureDistricts.value = false
@@ -81,8 +80,7 @@ const loadArrivalDistricts = async (provinceName) => {
     loadingArrivalDistricts.value = true
     const districts = await ProvinceAPI.getDistrictsByProvince(provinceName)
     arrivalDistricts.value = districts
-  } catch (error) {
-    console.error('❌ Error loading arrival districts:', error)
+      } catch (error) {
     arrivalDistricts.value = []
   } finally {
     loadingArrivalDistricts.value = false
@@ -116,14 +114,7 @@ const handleSearch = async () => {
     return
   }
 
-  console.log('🔍 DEBUG: Starting search with form data:', {
-    departureProvince: searchForm.value.departureProvince,
-    departureDistrict: searchForm.value.departureDistrict,
-    arrivalProvince: searchForm.value.arrivalProvince,
-    arrivalDistrict: searchForm.value.arrivalDistrict,
-    departureDate: searchForm.value.departureDate,
-    seats: searchForm.value.seats
-  })
+  // Starting search with form data
 
   try {
     // Tạo search criteria
@@ -136,7 +127,7 @@ const handleSearch = async () => {
       minAvailableSeats: searchForm.value.seats
     }
 
-    console.log('📋 DEBUG: Search criteria:', searchCriteria)
+    // Search criteria prepared
 
     // Gọi GraphQL query
     const response = await graphqlRequest({
@@ -217,8 +208,7 @@ const handleSearch = async () => {
       }
     })
 
-    console.log('📡 DEBUG: GraphQL response:', response)
-    console.log('🚌 DEBUG: Bus slots found:', response.data?.searchBusSlotsDetailed?.length || 0)
+    // GraphQL response received
 
     // Transform data và emit với format mong đợi của BusSearchModal
     const searchResults = {
@@ -233,12 +223,11 @@ const handleSearch = async () => {
       }
     }
 
-    console.log('✅ DEBUG: Emitting search results:', searchResults)
+    // Emitting search results
 
     // Emit kết quả tìm kiếm
     emit('search', searchResults)
   } catch (error) {
-    console.error('❌ DEBUG: Search error:', error)
     toast.warning('Không tìm thấy kết quả')
   }
 }

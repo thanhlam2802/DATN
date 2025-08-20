@@ -48,11 +48,14 @@ export class BusBookingDetailAPI {
    */
   static async getBookingDetailForDisplay(bookingId: number): Promise<ApiResponse<BusBookingDetailDto>> {
     try {
+      // 🔑 Lấy token từ localStorage (using TOKEN_KEY from TokenService)
+      const token = localStorage.getItem('t_') || localStorage.getItem('accessToken') || localStorage.getItem('token')
+      
       const response = await fetch(`${BASE_URL}/${bookingId}/detail`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
       })
 
@@ -63,7 +66,6 @@ export class BusBookingDetailAPI {
 
       return await response.json()
     } catch (error) {
-      console.error('❌ Error getting bus booking detail:', error)
       throw new Error(
         error instanceof Error 
           ? error.message 

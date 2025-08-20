@@ -33,11 +33,11 @@
       <div class="px-4 py-4 border-b border-blue-100">
         <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300">
           <div class="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-            <span class="text-white font-semibold text-sm">A</span>
+            <span class="text-white font-semibold text-sm">{{ userInitial }}</span>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-800 truncate">Admin User</p>
-            <p class="text-xs text-gray-600 truncate">admin@busmanager.com</p>
+            <p class="text-sm font-medium text-gray-800 truncate">{{ userInfo.fullName || 'Loading...' }}</p>
+            <p class="text-xs text-gray-600 truncate">{{ userInfo.role || 'Loading...' }}</p>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-2 h-2 bg-green-500 rounded-full status-glow"></div>
@@ -214,13 +214,8 @@
         
         <!-- Header actions -->
         <div class="flex items-center space-x-4">
-          <!-- Notifications -->
-          <button class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.5-3.5M15 17l-3.5-3.5M15 17V4a2 2 0 00-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2h8a2 2 0 002-2z"></path>
-            </svg>
-            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full notification-badge"></span>
-          </button>
+          <!-- Bus Admin Notifications -->
+          <BusAdminNotifications />
           
           <!-- Settings -->
           <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200">
@@ -264,6 +259,9 @@ import {
   BusIcon
 } from 'lucide-vue-next'
 
+// Import Components
+import BusAdminNotifications from './BusAdminNotifications.vue'
+
 // Import APIs
 import { BusAPI } from '@/api/busApi'
 import { toast } from '@/utils/notifications'
@@ -274,12 +272,27 @@ const route = useRoute()
 // State
 const isSidebarOpen = ref(false)
 
+// User info from token
+const userInfo = ref({
+  fullName: '',
+  email: '',
+  role: ''
+})
+
 // Stats data
 const statsData = ref({
   totalBuses: 0,
   todayTrips: 0,
   loading: false,
   error: null
+})
+
+// Computed properties
+const userInitial = computed(() => {
+  if (userInfo.value.fullName) {
+    return userInfo.value.fullName.charAt(0).toUpperCase()
+  }
+  return 'U'
 })
 
 // Computed badges
@@ -302,6 +315,45 @@ const currentPageTitle = computed(() => {
   return currentItem?.name || 'Dashboard'
 })
 
+// Load user info from token
+const loadUserInfo = async () => {
+  try {
+    const token = localStorage.getItem('t_')
+    if (token) {
+      try {
+        // Parse JWT token payload
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        
+        userInfo.value = {
+          fullName: payload.name || 'Unknown User',
+          email: payload.email || 'unknown@example.com',
+          role: 'Admin' // Default role for bus admin
+        }
+        
+        // User info loaded successfully
+      } catch (e) {
+        userInfo.value = {
+          fullName: 'Unknown User',
+          email: 'unknown@example.com',
+          role: 'Admin'
+        }
+      }
+    } else {
+      userInfo.value = {
+        fullName: 'Unknown User',
+        email: 'unknown@example.com',
+        role: 'Admin'
+      }
+    }
+  } catch (error) {
+    userInfo.value = {
+      fullName: 'Unknown User',
+      email: 'unknown@example.com',
+      role: 'Admin'
+    }
+  }
+}
+
 // Load real stats data
 const loadStatsData = async () => {
   try {
@@ -321,7 +373,6 @@ const loadStatsData = async () => {
      statsData.value.todayTrips = Math.floor(Math.random() * 10) + 1 // Mock data for now
     
   } catch (error) {
-    console.error('❌ Error loading stats:', error)
     
          // Use fallback mock data on error
      statsData.value.totalBuses = 0
@@ -338,7 +389,6 @@ const debugGraphQL = async () => {
     const result = await BusAPI.testSimpleQuery();
     alert('GraphQL test successful! Check console for details.');
   } catch (error) {
-    console.error('❌ Manual test failed:', error);
     alert(`GraphQL test failed: ${error.message}`);
   }
 }
@@ -352,6 +402,7 @@ const closeSidebarOnMobile = () => {
 
 // Load data on mount
 onMounted(() => {
+  loadUserInfo()
   loadStatsData()
 })
 </script>

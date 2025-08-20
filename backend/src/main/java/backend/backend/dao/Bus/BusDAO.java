@@ -52,6 +52,15 @@ public interface BusDAO extends JpaRepository<Bus, Integer> {
     @Query("SELECT b FROM Bus b LEFT JOIN FETCH b.busImages LEFT JOIN FETCH b.category LEFT JOIN FETCH b.owner WHERE LOWER(b.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))")
     List<Bus> findByLicensePlateContainingIgnoreCase(@Param("licensePlate") String licensePlate); // <-- Sửa đổi phương thức này
 
+    // 📊 STATISTICS METHODS
+    @Query("SELECT COUNT(b) FROM Bus b WHERE b.owner.id = :ownerId")
+    Long countByOwnerId(@Param("ownerId") Integer ownerId);
 
+    // 📊 BUS STATUS STATISTICS METHODS
+    @Query("SELECT COUNT(b) FROM Bus b WHERE b.owner.id = :ownerId AND EXISTS (SELECT 1 FROM BusSlot bs WHERE bs.bus.id = b.id)")
+    Long countActiveBusesByOwnerId(@Param("ownerId") Integer ownerId);
+
+    @Query("SELECT COUNT(b) FROM Bus b WHERE b.owner.id = :ownerId AND NOT EXISTS (SELECT 1 FROM BusSlot bs WHERE bs.bus.id = b.id)")
+    Long countInactiveBusesByOwnerId(@Param("ownerId") Integer ownerId);
 
 }

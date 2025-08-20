@@ -1,5 +1,6 @@
 package backend.backend.implement.busImplement;
 
+import backend.backend.controller.WebSocketController;
 import backend.backend.dao.BusBookingDAO;
 import backend.backend.dao.Bus.BusSeatDAO;
 import backend.backend.dao.Bus.BusSlotDAO;
@@ -30,6 +31,7 @@ public class BusBookingServiceImpl implements BusBookingService {
     private final BusSeatDAO busSeatDAO;
     private final BusSlotDAO busSlotDAO;
     private final CustomerDAO customerDAO;
+    private final WebSocketController webSocketController;
 
     // ===================================================================
     // CORE BOOKING OPERATIONS
@@ -59,6 +61,8 @@ public class BusBookingServiceImpl implements BusBookingService {
 
         log.info("Bus booking created successfully: bookingId={}, reference={}",
                 booking.getId(), booking.getBookingReference());
+
+
 
         return booking;
     }
@@ -540,6 +544,32 @@ public class BusBookingServiceImpl implements BusBookingService {
         booking.setStatus(BusBookingStatus.RESERVED);
         booking.setNotes(request.getNotes());
         booking.setExpiresAt(LocalDateTime.now().plusMinutes(30)); // ✅ FIXED: Match order expiration time
+
+        //        Notification ws for bus admin
+        try {
+            String customerName = customer.getFullName() != null ? customer.getFullName() : "Unknown Customer";
+            String routeName = "Unknown Route";
+
+            if (busSlot.getRoute() != null &&
+                    busSlot.getRoute().getOriginLocation() != null &&
+                    busSlot.getRoute().getDestinationLocation() != null) {
+                routeName = busSlot.getRoute().getOriginLocation().getName() + " → " +
+                        busSlot.getRoute().getDestinationLocation().getName();
+            }
+
+            webSocketController.sendBusBookingNotification(
+                    customerName,
+                    selectedSeats.size(),
+                    routeName,
+                    busSlot.getRoute() != null ? busSlot.getRoute().getId() : null,
+                    booking.getTotalPrice(),
+                    booking.getId()
+            );
+            log.info("Success to send admin notification for booking: {}", booking.getId());
+
+        } catch (Exception e) {
+            log.warn("Failed to send admin notification for booking: {}", booking.getId(), e);
+        }
 
         return booking;
     }

@@ -16,10 +16,14 @@ export class BookingAPI {
     bookingRequest: any
   ): Promise<ApiResponse<BookingResponse>> {
     try {
+      // 🔑 Lấy token từ localStorage (using TOKEN_KEY from TokenService)
+      const token = localStorage.getItem('t_') || localStorage.getItem('accessToken') || localStorage.getItem('token')
+      
       const response = await fetch(`${BASE_URL}/direct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify(bookingRequest),
       })
@@ -31,7 +35,6 @@ export class BookingAPI {
 
       return await response.json()
     } catch (error) {
-      console.error('❌ Error creating direct booking:', error)
       throw new Error(
         error instanceof Error 
           ? error.message 
@@ -45,10 +48,14 @@ export class BookingAPI {
    */
   static async getBookingDetail(bookingId: number): Promise<ApiResponse<BookingResponse>> {
     try {
+      // 🔑 Lấy token từ localStorage (using TOKEN_KEY from TokenService)
+      const token = localStorage.getItem('t_') || localStorage.getItem('accessToken') || localStorage.getItem('token')
+      
       const response = await fetch(`${BASE_URL}/${bookingId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
       })
 
@@ -58,7 +65,6 @@ export class BookingAPI {
 
       return await response.json()
     } catch (error) {
-      console.error('❌ Error getting booking detail:', error)
       throw new Error('Không thể lấy thông tin đặt vé.')
     }
   }
@@ -68,10 +74,14 @@ export class BookingAPI {
    */
   static async cancelBooking(bookingId: number): Promise<ApiResponse<any>> {
     try {
+      // 🔑 Lấy token từ localStorage (using TOKEN_KEY from TokenService)
+      const token = localStorage.getItem('t_') || localStorage.getItem('accessToken') || localStorage.getItem('token')
+      
       const response = await fetch(`${BASE_URL}/${bookingId}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
       })
 
@@ -82,7 +92,6 @@ export class BookingAPI {
 
       return await response.json()
     } catch (error) {
-      console.error('❌ Error cancelling booking:', error)
       throw new Error(
         error instanceof Error 
           ? error.message 
@@ -96,10 +105,14 @@ export class BookingAPI {
    */
   static async getCustomerBookings(customerId: number): Promise<ApiResponse<BookingResponse[]>> {
     try {
+      // 🔑 Lấy token từ localStorage (using TOKEN_KEY from TokenService)
+      const token = localStorage.getItem('t_') || localStorage.getItem('accessToken') || localStorage.getItem('token')
+      
       const response = await fetch(`${BASE_URL}/customer/${customerId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
       })
 
@@ -109,7 +122,6 @@ export class BookingAPI {
 
       return await response.json()
     } catch (error) {
-      console.error('❌ Error getting customer bookings:', error)
       throw new Error('Không thể lấy danh sách đặt vé.')
     }
   }

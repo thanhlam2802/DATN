@@ -72,6 +72,11 @@ export const WS_TOPICS = {
     SYSTEM_ALERTS: '/topic/bus/system/alerts'
   },
   
+  // Admin-specific topics (thêm mới cho bus admin notifications)
+  ADMIN_BOOKINGS: '/topic/admin/bus/bookings',
+  ADMIN_PAYMENTS: '/topic/admin/payments',
+  ADMIN_SYSTEM: '/topic/admin/system',
+  
   // Hotel Management Topics  
   HOTEL: {
     // Hotel-specific topics
@@ -116,6 +121,9 @@ export const WS_DESTINATIONS = {
     OWNER_CONNECT: '/app/bus/owner-connect',
     ADMIN_ACTION: '/app/bus/admin/action'
   },
+  
+  // Admin destinations
+  ADMIN_CONNECT: '/app/admin/connect',
   
   // Hotel destinations
   HOTEL: {

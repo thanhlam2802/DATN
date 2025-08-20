@@ -474,7 +474,7 @@ export function usePriceManagement() {
       const fromDate = new Date(newValidFrom)
       const toDate = new Date(fromDate.getFullYear() + 1, fromDate.getMonth(), fromDate.getDate())
       priceForm.value.validTo = toDate.toISOString().split('T')[0]
-      console.log('📅 [PriceManagement] Auto-set validTo to 1 year from validFrom')
+      // Auto-set validTo to 1 year from validFrom
     }
   })
   

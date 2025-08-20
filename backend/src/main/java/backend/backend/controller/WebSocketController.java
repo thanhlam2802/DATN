@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @Controller
@@ -158,6 +159,82 @@ public class WebSocketController {
                        action, busSlotId);
         } catch (Exception e) {
             logger.error("❌ [WebSocket] Failed to send bus status update", e);
+        }
+    }
+
+    /**
+     * 🔔 Gửi bus booking notification đến admin
+     */
+    public void sendBusBookingNotification(String customerName, Integer seatCount,
+                                           String routeName, Integer routeId,
+                                           BigDecimal amount, Integer orderId) {
+        try {
+            Map<String, Object> notification = new java.util.HashMap<>();
+            notification.put("type", "BUS_BOOKING");
+            notification.put("customerName", customerName);
+            notification.put("seatCount", seatCount);
+            notification.put("routeName", routeName);
+            notification.put("routeId", routeId);
+            notification.put("amount", amount);
+            notification.put("orderId", orderId);
+            notification.put("timestamp", System.currentTimeMillis());
+            notification.put("service", "BUS");
+
+            // Gửi đến admin dashboard
+            messagingTemplate.convertAndSend("/topic/admin/bus/bookings", notification);
+
+            logger.info("🔔 [Admin Notification] Sent bus booking notification for order: {}", orderId);
+        } catch (Exception e) {
+            logger.error("❌ [Admin Notification] Failed to send bus booking notification", e);
+        }
+    }
+
+    /**
+     * 💰 Gửi payment notification đến admin
+     */
+    public void sendPaymentNotification(Integer orderId, BigDecimal amount,
+                                        String status, String paymentMethod, String service) {
+        try {
+            Map<String, Object> notification = new java.util.HashMap<>();
+            notification.put("type", status.equals("SUCCESS") ? "PAYMENT_SUCCESS" : "PAYMENT_FAILED");
+            notification.put("orderId", orderId);
+            notification.put("amount", amount);
+            notification.put("status", status);
+            notification.put("paymentMethod", paymentMethod);
+            notification.put("service", service);
+            notification.put("timestamp", System.currentTimeMillis());
+
+            // Gửi đến admin dashboard
+            messagingTemplate.convertAndSend("/topic/admin/payments", notification);
+
+            logger.info("🔔 [Admin Notification] Sent payment notification for order: {} - Status: {}",
+                    orderId, status);
+        } catch (Exception e) {
+            logger.error("❌ [Admin Notification] Failed to send payment notification", e);
+        }
+    }
+
+    /**
+     * 📊 Gửi admin connection mapping
+     */
+    @MessageMapping("/admin/connect")
+    public void handleAdminConnect(Map<String, Object> connectionInfo) {
+        try {
+            logger.info("🔔 [Admin WebSocket] Admin connected: {}", connectionInfo);
+
+            String adminId = (String) connectionInfo.get("adminId");
+            if (adminId != null) {
+                Map<String, Object> welcomeMessage = new java.util.HashMap<>();
+                welcomeMessage.put("type", "ADMIN_CONNECTION_CONFIRMED");
+                welcomeMessage.put("message", "Kết nối thành công đến hệ thống admin real-time");
+                welcomeMessage.put("timestamp", System.currentTimeMillis());
+
+                messagingTemplate.convertAndSend(
+                        "/topic/admin/notifications/" + adminId,
+                        welcomeMessage);
+            }
+        } catch (Exception e) {
+            logger.error("❌ [Admin WebSocket] Error handling admin connection", e);
         }
     }
 

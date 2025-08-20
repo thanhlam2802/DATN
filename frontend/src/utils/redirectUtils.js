@@ -18,7 +18,7 @@ export const getRedirectPath = (user) => {
   }
 
   if (roles.includes("ADMIN_BUSES") || roles.includes("BUS_SUPPLIER")) {
-    return "/admin/buses";
+    return "/bus-management/bus";
   }
 
   if (roles.includes("SUPER_ADMIN")) {

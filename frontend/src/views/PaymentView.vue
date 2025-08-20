@@ -210,6 +210,7 @@ async function submitPayment() {
 }
 
 async function confirmOtp() {
+  console.log('confirmOtp');
   if (!otp.value || !paymentId.value) return;
   isConfirming.value = true;
   otpError.value = '';
@@ -280,6 +281,43 @@ onUnmounted(() => {
         <p class="text-3xl font-mono font-bold text-red-600 tracking-wider mt-1">
           {{ String(minutes).padStart(2,'0') }}<span class="animate-pulse">:</span>{{ String(seconds).padStart(2,'0') }}
         </p>
+      </div>
+
+      <!-- ✅ Bus Booking Summary -->
+      <div v-if="orderDetails && orderDetails.busBookings && orderDetails.busBookings.length > 0" 
+           class="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h3 class="font-semibold text-blue-800 mb-3 flex items-center">
+          <i class="fas fa-bus mr-2"></i>
+          Thông tin vé xe
+        </h3>
+        <div v-for="busBooking in orderDetails.busBookings" :key="busBooking.id" class="space-y-2 text-sm">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-gray-600">Tuyến:</span>
+              <span class="font-medium ml-1">{{ busBooking.busName }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600">Ghế:</span>
+              <span class="font-medium ml-1">{{ busBooking.seatNumbers?.join(', ') || 'N/A' }}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-gray-600">Ngày đi:</span>
+              <span class="font-medium ml-1">{{ new Date(busBooking.departureDate).toLocaleDateString('vi-VN') }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600">Giờ đi:</span>
+              <span class="font-medium ml-1">{{ busBooking.departureTime?.substring(0, 5) || 'N/A' }}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <div>
+              <span class="text-gray-600">Hành khách:</span>
+              <span class="font-medium ml-1">{{ busBooking.customerName }} - {{ busBooking.customerPhone }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Phần 3: Thanh toán qua chuyển khoản ngân hàng -->

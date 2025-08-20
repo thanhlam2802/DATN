@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
+    "@stomp/stompjs": "^7.1.1",
     "@vueform/slider": "^2.1.10",
     "@vuepic/vue-datepicker": "^11.0.2",
     "@vueuse/core": "^13.5.0",
@@ -31,7 +32,10 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@types/node": "^24.3.0",
     "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/tsconfig": "^0.8.1",
+    "typescript": "^5.9.2",
     "vite": "^6.2.4",
     "vite-plugin-vue-devtools": "^7.7.2"
   }

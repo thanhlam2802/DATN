@@ -9,6 +9,7 @@ import backend.backend.service.ImageStorageService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -169,7 +170,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 f.setArrivalAirport(aa);
             }
             // giả định owner
-            User u = new User(); u.setId(16);
+            User u =(User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             f.setOwner(u);
 
             Flight saved = flightDAO.save(f);
@@ -923,5 +924,210 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .build();
         log.info("MAPPING_CATEGORY_TO_DTO_DONE- categoryId: {}", c.getId());
         return dto;
+    }
+
+    @Override
+    public MonthlyFlightStatisticsDto getMonthlyFlightStatistics(Integer year, Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("[THỐNG_KÊ_THÁNG][BẮT_ĐẦU] requestId={}, năm={}, tháng={}", requestId, year, month);
+
+        try {
+            // Tính tháng trước
+            int previousMonth = (month == 1) ? 12 : month - 1;
+            int previousYear = (month == 1) ? year - 1 : year;
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tháng trước được tính là: năm={}, tháng={}", requestId, previousYear, previousMonth);
+
+            // Thống kê tháng hiện tại
+            log.info("[THỐNG_KÊ_THÁNG][{}] Bắt đầu lấy dữ liệu thống kê tháng hiện tại...", requestId);
+            Long totalFlightsCurrentMonth = flightDAO.countFlightsByMonth(year, month);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số chuyến bay tháng {}/{}: {}", requestId, month, year, totalFlightsCurrentMonth);
+
+            Long totalBookingsCurrentMonth = flightBookingDAO.countBookingsByMonth(year, month);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số lượt đặt vé tháng {}/{}: {}", requestId, month, year, totalBookingsCurrentMonth);
+
+            Double totalRevenueCurrentMonth = flightBookingDAO.sumRevenueByMonth(year, month);
+            if (totalRevenueCurrentMonth == null) {
+                totalRevenueCurrentMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, month, year);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{}: {}", requestId, month, year, totalRevenueCurrentMonth);
+            }
+
+            Double averageOccupancyRateCurrentMonth = calculateAverageOccupancyRate(year, month);
+            if (averageOccupancyRateCurrentMonth == null) {
+                averageOccupancyRateCurrentMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, month, year);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy trung bình tháng {}/{}: {}%", requestId, month, year, averageOccupancyRateCurrentMonth);
+            }
+
+            // Thống kê tháng trước
+            log.info("[THỐNG_KÊ_THÁNG][{}] Bắt đầu lấy dữ liệu thống kê tháng trước...", requestId);
+            Long totalFlightsPreviousMonth = flightDAO.countFlightsByMonth(previousYear, previousMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số chuyến bay tháng {}/{}: {}", requestId, previousMonth, previousYear, totalFlightsPreviousMonth);
+
+            Long totalBookingsPreviousMonth = flightBookingDAO.countBookingsByMonth(previousYear, previousMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số lượt đặt vé tháng {}/{}: {}", requestId, previousMonth, previousYear, totalBookingsPreviousMonth);
+
+            Double totalRevenuePreviousMonth = flightBookingDAO.sumRevenueByMonth(previousYear, previousMonth);
+            if (totalRevenuePreviousMonth == null) {
+                totalRevenuePreviousMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, previousMonth, previousYear);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{}: {}", requestId, previousMonth, previousYear, totalRevenuePreviousMonth);
+            }
+
+            Double averageOccupancyRatePreviousMonth = calculateAverageOccupancyRate(previousYear, previousMonth);
+            if (averageOccupancyRatePreviousMonth == null) {
+                averageOccupancyRatePreviousMonth = 0.0;
+                log.warn("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, previousMonth, previousYear);
+            } else {
+                log.info("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy trung bình tháng {}/{}: {}%", requestId, previousMonth, previousYear, averageOccupancyRatePreviousMonth);
+            }
+
+            // Tính phần trăm thay đổi
+            log.info("[THỐNG_KÊ_THÁNG][{}] Đang tính phần trăm thay đổi giữa hai tháng...", requestId);
+            Double flightsChangePercentage = calculatePercentageChange(totalFlightsPreviousMonth, totalFlightsCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi số chuyến bay: {}%", requestId, flightsChangePercentage);
+
+            Double bookingsChangePercentage = calculatePercentageChange(totalBookingsPreviousMonth, totalBookingsCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi lượt đặt vé: {}%", requestId, bookingsChangePercentage);
+
+            Double revenueChangePercentage = calculatePercentageChange(totalRevenuePreviousMonth, totalRevenueCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi doanh thu: {}%", requestId, revenueChangePercentage);
+
+            Double occupancyChangePercentage = calculatePercentageChange(averageOccupancyRatePreviousMonth, averageOccupancyRateCurrentMonth);
+            log.info("[THỐNG_KÊ_THÁNG][{}] Thay đổi tỷ lệ lấp đầy: {}%", requestId, occupancyChangePercentage);
+
+            // Build DTO kết quả
+            MonthlyFlightStatisticsDto result = MonthlyFlightStatisticsDto.builder()
+                    .year(year)
+                    .month(month)
+                    .totalFlightsCurrentMonth(totalFlightsCurrentMonth)
+                    .totalBookingsCurrentMonth(totalBookingsCurrentMonth)
+                    .totalRevenueCurrentMonth(totalRevenueCurrentMonth)
+                    .averageOccupancyRateCurrentMonth(averageOccupancyRateCurrentMonth)
+                    .totalFlightsPreviousMonth(totalFlightsPreviousMonth)
+                    .totalBookingsPreviousMonth(totalBookingsPreviousMonth)
+                    .totalRevenuePreviousMonth(totalRevenuePreviousMonth)
+                    .averageOccupancyRatePreviousMonth(averageOccupancyRatePreviousMonth)
+                    .flightsChangePercentage(flightsChangePercentage)
+                    .bookingsChangePercentage(bookingsChangePercentage)
+                    .revenueChangePercentage(revenueChangePercentage)
+                    .occupancyChangePercentage(occupancyChangePercentage)
+                    .build();
+
+            log.info("[THỐNG_KÊ_THÁNG][THÀNH_CÔNG] requestId={}, kết_quả={}", requestId, result);
+            return result;
+
+        } catch (Exception e) {
+            log.error("[THỐNG_KÊ_THÁNG][LỖI] requestId={}, năm={}, tháng={}, lỗi={}, chi_tiết={}",
+                    requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    private Double calculateAverageOccupancyRate(Integer year, Integer month) {
+        try {
+            // Lấy tất cả chuyến bay trong tháng
+            List<Flight> flights = flightDAO.findAll().stream()
+                    .filter(f -> f.getCreatedAt().getYear() == year && f.getCreatedAt().getMonthValue() == month)
+                    .collect(Collectors.toList());
+            
+            if (flights.isEmpty()) {
+                return 0.0;
+            }
+            
+            double totalOccupancyRate = 0.0;
+            int flightCount = 0;
+            
+            for (Flight flight : flights) {
+                int totalSlots = flightSlotDAO.countAvailableSlotsByFlightId(flight.getId()) + 
+                                flightBookingDAO.countSoldSeatsByFlightId(flight.getId());
+                
+                if (totalSlots > 0) {
+                    int soldSeats = flightBookingDAO.countSoldSeatsByFlightId(flight.getId());
+                    double occupancyRate = (soldSeats * 100.0) / totalSlots;
+                    totalOccupancyRate += occupancyRate;
+                    flightCount++;
+                }
+            }
+            
+            return flightCount > 0 ? totalOccupancyRate / flightCount : 0.0;
+            
+        } catch (Exception e) {
+            log.error("CALCULATE_OCCUPANCY_RATE_FAILED - year: {}, month: {}, error: {}", year, month, e.getMessage(), e);
+            return 0.0;
+        }
+    }
+    
+    private Double calculatePercentageChange(Double previousValue, Double currentValue) {
+        if (previousValue == null || previousValue == 0) {
+            return currentValue != null && currentValue > 0 ? 100.0 : 0.0;
+        }
+        return ((currentValue - previousValue) / previousValue) * 100.0;
+    }
+    
+    private Double calculatePercentageChange(Long previousValue, Long currentValue) {
+        if (previousValue == null || previousValue == 0) {
+            return currentValue != null && currentValue > 0 ? 100.0 : 0.0;
+        }
+        return ((currentValue - previousValue) * 100.0) / previousValue;
+    }
+
+    @Override
+    public List<BookingByDestinationDto> getBookingsByDestination(Integer year, Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_BOOKINGS_BY_DESTINATION_REQUEST - RequestId: {}, year: {}, month: {}", requestId, year, month);
+        
+        try {
+            // Sử dụng JPA query tối ưu thay vì findAll().stream()
+            List<Object[]> results = flightBookingDAO.getBookingsByDestinationOptimized(year, month);
+            
+            // Chuyển đổi kết quả thành DTO
+            List<BookingByDestinationDto> result = results.stream()
+                    .map(row -> BookingByDestinationDto.builder()
+                            .destination((String) row[0])
+                            .bookingCount(((Number) row[1]).longValue())
+                            .build())
+                    .collect(Collectors.toList());
+
+            log.info("GET_BOOKINGS_BY_DESTINATION_SUCCESS - RequestId: {}, year: {}, month: {}, count: {}", 
+                    requestId, year, month, result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("GET_BOOKINGS_BY_DESTINATION_FAILED - RequestId: {}, year: {}, month: {}, error: {}", 
+                    requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    public List<RevenueBySeatClassDto> getRevenueBySeatClass(Integer year, Integer month) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_REVENUE_BY_SEAT_CLASS_REQUEST - RequestId: {}, year: {}, month: {}", requestId, year, month);
+        
+        try {
+            // Sử dụng JPA query tối ưu thay vì findAll().stream()
+            List<Object[]> results = flightBookingDAO.getRevenueBySeatClassOptimized(year, month);
+            
+            // Chuyển đổi kết quả thành DTO
+            List<RevenueBySeatClassDto> result = results.stream()
+                    .map(row -> RevenueBySeatClassDto.builder()
+                            .seatClass((String) row[0])
+                            .revenue(((Number) row[1]).doubleValue())
+                            .build())
+                    .collect(Collectors.toList());
+
+            log.info("GET_REVENUE_BY_SEAT_CLASS_SUCCESS - RequestId: {}, year: {}, month: {}, count: {}", 
+                    requestId, year, month, result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("GET_REVENUE_BY_SEAT_CLASS_FAILED - RequestId: {}, year: {}, month: {}, error: {}", 
+                    requestId, year, month, e.getMessage(), e);
+            throw e;
+        }
     }
 }

@@ -46,7 +46,7 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "voucher_id")
     private Voucher voucher;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_id")
     private TouristDestination destination;

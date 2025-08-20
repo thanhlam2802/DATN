@@ -6,6 +6,8 @@ import backend.backend.entity.Amenity;
 import backend.backend.entity.HotelRoom;
 import backend.backend.entity.HotelRoomVariant;
 import backend.backend.entity.Province;
+import backend.backend.entity.HotelBooking;
+import backend.backend.entity.Order;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Expression;
@@ -86,14 +88,56 @@ public class HotelSpecifications {
                 }
             }
 
-            // Filter theo ngày tạo
             if (requestDto.getCreatedAtFrom() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), requestDto.getCreatedAtFrom().atStartOfDay()));
             }
             if (requestDto.getCreatedAtTo() != null) {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), requestDto.getCreatedAtTo().atTime(23, 59, 59)));
             }
+
+            if (requestDto.getRoomStatus() != null && !requestDto.getRoomStatus().isEmpty()) {
+                predicates.add(buildRoomStatusPredicate(root, query, criteriaBuilder, requestDto.getRoomStatus()));
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private static Predicate buildRoomStatusPredicate(Root<Hotel> root, jakarta.persistence.criteria.CriteriaQuery<?> query, 
+                                                   jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder, String roomStatus) {
+        Subquery<Long> roomStatusSubquery = query.subquery(Long.class);
+        Root<HotelRoom> roomRoot = roomStatusSubquery.from(HotelRoom.class);
+        
+        Subquery<Long> bookedRoomsSubquery = roomStatusSubquery.subquery(Long.class);
+        Root<HotelBooking> bookingRoot = bookedRoomsSubquery.from(HotelBooking.class);
+        Join<HotelBooking, Order> orderJoin = bookingRoot.join("order");
+        
+        bookedRoomsSubquery.select(criteriaBuilder.count(bookingRoot.get("id")))
+                .where(
+                    criteriaBuilder.equal(bookingRoot.get("roomVariant").get("room"), roomRoot),
+                    criteriaBuilder.equal(orderJoin.get("status"), "PAID"),
+                    criteriaBuilder.lessThanOrEqualTo(bookingRoot.get("checkInDate"), criteriaBuilder.currentTimestamp()),
+                    criteriaBuilder.greaterThan(bookingRoot.get("checkOutDate"), criteriaBuilder.currentTimestamp())
+                );
+
+        Expression<Long> bookedRooms = bookedRoomsSubquery.getSelection();
+        Expression<Long> availableRooms = criteriaBuilder.diff(roomRoot.get("roomQuantity"), criteriaBuilder.coalesce(bookedRooms, 0L));
+
+        roomStatusSubquery.select(criteriaBuilder.literal(1L));
+
+        if ("out_of_stock".equals(roomStatus)) {
+            roomStatusSubquery.where(
+                criteriaBuilder.equal(roomRoot.get("hotel"), root),
+                criteriaBuilder.lessThanOrEqualTo(availableRooms, 0L)
+            );
+        } else if ("nearly_out_of_stock".equals(roomStatus)) {
+            roomStatusSubquery.where(
+                criteriaBuilder.equal(roomRoot.get("hotel"), root),
+                criteriaBuilder.greaterThan(availableRooms, 0L),
+                criteriaBuilder.lessThanOrEqualTo(availableRooms, 5L)
+            );
+        }
+
+        return criteriaBuilder.exists(roomStatusSubquery);
     }
 }

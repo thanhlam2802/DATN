@@ -5,9 +5,11 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.List;
 
 @Data
 public class AccountDto {
+	 private Long id;
     @NotBlank
     private String name;
 
@@ -15,4 +17,5 @@ public class AccountDto {
 
     @NotNull
     private Date birthday;
+    private List<String> roles;
 }

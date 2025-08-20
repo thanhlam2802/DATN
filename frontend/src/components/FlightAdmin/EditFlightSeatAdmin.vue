@@ -9,7 +9,11 @@
         <form @submit.prevent="save">
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Số ghế</label>
-            <input v-model="localSeat.seatNumber" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition" />
+            <input v-model="localSeat.seatNumber" type="text" 
+              :class="`w-full border rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition ${validationErrors.seatNumber ? 'border-red-500' : 'border-gray-300'}`" />
+            <div v-if="validationErrors.seatNumber" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.seatNumber[0] }}
+            </div>
           </div>
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Loại vé</label>
@@ -28,11 +32,19 @@
           </div>
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Giá</label>
-            <input v-model.number="localSeat.price" type="number" class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition" />
+            <input v-model.number="localSeat.price" type="number" 
+              :class="`w-full border rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition ${validationErrors.price ? 'border-red-500' : 'border-gray-300'}`" />
+            <div v-if="validationErrors.price" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.price[0] }}
+            </div>
           </div>
           <div class="mb-5">
             <label class="block text-base font-semibold mb-2 text-gray-700">Hành lý (kg)</label>
-            <input v-model.number="localSeat.carryOnLuggage" type="number" class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition" />
+            <input v-model.number="localSeat.carryOnLuggage" type="number" 
+              :class="`w-full border rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition ${validationErrors.carryOnLuggage ? 'border-red-500' : 'border-gray-300'}`" />
+            <div v-if="validationErrors.carryOnLuggage" class="text-red-500 text-sm mt-1">
+              {{ validationErrors.carryOnLuggage[0] }}
+            </div>
           </div>
           <div class="flex justify-end gap-3 mt-8">
             <button type="button" @click="$emit('close')" class="px-5 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 font-semibold transition">Hủy</button>
@@ -53,6 +65,7 @@
 import { reactive, watch, toRefs, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { updateAdminSeat, deleteAdminSeat } from '@/api/flightApi'
+import { validateForm, seatFormSchema } from '@/utils/validation'
 const props = defineProps({ seat: Object })
 const emit = defineEmits(['close', 'saved'])
 const localSeat = reactive({
@@ -65,6 +78,9 @@ const localSeat = reactive({
 })
 const loading = ref(false)
 const route = useRoute()
+
+// Validation errors
+const validationErrors = ref({})
 watch(() => props.seat, (val) => {
   if (val) {
     localSeat.id = val.id
@@ -76,6 +92,15 @@ watch(() => props.seat, (val) => {
   }
 }, { immediate: true })
 async function save() {
+  // Validate form before save
+  const { isValid, errors } = validateForm(localSeat, seatFormSchema)
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin ghế!', 'error')
+    return
+  }
+  
   loading.value = true;
   try {
     const payload = {

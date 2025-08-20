@@ -107,7 +107,9 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { StarIcon } from "lucide-vue-next";
+import { useUserStore } from "@/store/UserStore";
 
+const userStore = useUserStore();
 // --- State Management ---
 const reviews = ref([]);
 const isLoading = ref(true);
@@ -115,13 +117,14 @@ const error = ref(null);
 const filterRating = ref("all");
 const filterStatus = ref("all");
 
-// --- API & Data Fetching ---
-const ownerId = 1;
-
 async function fetchReviews() {
   isLoading.value = true;
   error.value = null;
   try {
+    const ownerId = userStore.user.id;
+    if (!ownerId) {
+      throw new Error("Không tìm thấy ID người dùng.");
+    }
     const response = await fetch(`/api/v1/reviews/tours/owner/${ownerId}`);
     if (!response.ok) {
       throw new Error("Không thể kết nối tới máy chủ.");

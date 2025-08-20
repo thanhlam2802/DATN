@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum GenderEnum {
     MALE,
     FEMALE,
+    Other,
     @JsonEnumDefaultValue
     UNKNOWN;
 

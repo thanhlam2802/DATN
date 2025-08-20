@@ -99,23 +99,23 @@ public class AuthServiceImpl implements AuthService {
         if (header == null) {
             throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
         }
-        if (!header.startsWith("Bearer ")) {
-            throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
-        }
-
-        String token = header.substring(7);
-
-        Claims claims = jwtTokenUtil.extractAllClaims(token);
-        Integer userId = jwtTokenUtil.extractUserId(token);
-        String email = jwtTokenUtil.extractUserEmail(token);
-        boolean verified = claims.get("isVerified", Boolean.class);
-        if (!verified) {
-            Map<String, String> params = new HashMap<>();
-            params.put("toEmail", email);
-            params.put("userId", userId.toString());
-            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
-            throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
-        }
+//        if (!header.startsWith("Bearer ")) {
+//            throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
+//        }
+//
+//        String token = header.substring(7);
+//
+//        Claims claims = jwtTokenUtil.extractAllClaims(token);
+//        Integer userId = jwtTokenUtil.extractUserId(token);
+//        String email = jwtTokenUtil.extractUserEmail(token);
+//        boolean verified = claims.get("isVerified", Boolean.class);
+//        if (!verified) {
+//            Map<String, String> params = new HashMap<>();
+//            params.put("toEmail", email);
+//            params.put("userId", userId.toString());
+//            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
+//            throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
+//        }
     }
 
     @Override
@@ -284,14 +284,18 @@ public class AuthServiceImpl implements AuthService {
     public JwtResultDto loginOAuth2(OAuth2LoginRequestDto requestDto) {
         Optional<User> user = userRepository.findByEmail(requestDto.getEmail());
         if (user.isPresent()) {
-            if (!user.get().getAuthProvider().equals(requestDto.getAuthProvider())) {
-                throw new BadRequestException("User already existed", ErrorCode.AUTH_001);
+            User existingUser = user.get();
+            if (existingUser.getAuthProvider() == null || !existingUser.getAuthProvider().equals(requestDto.getAuthProvider())) {
+                existingUser.setAuthProvider(requestDto.getAuthProvider());
+                userRepository.save(existingUser);
             }
+
             JwtResultDto jwtResultDto = new JwtResultDto();
-            jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user.get()));
-            jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user.get()));
+            jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(existingUser));
+            jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(existingUser));
             return jwtResultDto;
         }
+
         User newUser = new User();
         newUser.setEmail(requestDto.getEmail());
         newUser.setName(requestDto.getName());

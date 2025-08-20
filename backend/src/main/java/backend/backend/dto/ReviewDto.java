@@ -23,6 +23,11 @@ public class ReviewDto {
     private String content;
     private String tourName; 
     private List<String> images;
+    
+    private String adminResponse;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm")
+    private String adminResponseDate;
+    private String adminResponseBy;
 
     public static ReviewDto fromEntity(Review review) {
 
@@ -43,6 +48,14 @@ public class ReviewDto {
         dto.setDate(review.getCreatedAt() != null ? review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : null);
         dto.setContent(review.getContent());
         dto.setImages(List.of()); 
+ 
+        dto.setAdminResponse(review.getAdminResponse());
+        if (review.getAdminResponseAt() != null) {
+            dto.setAdminResponseDate(review.getAdminResponseAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+        }
+        if (review.getAdminResponseBy() != null) {
+            dto.setAdminResponseBy(review.getAdminResponseBy().getName());
+        }
 
         return dto;
 

@@ -1,91 +1,107 @@
 import axios from "axios";
-import {getBearerToken} from "@/services/TokenService.js";
-
-const BASE_URL = import.meta.env.VITE_API_URL;
-
+import { saveAccessToken } from "@/services/TokenService";
 
 const apiClient = axios.create({
-    baseURL: BASE_URL + "/api",
+    baseURL: "http://localhost:8080/api", // sửa lại nếu baseURL khác
     headers: {
         "Content-Type": "application/json",
     },
 });
 
-
 export const AuthApi = {
     register: async (request) => {
         try {
             const res = await apiClient.post("/v1/auth/register", request);
-            return {
-                success: true,
-                email: request.email,   // để redirect qua verify
-                ...res.data
-            };
-        } catch (err) {
-            return {
-                success: false,
-                errorCode: err.response?.data?.errorCode || "UNKNOWN_ERROR"
-            };
-        }
-    },
-    login: async (request) => {
-        try {
-            const res = await apiClient.post("/v1/auth/login", request)
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response.data.errorCode
-            }
+                errorCode: err.response?.data?.errorCode || null,
+                error: err.response?.data || err,
+            };
         }
     },
+
+    login: async (request) => {
+    try {
+      const res = await apiClient.post("/v1/auth/login", request);
+      if (res.data && res.data.accessToken) {
+        saveAccessToken(res.data.accessToken);
+      }
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || err;
+    }
+  },
+
     requestResetPassWord: async (request) => {
         try {
-            const res = await apiClient.post("/v1/auth/forgot-password/request", request)
+            const res = await apiClient.post(
+                "/v1/auth/forgot-password/request",
+                request
+            );
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response.data.errorCode
-            }
+                errorCode: err.response?.data?.errorCode || null,
+                error: err.response?.data || err,
+            };
         }
     },
+
     resetPassWord: async (request) => {
         try {
-            const res = await apiClient.post("/v1/auth/forgot-password/reset", request)
+            const res = await apiClient.post(
+                "/v1/auth/forgot-password/reset",
+                request
+            );
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response.data.errorCode
-            }
+                errorCode: err.response?.data?.errorCode || null,
+                error: err.response?.data || err,
+            };
         }
     },
+
     verifyResetPassLink: async (request) => {
         try {
-            const res = await apiClient.post("/v1/auth/reset-password/verify-link", request)
+            const res = await apiClient.post(
+                "/v1/auth/reset-password/verify-link",
+                request
+            );
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response.data.errorCode
-            }
+                errorCode: err.response?.data?.errorCode || null,
+                error: err.response?.data || err,
+            };
         }
     },
+
     verifyAccount: async (request) => {
         try {
-            const res = await apiClient.post("/v1/auth/verify-account", request)
+            const res = await apiClient.post("/v1/auth/verify-account", request);
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response.data.errorCode
-            }
+                errorCode: err.response?.data?.errorCode || null,
+                error: err.response?.data || err,
+            };
         }
     },
+
     verifyAccountResend: async (request) => {
         try {
-            const res = await apiClient.post("/v1/auth/verify-account/resend", request)
+            const res = await apiClient.post(
+                "/v1/auth/verify-account/resend",
+                request
+            );
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response.data.errorCode
-            }
+                errorCode: err.response?.data?.errorCode || null,
+                error: err.response?.data || err,
+            };
         }
-    }
-}
+    },
+};

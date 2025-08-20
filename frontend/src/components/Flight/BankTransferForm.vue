@@ -37,12 +37,15 @@
             <i class="fas fa-id-card text-green-400"></i> Số tài khoản
           </label>
           <input v-model="bankTransfer.accountNumber" type="text" placeholder="Nhập số tài khoản" maxlength="20"
-            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition placeholder-gray-400"
+            :class="`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition placeholder-gray-400 ${validationErrors.accountNumber ? 'border-red-500' : 'border-gray-300'}`"
             @blur="onAccountNumberBlur" @input="resetAccountInfo" />
           <div v-if="isLoading" class="flex items-center mt-2 text-blue-500"><span
               class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400 mr-2"></span>Đang kiểm
             tra...</div>
           <div v-if="notFound && !isLoading" class="text-red-500 text-sm mt-2">Không tìm thấy thông tin số tài khoản
+          </div>
+          <div v-if="validationErrors.accountNumber" class="text-red-500 text-sm mt-1">
+            {{ validationErrors.accountNumber[0] }}
           </div>
         </div>
         <!-- Thông tin tài khoản -->
@@ -66,9 +69,12 @@
           </label>
           <input v-model.number="bankTransfer.amount" type="number" min="0" :max="bankTransfer.availableBalance"
             placeholder="Nhập số tiền"
-            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder-gray-400"
+            :class="`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder-gray-400 ${validationErrors.amount ? 'border-red-500' : 'border-gray-300'}`"
             @input="validateAmount" />
           <div v-if="amountError" class="text-red-500 text-sm mt-1">Số tiền không hợp lệ hoặc vượt quá số dư khả dụng
+          </div>
+          <div v-if="validationErrors.amount" class="text-red-500 text-sm mt-1">
+            {{ validationErrors.amount[0] }}
           </div>
         </div>
         <div class="flex justify-end" v-if="found">
@@ -132,6 +138,7 @@ import { servicePaymentMake, servicePaymentConfirm } from '@/api/coreBankingApi'
 import { ref, reactive, onMounted, onBeforeUnmount, onUnmounted, watch } from 'vue'
 import { defineEmits } from 'vue'
 import { accountLookup } from '@/api/coreBankingApi'
+import { validateForm, bankTransferSchema } from '@/utils/validation'
 
 const emit = defineEmits(['submit'])
 
@@ -177,6 +184,9 @@ const otpCountdown = ref(600) // 10 phút = 600 giây
 const otpCountdownDisplay = ref('10:00')
 const otpExpired = ref(false)
 let otpTimer = null
+
+// Validation errors
+const validationErrors = ref({})
 
 function resetAccountInfo() {
   bankTransfer.accountName = ''
@@ -253,6 +263,15 @@ function formatCurrency(val) {
 }
 
 async function submit() {
+  // Validate form before submit
+  const { isValid, errors } = validateForm(bankTransfer, bankTransferSchema)
+  validationErrors.value = errors
+  
+  if (!isValid) {
+    window.$toast('Vui lòng kiểm tra lại thông tin thanh toán!', 'error')
+    return
+  }
+  
   validateAmount()
   if (amountError.value || !bankTransfer.amount) return
   isPaying.value = true

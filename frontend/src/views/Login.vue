@@ -117,10 +117,12 @@
 import {ref} from "vue";
 import {useRouter} from "vue-router";
 import {AuthApi} from "@/api/AuthApi.js";
+import {AccountApi} from "@/api/AccountApi.js";
 import {saveAccessToken} from "@/services/TokenService.js";
 import {useUserStore} from "@/store/UserStore.js";
 import {ErrorCodes} from "@/data/ErrorCode.js";
 import {useLoadingStore} from "@/store/GlobalStore.js";
+import {getRedirectPath} from "@/utils/redirectUtils.js";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -198,8 +200,33 @@ const submitForm = async () => {
 
 
     saveAccessToken(res.accessToken);
-    userStore.login();
-    await router.push("/");
+    
+    try {
+      const profileRes = await AccountApi.getProfile();
+      if (!profileRes.errorCode) {
+        userStore.login(profileRes.data, res.accessToken);
+        
+        const intendedRoute = localStorage.getItem('intendedRoute');
+        console.log('Login success - intended route:', intendedRoute);
+        
+        if (intendedRoute) {
+          console.log('Redirecting to intended route:', intendedRoute);
+          localStorage.removeItem('intendedRoute');
+          await router.push(intendedRoute);
+        } else {
+          const redirectPath = getRedirectPath(profileRes.data);
+          console.log('Redirecting to default path:', redirectPath);
+          await router.push(redirectPath);
+        }
+      } else {
+        userStore.login(null, res.accessToken);
+        await router.push("/");
+      }
+    } catch (error) {
+      console.error("Failed to get user profile:", error);
+      userStore.login(null, res.accessToken);
+      await router.push("/");
+    }
 
     emailError.value = "";
     passwordError.value = "";

@@ -91,6 +91,41 @@
                   </button>
                 </div>
               </div>
+              
+              <div v-if="review.adminResponse" class="mt-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="fas fa-reply text-blue-600"></i>
+                  <span class="font-medium text-blue-900">Phản hồi của quản lý</span>
+                  <span class="text-sm text-blue-600">{{ formatDateTime(review.adminResponseAt) }}</span>
+                </div>
+                <p class="text-slate-700">{{ review.adminResponse }}</p>
+                <div class="text-xs text-blue-600 mt-1">
+                  Bởi: {{ review.adminResponseByName || 'Quản lý' }}
+                </div>
+              </div>
+              
+              <div v-else class="mt-4">
+                <div class="flex items-start gap-4">
+                  <textarea
+                    v-model="review.draftResponse"
+                    rows="3"
+                    class="flex-1 border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Nhập phản hồi của bạn..."
+                    maxlength="1000"
+                  ></textarea>
+                  <button
+                    @click="submitResponse(review)"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50 transition-colors"
+                    :disabled="!review.draftResponse?.trim() || review.submittingResponse"
+                  >
+                    <span v-if="!review.submittingResponse">Gửi</span>
+                    <span v-else>Đang gửi...</span>
+                  </button>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">
+                  {{ (review.draftResponse?.length || 0) }}/1000 ký tự
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -218,10 +253,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import hotelApi from '@/api/hotelApi';
+import { hotelAdminApi, respondToHotelReview } from '@/api/adminApi';
 import CustomSelect from '@/components/CustomSelect.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useAdminBreadcrumbStore } from '@/store/useAdminBreadcrumbStore';
+import { useAdminAuth } from '@/composables/useAdminAuth';
+import { useUserStore } from '@/store/UserStore';
 
 const searchQuery = ref('');
 const selectedRating = ref('');
@@ -249,6 +286,27 @@ const ratingOptions = [
 
 onMounted(async () => {
   console.log('Review component mounted');
+  
+  const userStore = useUserStore();
+  console.log('UserStore:', userStore);
+  console.log('User:', userStore.user);
+  console.log('User roles:', userStore.user?.roles);
+  
+  if (!userStore.user) {
+    console.log('No user data, trying to restore...');
+    await userStore.restoreUserFromToken();
+    console.log('After restore - User:', userStore.user);
+    console.log('After restore - User roles:', userStore.user?.roles);
+  }
+  
+  const { requireAdmin } = useAdminAuth();
+  if (!requireAdmin('hotel')) {
+    console.log('Không có quyền admin hotel');
+    return;
+  }
+  
+  console.log('Có quyền admin hotel, loading data...');
+  
   const breadcrumbStore = useAdminBreadcrumbStore();
   breadcrumbStore.setBreadcrumb([
     { label: 'Đánh giá', active: true }
@@ -331,7 +389,7 @@ async function fetchReviews() {
   loading.value = true;
   console.log('Fetching reviews...'); 
   try {
-    const res = await hotelApi.getAllHotelReviews();
+            const res = await hotelAdminApi.getAllHotelReviews();
     console.log('API response:', res);
     if (res.data && res.data.data) {
       reviews.value = res.data.data;
@@ -387,13 +445,37 @@ function deleteReview(reviewId) {
 async function onConfirmDelete() {
   showConfirmDialog.value = false;
   try {
-    await hotelApi.deleteHotelReview(reviewIdToDelete.value);
+            await hotelAdminApi.deleteHotelReview(reviewIdToDelete.value);
     window.$toast && window.$toast('Xóa đánh giá thành công!', 'success');
     await fetchReviews();
   } catch (error) {
     window.$toast && window.$toast('Xóa đánh giá thất bại!', 'error');
   }
   reviewIdToDelete.value = null;
+}
+
+async function submitResponse(review) {
+  if (!review.draftResponse?.trim()) {
+    window.$toast && window.$toast('Vui lòng nhập phản hồi trước khi gửi.', 'warning');
+    return;
+  }
+
+  try {
+    review.submittingResponse = true;
+    await respondToHotelReview(review.id, review.draftResponse);
+    
+    review.adminResponse = review.draftResponse;
+    review.adminResponseAt = new Date().toISOString();
+    review.adminResponseByName = 'Quản lý'; 
+    review.draftResponse = '';
+    
+    window.$toast && window.$toast('Gửi phản hồi thành công!', 'success');
+  } catch (error) {
+    console.error('Error submitting response:', error);
+    window.$toast && window.$toast('Gửi phản hồi thất bại!', 'error');
+  } finally {
+    review.submittingResponse = false;
+  }
 }
 
 function changePage(page) {

@@ -2,19 +2,19 @@ package backend.backend.entity;
 
 
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import jakarta.persistence.*;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.io.Serial;
 import java.io.Serializable;
 
 @Data
-@Embeddable
-class BusImageId implements Serializable {
-    private Integer busId;
-    private Integer imageId;
-}
-
-@Data
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "bus_images")
 public class BusImage {
     @EmbeddedId
@@ -23,10 +23,12 @@ public class BusImage {
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("busId")
     @JoinColumn(name = "bus_id")
+    @ToString.Include
     private Bus bus;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @MapsId("imageId")
     @JoinColumn(name = "image_id")
+    @ToString.Include
     private Image image;
 }

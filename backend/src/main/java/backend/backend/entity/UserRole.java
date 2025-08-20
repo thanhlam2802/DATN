@@ -24,11 +24,13 @@ public class UserRole {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @MapsId("roleId")
     @JoinColumn(name = "role_id")
     private Role role;
 
     @Column(name = "assigned_at", nullable = false, updatable = false)
     private LocalDateTime assignedAt = LocalDateTime.now();
+    
+    
 }

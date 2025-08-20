@@ -31,4 +31,15 @@ public class Review {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+    
+    @Lob
+    @Column(name = "admin_response")
+    private String adminResponse;
+    
+    @Column(name = "admin_response_at")
+    private LocalDateTime adminResponseAt;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_response_by")
+    private User adminResponseBy;
 }

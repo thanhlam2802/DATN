@@ -1,19 +1,23 @@
 package backend.backend;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import java.security.Security;
+
 @EnableScheduling
 @SpringBootApplication
 public class BackendApplication {
+    static {
+        if (Security.getProvider("BC") == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+    }
 
-	public static void main(String[] args) {
-		
-		
-		SpringApplication.run(BackendApplication.class, args);
-		
-	}
-	
+    public static void main(String[] args) {
+        SpringApplication.run(BackendApplication.class, args);
+       
+    }
 }

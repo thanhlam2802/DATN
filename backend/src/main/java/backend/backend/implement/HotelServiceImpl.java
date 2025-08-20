@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,6 +51,7 @@ import backend.backend.dao.UserDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import backend.backend.dao.HotelBookingDAO;
+import backend.backend.entity.User;
 
 @Service
 public class HotelServiceImpl implements HotelService {
@@ -128,8 +130,16 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Transactional
     public HotelDetailDto createHotel(HotelDetailDto hotelDto, List<MultipartFile> images,
-            Map<String, List<MultipartFile>> roomImagesMap) {
+            Map<String, List<MultipartFile>> roomImagesMap, String currentUserEmail) {
         Hotel hotel = hotelMapper.toEntity(hotelDto);
+        
+        if (currentUserEmail != null) {
+            Optional<User> ownerOpt = userDAO.findByEmail(currentUserEmail);
+            if (ownerOpt.isPresent()) {
+                hotel.setOwner(ownerOpt.get());
+            }
+        }
+        
         if (hotelDto.getProvinceId() != null) {
             Province province = new Province();
             province.setId(hotelDto.getProvinceId());

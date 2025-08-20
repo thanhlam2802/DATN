@@ -18,6 +18,13 @@ public interface FlightDAO extends JpaRepository<Flight, Integer> {
 
     @Query("SELECT COUNT(fs) FROM FlightSlot fs WHERE fs.flight.id = :flightId  AND fs.id NOT IN ( SELECT fb.flightSlot.id FROM FlightBooking fb)")
     Integer countByBookingId(@Param("flightId")Integer flightId);
+    
+    // Thống kê theo tháng
+    @Query("SELECT COUNT(f) FROM Flight f WHERE YEAR(f.departureTime) = :year AND MONTH(f.departureTime) = :month")
+    Long countFlightsByMonth(@Param("year") Integer year, @Param("month") Integer month);
+    
+    @Query("SELECT COUNT(f) FROM Flight f WHERE YEAR(f.departureTime) = :year AND MONTH(f.departureTime) = :month")
+    Long countFlightsByYearAndMonth(@Param("year") Integer year, @Param("month") Integer month);
 
     @Query("SELECT fs FROM FlightSlot fs WHERE fs.flight.id = :flightId  AND fs.id  IN ( SELECT fb.flightSlot.id FROM FlightBooking fb)")
     List<FlightSlot> findslotByBooked(@Param("flightId")Integer flightId);
@@ -49,6 +56,7 @@ AND (
 )
 AND (:minPrice IS NULL OR fs.price >= :minPrice)
 AND (:maxPrice IS NULL OR fs.price <= :maxPrice)
+AND f.departure_time >= CURRENT_TIMESTAMP
 """, nativeQuery = true)
     List<Flight> searchFlights(
             @Param("departureId") Integer departureId,
@@ -62,9 +70,6 @@ AND (:maxPrice IS NULL OR fs.price <= :maxPrice)
             @Param("maxPrice") BigDecimal maxPrice
     );
 
-    @Query("""
-SELECT f FROM Flight f
-WHERE f.departureTime >= CURRENT_TIMESTAMP
-""")
+    @Query("SELECT f FROM Flight f WHERE f.departureTime >= CURRENT_TIMESTAMP")
     List<Flight> findAllUpcomingFlights();
 }

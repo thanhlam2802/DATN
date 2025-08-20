@@ -3,6 +3,7 @@ package com.example.Notification_service.service.impl;
 import com.example.Notification_service.dto.MailOtpDto;
 import com.example.Notification_service.dto.MailPaymentSuccessDto;
 import com.example.Notification_service.dto.MailRefundSuccessDto;
+import com.example.Notification_service.dto.MailResultDto;
 import com.example.Notification_service.dto.MailBookingDto;
 import com.example.Notification_service.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -159,5 +160,34 @@ public class NotificationServiceImpl implements NotificationService {
             log.error("Lỗi khi xử lý booking mail: {}", e.getMessage(), e);
         }
     }
+    @Override
+    @KafkaListener(topics = "send-result-mail", groupId = "notification-group", containerFactory = "kafkaListenerContainerFactory")
+    public void listenResultMail(byte[] payload) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            MailResultDto dto = objectMapper.readValue(payload, MailResultDto.class);
+            log.info("[Kafka] Nhận yêu cầu gửi mail kết quả cho {}", dto.getRecipient());
+            sendResultMail(dto);
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý result mail: {}", e.getMessage(), e);
+        }
+    }
+
+    public void sendResultMail(MailResultDto dto) {
+        Context context = new Context();
+        context.setVariable("applicantName", dto.getApplicantName());
+        context.setVariable("businessName", dto.getBusinessName());
+        context.setVariable("decision", dto.getDecision());
+        context.setVariable("dashboardLink", dto.getDashboardLink());
+        context.setVariable("contactEmail", dto.getContactEmail());
+        context.setVariable("hotline", dto.getHotline());
+        context.setVariable("address", dto.getAddress());
+        String subject = "Kết quả đăng ký nhà cung cấp";
+        String htmlContent = templateEngine.process("result-mail", context);
+        sendSimpleMail(dto.getRecipient(), subject, htmlContent);
+    }
+
+
+
 }
 

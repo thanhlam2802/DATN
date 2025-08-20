@@ -16,16 +16,11 @@ export const AuthApi = {
     register: async (request) => {
         try {
             const res = await apiClient.post("/v1/auth/register", request);
-            return {
-                success: true,
-                email: request.email,   // để redirect qua verify
-                ...res.data
-            };
+            return res.data;
         } catch (err) {
             return {
-                success: false,
-                errorCode: err.response?.data?.errorCode || "UNKNOWN_ERROR"
-            };
+                errorCode: err.response.data.errorCode
+            }
         }
     },
     login: async (request) => {

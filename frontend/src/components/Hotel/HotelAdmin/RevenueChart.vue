@@ -26,6 +26,29 @@ const COLORS = [
   '#FFB300', '#42A5F5', '#66BB6A', '#AB47BC', '#FFA726', '#26C6DA', '#EC407A', '#7E57C2', '#FF7043', '#8D6E63', '#789262', '#D4E157', '#FF8A65', '#BA68C8', '#4DD0E1', '#9575CD', '#AED581', '#FFD54F', '#90A4AE', '#F06292'
 ];
 
+const getXAxisTitle = () => {
+  if (!props.data?.labels || props.data.labels.length === 0) {
+    return 'Khách sạn';
+  }
+  
+  const firstLabel = props.data.labels[0];
+  
+  if (firstLabel.includes(':') && firstLabel.length === 5) {
+    return 'Giờ';
+  }
+  
+  const weekdays = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  if (weekdays.includes(firstLabel)) {
+    return 'Ngày trong tuần';
+  }
+  
+  if (firstLabel.includes('/') && firstLabel.length === 5) {
+    return 'Ngày';
+  }
+  
+  return 'Khách sạn';
+};
+
 onMounted(() => {
   renderChart();
 });
@@ -144,7 +167,7 @@ async function renderChart() {
             stacked: false,
             title: { 
               display: true, 
-              text: props.data?.datasets ? 'Ngày' : 'Khách sạn',
+              text: getXAxisTitle(),
               font: {
                 size: 10
               }

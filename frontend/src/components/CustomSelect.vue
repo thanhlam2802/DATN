@@ -7,9 +7,9 @@
       @click="toggleDropdown"
       :disabled="disabled"
     >
-      <span class="truncate text-left text-orange-600 font-medium">
-        {{ selectedLabel || placeholder }}
-      </span>
+             <span class="truncate text-left text-slate-600 hover:text-orange-600 font-medium transition-colors duration-200">
+         {{ selectedLabel || placeholder }}
+       </span>
       <i class="fas text-black text-sm transition-transform duration-200" :class="showDropdown ? 'fa-chevron-up' : 'fa-chevron-down'" />
     </button>
     <transition name="fade">

@@ -30,4 +30,6 @@ public class HotelSearchRequestDto {
     private int size = 12;
     private LocalDate createdAtFrom;
     private LocalDate createdAtTo;
+    
+    private String roomStatus;
 }

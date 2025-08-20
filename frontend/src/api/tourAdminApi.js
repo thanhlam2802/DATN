@@ -60,9 +60,16 @@ const handleError = (error) => {
 };
 
 export default {
-  getAllTours() {
-    console.log("--- [API] Chuẩn bị gọi GET /tours ---");
-    return apiClient.get("/tours").then(handleResponse).catch(handleError);
+  getAllTours(userId) {
+    console.log(`--- [API] Chuẩn bị gọi GET /tours với userId: ${userId} ---`);
+    return apiClient
+      .get("/tours", {
+        params: {
+          userId: userId,
+        },
+      })
+      .then(handleResponse)
+      .catch(handleError);
   },
   deleteTour(id) {
     console.log(`--- [API] Chuẩn bị gọi DELETE /tours/${id} ---`);

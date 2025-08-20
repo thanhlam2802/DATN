@@ -1,36 +1,47 @@
 package backend.backend.controller;
 
+import backend.backend.dao.BusBookingDAO;
 import backend.backend.dao.UserDAO;
 import backend.backend.dto.ApplyVoucherRequest;
+import backend.backend.dto.BusDTO.DirectBusReservationRequestDto;
 import backend.backend.dto.CheckoutDto;
 import backend.backend.dto.DirectTourReservationRequestDto;
 import backend.backend.dto.OrderDto; 
 import backend.backend.entity.ApiResponse;
+import backend.backend.entity.BusBooking;
+import backend.backend.entity.enumBus.BusBookingStatus;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
+import backend.backend.service.busService.BusBookingService;
 import backend.backend.utils.ResponseFactory;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import backend.backend.dto.DirectFlightReservationRequestDto;
 
 @RestController
 @RequestMapping("/api/v1/orders")
+@RequiredArgsConstructor
+@Log4j2
 public class OrderController {
 
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
-    @Autowired
-    private OrderService orderService;
-    
-    @Autowired
-    private UserDAO userDAO; // Thêm DAO để kiểm tra người dùng
+
+    private final OrderService orderService;
+    private final BusBookingDAO busBookingDAO;
+    private final BusBookingService busBookingService;
+
+    private final UserDAO userDAO; // Thêm DAO để kiểm tra người dùng
 
     /**
      * MỚI: Endpoint để lấy tất cả đơn hàng của một người dùng.

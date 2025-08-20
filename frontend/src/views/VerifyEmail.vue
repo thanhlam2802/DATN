@@ -117,7 +117,6 @@ const onBackspace = (index, event) => {
 const submitCode = async () => {
   const fullCode = code.value.join("");
 
-  // Check if all digits are filled
   if (fullCode.length !== 6 || code.value.some(d => !/^\d$/.test(d))) {
     otpError.value = "Please enter all 6 digits of the verification code.";
     return;

@@ -230,11 +230,18 @@ export default {
       }
       const res = await AuthApi.register(registerRequest);
 
-      saveAccessToken(res.accessToken);
+      // saveAccessToken(res.accessToken);
+      //
+      // useUserStore().login()
+      //
+      // this.$router.push("/");
 
-      useUserStore().login()
+      if (res.success) {
+        this.$router.push(`/verify-email?email=${this.email}`);
+      } else {
+        this.emailError = "Registration failed!";
+      }
 
-      this.$router.push("/");
 
       this.name = "";
       this.email = "";

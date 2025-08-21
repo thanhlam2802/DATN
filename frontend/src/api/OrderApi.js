@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getBearerToken } from '@/services/TokenService';
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 
@@ -12,7 +13,10 @@ const api = axios.create({
     api.put(
       `/orders/success-order/${orderId}`,
       transactionId,          
-      { headers: { 'Content-Type': 'text/plain' } } 
+      { headers: { 
+        'Content-Type': 'text/plain',
+        'Authorization': getBearerToken()
+      } } 
     );
 
   export const addItemToCart = (orderId, request) =>  

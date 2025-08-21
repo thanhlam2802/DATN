@@ -727,8 +727,7 @@
                 </form>
             </div>
         </div>
-        <ConfirmDialog v-if="showConfirmDialog" :message="confirmMessage" @confirm="onConfirmDelete"
-            @cancel="showConfirmDialog = false" />
+        <ConfirmDialog ref="confirmDialog" />
     </div>
 </template>
 
@@ -836,8 +835,7 @@ export default {
             tempFilterCreatedAtFrom: '',
             tempFilterCreatedAtTo: '',
             dropdownMenuPosition: { top: 0, left: 0 },
-            showConfirmDialog: false,
-            confirmMessage: '',
+
             hotelIdToDelete: null,
             showAmenityModal: false,
             amenityModalRoomIdx: null,
@@ -1156,14 +1154,25 @@ export default {
                 window.$toast('Phải có ít nhất một loại phòng.', 'error');
             }
         },
-        deleteHotel(hotelId) {
+        async deleteHotel(hotelId) {
             this.hotelIdToDelete = hotelId;
-            this.confirmMessage = 'Bạn có chắc chắn muốn xóa khách sạn này không?';
-            this.showConfirmDialog = true;
+            const hotelToDelete = this.hotels.find(h => h.id === hotelId);
+            const hotelName = hotelToDelete ? hotelToDelete.name : 'khách sạn này';
             this.activeDropdown = null;
+            
+            const result = await this.$refs.confirmDialog.showDialog({
+                type: 'danger',
+                title: 'Xác nhận xóa khách sạn',
+                message: `Bạn có chắc chắn muốn xóa khách sạn "${hotelName}" không? Hành động này không thể hoàn tác.`,
+                confirmText: 'Xóa',
+                cancelText: 'Hủy'
+            });
+            
+            if (result) {
+                await this.onConfirmDelete();
+            }
         },
         async onConfirmDelete() {
-            this.showConfirmDialog = false;
             try {
                 const hotelToDelete = this.hotels.find(h => h.id === this.hotelIdToDelete);
                 const hotelName = hotelToDelete ? hotelToDelete.name : 'Khách sạn';

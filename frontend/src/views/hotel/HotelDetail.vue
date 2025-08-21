@@ -750,7 +750,7 @@ const goToBooking = (room, variant) => {
       variantBreakfast: variant.hasBreakfast ? 'Gồm bữa sáng' : 'Không gồm bữa sáng',
       roomBed: room.bedType,
       variantOriginalPrice: variant.price,
-      variantDiscountedPrice: getDiscountedPrice(variant),
+      variantDiscountedPrice: Math.round(getDiscountedPrice(variant)),
       taxAndFeeAmount: variant.taxAndFeeAmount || 0,
       nights: numberOfNights.value || 1,
       checkin: searchParams.value.checkin,

@@ -1,5 +1,6 @@
 package backend.backend.utils;
 
+import backend.backend.entity.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -9,12 +10,13 @@ public class SecurityUtil {
 
     public static String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getName();
+        User user = (User) auth.getPrincipal();
+        return user.getEmail();
     }
 
     public static Integer getUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Map<String, Object> credentials = (Map<String, Object>) auth.getCredentials();
-        return Integer.valueOf(String.valueOf(credentials.get("userId")));
+        User user = (User) auth.getPrincipal();
+        return user.getId();
     }
 }

@@ -2,6 +2,7 @@ export const TOKEN_KEY = "t_";
 export const REFRESH_TOKEN_KEY = "rt_";
 
 export const saveAccessToken = (token) => {
+  console.log("set access token", token)
   localStorage.setItem(TOKEN_KEY, token);
 };
 

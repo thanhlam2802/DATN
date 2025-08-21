@@ -1,5 +1,6 @@
 package backend.backend.exception;
 
+import backend.backend.entity.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -77,6 +78,20 @@ public class GlobalExceptionHandler {
         log.error("RUNTIME_ERROR - Message: {}", ex.getMessage(), ex);
         
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(exception = BadRequestException.class)
+    ResponseEntity<?> handleBadRequestException(BadRequestException e) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(400, e.getMessage(), e.errorCode.getFullErrorCode(), null);
+        return ResponseEntity
+                .badRequest()
+                .body(apiResponse);
+    }
+
+    @ExceptionHandler(exception = AuthException.class)
+    ResponseEntity<?> handleAuthException(AuthException e) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(401, e.getMessage(), e.errorCode.getFullErrorCode(), null);
+        return ResponseEntity.status(401).body(apiResponse);
     }
 
     @ExceptionHandler(Exception.class)

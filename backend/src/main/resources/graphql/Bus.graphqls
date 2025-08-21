@@ -1,0 +1,85 @@
+# src/main/resources/graphql/bus.graphqls
+#Scalar Global
+scalar BigDecimal
+scalar DateTime
+scalar Date
+scalar Instant
+
+# --- Kiểu dữ liệu cho Image Response (được sử dụng trong BusImageResponse) ---
+type ImageResponse {
+    id: ID!
+    url: String!
+    altText: String # Cho phép null
+    uploadedAt: String # Phản ánh việc chuyển đổi OffsetDateTime sang String trong DTO (GIỮ NGUYÊN NHƯ YÊU CẦU CỦA BẠN)
+    publicId: String!
+}
+
+# --- Kiểu dữ liệu cho BusImage Response (được sử dụng trong BusResponse) ---
+type BusImageResponse {
+    busId: ID!
+    imageId: ID!
+    image: ImageResponse! # Sử dụng ImageResponse DTO
+}
+
+# --- Kiểu dữ liệu cho BusAmenity ---
+# BỔ SUNG: Định nghĩa kiểu BusAmenity để có thể sử dụng
+type BusAmenity {
+    id: ID!
+    name: String!
+    description: String
+    createdAt: DateTime
+    updatedAt: DateTime
+}
+
+# --- Kiểu dữ liệu Bus (Phản ánh cấu trúc BusResponse DTO) ---
+type Bus { # Có thể đổi tên thành BusResponse nếu bạn muốn rõ ràng hơn trong schema
+    id: ID!
+    name: String!
+    licensePlate: String!
+    totalSeats: Int!
+    categoryId: ID!
+    categoryName: String
+    ownerId: ID!
+    busImages: [BusImageResponse!]
+    amenities: [BusAmenity!] # <-- BỔ SUNG: Thêm trường amenities
+    createdAt: DateTime
+    updatedAt: DateTime
+}
+
+# --- Kiểu đầu vào cho Create Bus ---
+input CreateBusInput {
+    name: String!
+    licensePlate: String!
+    totalSeats: Int!
+    categoryId: ID!
+    ownerId: ID!
+    imageIds: [ID!]
+    amenityNames: [String!] # <-- BỔ SUNG: Thêm trường amenityNames để gửi từ client
+}
+
+# --- Kiểu đầu vào cho Update Bus ---
+input UpdateBusInput {
+    name: String
+    licensePlate: String
+    totalSeats: Int
+    categoryId: ID
+    ownerId: ID
+    imageIds: [ID!]
+    amenityNames: [String!] # <-- BỔ SUNG: Thêm trường amenityNames để gửi từ client
+}
+
+# --- Định nghĩa các Query (đọc dữ liệu) ---
+extend type Query {
+    findAllBuses: [Bus!]!
+    findBusById(id: ID!): Bus
+    findBusesByOwnerId(ownerId: ID!): [Bus!] # <-- ĐÃ ĐỔI TÊN TẠI ĐÂY
+    findBusesByCategoryId(categoryId: ID!): [Bus!]!
+    searchBuses(name: String, licensePlate: String): [Bus!]!
+}
+
+# --- Định nghĩa các Mutation (ghi dữ liệu) ---
+extend type Mutation {
+    createBus(input: CreateBusInput!): Bus!
+    updateBus(id: ID!, input: UpdateBusInput!): Bus!
+    deleteBus(id: ID!): Boolean!
+}

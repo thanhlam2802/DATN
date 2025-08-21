@@ -136,7 +136,10 @@ const connectWebSocket = () => {
   try {
     console.log('Connecting to WebSocket for notifications...');
     const socket = new SockJS('http://localhost:8080/ws');
-    stompClient.value = Stomp.over(socket);
+    stompClient.value = Stomp.over(() => socket);
+    stompClient.value.debug = function (str) {
+      // Silent debug
+    };
     
     stompClient.value.connect({}, (frame) => {
       console.log('Connected to WebSocket for notifications:', frame);

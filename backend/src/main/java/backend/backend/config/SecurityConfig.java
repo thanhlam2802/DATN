@@ -46,7 +46,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/flights/**").permitAll()
                         .requestMatchers("/api/v1/vouchers/**").permitAll()
                         .requestMatchers("/api/vouchers/**").permitAll()
-                        .requestMatchers("/api/v1/orders/**").permitAll()
+//                        --------------- LHN them doan nay
+                        .requestMatchers("/api/v1/orders/**").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/orders/**").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT,  "/api/v1/orders/**").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/v1/orders/**").authenticated()
+//                        -----------------------------------------------------
                         .requestMatchers("/api/v1/cart/**").permitAll()
                         .requestMatchers("/api/v1/reviews/**").permitAll()
                         .requestMatchers("/api/v1/notifications/**").permitAll()

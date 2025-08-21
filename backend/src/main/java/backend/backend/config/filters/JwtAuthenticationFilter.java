@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j 
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenUtil jwtUtil;
@@ -33,8 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                      HttpServletResponse response,
-                                      FilterChain filterChain)
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
 
         final String header = request.getHeader("Authorization");
@@ -50,27 +50,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             final String email = jwtUtil.extractUserEmail(token);
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                
-               
-                
+
+
+
                 User user = userDAO.findByEmailWithRoles(email).orElse(null);
 
                 if (user == null) {
-                
+
                 } else if (jwtUtil.validateToken(token, user.getEmail())) {
-                   
+
                     List<UserRole> userRoles = user.getUserRoles() != null ? user.getUserRoles() : Collections.emptyList();
-                    
+
 
                     List<SimpleGrantedAuthority> authorities = userRoles.stream()
                             .map(userRole -> {
                                 String roleName = userRole.getRole().getName().name();
-                               
+
                                 return new SimpleGrantedAuthority("ROLE_" + roleName);
                             })
                             .collect(Collectors.toList());
 
-                    
+
 
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
@@ -80,13 +80,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             );
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    
+
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                   
+
                 }
             }
         } catch (Exception e) {
-           
+
             SecurityContextHolder.clearContext();
         }
 

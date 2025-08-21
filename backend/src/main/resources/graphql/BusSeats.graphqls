@@ -1,0 +1,75 @@
+type BusSeat {
+    id: ID!
+    seatNumber: String!
+    isBooked: Boolean!
+    price: BigDecimal!
+    seatType: BusSeatType!
+    busSlot: BusSlot!
+    createdAt: DateTime
+    updatedAt: DateTime
+}
+
+enum BusSeatType {
+    BED_SINGLE_ROOM
+    BED_DOUBLE_ROOM
+    SHUTTLE_STANDARD
+}
+
+
+
+# Thêm input types cho BusSeat
+input CreateBusSeatInput {
+    seatNumber: String!
+    price: BigDecimal!
+    seatType: BusSeatType!
+}
+
+input UpdateBusSeatInput {
+    id: ID!
+    seatNumber: String
+    price: BigDecimal
+    seatType: BusSeatType
+    isBooked: Boolean
+}
+
+input BookSeatInput {
+    seatId: ID!
+    userId: ID!
+    bookingDate: DateTime!
+}
+
+input ReleaseSeatInput {
+    seatId: ID!
+    userId: ID!
+}
+
+extend type Query {
+    # Existing queries...
+
+    # BusSeat queries
+    getBusSeats(busSlotId: ID!): [BusSeat!]!
+    getBusSeat(id: ID!): BusSeat
+    getAvailableSeats(busSlotId: ID!): [BusSeat!]!
+    getBookedSeats(busSlotId: ID!): [BusSeat!]!
+    getSeatByNumber(busSlotId: ID!, seatNumber: String!): BusSeat
+
+    # Enhanced BusSlot queries
+    getBusSlotWithSeats(id: ID!): BusSlot
+    getBusSlotsWithSeats(busId: ID): [BusSlot!]!
+}
+# Bus.graphqls
+extend type Mutation {
+    # Existing mutations...
+
+    # BusSeat mutations
+    createBusSeat(input: CreateBusSeatInput!): BusSeat!
+    updateBusSeat(input: UpdateBusSeatInput!): BusSeat!
+    deleteBusSeat(id: ID!): Boolean!
+
+    # Seat booking mutations
+    bookSeat(input: BookSeatInput!): BusSeat!
+    releaseSeat(input: ReleaseSeatInput!): BusSeat!
+    bookMultipleSeats(seatIds: [ID!]!, userId: ID!): [BusSeat!]!
+    releaseMultipleSeats(seatIds: [ID!]!, userId: ID!): [BusSeat!]!
+
+}

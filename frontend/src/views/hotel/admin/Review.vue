@@ -169,66 +169,70 @@
     </div>
 
     <div v-if="showReviewModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click="closeReviewModal">
-      <div class="bg-white rounded-xl shadow-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
-        <div class="overflow-y-auto max-h-[calc(90vh-4rem)] pr-3 scrollbar-hide">
-        <div class="flex justify-between items-center mb-6">
+      <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col" @click.stop>
+        <!-- Header cố định -->
+        <div class="flex justify-between items-center p-6 border-b border-slate-200 flex-shrink-0">
           <h2 class="text-xl font-bold text-slate-800">Chi tiết đánh giá</h2>
           <button @click="closeReviewModal" class="text-slate-500 hover:text-slate-700">
             <i class="fas fa-times text-xl"></i>
           </button>
         </div>
         
-        <div v-if="selectedReview" class="space-y-6">
-          <div class="flex items-center space-x-4">
-            <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <span class="text-lg font-medium text-blue-600">{{ getInitials(selectedReview.customerName) }}</span>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-slate-900">{{ selectedReview.customerName }}</h3>
-              <p class="text-sm text-slate-500">{{ selectedReview.customerEmail }}</p>
-            </div>
-          </div>
-
-          <div class="border-t border-slate-200 pt-4">
-            <h4 class="font-semibold text-slate-800 mb-2">Khách sạn</h4>
-            <p class="text-slate-700">{{ selectedReview.hotelName }}</p>
-            <p class="text-sm text-slate-500">{{ selectedReview.hotelAddress }}</p>
-          </div>
-
-          <div class="border-t border-slate-200 pt-4">
-            <h4 class="font-semibold text-slate-800 mb-2">Đánh giá</h4>
-            <div class="flex items-center space-x-2 mb-3">
-              <div class="flex space-x-1">
-                <i v-for="star in 5" :key="star"
-                  :class="[
-                    'fas fa-star text-lg',
-                    star <= selectedReview.rating ? 'text-yellow-400' : 'text-gray-300'
-                  ]"
-                ></i>
-              </div>
-              <span class="text-lg font-medium text-slate-700">({{ selectedReview.rating }}/5)</span>
-            </div>
-            <div class="bg-slate-50 rounded-lg p-4">
-              <p class="text-slate-800 whitespace-pre-wrap">{{ selectedReview.content }}</p>
-            </div>
-          </div>
-
-          <div class="border-t border-slate-200 pt-4">
-            <h4 class="font-semibold text-slate-800 mb-2">Thông tin khác</h4>
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span class="text-slate-500">Ngày đánh giá:</span>
-                <p class="text-slate-700">{{ formatDateTime(selectedReview.createdAt) }}</p>
+        <!-- Content có thể scroll -->
+        <div class="flex-1 overflow-y-auto p-6 scrollbar-hide">
+          <div v-if="selectedReview" class="space-y-6">
+            <div class="flex items-center space-x-4">
+              <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <span class="text-lg font-medium text-blue-600">{{ getInitials(selectedReview.customerName) }}</span>
               </div>
               <div>
-                <span class="text-slate-500">Cập nhật lần cuối:</span>
-                <p class="text-slate-700">{{ formatDateTime(selectedReview.updatedAt) }}</p>
+                <h3 class="text-lg font-semibold text-slate-900">{{ selectedReview.customerName }}</h3>
+                <p class="text-sm text-slate-500">{{ selectedReview.customerEmail }}</p>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="font-semibold text-slate-800 mb-2">Khách sạn</h4>
+              <p class="text-slate-700">{{ selectedReview.hotelName }}</p>
+              <p class="text-sm text-slate-500">{{ selectedReview.hotelAddress }}</p>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="font-semibold text-slate-800 mb-2">Đánh giá</h4>
+              <div class="flex items-center space-x-2 mb-3">
+                <div class="flex space-x-1">
+                  <i v-for="star in 5" :key="star"
+                    :class="[
+                      'fas fa-star text-lg',
+                      star <= selectedReview.rating ? 'text-yellow-400' : 'text-gray-300'
+                    ]"
+                  ></i>
+                </div>
+                <span class="text-lg font-medium text-slate-700">({{ selectedReview.rating }}/5)</span>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-4">
+                <p class="text-slate-800 whitespace-pre-wrap">{{ selectedReview.content }}</p>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="font-semibold text-slate-800 mb-2">Thông tin khác</h4>
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-slate-500">Ngày đánh giá:</span>
+                  <p class="text-slate-700">{{ formatDateTime(selectedReview.createdAt) }}</p>
+                </div>
+                <div>
+                  <span class="text-slate-500">Cập nhật lần cuối:</span>
+                  <p class="text-slate-700">{{ formatDateTime(selectedReview.updatedAt) }}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-slate-200">
+        <!-- Footer cố định -->
+        <div class="flex justify-end space-x-3 p-6 border-t border-slate-200 flex-shrink-0">
           <button @click="closeReviewModal"
             class="px-4 py-2 text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors">
             Đóng
@@ -238,16 +242,10 @@
             Xóa đánh giá
           </button>
         </div>
-        </div>
       </div>
     </div>
 
-    <ConfirmDialog 
-      v-if="showConfirmDialog" 
-      :message="confirmMessage" 
-      @confirm="onConfirmDelete" 
-      @cancel="showConfirmDialog = false" 
-    />
+    <ConfirmDialog ref="confirmDialog" />
   </div>
 </template>
 
@@ -271,9 +269,8 @@ const loading = ref(false);
 const expandedReviews = ref([]);
 const showReviewModal = ref(false);
 const selectedReview = ref(null);
-const showConfirmDialog = ref(false);
-const confirmMessage = ref('');
 const reviewIdToDelete = ref(null);
+const confirmDialog = ref(null);
 
 const ratingOptions = [
   { label: 'Tất cả sao', value: '' },
@@ -436,18 +433,30 @@ function closeReviewModal() {
   selectedReview.value = null;
 }
 
-function deleteReview(reviewId) {
+async function deleteReview(reviewId) {
   reviewIdToDelete.value = reviewId;
-  confirmMessage.value = 'Bạn có chắc chắn muốn xóa đánh giá này không?';
-  showConfirmDialog.value = true;
+  const reviewToDelete = reviews.value.find(r => r.id === reviewId);
+  const reviewInfo = reviewToDelete ? `${reviewToDelete.customerName} - ${reviewToDelete.hotelName}` : 'đánh giá này';
+  
+  const result = await confirmDialog.value.showDialog({
+    type: 'danger',
+    title: 'Xác nhận xóa đánh giá',
+    message: `Bạn có chắc chắn muốn xóa đánh giá của "${reviewInfo}" không? Hành động này không thể hoàn tác.`,
+    confirmText: 'Xóa',
+    cancelText: 'Hủy'
+  });
+  
+  if (result) {
+    await onConfirmDelete();
+  }
 }
 
 async function onConfirmDelete() {
-  showConfirmDialog.value = false;
   try {
-            await hotelAdminApi.deleteHotelReview(reviewIdToDelete.value);
+    await hotelAdminApi.deleteHotelReview(reviewIdToDelete.value);
     window.$toast && window.$toast('Xóa đánh giá thành công!', 'success');
     await fetchReviews();
+    closeReviewModal();
   } catch (error) {
     window.$toast && window.$toast('Xóa đánh giá thất bại!', 'error');
   }

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import ProvinceAPI, { clearProvinceCache } from '@/api/provinceApi'
+import ProvinceAPI, { clearProvinceCache } from '@/api/provinceApi.ts'
 import { graphqlRequest } from '@/api/graphqlClient'
 import { toast } from '@/utils/notifications'
 

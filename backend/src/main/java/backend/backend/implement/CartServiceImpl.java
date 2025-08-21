@@ -17,8 +17,6 @@ import backend.backend.controller.AdminWebSocketController;
 
 import backend.backend.service.busService.BusBookingService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j;
-import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -261,10 +258,10 @@ public class CartServiceImpl implements CartService {
                 HotelBookingRequestDto hotelRequest = new HotelBookingRequestDto();
                 User user = order.getUser();
                 
-//                hotelRequest.setFullName(genericRequest.getFullName());
-//                hotelRequest.setEmail(genericRequest.getEmail());
-//                hotelRequest.setPhone(genericRequest.getPhone());
-//
+                hotelRequest.setFullName(genericRequest.getFullName());
+                hotelRequest.setEmail(genericRequest.getEmail());
+                hotelRequest.setPhone(genericRequest.getPhone());
+
                 hotelRequest.setRoomVariantId(genericRequest.getRoomId());
                 hotelRequest.setCheckInDate(genericRequest.getCheckInDate() != null ? genericRequest.getCheckInDate().toString() : null);
                 hotelRequest.setCheckOutDate(genericRequest.getCheckOutDate() != null ? genericRequest.getCheckOutDate().toString() : null);

@@ -30,6 +30,9 @@ public class AddItemRequestDto {
 
     private java.math.BigDecimal totalPrice;
     private Integer numberOfRooms;
+    private String fullName;
+    private String email;
+    private String phone;
 
     // Dành cho Flight
     private Integer flightSlotId;

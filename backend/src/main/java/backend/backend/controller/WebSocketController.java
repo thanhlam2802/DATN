@@ -1,7 +1,6 @@
 package backend.backend.controller;
 
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +23,7 @@ public class WebSocketController {
     private ObjectMapper objectMapper;
 
     @MessageMapping("/hotel/room-booking")
-    @SendTo("/topic/hotels/{hotelId}/booking-notifications")
-    public Map<String, Object> handleHotelRoomBooking(Map<String, Object> bookingNotification) {
+    public void handleHotelRoomBooking(Map<String, Object> bookingNotification) {
         try {
             logger.info("Received hotel room booking notification: {}", bookingNotification);
 
@@ -43,19 +41,13 @@ public class WebSocketController {
                         "/topic/hotels/" + hotelId + "/booking-notifications",
                         bookingNotification);
             }
-
-            return bookingNotification;
         } catch (Exception e) {
             logger.error("Error handling hotel room booking notification", e);
-            Map<String, Object> errorResponse = new java.util.HashMap<>();
-            errorResponse.put("error", "Failed to process booking notification");
-            return errorResponse;
         }
     }
 
     @MessageMapping("/hotel/room-update")
-    @SendTo("/topic/hotels/{hotelId}/room-updates")
-    public Map<String, Object> handleRoomUpdate(Map<String, Object> roomUpdate) {
+    public void handleRoomUpdate(Map<String, Object> roomUpdate) {
         try {
             logger.info("Received room update notification: {}", roomUpdate);
 
@@ -73,13 +65,8 @@ public class WebSocketController {
                         "/topic/hotels/" + hotelId + "/room-updates",
                         roomUpdate);
             }
-
-            return roomUpdate;
         } catch (Exception e) {
             logger.error("Error handling room update notification", e);
-            Map<String, Object> errorResponse = new java.util.HashMap<>();
-            errorResponse.put("error", "Failed to process room update");
-            return errorResponse;
         }
     }
 

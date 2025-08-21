@@ -551,7 +551,7 @@ export default {
             }
             
             try {
-                const result = await addItemToCart(activeCartId, {
+                await addItemToCart(activeCartId, {
                     itemId: roomVariantId,
                     itemType: 'HOTEL',
                     numberOfAdults: adults,
@@ -567,17 +567,9 @@ export default {
                 });
                 
                 window.$toast && window.$toast('Đã thêm phòng vào chuyến đi!', 'success');
+                localStorage.removeItem('activeCartId');
+                router.push(`/orders/${activeCartId}`);
                 
-                // ✅ FIX: Cập nhật cart ID từ response
-                if (result.data && result.data.id) {
-                    localStorage.setItem('activeCartId', result.data.id);
-                    console.log('✅ Updated cart ID from hotel booking:', result.data.id);
-                    router.push(`/orders/${result.data.id}`);
-                } else {
-                    // Fallback: dùng cart ID cũ nếu response không có ID
-                    localStorage.removeItem('activeCartId');
-                    router.push(`/orders/${activeCartId}`);
-                }
             } catch (e) {
                 window.$toast && window.$toast('Có lỗi khi thêm phòng vào chuyến đi!', 'error');
             }

@@ -695,4 +695,10 @@ public class HotelServiceImpl implements HotelService {
         String temp = java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD);
         return temp.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HotelDto> getPopularHotelsByBookings(int size) {
+        return hotelDAO.findPopularHotelsByBookings(size);
+    }
 }

@@ -10,9 +10,9 @@
         <div
           class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2"
         >
-          <h2 class="text-xl sm:text-2xl font-bold text-gray-800">
-            Gợi ý Khách sạn cho bạn
-          </h2>
+                     <h2 class="text-xl sm:text-2xl font-bold text-gray-800">
+             Khách sạn được đặt phòng nhiều nhất
+           </h2>
           <router-link
             :to="{ name: 'Hotel' }"
             class="text-sm sm:text-base text-blue-600 font-semibold hover:underline self-end sm:self-center"
@@ -217,7 +217,7 @@ import BusCard from "../components/Home/BusCard.vue";
 import FlightCard from "../components/Home/FlightCard.vue";
 import TourHomeCard from "../components/Home/TourHomeCard.vue";
 import { searchFlights } from "@/api/flightApi";
-import { searchHotels } from "../api/hotelApi";
+import { getPopularHotelsByBookings } from "../api/hotelApi";
 
 // State variables
 const hotels = ref([]);
@@ -239,10 +239,10 @@ const fetchHotels = async () => {
   try {
     loading.hotels = true;
     error.hotels = null;
-    const response = await searchHotels({ size: 8, sortBy: "popular" });
+    const response = await getPopularHotelsByBookings(10);
 
     if (response.data && response.data.statusCode === 200) {
-      hotels.value = response.data.data.content;
+      hotels.value = response.data.data;
     } else {
       throw new Error(response.data.message || "Lỗi không xác định từ server");
     }

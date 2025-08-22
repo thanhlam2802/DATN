@@ -119,4 +119,19 @@ export const respondToHotelReview = (reviewId, response) => {
     });
 };
 
-export default adminApi; 
+export default adminApi;
+
+// ===== Super Admin Dashboard =====
+export const getFlightAdminSummaries = () => {
+  return adminApi.get('/api/admin/super-admin/flight-admins');
+};
+
+export const getFlightAdminDetail = (adminId) => {
+  return adminApi.get(`/api/admin/super-admin/flight-admins/${adminId}`);
+};
+
+export const getFlightsByAdminId = (adminId, page = 0, size = 10, filter = '') => {
+  return adminApi.get(`/api/admin/super-admin/flight-admins/${adminId}/flights`, {
+    params: { page, size, filter }
+  });
+}; 

@@ -835,7 +835,6 @@ async function openRefundDialog() {
   if (order.value.flightBookings && order.value.flightBookings.length > 0) {
     console.log("trong if");
     for (const booking of order.value.flightBookings) {
-
       const flightdetail = await getFlightDetail(booking.flightId);
       if (flightdetail.data.departureTime) {
         const departureTime = new Date(flightdetail.data.departureTime);
@@ -986,6 +985,7 @@ async function confirmRefundOtp() {
           console.error('Lỗi khi cập nhật trạng thái đơn hàng');
         }
       } catch (e) {
+        
         console.error('Lỗi khi gọi API cập nhật trạng thái đơn hàng:', e);
       }
 

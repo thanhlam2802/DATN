@@ -2,11 +2,8 @@ package backend.backend.service;
 
 import java.util.List;
 
-import backend.backend.dto.CheckoutDto;
-import backend.backend.dto.DirectFlightReservationRequestDto;
-import backend.backend.dto.DirectTourReservationRequestDto;
-import backend.backend.dto.OrderDto;
-
+import backend.backend.dto.*;
+import org.springframework.transaction.annotation.Transactional;
 
 
 public interface OrderService {
@@ -22,7 +19,10 @@ public interface OrderService {
      */
     List<OrderDto> getOrdersByUserId(Integer userId);
 
-	OrderDto paidOrder(Integer id,String transactionId);
+	@Transactional
+	List<OrderInfoDto> getTop10NewOrders();
+
+	OrderDto paidOrder(Integer id, String transactionId);
 	
 	OrderDto applyVoucherToOrder(Integer orderId, String voucherCode);
 	

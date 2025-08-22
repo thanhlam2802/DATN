@@ -31,28 +31,14 @@
     <div>
       <div v-if="activeTab === 'pending'">
         <div class="bg-white p-6 rounded-xl shadow-lg">
-          <h2 class="text-xl font-bold text-gray-700 mb-4">
-            Danh sách Khách sạn chờ phê duyệt
-          </h2>
-          <p
-            v-if="pendingHotels.length === 0"
-            class="text-center py-10 text-gray-500"
-          >
-            Không có khách sạn nào chờ phê duyệt.
-          </p>
-        </div>
-      </div>
-
-      <div v-if="activeTab === 'all_hotels'">
-        <div class="bg-white p-6 rounded-xl shadow-lg">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-gray-700">
-              Tất cả Khách sạn trên hệ thống
-            </h2>
+            Danh sách Khách sạn chờ phê duyệt
+          </h2>
             <div class="flex gap-3">
-              <input v-model="hotelSearch" placeholder="Tìm theo tên khách sạn hoặc thành phố" class="border border-slate-300 rounded-md px-3 py-2 w-72"/>
+              <input v-model="pendingHotelSearch" placeholder="Tìm theo tên khách sạn hoặc thành phố" class="border border-slate-300 rounded-md px-3 py-2 w-72"/>
               <CustomSelect
-                v-model="hotelFilterProvince"
+                v-model="pendingHotelFilterProvince"
                 :options="[{ label: 'Tất cả thành phố', value: '' }, ...provinces.map(p => ({ label: p.name, value: p.id }))]"
                 placeholder="Tất cả thành phố"
                 class="w-48"
@@ -71,11 +57,12 @@
                     <th class="sticky top-0 bg-slate-100 px-3 py-3 text-left text-xs font-bold text-slate-700 uppercase">Thành phố</th>
                     <th class="sticky top-0 bg-slate-100 px-3 py-3 text-left text-xs font-bold text-slate-700 uppercase">Địa chỉ</th>
                     <th class="sticky top-0 bg-slate-100 px-3 py-3 text-left text-xs font-bold text-slate-700 uppercase">Ngày tạo</th>
+                    <th class="sticky top-0 bg-slate-100 px-3 py-3 text-left text-xs font-bold text-slate-700 uppercase">Trạng thái duyệt</th>
                     <th class="sticky top-0 bg-slate-100 px-3 py-3 text-right text-xs font-bold text-slate-700 uppercase">Hành động</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-100">
-                  <tr v-for="h in paginatedHotels" :key="h.id" class="hover:bg-slate-50">
+                  <tr v-for="h in paginatedPendingHotels" :key="h.id" class="hover:bg-slate-50">
                     <td class="px-3 py-3 text-sm text-slate-700">{{ h.id }}</td>
                     <td class="px-3 py-3 text-sm font-semibold text-slate-900">{{ h.name }}</td>
                     <td class="px-3 py-3 text-sm text-slate-700">
@@ -95,49 +82,55 @@
                     </td>
                     <td class="px-3 py-3 text-sm text-slate-700">{{ h.address }}</td>
                     <td class="px-3 py-3 text-sm text-slate-700">{{ formatDateTime(h.createdAt) }}</td>
+                    <td class="px-3 py-3 text-sm text-slate-700">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-clock mr-1"></i>
+                        Chờ duyệt
+                      </span>
+                    </td>
                     <td class="px-3 py-3 text-sm text-right">
-                      <button @click="viewHotelDetail(h)" class="px-3 py-1.5 bg-blue-100 rounded mr-2 hover:bg-blue-200 text-blue-700">Xem</button>
-                      <button @click="editHotel(h)" class="px-3 py-1.5 bg-slate-100 rounded mr-2 hover:bg-slate-200">Sửa</button>
-                      <button @click="confirmDeleteHotel(h)" class="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700">Xóa</button>
+                      <button @click="viewPendingHotelDetail(h)" class="px-3 py-1.5 bg-blue-100 rounded mr-2 hover:bg-blue-200 text-blue-700">Xem</button>
+                      <button @click="approveHotel(h)" class="px-3 py-1.5 bg-green-600 text-white rounded mr-2 hover:bg-green-700">Duyệt</button>
+                      <button @click="rejectHotel(h)" class="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700">Từ chối</button>
                     </td>
                   </tr>
-                  <tr v-if="paginatedHotels.length === 0">
-                    <td colspan="7" class="px-3 py-8 text-center text-slate-500">Không có dữ liệu</td>
+                  <tr v-if="paginatedPendingHotels.length === 0">
+                    <td colspan="8" class="px-3 py-8 text-center text-slate-500">Không có khách sạn nào chờ phê duyệt</td>
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </div>
-          
-          <!-- Phân trang -->
+        </div>
+      </div>
+
+          <!-- Phân trang cho pending hotels -->
           <div class="flex items-center justify-end gap-4 px-4 py-3 bg-white border-t border-slate-200 rounded-b-xl mt-4">
             <div class="flex items-center gap-2">
               <span class="text-sm text-gray-700 whitespace-nowrap">Số dòng</span>
               <CustomSelect
-                v-model="hotelItemsPerPageStr"
-                :options="hotelItemsPerPageOptions.map(opt => ({ label: String(opt), value: String(opt) }))"
+                v-model="pendingHotelItemsPerPageStr"
+                :options="pendingHotelItemsPerPageOptions.map(opt => ({ label: String(opt), value: String(opt) }))"
                 class="w-20 min-w-[100px] h-8 [&>button]:h-8 [&>button]:py-1 [&>button]:text-sm"
                 :direction="'up'"
               />
             </div>
-            <nav v-if="hotelTotalPages > 1 && hotelItemsPerPageStr !== 'Tất cả'" aria-label="Pagination">
+            <nav v-if="pendingHotelTotalPages > 1 && pendingHotelItemsPerPageStr !== 'Tất cả'" aria-label="Pagination">
               <ul class="inline-flex items-center space-x-1">
                 <li>
-                  <button @click="prevHotelPage" :disabled="hotelCurrentPage === 1"
+                  <button @click="prevPendingHotelPage" :disabled="pendingHotelCurrentPage === 1"
                     class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
                     <i class="fas fa-chevron-left text-xs"></i>
                   </button>
                 </li>
-                <li v-for="page in hotelDisplayedPages" :key="page">
-                  <button v-if="page !== '...'" @click="changeHotelPage(page)"
+                <li v-for="page in pendingHotelDisplayedPages" :key="page">
+                  <button v-if="page !== '...'" @click="changePendingHotelPage(page)"
                     :class="['w-8 h-8 flex items-center justify-center rounded font-medium',
-                      hotelCurrentPage === page ? 'bg-orange-500 text-white border-orange-500' : 'text-gray-700 hover:bg-gray-100 border border-slate-200']">
+                      pendingHotelCurrentPage === page ? 'bg-orange-500 text-white border-orange-500' : 'text-gray-700 hover:bg-gray-100 border border-slate-200']">
                     {{ page }}
                   </button>
                   <span v-else class="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
                 </li>
                 <li>
-                  <button @click="nextHotelPage" :disabled="hotelCurrentPage === hotelTotalPages"
+                  <button @click="nextPendingHotelPage" :disabled="pendingHotelCurrentPage === pendingHotelTotalPages"
                     class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
                     <i class="fas fa-chevron-right text-xs"></i>
                   </button>
@@ -392,6 +385,261 @@
       </div>
     </div>
     <ConfirmDialog ref="confirmDialog" />
+    
+    <!-- Modal từ chối khách sạn -->
+    <div v-if="showRejectModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click="closeRejectModal">
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6" @click.stop>
+        <h3 class="text-lg font-bold mb-4 text-red-600">
+          <i class="fas fa-times-circle mr-2"></i>
+          Từ chối khách sạn
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Tên khách sạn</label>
+            <div class="p-3 bg-slate-50 rounded-md border">
+              <strong>{{ rejectingHotel?.name }}</strong>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Lý do từ chối <span class="text-red-500">*</span></label>
+            <textarea 
+              v-model="rejectReason" 
+              class="w-full border border-slate-300 rounded-md px-3 py-2 h-24 resize-none" 
+              placeholder="Nhập lý do từ chối khách sạn..."
+            ></textarea>
+            <div class="text-xs text-slate-400 mt-1">Lý do này sẽ được gửi đến Admin Hotel để họ biết và sửa chữa</div>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end gap-2">
+          <button @click="closeRejectModal" class="px-4 py-2 bg-slate-100 rounded hover:bg-slate-200">Hủy</button>
+          <button @click="confirmRejectHotel" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+            <i class="fas fa-times mr-2"></i>Từ chối
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal xem chi tiết khách sạn -->
+    <div v-if="showHotelDetailModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click="closeHotelDetailModal">
+      <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col" @click.stop>
+        <!-- Header cố định -->
+        <div class="p-6 border-b border-slate-200 bg-white rounded-t-2xl sticky top-0 z-10">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xl font-bold text-slate-800">
+              <i class="fas fa-hotel mr-2 text-blue-600"></i>
+              Chi tiết khách sạn: {{ selectedHotel?.name }}
+            </h3>
+            <button @click="closeHotelDetailModal" class="text-slate-400 hover:text-slate-600 text-2xl">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Content có thể scroll -->
+        <div class="p-6 space-y-6 overflow-y-auto flex-1">
+          <!-- Thông tin cơ bản -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Tên khách sạn</label>
+              <div class="p-3 bg-slate-50 rounded-md border text-slate-900">{{ selectedHotel?.name || 'N/A' }}</div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao</label>
+              <div class="p-3 bg-slate-50 rounded-md border">
+                <div class="flex items-center space-x-1">
+                  <span class="text-slate-900">{{ selectedHotel?.starRating || 'N/A' }}</span>
+                  <div class="flex space-x-0.5">
+                    <i v-for="star in (selectedHotel?.starRating || 0)" :key="star"
+                      class="fas fa-star text-yellow-400 text-sm"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Thành phố</label>
+              <div class="p-3 bg-slate-50 rounded-md border text-slate-900">{{ selectedHotel?.provinceName || 'N/A' }}</div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Địa chỉ</label>
+              <div class="p-3 bg-slate-50 rounded-md border text-slate-900">{{ selectedHotel?.address || 'N/A' }}</div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Số điện thoại</label>
+              <div class="p-3 bg-slate-50 rounded-md border text-slate-900">{{ selectedHotel?.phone || 'N/A' }}</div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+              <div class="p-3 bg-slate-50 rounded-md border text-slate-900">{{ selectedHotel?.email || 'N/A' }}</div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Trạng thái</label>
+              <div class="p-3 bg-slate-50 rounded-md border">
+                <span v-if="selectedHotel?.status === 'ACTIVE'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <i class="fas fa-check-circle mr-1"></i>
+                  Hoạt động
+                </span>
+                <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  <i class="fas fa-times-circle mr-1"></i>
+                  Không hoạt động
+                </span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Trạng thái duyệt</label>
+              <div class="p-3 bg-slate-50 rounded-md border">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  <i class="fas fa-clock mr-1"></i>
+                  Chờ duyệt
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mô tả -->
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Mô tả</label>
+            <div class="p-4 bg-slate-50 rounded-md border min-h-[100px]">
+              <div v-if="selectedHotel?.description" v-html="selectedHotel.description" class="text-slate-900"></div>
+              <div v-else class="text-slate-400 italic">Không có mô tả</div>
+            </div>
+          </div>
+
+          <!-- Hình ảnh khách sạn -->
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Hình ảnh khách sạn</label>
+            <div v-if="selectedHotel?.imageUrls && selectedHotel.imageUrls.length > 0" class="flex flex-wrap gap-3">
+              <div v-for="(img, idx) in selectedHotel.imageUrls" :key="idx" class="relative">
+                <img :src="img" class="w-32 h-24 object-cover rounded-lg border border-slate-200 shadow-sm" />
+              </div>
+            </div>
+            <div v-else class="p-4 bg-slate-50 rounded-md border text-slate-400 italic">
+              Không có hình ảnh
+            </div>
+          </div>
+
+          <!-- Thông tin các loại phòng -->
+          <div>
+            <h4 class="font-semibold text-slate-800 text-lg mb-4">Thông tin các loại phòng</h4>
+            <div v-if="selectedHotel?.availableRooms && selectedHotel.availableRooms.length > 0" class="space-y-4">
+              <div v-for="(room, idx) in selectedHotel.availableRooms" :key="idx" class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Loại phòng</label>
+                    <div class="p-2 bg-white rounded border text-slate-900">{{ room.roomType || 'N/A' }}</div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Giường</label>
+                    <div class="p-2 bg-white rounded border text-slate-900">{{ room.bedType || 'N/A' }}</div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Diện tích (m²)</label>
+                    <div class="p-2 bg-white rounded border text-slate-900">{{ room.roomArea || 'N/A' }}</div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Số lượng phòng</label>
+                    <div class="p-2 bg-white rounded border text-slate-900">{{ room.roomQuantity || 'N/A' }}</div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-semibold text-slate-700 mb-1">Người lớn</label>
+                      <div class="p-2 bg-white rounded border text-slate-900">{{ room.maxAdults || 'N/A' }}</div>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold text-slate-700 mb-1">Trẻ em</label>
+                      <div class="p-2 bg-white rounded border text-slate-900">{{ room.maxChildren || 'N/A' }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tiện ích phòng -->
+                <div class="mb-4">
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Tiện ích phòng</label>
+                  <div v-if="room.amenities && room.amenities.length > 0" class="flex flex-wrap gap-2">
+                    <span v-for="amenity in room.amenities" :key="amenity.id" class="flex items-center bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                      <i v-if="amenity.icon" :class="amenity.icon + ' mr-1 text-xs'"></i>
+                      {{ amenity.name }}
+                    </span>
+                  </div>
+                  <div v-else class="text-slate-400 italic">Không có tiện ích</div>
+                </div>
+
+                <!-- Hình ảnh phòng -->
+                <div class="mb-4">
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Hình ảnh phòng</label>
+                  <div v-if="room.imageUrls && room.imageUrls.length > 0" class="flex flex-wrap gap-2">
+                    <div v-for="(img, imgIdx) in room.imageUrls" :key="imgIdx" class="relative">
+                      <img :src="img" class="w-20 h-20 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                    </div>
+                  </div>
+                  <div v-else class="text-slate-400 italic">Không có hình ảnh</div>
+                </div>
+
+                                 <!-- Gói phòng -->
+                 <div>
+                   <label class="block text-sm font-semibold text-slate-700 mb-2">Gói phòng</label>
+                   <div v-if="room.availableVariants && room.availableVariants.length > 0" class="space-y-3">
+                     <div v-for="(variant, vIdx) in room.availableVariants" :key="vIdx" class="bg-white rounded-lg p-3 border border-slate-200">
+                                              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                         <div>
+                           <label class="block text-xs font-semibold text-slate-700 mb-1">Tên gói</label>
+                           <div class="text-sm text-slate-900">{{ variant.variantName || 'N/A' }}</div>
+                         </div>
+                         <div>
+                           <label class="block text-xs font-semibold text-slate-700 mb-1">Giá</label>
+                           <div class="text-sm font-bold text-green-600">{{ formatCurrency(variant.price) }} VND</div>
+                         </div>
+                       </div>
+                       
+                                               <!-- Giảm giá -->
+                        <div v-if="variant.discountType && variant.discountValue" class="mt-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-700">Giảm giá:</span>
+                            <span class="text-xs font-bold text-red-600">
+                              {{ variant.discountType === 'percent' ? variant.discountValue + '%' : formatCurrency(variant.discountValue) + ' VND' }}
+                            </span>
+                          </div>
+                          <div class="text-green-700 font-bold text-sm mt-1">
+                            Giá sau giảm: {{ formatCurrency(getDiscountedPrice(variant)) }} VND
+                          </div>
+                        </div>
+                      <div class="flex gap-4 mt-2 text-xs text-slate-600">
+                        <span v-if="variant.hasBreakfast" class="flex items-center">
+                          <i class="fas fa-check-circle text-green-500 mr-1"></i>Bữa sáng
+                        </span>
+                        <span v-if="variant.cancellable" class="flex items-center">
+                          <i class="fas fa-check-circle text-green-500 mr-1"></i>Hủy miễn phí
+                        </span>
+                        <span v-if="variant.payAtHotel" class="flex items-center">
+                          <i class="fas fa-check-circle text-green-500 mr-1"></i>Thanh toán tại KS
+                        </span>
+                      </div>
+                      <div v-if="variant.taxAndFeeAmount > 0" class="mt-2 text-xs text-slate-600">
+                        Thuế/Phí: {{ formatCurrency(variant.taxAndFeeAmount) }} VND
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="text-slate-400 italic">Không có gói phòng</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="p-4 bg-slate-50 rounded-md border text-slate-400 italic">
+              Không có thông tin phòng
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer cố định -->
+        <div class="p-6 border-t border-slate-200 bg-slate-50 rounded-b-2xl sticky bottom-0 z-10">
+          <div class="flex justify-end">
+            <button @click="closeHotelDetailModal" class="px-6 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -404,42 +652,20 @@ import CustomSelect from '@/components/CustomSelect.vue';
 const activeTab = ref("pending");
 const tabs = ref([
   { id: "pending", name: "Chờ Phê duyệt", icon: "fas fa-hourglass-half" },
-  { id: "all_hotels", name: "Tất cả Khách sạn", icon: "fas fa-list-ul" },
   { id: "amenities", name: "Quản lý Tiện ích", icon: "fas fa-swimming-pool" },
   { id: "areas", name: "Quản lý Khu vực", icon: "fas fa-map-marked-alt" },
 ]);
 
-const allHotels = ref([
-  {
-    id: 1,
-    name: "FLC Luxury Hotel Quy Nhon",
-    vendor: "FLC Group",
-    location: "Quy Nhơn",
-    status: "PENDING",
-  },
-  {
-    id: 2,
-    name: "InterContinental Hanoi",
-    vendor: "IHG",
-    location: "Hà Nội",
-    status: "ACTIVE",
-  },
-]);
-
-const pendingHotels = computed(() =>
-  allHotels.value.filter((h) => h.status === "PENDING")
-);
-
-// Hotels management
-const hotels = ref([]);
-const hotelSearch = ref('');
-const hotelFilterProvince = ref('');
-const filteredHotels = computed(() => {
-  let result = hotels.value;
+// Pending hotels management
+const pendingHotels = ref([]);
+const pendingHotelSearch = ref('');
+const pendingHotelFilterProvince = ref('');
+const filteredPendingHotels = computed(() => {
+  let result = pendingHotels.value;
   
   // Filter by search
-  if (hotelSearch.value.trim()) {
-    const searchTerm = hotelSearch.value.trim().toLowerCase();
+  if (pendingHotelSearch.value.trim()) {
+    const searchTerm = pendingHotelSearch.value.trim().toLowerCase();
     result = result.filter(h => 
       (h.name && h.name.toLowerCase().includes(searchTerm)) ||
       (h.provinceName && h.provinceName.toLowerCase().includes(searchTerm))
@@ -447,39 +673,39 @@ const filteredHotels = computed(() => {
   }
   
   // Filter by province
-  if (hotelFilterProvince.value) {
-    result = result.filter(h => h.provinceId == hotelFilterProvince.value);
+  if (pendingHotelFilterProvince.value) {
+    result = result.filter(h => h.provinceId == pendingHotelFilterProvince.value);
   }
   
   return result;
 });
 
-// Pagination for hotels
-const hotelItemsPerPageOptions = ref([5, 10, 20, 50, 'Tất cả']);
-const hotelItemsPerPageStr = ref('5');
-const hotelCurrentPage = ref(1);
-const hotelTotalPages = computed(() => {
-  const total = filteredHotels.value.length;
-  const itemsPerPage = parseInt(hotelItemsPerPageStr.value);
+// Pagination for pending hotels
+const pendingHotelItemsPerPageOptions = ref([5, 10, 20, 50, 'Tất cả']);
+const pendingHotelItemsPerPageStr = ref('5');
+const pendingHotelCurrentPage = ref(1);
+const pendingHotelTotalPages = computed(() => {
+  const total = filteredPendingHotels.value.length;
+  const itemsPerPage = parseInt(pendingHotelItemsPerPageStr.value);
   if (itemsPerPage === 0) return 1;
   return Math.ceil(total / itemsPerPage);
 });
 
-const paginatedHotels = computed(() => {
-  const itemsPerPage = hotelItemsPerPageStr.value === 'Tất cả' ? 0 : parseInt(hotelItemsPerPageStr.value);
+const paginatedPendingHotels = computed(() => {
+  const itemsPerPage = pendingHotelItemsPerPageStr.value === 'Tất cả' ? 0 : parseInt(pendingHotelItemsPerPageStr.value);
   
   if (itemsPerPage === 0) {
-    return filteredHotels.value; // Trả về tất cả
+    return filteredPendingHotels.value;
   }
   
-  const start = (hotelCurrentPage.value - 1) * itemsPerPage;
+  const start = (pendingHotelCurrentPage.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  return filteredHotels.value.slice(start, end);
+  return filteredPendingHotels.value.slice(start, end);
 });
 
-const hotelDisplayedPages = computed(() => {
-  const totalPages = hotelTotalPages.value;
-  const currentPage = hotelCurrentPage.value;
+const pendingHotelDisplayedPages = computed(() => {
+  const totalPages = pendingHotelTotalPages.value;
+  const currentPage = pendingHotelCurrentPage.value;
   const pages = [];
 
   if (totalPages <= 5) {
@@ -498,60 +724,68 @@ const hotelDisplayedPages = computed(() => {
   return pages;
 });
 
-function changeHotelPage(page) {
+function changePendingHotelPage(page) {
   if (page === '...') return;
-  hotelCurrentPage.value = parseInt(page);
+  pendingHotelCurrentPage.value = parseInt(page);
 }
 
-function prevHotelPage() {
-  if (hotelCurrentPage.value > 1) {
-    hotelCurrentPage.value--;
+function prevPendingHotelPage() {
+  if (pendingHotelCurrentPage.value > 1) {
+    pendingHotelCurrentPage.value--;
   }
 }
 
-function nextHotelPage() {
-  if (hotelCurrentPage.value < hotelTotalPages.value) {
-    hotelCurrentPage.value++;
+function nextPendingHotelPage() {
+  if (pendingHotelCurrentPage.value < pendingHotelTotalPages.value) {
+    pendingHotelCurrentPage.value++;
   }
 }
 
-async function fetchHotels() {
+
+
+
+
+
+
+async function fetchPendingHotels() {
   try {
-    console.log('Fetching hotels...');
+    console.log('Fetching pending hotels...');
     const params = {
-      keyword: hotelSearch.value,
-      provinceId: hotelFilterProvince.value || undefined,
+      keyword: pendingHotelSearch.value,
+      provinceId: pendingHotelFilterProvince.value || undefined,
+      approvalStatus: 'PENDING',
       page: 0,
       size: 1000,
     };
-    console.log('Search params:', params);
+    console.log('Pending hotel search params:', params);
     
     const response = await hotelAdminApi.searchHotels(params);
-    console.log('Hotel response:', response);
+    console.log('Pending hotel response:', response);
     
     if (response.data && response.data.data) {
-      // Kiểm tra cả content và items
       const hotelData = response.data.data.content || response.data.data.items || response.data.data;
-      console.log('Hotel data:', hotelData);
+      console.log('Pending hotel data:', hotelData);
       
       if (Array.isArray(hotelData)) {
-        hotels.value = hotelData;
+        pendingHotels.value = hotelData;
       } else if (hotelData && Array.isArray(hotelData.content)) {
-        hotels.value = hotelData.content;
+        pendingHotels.value = hotelData.content;
       } else {
-        hotels.value = [];
+        pendingHotels.value = [];
       }
     } else {
-      console.log('No hotel data in response');
-      hotels.value = [];
+      console.log('No pending hotel data in response');
+      pendingHotels.value = [];
     }
     
-    console.log('Final hotels array:', hotels.value);
+    console.log('Final pending hotels array:', pendingHotels.value);
   } catch (error) {
-    console.error('Error fetching hotels:', error);
-    hotels.value = [];
+    console.error('Error fetching pending hotels:', error);
+    pendingHotels.value = [];
   }
 }
+
+
 
 function formatDateTime(dt) {
   if (!dt) return '';
@@ -559,34 +793,91 @@ function formatDateTime(dt) {
   return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 }
 
-function viewHotelDetail(hotel) {
-  // TODO: Implement view hotel detail
-  console.log('View hotel:', hotel);
+// Pending hotel actions
+async function viewPendingHotelDetail(hotel) {
+  try {
+    // Lấy thông tin chi tiết khách sạn
+    const response = await hotelAdminApi.getHotelById(hotel.id);
+    if (response.data && response.data.data) {
+      selectedHotel.value = response.data.data;
+      showHotelDetailModal.value = true;
+    } else {
+      window.$toast && window.$toast('Không thể lấy thông tin chi tiết khách sạn', 'error');
+    }
+  } catch (error) {
+    console.error('Error fetching hotel details:', error);
+    window.$toast && window.$toast('Không thể lấy thông tin chi tiết khách sạn', 'error');
+  }
 }
 
-function editHotel(hotel) {
-  // TODO: Implement edit hotel
-  console.log('Edit hotel:', hotel);
+async function approveHotel(hotel) {
+  try {
+    const ok = await confirmDialog.value?.showDialog({
+      type: 'success',
+      title: 'Xác nhận duyệt khách sạn',
+      message: `Bạn có chắc chắn muốn duyệt khách sạn "${hotel.name}" không?`,
+      confirmText: 'Duyệt',
+      cancelText: 'Hủy'
+    });
+    
+    if (!ok) return;
+    
+    await hotelAdminApi.approveHotel(hotel.id);
+    window.$toast && window.$toast('Duyệt khách sạn thành công!', 'success');
+    await fetchPendingHotels();
+  } catch (e) {
+    window.$toast && window.$toast('Duyệt khách sạn thất bại', 'error');
+  }
 }
 
-async function confirmDeleteHotel(hotel) {
-  const ok = await confirmDialog.value?.showDialog({
-    type: 'danger',
-    title: 'Xác nhận xóa khách sạn',
-    message: `Bạn có chắc chắn muốn xóa khách sạn "${hotel.name}" không?`,
-    confirmText: 'Xóa',
-    cancelText: 'Hủy'
-  });
-  
-  if (!ok) return;
+function rejectHotel(hotel) {
+  rejectingHotel.value = hotel;
+  rejectReason.value = '';
+  showRejectModal.value = true;
+}
+
+function closeRejectModal() {
+  showRejectModal.value = false;
+  rejectingHotel.value = null;
+  rejectReason.value = '';
+}
+
+async function confirmRejectHotel() {
+  if (!rejectReason.value.trim()) {
+    window.$toast && window.$toast('Vui lòng nhập lý do từ chối', 'warning');
+    return;
+  }
   
   try {
-    await hotelAdminApi.deleteHotel(hotel.id);
-    window.$toast && window.$toast('Xóa khách sạn thành công!', 'success');
-    await fetchHotels();
+    await hotelAdminApi.rejectHotel(rejectingHotel.value.id, { reason: rejectReason.value });
+    window.$toast && window.$toast('Từ chối khách sạn thành công!', 'success');
+    closeRejectModal();
+    await fetchPendingHotels();
   } catch (e) {
-    window.$toast && window.$toast('Xóa khách sạn thất bại', 'error');
+    window.$toast && window.$toast('Từ chối khách sạn thất bại', 'error');
   }
+}
+
+function closeHotelDetailModal() {
+  showHotelDetailModal.value = false;
+  selectedHotel.value = null;
+}
+
+function formatCurrency(value) {
+  if (value == null || value === undefined) return 'N/A';
+  return new Intl.NumberFormat('vi-VN').format(value);
+}
+
+function getDiscountedPrice(variant) {
+  if (!variant.discountType || !variant.discountValue) return variant.price;
+  
+  if (variant.discountType === 'amount') {
+    return Math.max(0, variant.price - variant.discountValue);
+  } else if (variant.discountType === 'percent') {
+    return Math.max(0, variant.price * (1 - variant.discountValue / 100));
+  }
+  
+  return variant.price;
 }
 
 const provinces = ref([]);
@@ -602,6 +893,15 @@ const editingProvince = ref(null);
 const provinceForm = ref({ name: '', imageUrl: '', file: null, fileName: '' });
 const provinceFileInput = ref(null);
 const confirmDialog = ref(null);
+
+// Reject hotel modal
+const showRejectModal = ref(false);
+const rejectingHotel = ref(null);
+const rejectReason = ref('');
+
+// Hotel detail modal
+const showHotelDetailModal = ref(false);
+const selectedHotel = ref(null);
 
 async function fetchProvinces() {
   try {
@@ -885,7 +1185,14 @@ function nextAmenityPage() {
 onMounted(() => {
   if (activeTab.value === 'areas') fetchProvinces();
   if (activeTab.value === 'amenities') fetchAmenities();
-  if (activeTab.value === 'all_hotels') fetchHotels();
+  if (activeTab.value === 'pending') fetchPendingHotels();
+  
+  // Thêm event listener để đóng modal khi click bên ngoài
+  document.addEventListener('click', (e) => {
+    if (showHotelDetailModal.value && !e.target.closest('.modal-content')) {
+      closeHotelDetailModal();
+    }
+  });
 });
 
 watch(activeTab, (val) => {
@@ -899,9 +1206,10 @@ watch(activeTab, (val) => {
       fetchAmenities();
     }
   }
-  if (val === 'all_hotels') {
-    if (!hotels.value || hotels.value.length === 0) {
-      fetchHotels();
+
+  if (val === 'pending') {
+    if (!pendingHotels.value || pendingHotels.value.length === 0) {
+      fetchPendingHotels();
     }
   }
 });
@@ -915,15 +1223,19 @@ watch(provinceSearch, () => {
   provinceCurrentPage.value = 1;
 });
 
-// Watch for hotel search and filter changes
-watch([hotelSearch, hotelFilterProvince], () => {
-  hotelCurrentPage.value = 1;
-  fetchHotels();
+
+
+// Watch for pending hotel search and filter changes
+watch([pendingHotelSearch, pendingHotelFilterProvince], () => {
+  pendingHotelCurrentPage.value = 1;
+  fetchPendingHotels();
 });
 
-// Watch for hotel pagination changes
-watch(hotelItemsPerPageStr, () => {
-  hotelCurrentPage.value = 1;
+
+
+// Watch for pending hotel pagination changes
+watch(pendingHotelItemsPerPageStr, () => {
+  pendingHotelCurrentPage.value = 1;
 });
 
 watch(amenityItemsPerPageStr, () => {

@@ -29,8 +29,38 @@
       </div>
     </div>
 
+  
+
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <p class="mt-4 text-gray-600">Đang tải dữ liệu thống kê...</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">Lỗi tải dữ liệu</h3>
+          <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="fetchStatisticsData" class="text-sm font-medium text-red-800 hover:text-red-900">
+            Thử lại
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Overview Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div class="bg-white overflow-hidden shadow rounded-lg">
         <div class="p-5">
           <div class="flex items-center">
@@ -45,13 +75,8 @@
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tổng doanh thu</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ formatCurrency(stats.totalRevenue) }}</div>
-                  <div class="flex items-center text-sm font-semibold text-green-600">
-                    <svg class="flex-shrink-0 h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    <span>+12%</span>
-                  </div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ formatCurrency(kpiData.totalRevenue) }}</div>
+                  <div v-if="loading" class="text-sm text-gray-500">Đang tải...</div>
                 </dd>
               </dl>
             </div>
@@ -71,15 +96,10 @@
             </div>
             <div class="ml-5 flex-1 min-w-0">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Tổng khách hàng</dt>
+                <dt class="text-sm font-medium text-gray-500 truncate">Tổng đặt chỗ</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ stats.totalCustomers.toLocaleString() }}</div>
-                  <div class="flex items-center text-sm font-semibold text-green-600">
-                    <svg class="flex-shrink-0 h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    <span>+8%</span>
-                  </div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ kpiData.totalBookings.toLocaleString() }}</div>
+                  <div v-if="loading" class="text-sm text-gray-500">Đang tải...</div>
                 </dd>
               </dl>
             </div>
@@ -101,13 +121,8 @@
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tổng chuyến xe</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ stats.totalTrips }}</div>
-                  <div class="flex items-center text-sm font-semibold text-green-600">
-                    <svg class="flex-shrink-0 h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    <span>+5%</span>
-                  </div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ kpiData.totalTrips }}</div>
+                  <div v-if="loading" class="text-sm text-gray-500">Đang tải...</div>
                 </dd>
               </dl>
             </div>
@@ -129,13 +144,8 @@
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Tỷ lệ lấp đầy</dt>
                 <dd class="flex items-baseline flex-wrap">
-                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ stats.occupancyRate }}%</div>
-                  <div class="flex items-center text-sm font-semibold text-red-600">
-                    <svg class="flex-shrink-0 h-4 w-4 text-red-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    <span>-2%</span>
-                  </div>
+                  <div class="text-2xl font-semibold text-gray-900 mr-2">{{ kpiData.occupancyRate }}%</div>
+                  <div v-if="loading" class="text-sm text-gray-500">Đang tải...</div>
                 </dd>
               </dl>
             </div>
@@ -171,10 +181,10 @@
         </div>
         <div class="p-6">
           <div class="space-y-4">
-            <div v-for="route in topRoutes" :key="route.name" class="flex items-center justify-between">
+            <div v-for="route in topRoutes" :key="route.id" class="flex items-center justify-between">
               <div class="flex items-center">
                 <div class="w-4 h-4 rounded bg-blue-500 mr-3"></div>
-                <span class="text-sm font-medium text-gray-900">{{ route.name }}</span>
+                <span class="text-sm font-medium text-gray-900">{{ route.origin }} → {{ route.destination }}</span>
               </div>
               <div class="flex items-center space-x-4">
                 <span class="text-sm text-gray-500">{{ route.revenue.toLocaleString() }}đ</span>
@@ -283,7 +293,7 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doanh thu</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số chuyến</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tỷ lete lấp đầy</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tỷ lệ lấp đầy</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tăng trưởng</th>
             </tr>
           </thead>
@@ -307,51 +317,153 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted, computed, reactive, watch } from 'vue';
+import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, PointElement, LineElement, Filler } from 'chart.js';
+import { Bar, Doughnut, Line } from 'vue-chartjs';
+import { BusStatisticsAPI, type OverviewStatistics } from '@/api/busApi/statistics';
+import { toast } from '@/utils/notifications';
 
-console.log('Statistics');
 
-// State
-const selectedPeriod = ref('30days')
 
-const stats = ref({
-  totalRevenue: 2450000000,
-  totalCustomers: 15420,
-  totalTrips: 890,
-  occupancyRate: 78
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, PointElement, LineElement, Filler);
+
+// Development check
+const isDevelopment = computed(() => {
+  return import.meta.env.DEV || import.meta.env.MODE === 'development'
 })
 
-const topRoutes = ref([
-  { name: 'Hà Nội - TP.HCM', revenue: 800000000, percentage: 85 },
-  { name: 'Hà Nội - Đà Nẵng', revenue: 650000000, percentage: 70 },
-  { name: 'TP.HCM - Đà Lạt', revenue: 450000000, percentage: 60 },
-  { name: 'Hà Nội - Hải Phòng', revenue: 350000000, percentage: 45 }
-])
+// State
+const loading = ref(false);
+const error = ref<string | null>(null);
+const selectedPeriod = ref('7days');
 
+// Statistics data
+const statisticsData = ref<OverviewStatistics | null>(null);
+const kpiData = ref({
+  totalRevenue: 0,
+  totalBookings: 0,
+  totalTrips: 0,
+  totalBuses: 0,
+  totalCustomers: 0,
+  occupancyRate: 0,
+});
+
+const revenueData = ref({
+  labels: [] as string[],
+  datasets: [{
+    label: 'Doanh thu',
+    data: [] as number[],
+    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    fill: true,
+    tension: 0.4
+  }]
+});
+
+const occupancyData = ref({
+  labels: [] as string[],
+  datasets: [{
+    label: 'Tỷ lệ lấp đầy',
+    data: [] as number[],
+    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+  }]
+});
+
+const topRoutes = ref<any[]>([]);
+
+// Mock data for demo
 const recentBookings = ref([
-  { id: 1, customer: 'Nguyễn Văn A', route: 'Hà Nội - TP.HCM', amount: 800000, date: '15/01/2024' },
-  { id: 2, customer: 'Trần Thị B', route: 'TP.HCM - Đà Lạt', amount: 200000, date: '15/01/2024' },
-  { id: 3, customer: 'Lê Văn C', route: 'Hà Nội - Đà Nẵng', amount: 450000, date: '14/01/2024' },
-  { id: 4, customer: 'Phạm Thị D', route: 'Hà Nội - Hải Phòng', amount: 80000, date: '14/01/2024' },
-  { id: 5, customer: 'Hoàng Văn E', route: 'Hà Nội - TP.HCM', amount: 800000, date: '13/01/2024' }
-])
+  { id: 1, customer: 'Nguyễn Văn A', route: 'Hà Nội → Hồ Chí Minh', amount: 500000, date: '2024-01-15' },
+  { id: 2, customer: 'Trần Thị B', route: 'Đà Nẵng → Hà Nội', amount: 400000, date: '2024-01-14' },
+  { id: 3, customer: 'Lê Văn C', route: 'Hồ Chí Minh → Đà Nẵng', amount: 350000, date: '2024-01-13' },
+]);
 
 const monthlyReports = ref([
-  { month: 'Tháng 12/2023', revenue: 2200000000, trips: 850, customers: 14200, occupancy: 76, growth: 8 },
-  { month: 'Tháng 11/2023', revenue: 2100000000, trips: 820, customers: 13800, occupancy: 74, growth: 5 },
-  { month: 'Tháng 10/2023', revenue: 1950000000, trips: 780, customers: 13200, occupancy: 72, growth: -2 },
-  { month: 'Tháng 9/2023', revenue: 2050000000, trips: 800, customers: 13500, occupancy: 75, growth: 12 },
-  { month: 'Tháng 8/2023', revenue: 1850000000, trips: 720, customers: 12100, occupancy: 70, growth: -5 }
-])
+  { month: 'Tháng 1/2024', revenue: 15000000, trips: 45, customers: 1200, occupancy: 85, growth: 12 },
+  { month: 'Tháng 12/2023', revenue: 13500000, trips: 42, customers: 1100, occupancy: 78, growth: 8 },
+  { month: 'Tháng 11/2023', revenue: 12500000, trips: 38, customers: 1050, occupancy: 75, growth: -3 },
+]);
 
-// Methods
-const formatCurrency = (amount) => {
-  return amount.toLocaleString() + 'đ'
-}
+// Chart options
+const lineChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: {
+      beginAtZero: true
+    }
+  }
+};
+
+const doughnutChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+};
+
+// Fetching data
+const fetchStatisticsData = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    // Lấy ownerId từ token
+    const token = localStorage.getItem('t_');
+    if (!token) {
+      throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+    }
+
+    // Parse token để lấy userId (ownerId)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const ownerId = payload.userId;
+    
+    if (!ownerId) {
+      throw new Error("Không thể xác định ownerId từ token.");
+    }
+
+    // Lấy thống kê tổng quan
+    const overviewStats = await BusStatisticsAPI.getOverviewStatistics(ownerId);
+    statisticsData.value = overviewStats;
+
+    // Cập nhật KPI data
+    kpiData.value = {
+      totalRevenue: overviewStats.totalRevenue || 0,
+      totalBookings: overviewStats.totalBookings || 0,
+      totalTrips: overviewStats.totalTrips || 0,
+      totalBuses: overviewStats.totalBuses || 0,
+      totalCustomers: overviewStats.totalCustomers || 0,
+      occupancyRate: calculateAverageOccupancy(overviewStats.occupancyRates),
+    };
+
+  } catch (err: any) {
+    error.value = err.message || "Đã có lỗi xảy ra khi tải dữ liệu thống kê.";
+    toast.error(error.value || "Đã có lỗi xảy ra khi tải dữ liệu thống kê.");
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Helper function để tính tỷ lệ lấp đầy trung bình
+const calculateAverageOccupancy = (occupancyRates: Record<string, number>): number => {
+  if (!occupancyRates || Object.keys(occupancyRates).length === 0) {
+    return 0;
+  }
+  
+  const values = Object.values(occupancyRates);
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return Math.round(average * 100) / 100; // Làm tròn 2 chữ số thập phân
+};
 
 const exportReport = () => {
-  // Logic xuất báo cáo
-  alert('Chức năng xuất báo cáo đang được phát triển')
-}
+  toast.info('Chức năng xuất báo cáo đang được phát triển.');
+};
+
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0);
+};
+
+// Watch for period changes
+watch(selectedPeriod, fetchStatisticsData);
+
+onMounted(fetchStatisticsData);
 </script> 

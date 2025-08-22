@@ -1,18 +1,25 @@
 package backend.backend.controller;
 
+import backend.backend.dao.BusBookingDAO;
 import backend.backend.dao.UserDAO;
 import backend.backend.dto.ApplyVoucherRequest;
+import backend.backend.dto.BusDTO.DirectBusReservationRequestDto;
 import backend.backend.dto.CheckoutDto;
 import backend.backend.dto.DirectTourReservationRequestDto;
 import backend.backend.dto.OrderDto; 
 import backend.backend.entity.ApiResponse;
+import backend.backend.entity.BusBooking;
+import backend.backend.entity.enumBus.BusBookingStatus;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
+import backend.backend.service.busService.BusBookingService;
 import backend.backend.utils.ResponseFactory;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,15 +30,18 @@ import backend.backend.dto.DirectFlightReservationRequestDto;
 
 @RestController
 @RequestMapping("/api/v1/orders")
+@RequiredArgsConstructor
+@Log4j2
 public class OrderController {
 
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
-    @Autowired
-    private OrderService orderService;
-    
-    @Autowired
-    private UserDAO userDAO; // Thêm DAO để kiểm tra người dùng
+
+    private final OrderService orderService;
+    private final BusBookingDAO busBookingDAO;
+    private final BusBookingService busBookingService;
+
+    private final UserDAO userDAO; // Thêm DAO để kiểm tra người dùng
 
     /**
      * MỚI: Endpoint để lấy tất cả đơn hàng của một người dùng.
@@ -122,21 +132,5 @@ public class OrderController {
         // Giả sử OrderService có phương thức applyVoucherToOrder
         OrderDto updatedOrder = orderService.applyVoucherToOrder(id, request.getVoucherCode());
         return ResponseFactory.success(updatedOrder, "Áp dụng mã giảm giá thành công.");
-    }
-
-    /**
-     * Endpoint để hủy đơn hàng khi hoàn tiền thành công
-     */
-    @PutMapping("/{id}/cancel-after-refund")
-    public ResponseEntity<ApiResponse<OrderDto>> cancelOrderAfterRefund(@PathVariable Integer id) {
-        logger.info("Bắt đầu hủy đơn hàng sau hoàn tiền cho Order ID: {}", id);
-        try {
-            OrderDto cancelledOrder = orderService.cancelOrderAfterRefund(id);
-            logger.info("Hủy đơn hàng thành công cho Order ID: {}", id);
-            return ResponseFactory.success(cancelledOrder, "Hủy đơn hàng thành công.");
-        } catch (Exception e) {
-            logger.error("Lỗi khi hủy đơn hàng cho Order ID: {}. Chi tiết lỗi: {}", id, e.getMessage());
-            return ResponseFactory.error(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
     }
 }

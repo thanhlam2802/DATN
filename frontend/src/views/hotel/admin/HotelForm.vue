@@ -154,6 +154,15 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="w-full sm:w-[218px] ml-17">
+                            <CustomSelect
+                                v-model="filterProvince"
+                                :options="[{ label: 'Tất cả thành phố', value: '' }, ...provinces.map(p => ({ label: p.name, value: p.id }))]"
+                                placeholder="Tất cả thành phố"
+                                class="w-full h-12 [&>button]:h-12 [&>button]:py-3 [&>button]:text-sm"
+                                :direction="'down'"
+                            />
+                        </div>
                     </div>
                     <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm w-full sm:w-auto whitespace-nowrap">
                         Thêm khách sạn
@@ -299,7 +308,7 @@
             </div>
         </div>
         <div v-else-if="mode === 'edit'">
-            <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-5xl mx-auto">
+            <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-6xl mx-auto">
                 <div class="flex justify-between items-center border-b border-slate-200 pb-4 mb-4">
                     <h2 class="text-xl font-bold">
                         <span v-if="isEditMode && !isViewMode">Chỉnh sửa khách sạn</span>
@@ -531,7 +540,7 @@
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1">Tiện ích phòng</label>
                                 <div class="flex flex-wrap gap-2 mb-2">
-                                    <template v-for="a in amenities">
+                                    <template v-for="a in displayAmenities">
                                         <span v-if="r.amenities[a.id]" :key="'chip-' + a.id"
                                             class="flex items-center bg-blue-100 text-blue-700 px-1.5 py-0 rounded-full text-xs font-medium mr-2 mb-2 items-center justify-center"
                                             style="font-size: 0.8rem; min-height: 2rem;">
@@ -555,7 +564,7 @@
                                         <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl relative">
                                             <h3 class="text-xl font-bold mb-6">Chọn tiện ích phòng</h3>
                                             <div class="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto mb-6 pr-3">
-                                                <button v-for="a in amenities" :key="'modal-' + a.id" type="button"
+                                                <button v-for="a in activeAmenities" :key="'modal-' + a.id" type="button"
                                                     @click="toggleAmenityModalSelected(a.id)" :class="[
                                                         'flex items-center w-full min-w-0 px-3 py-2 rounded-lg border transition text-sm font-medium',
                                                         amenityModalSelected.includes(a.id)
@@ -718,8 +727,7 @@
                 </form>
             </div>
         </div>
-        <ConfirmDialog v-if="showConfirmDialog" :message="confirmMessage" @confirm="onConfirmDelete"
-            @cancel="showConfirmDialog = false" />
+        <ConfirmDialog ref="confirmDialog" />
     </div>
 </template>
 
@@ -790,7 +798,6 @@ export default {
             },
             modalMode: 'add', activeDropdown: null,
             searchQuery: '', showFilterDropdown: false, filterStar: '', filterPriceMax: 20000000,
-            filterAmenities: {},
             form: { amenities: { wifi: false, parking: false, pool: false, restaurant: false, spa: false, gym: false, ac: false, breakfast: false, elevator: false }, policy: { checkin: '', checkout: '', other: '' } },
             amenityLabels: { wifi: 'WiFi miễn phí', parking: 'Bãi đỗ xe', pool: 'Hồ bơi', restaurant: 'Nhà hàng', spa: 'Spa', gym: 'Phòng tập gym', ac: 'Điều hòa', breakfast: 'Bữa sáng', elevator: 'Thang máy' },
             currentPage: 1,
@@ -811,6 +818,7 @@ export default {
             filterCreatedAtPreset: '',
             filterCreatedAtFrom: '',
             filterCreatedAtTo: '',
+            filterProvince: '',
             createdAtPresets: [
                 { label: 'Hôm nay', value: 'today' },
                 { label: 'Hôm qua', value: 'yesterday' },
@@ -826,8 +834,7 @@ export default {
             tempFilterCreatedAtFrom: '',
             tempFilterCreatedAtTo: '',
             dropdownMenuPosition: { top: 0, left: 0 },
-            showConfirmDialog: false,
-            confirmMessage: '',
+
             hotelIdToDelete: null,
             showAmenityModal: false,
             amenityModalRoomIdx: null,
@@ -903,10 +910,34 @@ export default {
         isOutOfStockFilterActive() {
             return this.roomStatusFilter === 'out_of_stock';
         },
+        activeAmenities() {
+            // Chỉ hiển thị những amenities có status là ACTIVE
+            return this.amenities.filter(a => a.status === 'ACTIVE');
+        },
+        displayAmenities() {
+            // Kết hợp amenities active và những amenities đã được chọn trong phòng
+            const activeIds = new Set(this.activeAmenities.map(a => a.id));
+            const selectedIds = new Set();
+            
+            // Lấy tất cả amenities đã được chọn trong các phòng
+            this.newHotel.availableRooms.forEach(room => {
+                if (room.amenities) {
+                    Object.keys(room.amenities).forEach(id => {
+                        if (room.amenities[id]) {
+                            selectedIds.add(Number(id));
+                        }
+                    });
+                }
+            });
+            
+            // Trả về amenities active + những amenities đã được chọn (dù có status inactive)
+            return this.amenities.filter(a => activeIds.has(a.id) || selectedIds.has(a.id));
+        },
     },
     watch: {
         searchQuery() { this.currentPage = 1; this.fetchHotels(); },
         itemsPerPageStr() { this.currentPage = 1; this.fetchHotels(); },
+        filterProvince() { this.currentPage = 1; this.fetchHotels(); },
         mode() {
             this.$nextTick(() => this.updateBreadcrumb());
         },
@@ -937,10 +968,9 @@ export default {
                 } catch { }
             }
             if (!this.amenities.length) {
-                try {
-                    const res = await AmenityApi.getAllAmenities();
+                AmenityApi.getAllAmenities().then(res => {
                     this.amenities = res.data.data || res.data;
-                } catch { }
+                });
             }
             this.resetAll();
             this.modalMode = mode;
@@ -1039,6 +1069,7 @@ export default {
             this.filterCreatedAtPreset = '';
             this.filterCreatedAtFrom = '';
             this.filterCreatedAtTo = '';
+            this.filterProvince = '';
             this.roomStatusFilter = null;
             this.showFilterDropdown = false;
             this.currentPage = 1;
@@ -1144,14 +1175,25 @@ export default {
                 window.$toast('Phải có ít nhất một loại phòng.', 'error');
             }
         },
-        deleteHotel(hotelId) {
+        async deleteHotel(hotelId) {
             this.hotelIdToDelete = hotelId;
-            this.confirmMessage = 'Bạn có chắc chắn muốn xóa khách sạn này không?';
-            this.showConfirmDialog = true;
+            const hotelToDelete = this.hotels.find(h => h.id === hotelId);
+            const hotelName = hotelToDelete ? hotelToDelete.name : 'khách sạn này';
             this.activeDropdown = null;
+            
+            const result = await this.$refs.confirmDialog.showDialog({
+                type: 'danger',
+                title: 'Xác nhận xóa khách sạn',
+                message: `Bạn có chắc chắn muốn xóa khách sạn "${hotelName}" không? Hành động này không thể hoàn tác.`,
+                confirmText: 'Xóa',
+                cancelText: 'Hủy'
+            });
+            
+            if (result) {
+                await this.onConfirmDelete();
+            }
         },
         async onConfirmDelete() {
-            this.showConfirmDialog = false;
             try {
                 const hotelToDelete = this.hotels.find(h => h.id === this.hotelIdToDelete);
                 const hotelName = hotelToDelete ? hotelToDelete.name : 'Khách sạn';
@@ -1252,6 +1294,7 @@ export default {
                     maxPrice: this.filterPriceMax < 20000000 ? this.filterPriceMax : undefined,
                     createdAtFrom: this.filterCreatedAtFrom || undefined,
                     createdAtTo: this.filterCreatedAtTo || undefined,
+                    provinceId: this.filterProvince || undefined,
                     roomStatus: this.roomStatusFilter || undefined,
                     page: 0,
                     size: 1000,
@@ -1678,13 +1721,8 @@ export default {
             if (!this.amenities.length) {
                 AmenityApi.getAllAmenities().then(res => {
                     this.amenities = res.data.data || res.data;
-                    this.filterAmenities = {};
-                    this.amenities.forEach(a => { this.filterAmenities[a.id] = false; });
                 });
             }
-        },
-        toggleAmenity(amenities, amenityKey) {
-            amenities[amenityKey] = !amenities[amenityKey];
         },
         setCreatedAtPreset(preset) {
             this.tempFilterCreatedAtPreset = preset;

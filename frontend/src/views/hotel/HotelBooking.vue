@@ -114,7 +114,7 @@
                         <div class="flex items-center justify-center gap-2 mt-1">
                             <span class="flex items-center text-sm text-gray-700">
                                 <i class="fas fa-star text-indigo-600 mr-1"></i>
-                                <span class="font-semibold text-gray-900">{{ hotelRating }}</span>
+                                <span class="font-semibold text-gray-900">{{ Number(hotelRating).toFixed(1) }}</span>
                                 <span class="ml-1">({{ hotelReviews }} đánh giá)</span>
                             </span>
                         </div>
@@ -200,19 +200,6 @@
                         <div class="font-bold text-orange-600">{{ formatPrice(subtotal) }}</div>
                     </div>
                 </div>
-                <div v-if="currentStep === 1" class="mt-6">
-                    <div class="border border-blue-200 rounded-xl bg-blue-50 p-4 shadow flex flex-col gap-2">
-                        <div class="flex items-center mb-2">
-                            <i class="fas fa-user-circle text-blue-500 text-2xl mr-2"></i>
-                            <span class="font-bold text-blue-700 text-base">Thông tin người liên lạc</span>
-                        </div>
-                        <div class="text-sm text-gray-700"><span class="font-semibold">Họ tên:</span> {{ fullName }}
-                        </div>
-                        <div class="text-sm text-gray-700"><span class="font-semibold">Email:</span> {{ email }}</div>
-                        <div class="text-sm text-gray-700"><span class="font-semibold">Số điện thoại:</span> {{ phone }}
-                        </div>
-                    </div>
-                </div>
             </aside>
         </main>
     </div>
@@ -268,6 +255,13 @@ export default {
         const route = useRoute()
         const router = useRouter()
 
+        const parsePriceFromQuery = (queryValue) => {
+            if (!queryValue) return 0;
+            const strValue = queryValue.toString();
+            const parsed = parseFloat(strValue.replace(/\./g, '').replace(',', '.'));
+            return isNaN(parsed) ? 0 : parsed;
+        };
+
         const checkin = route.query.checkin || ''
         const checkout = route.query.checkout || ''
         const maxAdults = parseInt(route.query.maxAdults) || 0;
@@ -282,23 +276,19 @@ export default {
         const variantBreakfast = route.query.variantBreakfast || ''
         const roomBed = route.query.roomBed || ''
 
-        const variantOriginalPrice = route.query.variantOriginalPrice
-            ? parseFloat(route.query.variantOriginalPrice.replace(/\./g, ''))
-            : 0
+        const variantOriginalPrice = parsePriceFromQuery(route.query.variantOriginalPrice);
 
-        const variantDiscountedPrice = route.query.variantDiscountedPrice
-            ? parseFloat(route.query.variantDiscountedPrice.replace(/\./g, ''))
-            : 0
+        const variantDiscountedPrice = parsePriceFromQuery(route.query.variantDiscountedPrice);
 
-        const taxAndFeeAmount = route.query.taxAndFeeAmount ? parseFloat(route.query.taxAndFeeAmount) : 0;
-        const serviceFee = parseFloat(route.query.serviceFee) || 0;
+        const taxAndFeeAmount = parsePriceFromQuery(route.query.taxAndFeeAmount);
+        const serviceFee = parsePriceFromQuery(route.query.serviceFee);
 
         const nights = parseInt(route.query.nights) || 1
         const rooms = parseInt(route.query.rooms) || 1
 
         const subtotal = (variantDiscountedPrice * nights * rooms) + ((taxAndFeeAmount || 0) * nights * rooms) + serviceFee;
 
-        const discount = parseFloat(route.query.discount) || 0
+        const discount = parsePriceFromQuery(route.query.discount)
 
         const isVoucherVisible = ref(false)
         const toggleVoucher = () => {
@@ -329,10 +319,12 @@ export default {
 
         const formatPrice = (val) => {
             if (typeof val === 'string') val = Number(val)
-            return val.toLocaleString({
+            const roundedVal = Math.round(val);
+            return roundedVal.toLocaleString({
                 style: 'currency',
                 currency: 'VND',
                 minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
             }) + ' VND'
         }
 
@@ -573,9 +565,11 @@ export default {
                     email: email.value,
                     phone: phone.value
                 });
+                
                 window.$toast && window.$toast('Đã thêm phòng vào chuyến đi!', 'success');
                 localStorage.removeItem('activeCartId');
                 router.push(`/orders/${activeCartId}`);
+                
             } catch (e) {
                 window.$toast && window.$toast('Có lỗi khi thêm phòng vào chuyến đi!', 'error');
             }

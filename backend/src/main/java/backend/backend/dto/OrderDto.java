@@ -1,5 +1,6 @@
 package backend.backend.dto;
 
+import backend.backend.dto.BusDTO.BusBookingDto;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,5 +23,6 @@ public class OrderDto {
     private List<BookingTourDto> tourBookings;
     private List<FlightBookingDto> flightBookings;
     private List<HotelBookingDto> hotelBookings;
+    private List<BusBookingDto> busBookings;
 
 }

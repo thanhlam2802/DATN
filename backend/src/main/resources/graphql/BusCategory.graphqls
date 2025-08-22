@@ -1,0 +1,38 @@
+
+
+
+type BusCategory {
+    id: ID!
+    name: String!
+    ownerId: ID! # ID của doanh nghiệp sở hữu category
+}
+# Input Type cho việc tạo mới BusCategory
+input CreateBusCategoryInput {
+    name: String! # Bắt buộc phải có khi tạo mới
+    ownerId: ID! # ID của doanh nghiệp sở hữu - bắt buộc
+}
+
+# Input Type cho việc cập nhật BusCategory
+input UpdateBusCategoryInput {
+    name: String # Có thể không bắt buộc khi cập nhật, vì bạn có thể chỉ muốn cập nhật các trường khác nếu có
+}
+
+# Mở rộng Query Type để thêm các truy vấn liên quan đến BusCategory
+extend type Query {
+    # Lấy một danh mục theo ID
+    getBusCategoryById(id: ID!): BusCategory
+    # Lấy tất cả các danh mục (admin only)
+    getAllBusCategories: [BusCategory!]!
+    # ✅ RESTORED: Lấy danh mục theo ownerId
+    getBusCategoriesByOwnerId(ownerId: ID!): [BusCategory!]!
+}
+
+# Mở rộng Mutation Type để thêm các thao tác tạo, cập nhật, xóa BusCategory
+extend type Mutation {
+    # Tạo mới một danh mục xe
+    createBusCategory(input: CreateBusCategoryInput!): BusCategory!
+    # Cập nhật một danh mục xe theo ID
+    updateBusCategory(id: ID!, input: UpdateBusCategoryInput!): BusCategory!
+    # Xóa một danh mục xe theo ID
+    deleteBusCategory(id: ID!): Boolean! # Trả về true nếu xóa thành công
+}

@@ -17,4 +17,8 @@ export default defineConfig({
       '/api': 'http://localhost:8080',
     },
   },
+  define: {
+    // ✅ Fix SockJS global variable issue
+    global: 'globalThis',
+  },
 });

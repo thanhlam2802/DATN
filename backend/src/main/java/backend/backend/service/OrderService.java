@@ -2,6 +2,7 @@ package backend.backend.service;
 
 import java.util.List;
 
+import backend.backend.dto.BusDTO.DirectBusReservationRequestDto;
 import backend.backend.dto.CheckoutDto;
 import backend.backend.dto.DirectFlightReservationRequestDto;
 import backend.backend.dto.DirectTourReservationRequestDto;
@@ -15,6 +16,8 @@ public interface OrderService {
 	OrderDto getOrderById(Integer id);
 	OrderDto createDirectTourReservation(DirectTourReservationRequestDto directRequest);
 	Integer createDirectFlightReservation(DirectFlightReservationRequestDto directRequest);
+	Integer createDirectBusReservation(DirectBusReservationRequestDto directRequest);
+
 	/**
      * Lấy danh sách các đơn hàng của một người dùng.
      * @param userId ID của người dùng.

@@ -172,10 +172,22 @@ const handleAddToCart = async () => {
       }
     );
     if (response.ok) {
+      // ✅ FIX: Lấy cart ID từ response
+      const result = await response.json();
+      
       if (window.$toast)
         window.$toast("Đã thêm tour vào chuyến đi thành công!", "success");
-      localStorage.removeItem("activeCartId");
-      router.push(`/orders/${activeCartId.value}`);
+      
+      // ✅ THÊM: Cập nhật localStorage với cart ID từ response
+      if (result.data && result.data.id) {
+        localStorage.setItem('activeCartId', result.data.id);
+        console.log('✅ Updated cart ID from response:', result.data.id);
+        router.push(`/orders/${result.data.id}`);
+      } else {
+        // Fallback: dùng cart ID cũ nếu response không có ID
+        localStorage.removeItem("activeCartId");
+        router.push(`/orders/${activeCartId.value}`);
+      }
     } else {
       const result = await response.json();
       if (window.$toast)

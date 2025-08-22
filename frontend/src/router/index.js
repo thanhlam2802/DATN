@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import {createRouter, createWebHistory} from "vue-router";
 
 import Home from "@/views/Home.vue";
 import Tour from "@/views/Tour.vue";
@@ -11,7 +11,7 @@ import PostRegistrationChoice from "../views/PostRegistrationChoice.vue";
 import SupplierApplication from "../views/SupplierApplication.vue";
 import BusManagementLayout from "@/components/Bus/management_bus_component/BusManagementLayout.vue";
 import MainLayout from "@/layouts/Main.vue";
-import ApproveSuppliers from "@/views/Admin/ApproveSuppliers.vue";
+import ApproveSuppliers from "@/views/admin/ApproveSuppliers.vue";
 import AccountView from "@/views/AccountView.vue";
 import ServiceReviews from "@/components/User/Sidebar/ServiceReviews.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
@@ -204,8 +204,18 @@ const routes = [
   },
   {
     path: "/bus-management",
-    name: "BusManagement",
+    name: "BusManagement", 
     component: BusManagementLayout,
+    meta: { requiresAuth: true, requiresBusSupplier: true }, // ✅ Thêm authentication
+    children: [
+      { path: "", redirect: "route" },
+      { path: "route", name: "RouteManagement", component: () => import("@/components/Bus/management_bus_component/RouteManagement.vue") },
+      { path: "category", name: "BusCategoryManagement", component: () => import("@/components/Bus/management_bus_component/BusCategoryManagement.vue") },
+      { path: "bus", name: "BusManagementPage", component: () => import("@/components/Bus/management_bus_component/BusManagement.vue") },
+      { path: "trip", name: "TripManagement", component: () => import("@/components/Bus/management_bus_component/TripManagement.vue") },
+      { path: "price", name: "PriceManagement", component: () => import("@/components/Bus/management_bus_component/PriceManagement.vue") },
+      { path: "statistics", name: "Statistics", component: () => import("@/components/Bus/management_bus_component/Statistics.vue") },
+    ],
   },
   {
     path: "/oauth2/login/success",
@@ -325,16 +335,16 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   console.log('Navigation guard - to:', to.path, 'from:', from.path);
-  
+
   const { useUserStore } = await import('@/store/UserStore.js');
   const userStore = useUserStore();
-  
+
   if (to.meta.requiresAuth) {
     console.log('Route requires auth, checking login status...');
-    
+
     if (!userStore.isLoggedIn) {
       console.log('User not logged in, trying to restore from token...');
-      
+
       const restored = await userStore.restoreUserFromToken();
       if (!restored) {
         console.log('Failed to restore user, redirecting to login...');
@@ -343,38 +353,63 @@ router.beforeEach(async (to, from, next) => {
         return;
       }
     }
-    
+
     if (to.meta.requiresAdmin) {
       console.log('Route requires admin, checking user roles...');
-      
+
       if (!userStore.user || !userStore.user.roles) {
         console.log('User has no roles, redirecting to unauthorized...');
         next({ name: 'Unauthorized' });
         return;
       }
-      
-      const hasAdminRole = userStore.user.roles.some(role => 
-        role === 'ADMIN_HOTELS' || 
-        role === 'HOTEL_SUPPLIER' || 
-        role === 'ADMIN_FLIGHTS' || 
-        role === 'FLIGHT_SUPPLIER' || 
-        role === 'ADMIN_TOURS' || 
-        role === 'TOUR_SUPPLIER' || 
-        role === 'ADMIN_BUSES' || 
-        role === 'BUS_SUPPLIER' || 
+
+      const hasAdminRole = userStore.user.roles.some(role =>
+        role === 'ADMIN_HOTELS' ||
+        role === 'HOTEL_SUPPLIER' ||
+        role === 'ADMIN_FLIGHTS' ||
+        role === 'FLIGHT_SUPPLIER' ||
+        role === 'ADMIN_TOURS' ||
+        role === 'TOUR_SUPPLIER' ||
+        role === 'ADMIN_BUSES' ||
+        role === 'BUS_SUPPLIER' ||
         role === 'SUPER_ADMIN'
       );
-      
+
       if (!hasAdminRole) {
         console.log('User does not have admin role, redirecting to unauthorized...');
         next({ name: 'Unauthorized' });
         return;
       }
-      
+
       console.log('User has admin role, proceeding...');
     }
+
+    // ✅ Check for bus supplier access
+    if (to.meta.requiresBusSupplier) {
+      console.log('Route requires bus supplier, checking user roles...');
+
+      if (!userStore.user || !userStore.user.roles) {
+        console.log('User has no roles, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      const hasBusSupplierRole = userStore.user.roles.some(role =>
+        role === 'BUS_SUPPLIER' ||
+        role === 'ADMIN_BUSES' ||
+        role === 'SUPER_ADMIN'
+      );
+
+      if (!hasBusSupplierRole) {
+        console.log('User does not have bus supplier role, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      console.log('User has bus supplier role, proceeding...');
+    }
   }
-  
+
   console.log('Navigation guard - proceeding to:', to.path);
   next();
 });

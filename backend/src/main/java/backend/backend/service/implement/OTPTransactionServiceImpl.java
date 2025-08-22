@@ -48,6 +48,7 @@ public class OTPTransactionServiceImpl implements OTPTransactionService {
                 otpTransactionRepository.save(otpTransaction);
                 params.put("OTP_CODE", otpCode);
                 params.put("EXPIRED_MINUTE", String.valueOf(expiredInMinutes));
+                params.put("USERNAME", params.get("userName"));
                 SendEmailRequestDto requestDto = new SendEmailRequestDto();
                 requestDto.setTo(params.get("toEmail"));
                 requestDto.setSubject("Verify OTP Travela");

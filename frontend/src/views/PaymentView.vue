@@ -4,6 +4,7 @@ import { useRoute } from "vue-router";
 import { servicePaymentMake, servicePaymentConfirm, accountLookup } from '@/api/coreBankingApi';
 import { markOrderSuccess } from '@/api/OrderApi'
 import { notifyPaymentSuccess } from '@/api/hotelApi';
+import { getBearerToken } from '@/services/TokenService';
 
 /// — Route & Order details + Countdown —
 const route = useRoute();
@@ -18,11 +19,23 @@ const seconds = computed(() => timeLeft.value % 60);
 
 const fetchOrderDetails = async () => {
   try {
-    const res = await fetch(`http://localhost:8080/api/v1/orders/${orderId}`);
+    const res = await fetch(`http://localhost:8080/api/v1/orders/${orderId}`, {
+      headers: {
+        'Authorization': getBearerToken(),
+        'Content-Type': 'application/json'
+      }
+    });
     const json = await res.json();
+    
     if (res.ok) {
       orderDetails.value = json.data;
-      startCountdown(json.data.expiresAt);
+      
+      if (!json.data.expiresAt) {
+        const testExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        startCountdown(testExpiresAt);
+      } else {
+        startCountdown(json.data.expiresAt);
+      }
     } else {
       console.error("Lỗi khi lấy đơn hàng:", json.message);
     }
@@ -32,12 +45,39 @@ const fetchOrderDetails = async () => {
 };
 
 const startCountdown = expiresAt => {
-  if (!expiresAt) return;
-  const expireMs = new Date(expiresAt).getTime();
+  if (!expiresAt) {
+    return;
+  }
+  
+  let expireDate;
+  if (typeof expiresAt === 'string') {
+    expireDate = new Date(expiresAt);
+  } else if (expiresAt instanceof Date) {
+    expireDate = expiresAt;
+  } else {
+    console.error('Invalid expiresAt format:', expiresAt);
+    return;
+  }
+  
+  const expireMs = expireDate.getTime();
+  const currentMs = Date.now();
+  
+  const initialRem = Math.round((expireMs - currentMs) / 1000);
+  
+  if (initialRem <= 0) {
+    timeLeft.value = 0;
+    hasExpired.value = true;
+    return;
+  }
+  
+  timeLeft.value = initialRem;
+  
   timerInterval.value = setInterval(() => {
     const rem = Math.round((expireMs - Date.now()) / 1000);
-    if (rem > 0) timeLeft.value = rem;
-    else {
+    
+    if (rem > 0) {
+      timeLeft.value = rem;
+    } else {
       timeLeft.value = 0;
       hasExpired.value = true;
       clearInterval(timerInterval.value);
@@ -223,7 +263,6 @@ async function confirmOtp() {
 
       try {
         await markOrderSuccess(orderId, res.data.transactionId);
-        console.log(orderId,res.data.transactionId);
         await notifyPaymentSuccess(orderId, orderDetails.value.amount);
       } catch (e) {
         window.$toast(e.message || 'Cập nhật trạng thái đơn hàng thất bại!', 'error');
@@ -280,6 +319,43 @@ onUnmounted(() => {
         <p class="text-3xl font-mono font-bold text-red-600 tracking-wider mt-1">
           {{ String(minutes).padStart(2,'0') }}<span class="animate-pulse">:</span>{{ String(seconds).padStart(2,'0') }}
         </p>
+      </div>
+
+      <!-- ✅ Bus Booking Summary -->
+      <div v-if="orderDetails && orderDetails.busBookings && orderDetails.busBookings.length > 0" 
+           class="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h3 class="font-semibold text-blue-800 mb-3 flex items-center">
+          <i class="fas fa-bus mr-2"></i>
+          Thông tin vé xe
+        </h3>
+        <div v-for="busBooking in orderDetails.busBookings" :key="busBooking.id" class="space-y-2 text-sm">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-gray-600">Tuyến:</span>
+              <span class="font-medium ml-1">{{ busBooking.busName }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600">Ghế:</span>
+              <span class="font-medium ml-1">{{ busBooking.seatNumbers?.join(', ') || 'N/A' }}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-gray-600">Ngày đi:</span>
+              <span class="font-medium ml-1">{{ new Date(busBooking.departureDate).toLocaleDateString('vi-VN') }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600">Giờ đi:</span>
+              <span class="font-medium ml-1">{{ busBooking.departureTime?.substring(0, 5) || 'N/A' }}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <div>
+              <span class="text-gray-600">Hành khách:</span>
+              <span class="font-medium ml-1">{{ busBooking.customerName }} - {{ busBooking.customerPhone }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Phần 3: Thanh toán qua chuyển khoản ngân hàng -->

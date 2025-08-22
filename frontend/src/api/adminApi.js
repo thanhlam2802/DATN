@@ -119,6 +119,7 @@ export const respondToHotelReview = (reviewId, response) => {
     });
 };
 
+
 export default adminApi;
 
 // ===== Super Admin Dashboard =====
@@ -135,3 +136,37 @@ export const getFlightsByAdminId = (adminId, page = 0, size = 10, filter = '') =
     params: { page, size, filter }
   });
 }; 
+
+export const provinceAdminApi = {
+    getAll: () => adminApi.get('/api/v1/provinces'),
+    create: (payload) => adminApi.post('/api/v1/provinces', payload),
+    update: (id, payload) => adminApi.put(`/api/v1/provinces/${id}`, payload),
+    remove: (id) => adminApi.delete(`/api/v1/provinces/${id}`),
+    createMultipart: ({ name, file, imageUrl }) => {
+        const form = new FormData();
+        form.append('name', name);
+        if (file) form.append('image', file);
+        if (imageUrl) form.append('imageUrl', imageUrl);
+        return adminApi.post('/api/v1/provinces', form, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+    updateMultipart: (id, { name, file, imageUrl }) => {
+        const form = new FormData();
+        if (name != null) form.append('name', name);
+        if (file) form.append('image', file);
+        if (imageUrl) form.append('imageUrl', imageUrl);
+        return adminApi.put(`/api/v1/provinces/${id}`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    }
+};
+
+export const amenityAdminApi = {
+    getAll: () => adminApi.get('/api/v1/amenities'),
+    create: (payload) => adminApi.post('/api/v1/amenities', payload),
+    update: (id, payload) => adminApi.put(`/api/v1/amenities/${id}`, payload),
+    remove: (id) => adminApi.delete(`/api/v1/amenities/${id}`)
+};
+
+export default adminApi; 

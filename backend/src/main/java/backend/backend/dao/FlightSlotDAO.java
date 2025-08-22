@@ -32,6 +32,8 @@ public interface FlightSlotDAO extends JpaRepository<FlightSlot, Integer> {
     @Query("SELECT COUNT(fs) FROM FlightSlot fs WHERE fs.flight.id = :flightId AND fs.isBusiness = true AND fs.isWindow = true AND fs.status = 'available'")
     int countAvailableBusinessWindowSlotsByFlightId(@Param("flightId") Integer flightId);
 
+    @Query("SELECT COUNT(fs) FROM FlightSlot fs WHERE fs.flight.id = :flightId ")
+    int countByFlightId(Integer flightId);
     @Query("SELECT COUNT(fs) FROM FlightSlot fs WHERE fs.flight.id = :flightId AND fs.isBusiness = true AND fs.isAisle = true AND fs.status = 'available'")
     int countAvailableBusinessAisleSlotsByFlightId(@Param("flightId") Integer flightId);
 

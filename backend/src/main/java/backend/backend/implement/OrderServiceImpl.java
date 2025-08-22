@@ -591,18 +591,14 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderDto cancelOrderAfterRefund(Integer orderId) {
         logger.info("Bắt đầu hủy đơn hàng sau hoàn tiền cho Order ID: {}", orderId);
-
         Order order = orderDAO.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));
-
         if (!"PAID".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể hủy đơn hàng đã thanh toán.");
         }
-
         // Cập nhật trạng thái đơn hàng thành CANCELLED
         order.setStatus("CANCELLED");
         orderDAO.save(order);
-
         // Xử lý các booking trong đơn hàng
         // 1. Flight bookings - cập nhật flight slots thành AVAILABLE
         if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
@@ -615,19 +611,16 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
         }
-
         // 2. Hotel bookings - placeholder logic
         if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
             logger.info("Đơn hàng có {} hotel bookings - xử lý placeholder", order.getHotelBookings().size());
             // TODO: Implement hotel booking cancellation logic
         }
-
         // 3. Tour bookings - placeholder logic
         if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
             logger.info("Đơn hàng có {} tour bookings - xử lý placeholder", order.getBookingTours().size());
             // TODO: Implement tour booking cancellation logic
         }
-
         // 4. Bus bookings - placeholder logic
         if (order.getBusBookings() != null && !order.getBusBookings().isEmpty()) {
             logger.info("Đơn hàng có {} bus bookings - xử lý placeholder", order.getBusBookings().size());

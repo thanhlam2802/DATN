@@ -49,11 +49,11 @@ export const hotelAdminApi = {
     },
 
     searchHotels: (params) => {
-        return adminApi.get('/api/v1/hotels', { params });
+        return adminApi.get('/api/v1/admin/hotels/search', { params });
     },
 
     getHotelById: (id, params) => {
-        return adminApi.get(`/api/v1/hotels/${id}`, { params });
+        return adminApi.get(`/api/v1/admin/hotels/${id}`, { params });
     },
 
     getHotelCustomers: (hotelId) => {
@@ -98,6 +98,22 @@ export const hotelAdminApi = {
         return adminApi.get('/api/v1/admin/hotels/top-rooms-chart', {
             params: { timePeriod }
         });
+    },
+
+    approveHotel: (id) => {
+        return adminApi.put(`/api/v1/admin/hotels/${id}/approve`);
+    },
+
+    rejectHotel: (id, data) => {
+        return adminApi.put(`/api/v1/admin/hotels/${id}/reject`, data);
+    },
+
+    resubmitHotel: (id) => {
+        return adminApi.put(`/api/v1/admin/hotels/${id}/resubmit`);
+    },
+
+    updateHotelStatus: (id, status) => {
+        return adminApi.put(`/api/v1/admin/hotels/${id}/status`, { status });
     },
 
     getHotelStatistics: () => {

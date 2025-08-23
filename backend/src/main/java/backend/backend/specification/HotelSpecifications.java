@@ -99,6 +99,27 @@ public class HotelSpecifications {
                 predicates.add(buildRoomStatusPredicate(root, query, criteriaBuilder, requestDto.getRoomStatus()));
             }
 
+            if (requestDto.getIsAdminRequest() == null || !requestDto.getIsAdminRequest()) {
+                String approvalStatus = requestDto.getApprovalStatus();
+                if (approvalStatus == null || approvalStatus.isEmpty()) {
+                    approvalStatus = "APPROVED";
+                }
+                predicates.add(criteriaBuilder.equal(root.get("approvalStatus"), approvalStatus));
+
+                String status = requestDto.getStatus();
+                if (status == null || status.isEmpty()) {
+                    status = "ACTIVE";
+                }
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            } else {
+                if (requestDto.getApprovalStatus() != null && !requestDto.getApprovalStatus().isEmpty()) {
+                    predicates.add(criteriaBuilder.equal(root.get("approvalStatus"), requestDto.getApprovalStatus()));
+                }
+                if (requestDto.getStatus() != null && !requestDto.getStatus().isEmpty()) {
+                    predicates.add(criteriaBuilder.equal(root.get("status"), requestDto.getStatus()));
+                }
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }

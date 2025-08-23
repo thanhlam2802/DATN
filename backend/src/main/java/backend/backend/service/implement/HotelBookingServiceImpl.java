@@ -142,6 +142,11 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             HotelRoomVariant variant = hotelRoomVariantDAO.findByIdWithRoom(dto.getRoomVariantId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Không tìm thấy room variant với id: " + dto.getRoomVariantId()));
+            
+            if (!"APPROVED".equals(variant.getRoom().getHotel().getApprovalStatus()) || 
+                !"ACTIVE".equals(variant.getRoom().getHotel().getStatus())) {
+                throw new IllegalArgumentException("Khách sạn này không khả dụng để đặt phòng");
+            }
             HotelBooking booking = new HotelBooking();
             booking.setRoomVariant(variant);
             booking.setCheckInDate(LocalDate.parse(dto.getCheckInDate()));
@@ -233,6 +238,11 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             
             HotelRoom hotelRoom = hotelRoomDAO.findById(roomVariant.getRoom().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin phòng!"));
+            
+            if (!"APPROVED".equals(hotelRoom.getHotel().getApprovalStatus()) || 
+                !"ACTIVE".equals(hotelRoom.getHotel().getStatus())) {
+                throw new IllegalArgumentException("Khách sạn này không khả dụng để cập nhật đặt phòng");
+            }
 
             if (authentication == null) {
                 throw new IllegalArgumentException("Bạn cần đăng nhập để cập nhật booking!");

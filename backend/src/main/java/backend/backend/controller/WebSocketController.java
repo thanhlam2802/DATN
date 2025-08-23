@@ -1,5 +1,7 @@
 package backend.backend.controller;
 
+import backend.backend.dto.OrderInfoDto;
+import backend.backend.service.OrderService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -8,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.List;
 import java.math.BigDecimal;
 import java.util.Map;
 
@@ -18,7 +22,8 @@ public class WebSocketController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
+    @Autowired
+    private OrderService orderService;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -94,7 +99,19 @@ public class WebSocketController {
         }
     }
 
-    // ✅ THÊM: Bus WebSocket endpoints
+    @MessageMapping("/getTop10NewOrders")
+    public void getTop10NewOrders() {
+        try {
+            logger.info("GET_TOP_10_NEW_ORDERS");
+            List<OrderInfoDto> orderInfoDtos = orderService.getTop10NewOrders();
+            logger.info("GET_TOP_10_NEW_ORDERS_DATA {}", orderInfoDtos.size());
+            messagingTemplate.convertAndSend("/topic/getTop10NewOrders", orderInfoDtos);
+        } catch (Exception e) {
+            logger.error("Error handling viewer notification", e);
+        }
+    }
+
+
     @MessageMapping("/bus/status-update")
     public void handleBusStatusUpdate(Map<String, Object> statusUpdate) {
         try {

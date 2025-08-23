@@ -38,7 +38,7 @@
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <template v-for="group in seatGroups" :key="group.key">
-                <label
+                <label v-if="group.count > 0"
                   class="group block cursor-pointer rounded-xl border-2 transition-all duration-200 p-4 shadow hover:shadow-lg hover:border-indigo-400 bg-white relative"
                   :class="selectedGroupKey === group.key
                       ? group.isBusiness

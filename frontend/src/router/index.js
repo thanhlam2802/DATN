@@ -17,7 +17,6 @@ import ServiceReviews from "@/components/User/Sidebar/ServiceReviews.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
 import BookingHistory from "@/components/User/Sidebar/BookingHistory.vue";
 import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
-import AccountSecurity from "@/components/User/Sidebar/AccountSecurity.vue";
 import BookingPage from "@/views/BookingPage.vue";
 import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.vue";
 
@@ -64,6 +63,7 @@ import ExpiredLink from "@/views/ExpiredLink.vue";
 import VerifyEmail from "@/views/VerifyEmail.vue";
 import OAuth2LoginSuccessView from "@/views/OAuth2LoginSuccessView.vue";
 import Unauthorized from "@/views/Unauthorized.vue";
+import ChangePassword from "@/components/User/Sidebar/ChangePassword.vue";
 
 const routes = [
   {
@@ -191,7 +191,7 @@ const routes = [
           { path: "personal", component: AccountDetails },
           { path: "bookings", component: BookingHistory },
           { path: "payment", component: PaymentDetails },
-          { path: "security", component: AccountSecurity },
+          { path: "change-password", component: ChangePassword },
           { path: "notifications", component: NotificationSetting },
           {
             path: "reviews",

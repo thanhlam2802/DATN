@@ -36,13 +36,6 @@ public class AuthController {
         return authService.verifyAccount(requestDto);
     }
 
-
-    @PreAuthorize("@authService.isAuthenticated()")
-    @PostMapping("/update-password")
-    public JwtResultDto update(@Valid @RequestBody UpdatePasswordRequestDto requestDto) {
-        return authService.updatePassword(requestDto);
-    }
-
     @PostMapping("/forgot-password/request")
     public void requestResetPassword(@Valid @RequestBody RequestResetPasswordRequestDto requestDto) {
         authService.requestResetPassword(requestDto);

@@ -184,5 +184,3 @@ export const amenityAdminApi = {
     update: (id, payload) => adminApi.put(`/api/v1/amenities/${id}`, payload),
     remove: (id) => adminApi.delete(`/api/v1/amenities/${id}`)
 };
-
-export default adminApi; 

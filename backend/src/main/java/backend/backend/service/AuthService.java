@@ -14,8 +14,6 @@ public interface AuthService {
 
     User getUserByPhone(String phone);
 
-    JwtResultDto updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto);
-
     JwtResultDto resetPassword(ResetPasswordRequestDto resetPasswordRequestDto);
 
     void resetPasswordVerifyLink(ResetPasswordVerifyLinkDto resetPasswordVerifyLinkDto);

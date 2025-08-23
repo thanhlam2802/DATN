@@ -167,23 +167,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public JwtResultDto updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
-        String email = SecurityUtil.getCurrentUserEmail();
-        User user = getUserByEmail(email);
-        String oldPassword = updatePasswordRequestDto.getOldPassword();
-        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            throw new BadRequestException("Password is not match", ErrorCode.AUTH_005);
-        }
-        user.setPasswordHash(passwordEncoder.encode(updatePasswordRequestDto.getNewPassword()));
-        user = userRepository.save(user);
-        JwtResultDto jwtResultDto = new JwtResultDto();
-        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
-        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));
-        return jwtResultDto;
-    }
-
-    @Override
-    @Transactional
     public JwtResultDto resetPassword(ResetPasswordRequestDto resetPasswordRequestDto) {
         Integer userId = jwtTokenUtil.extractUserId(resetPasswordRequestDto.getResetToken());
 

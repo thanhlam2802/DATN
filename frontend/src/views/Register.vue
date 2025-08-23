@@ -192,6 +192,13 @@ export default {
     };
   },
   methods: {
+    togglePassword() {
+      this.showPassword = !this.showPassword;
+    },
+    toggleConfirmPassword() {
+      this.showConfirmPassword = !this.showConfirmPassword;
+    },
+
     validateName() {
       if (!this.name || this.name.trim() === "") {
         this.nameError = "Please enter your username.";

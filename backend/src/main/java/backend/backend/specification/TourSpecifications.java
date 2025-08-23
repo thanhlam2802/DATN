@@ -14,13 +14,17 @@ public class TourSpecifications {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // 1. Lọc theo từ khóa chung (tên tour)
             request.getKeyword().ifPresent(keyword -> {
                 if (!keyword.isBlank()) {
-                    predicates.add(cb.like(cb.lower(root.get("name")), "%" + keyword.toLowerCase().trim() + "%"));
+                    String searchTerm = "%" + keyword.toLowerCase().trim() + "%";
+                    // Tìm trong tên tour
+                    Predicate nameMatch = cb.like(cb.lower(root.get("name")), searchTerm);
+                    // Tìm trong địa điểm tour
+                    Predicate destinationMatch = cb.like(cb.lower(root.get("destination")), searchTerm);
+                    // Kết hợp bằng điều kiện OR
+                    predicates.add(cb.or(nameMatch, destinationMatch));
                 }
             });
-            
             // 2. BỔ SUNG: Lọc theo điểm đến cụ thể
             request.getDestination().ifPresent(destination -> {
                 if (!destination.isBlank()) {

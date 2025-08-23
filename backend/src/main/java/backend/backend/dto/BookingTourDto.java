@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,4 +33,15 @@ public class BookingTourDto {
 
     private BigDecimal totalPrice;
     private Integer orderId;
+    
+    
+    private String  phone;
+    private String customerName;
+  
+    private String email;
+   
+    private String notes;
+    
+    
+    
 }

@@ -61,6 +61,7 @@ public class OrderServiceImpl implements OrderService {
     @Autowired private UserDAO userDAO;
     @Autowired private VoucherDAO voucherDAO;
     
+    
     @Autowired private  ApplicationEventPublisher eventPublisher;
 
     
@@ -296,6 +297,10 @@ public class OrderServiceImpl implements OrderService {
                 .childPrice(departure.getChildPrice())
                 .totalPrice(tourBooking.getTotalPrice())
                 .orderId(tourBooking.getOrder() != null ? tourBooking.getOrder().getId() : null)
+                .customerName(tourBooking.getCustomerName())
+                .phone(tourBooking.getPhone())
+                .email(tourBooking.getEmail())
+                .notes(tourBooking.getNotes()) 
                 .build();
     }
 
@@ -511,10 +516,32 @@ public class OrderServiceImpl implements OrderService {
             // TODO: Implement hotel booking cancellation logic
         }
 
-        // 3. Tour bookings - placeholder logic
+   
         if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
-            logger.info("Đơn hàng có {} tour bookings - xử lý placeholder", order.getBookingTours().size());
-            // TODO: Implement tour booking cancellation logic
+            logger.info("Đơn hàng có {} tour bookings. Bắt đầu xử lý hoàn lại số chỗ.", order.getBookingTours().size());
+            for (BookingTour bookingTour : order.getBookingTours()) {
+                Departure departure = bookingTour.getDeparture();
+                if (departure != null) {
+                   
+                    int adults = bookingTour.getNumberOfAdults() != null ? bookingTour.getNumberOfAdults() : 0;
+                    int children = bookingTour.getNumberOfChildren() != null ? bookingTour.getNumberOfChildren() : 0;
+                    int seatsToRelease = adults + children;
+
+                    if (seatsToRelease > 0) {
+                        // Lấy số ghế đã đặt hiện tại và trừ đi số ghế vừa hủy
+                        int currentBookedSeats = departure.getBookedSeats();
+                        // Đảm bảo số ghế không bị âm
+                        int newBookedSeats = Math.max(0, currentBookedSeats - seatsToRelease);
+                        departure.setBookedSeats(newBookedSeats);
+
+                        departureDAO.save(departure);
+                        logger.info("Đã cập nhật Departure ID {}: giải phóng {} chỗ. Số chỗ đã đặt mới: {}",
+                                    departure.getId(), seatsToRelease, newBookedSeats);
+                    }
+                } else {
+                     logger.warn("BookingTour ID {} không có thông tin Departure liên kết.", bookingTour.getId());
+                }
+            }
         }
 
         // 4. Bus bookings - placeholder logic

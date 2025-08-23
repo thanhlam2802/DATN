@@ -1,13 +1,13 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
-// FIX 1: Import axios để có thể sử dụng
+import { useRoute } from "vue-router";
 import axios from "axios";
 import SearchBar from "../components/Tours/SearchBar.vue";
 import SideBar from "../components/Tours/Sidebar.vue";
 import TourGrid from "../components/Tours/TourGrid.vue";
 import { useGeolocation } from "../composables/useGeolocation";
 import { FilterIcon, XIcon } from "lucide-vue-next";
-
+const route = useRoute();
 // --- CÁC HẰNG SỐ VÀ TRẠNG THÁI GIAO DIỆN ---
 const BANNER_IMAGE =
   "https://ik.imagekit.io/tvlk/xpe-asset/AyJ40ZAo1DOyPyKLZ9c3RGQHTP2oT4ZXW+QmPVVkFQiXFSv42UaHGzSmaSzQ8DO5QIbWPZuF+VkYVRk6gh-Vg4ECbfuQRQ4pHjWJ5Rmbtkk=/5255025890550/Phong-Nha-Ke-Bang-National-Park-Tour-from-Hue-158e7222-35b7-4296-95bb-690972765d35.jpeg?_src=imagekit&tr=dpr-2,c-at_max,h-400,q-100,w-1280";
@@ -23,6 +23,7 @@ const tourList = ref([]);
 const tourCount = ref(0);
 
 const filters = reactive({
+  keyword: "",
   destination: "",
   minPrice: 0,
   maxPrice: 5000000,
@@ -36,6 +37,7 @@ const filters = reactive({
 // --- CÁC HÀM XỬ LÝ ---
 
 const handleUpdateFilters = (sidebarFilters) => {
+  filters.keyword = "";
   filters.destination = sidebarFilters.destination;
   filters.minPrice = sidebarFilters.minPrice;
   filters.maxPrice = sidebarFilters.maxPrice;
@@ -47,6 +49,7 @@ const handleUpdateFilters = (sidebarFilters) => {
 const fetchTours = async () => {
   try {
     const params = new URLSearchParams();
+    if (filters.keyword) params.append("keyword", filters.keyword);
     if (filters.destination) params.append("destination", filters.destination);
     if (filters.minPrice > 0) params.append("minPrice", filters.minPrice);
     if (filters.maxPrice < 5000000) params.append("maxPrice", filters.maxPrice);
@@ -114,6 +117,7 @@ const fetchProvinces = async () => {
 
 // IMPROVEMENT 1: Thêm hàm để xử lý khi người dùng chọn một tỉnh
 const selectDestination = (provinceName) => {
+  filters.keyword = "";
   filters.destination = provinceName; // Cập nhật bộ lọc
   closeModal(); // Đóng modal sau khi chọn
 };
@@ -139,6 +143,9 @@ const handleLocationClick = () => {
 
 // FIX 3: Gộp 2 hàm onMounted thành một để code gọn gàng hơn
 onMounted(() => {
+  if (route.query.destination) {
+    filters.keyword = route.query.destination;
+  }
   fetchTours();
   fetchProvinces();
 });

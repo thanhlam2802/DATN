@@ -44,7 +44,7 @@ const processingItemId = ref(null);
 
 // --- STATE CHO VOUCHER ---
 const voucherCode = ref("");
-const isApplyingVoucher = ref(false); 
+const isApplyingVoucher = ref(false);
 const suggestedVouchers = ref([]);
 const isLoadingVouchers = ref(false);
 const orderId = route.params.id;
@@ -248,24 +248,32 @@ const bookingsCloseToExpiry = computed(() => {
   //   }
   // }
 
-  // // Check tour bookings
-  // if (order.value.tourBookings && order.value.tourBookings.length > 0) {
-  //   for (const booking of order.value.tourBookings) {
-  //     if (booking.departureDate) {
-  //       const departureDate = new Date(booking.departureDate);
-  //       const timeUntilDeparture = departureDate.getTime() - now.getTime();
+  // Check tour bookings
 
-  //       if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
-  //         closeBookings.push({
-  //           type: 'tour',
-  //           name: booking.tourName || 'N/A',
-  //           remainingTime: formatRemainingTime(timeUntilDeparture),
-  //           departureDate: booking.departureDate
-  //         });
-  //       }
-  //     }
-  //   }
-  // }
+  if (order.value.tourBookings && order.value.tourBookings.length > 0) {
+    for (const booking of order.value.tourBookings) {
+      // 1. Kiểm tra sự tồn tại của đối tượng lồng nhau trước khi truy cập
+      if (booking.departure && booking.departure.departureDate) {
+        const departureDate = new Date(booking.departure.departureDate);
+        const timeUntilDeparture = departureDate.getTime() - now.getTime();
+
+        if (timeUntilDeparture <= oneDayInMs && timeUntilDeparture > 0) {
+          // 2. Lấy tên tour từ cấu trúc lồng nhau
+          const tourName = booking.departure.tour
+            ? booking.departure.tour.name
+            : "N/A";
+
+          closeBookings.push({
+            type: "tour",
+            name: tourName,
+            remainingTime: formatRemainingTime(timeUntilDeparture),
+            // 3. Lấy đúng đường dẫn của ngày khởi hành
+            departureDate: booking.departure.departureDate,
+          });
+        }
+      }
+    }
+  }
 
   // // Check bus bookings
   // if (order.value.busBookings && order.value.busBookings.length > 0) {
@@ -906,21 +914,25 @@ async function openRefundDialog() {
   //     }
   //   }
   // }
+  if (order.value.tourBookings && order.value.tourBookings.length > 0) {
+    for (const booking of order.value.tourBookings) {
+      if (booking.departureDate) {
+        const departureDate = new Date(booking.departureDate);
+        const timeUntilDeparture = departureDate.getTime() - now.getTime();
 
-  // Check tour bookings
-  // if (order.value.tourBookings && order.value.tourBookings.length > 0) {
-  //   for (const booking of order.value.tourBookings) {
-  //     if (booking.departureDate) {
-  //       const departureDate = new Date(booking.departureDate);
-  //       const timeUntilDeparture = departureDate.getTime() - now.getTime();
+        if (timeUntilDeparture <= oneDayInMs) {
+          const remainingTime = formatRemainingTime(timeUntilDeparture);
 
-  //       if (timeUntilDeparture <= oneDayInMs) {
-  //         const remainingTime = formatRemainingTime(timeUntilDeparture);
-  //         validationErrors.push(`Tour ${booking.tourName || 'N/A'} khởi hành trong ${remainingTime}. Không thể hủy tour.`);
-  //       }
-  //     }
-  //   }
-  // }
+          // Lấy trực tiếp tourName thay vì booking.departure.tour.name
+          const tourName = booking.tourName || "N/A";
+
+          validationErrors.push(
+            `Tour ${tourName} khởi hành trong ${remainingTime}. Không thể hủy tour.`
+          );
+        }
+      }
+    }
+  }
 
   // Check bus bookings (if they exist in the order structure)
   // if (order.value.busBookings && order.value.busBookings.length > 0) {
@@ -1195,9 +1207,62 @@ const handleDeleteTour = async (tourId) => {
   }
 };
 
+const showEditTourModal = ref(false);
+const editingTourItem = ref(null);
+const openEditTourModal = (item) => {
+  console.log("Dữ liệu tour được truyền vào modal:", item);
+  editingTourItem.value = { ...item };
+  showEditTourModal.value = true;
+};
+const closeEditTourModal = () => {
+  showEditTourModal.value = false;
+  editingTourItem.value = null;
+};
+
+const handleUpdateTour = async () => {
+  if (!editingTourItem.value) return;
+
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/v1/bookings/tours/${editingTourItem.value.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: getBearerToken(),
+        },
+        body: JSON.stringify({
+          customerName: editingTourItem.value.customerName,
+          phone: editingTourItem.value.phone,
+          email: editingTourItem.value.email,
+          numberOfAdults: editingTourItem.value.numberOfAdults,
+          numberOfChildren: editingTourItem.value.numberOfChildren,
+          notes: editingTourItem.value.notes,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Cập nhật thông tin tour thất bại.");
+    }
+
+    window.$toast && window.$toast("Cập nhật thành công!", "success");
+    closeEditTourModal();
+
+    await fetchOrderDetails();
+  } catch (e) {
+    window.$toast && window.$toast(e.message, "error");
+  }
+};
+
 const handleEditItem = async (item, itemType) => {
   if (itemType === "HOTEL") {
     openEditHotelModal(item);
+    return;
+  }
+  if (itemType === "TOUR") {
+    openEditTourModal(item);
     return;
   }
 
@@ -2547,6 +2612,110 @@ function prevHotelImage(hotel) {
           ></span>
           <i v-else class="fas fa-trash"></i>
           {{ processingItemId ? "Đang xóa..." : "Xóa" }}
+        </button>
+      </div>
+    </div>
+  </div>
+  <div
+    v-if="showEditTourModal"
+    class="fixed inset-0 z-[9999] flex items-center justify-center"
+    style="background-color: rgba(0, 0, 0, 0.6)"
+    @click="closeEditTourModal"
+  >
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4" @click.stop>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">
+          Chỉnh sửa thông tin Tour
+        </h3>
+        <button
+          @click="closeEditTourModal"
+          class="text-gray-400 hover:text-gray-600"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div v-if="editingTourItem" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Tên khách hàng</label
+          >
+          <input
+            type="text"
+            v-model="editingTourItem.customerName"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Số điện thoại</label
+            >
+            <input
+              type="text"
+              v-model="editingTourItem.phone"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Email</label
+            >
+            <input
+              type="email"
+              v-model="editingTourItem.email"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Số người lớn</label
+            >
+            <input
+              type="number"
+              min="1"
+              v-model.number="editingTourItem.numberOfAdults"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Số trẻ em</label
+            >
+            <input
+              type="number"
+              min="0"
+              v-model.number="editingTourItem.numberOfChildren"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Ghi chú</label
+          >
+          <textarea
+            v-model="editingTourItem.notes"
+            rows="3"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 mt-6">
+        <button
+          @click="closeEditTourModal"
+          class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          Hủy
+        </button>
+        <button
+          @click="handleUpdateTour"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Lưu thay đổi
         </button>
       </div>
     </div>

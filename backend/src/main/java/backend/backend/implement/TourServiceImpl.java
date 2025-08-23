@@ -14,6 +14,7 @@ import backend.backend.dto.ReviewDto;
 import backend.backend.dto.TourDetailDto;
 import backend.backend.dto.TourDto;
 import backend.backend.dto.TourSearchRequestDto;
+import backend.backend.dto.TourSuggestionDto;
 import backend.backend.entity.Departure;
 import backend.backend.entity.Review;
 import backend.backend.entity.Tour;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -160,8 +162,34 @@ public class TourServiceImpl implements TourService {
                 .map(DepartureDto::fromEntity)
                 .collect(Collectors.toList());
     }
-    
+    @Override
+    public List<TourSuggestionDto> getSuggestions(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return List.of(); 
+        }
+        
+        
+        PageRequest pageRequest = PageRequest.of(0, 5); 
 
+        List<TourSuggestionDto> tourNameSuggestions = tourRepository
+                .findTourNamesByKeyword(keyword, pageRequest)
+                .stream()
+                .map(name -> new TourSuggestionDto(name, "Tour"))
+                .collect(Collectors.toList());
+
+       
+        List<TourSuggestionDto> destinationSuggestions = tourRepository
+                .findDistinctDestinationsByKeyword(keyword, pageRequest)
+                .stream()
+                .map(name -> new TourSuggestionDto(name, "Destination"))
+                .collect(Collectors.toList());
+
+        
+        return Stream.concat(destinationSuggestions.stream(), tourNameSuggestions.stream())
+                     .distinct() 
+                     .limit(10) 
+                     .collect(Collectors.toList());
+    }
 
 
 }

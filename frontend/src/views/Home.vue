@@ -219,6 +219,7 @@ import TourHomeCard from "../components/Home/TourHomeCard.vue";
 import { searchFlights } from "@/api/flightApi";
 import { searchHotels } from "../api/hotelApi";
 
+
 // State variables
 const hotels = ref([]);
 const flights = ref([]);

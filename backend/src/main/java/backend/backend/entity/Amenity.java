@@ -19,6 +19,9 @@ public class Amenity {
     @Column(length = 200)
     private String icon;
 
+    @Column(nullable = false, length = 20)
+    private String status = "ACTIVE";
+
     @ManyToMany(mappedBy = "amenities")
     private List<HotelRoom> hotelRooms;
 }

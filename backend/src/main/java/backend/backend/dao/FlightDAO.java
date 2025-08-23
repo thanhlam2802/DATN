@@ -1,11 +1,14 @@
 package backend.backend.dao;
 
 import backend.backend.entity.Flight;
+import backend.backend.entity.FlightBooking;
 import backend.backend.entity.FlightSlot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -72,4 +75,44 @@ AND f.departure_time >= CURRENT_TIMESTAMP
 
     @Query("SELECT f FROM Flight f WHERE f.departureTime >= CURRENT_TIMESTAMP")
     List<Flight> findAllUpcomingFlights();
+    @Query("SELECT f FROM Flight f WHERE f.owner.id = :ownerId")
+    List<Flight>  findByOwnerId(@Param("ownerId") Integer ownerId);
+
+    // ===== Super Admin Dashboard =====
+    @Query("SELECT COUNT(f) FROM Flight f WHERE f.owner.id = :ownerId")
+    int countByOwnerId(@Param("ownerId") Integer ownerId);
+    
+    @Query("SELECT f FROM Flight f WHERE f.owner.id = :ownerId ORDER BY f.createdAt DESC")
+    List<Flight> findRecentFlightsByOwnerId(@Param("ownerId") Integer ownerId, @Param("limit") int limit);
+    
+    @Query(value = """
+      SELECT AVG(CASE WHEN fs.total_slots > 0  THEN (COALESCE(fb.booked_seats,0) * 100.0 / fs.total_slots) ELSE 0 END)
+        FROM ( SELECT f.id, COUNT(fs.id) AS total_slots FROM flights f LEFT JOIN flight_slots fs ON fs.flight_id = f.id WHERE f.owner_id = :ownerId  GROUP BY f.id) fs
+      LEFT JOIN ( SELECT f.id, COUNT(b.id) AS booked_seats
+        FROM flights f LEFT JOIN flight_slots fs ON fs.flight_id = f.id LEFT JOIN flight_bookings b ON b.flight_slot_id = fs.id
+        WHERE f.owner_id = :ownerId GROUP BY f.id ) fb ON fs.id = fb.id
+    """, nativeQuery = true)
+    Double getAverageOccupancyRateByOwnerId(@Param("ownerId") Integer ownerId);
+    @Query(value = """
+        SELECT AVG(CASE WHEN totals.total_slots > 0 THEN (COALESCE(sold.sold_seats,0) * 100.0 / totals.total_slots) ELSE 0 END)
+        FROM (
+            SELECT f.id AS flight_id, COUNT(fs.id) AS total_slots
+            FROM flights f
+            LEFT JOIN flight_slots fs ON fs.flight_id = f.id
+            WHERE EXTRACT(YEAR FROM f.created_at) = :year AND EXTRACT(MONTH FROM f.created_at) = :month
+            GROUP BY f.id
+        ) totals
+        LEFT JOIN (
+            SELECT f.id AS flight_id, COUNT(b.id) AS sold_seats
+            FROM flights f
+            LEFT JOIN flight_slots fs ON fs.flight_id = f.id
+            LEFT JOIN flight_bookings b ON b.flight_slot_id = fs.id
+            WHERE EXTRACT(YEAR FROM f.created_at) = :year AND EXTRACT(MONTH FROM f.created_at) = :month
+            GROUP BY f.id
+        ) sold ON totals.flight_id = sold.flight_id
+      """, nativeQuery = true)
+      Double getAverageOccupancyRateByMonth(@Param("year") Integer year, @Param("month") Integer month);
+      
+    @Query("SELECT f FROM Flight f WHERE f.owner.id = :ownerId")
+    Page<Flight> findByOwnerIdWithPagination(@Param("ownerId") Integer ownerId, Pageable pageable);
 }

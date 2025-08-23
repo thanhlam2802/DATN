@@ -138,16 +138,16 @@
         <div class="overflow-x-auto">
           <div class="overflow-y-auto h-[412px]">
             <table class="min-w-[1000px] w-full divide-y divide-slate-200">
-              <thead class="bg-slate-100 sticky top-0">
+              <thead class="bg-slate-100 sticky top-0 z-10">
                                  <tr>
-                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100">STT</th>
-                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100">Mã đơn hàng</th>
-                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100">Tên khách hàng</th>
-                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100">Tên khách sạn</th>
-                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100">Ngày đặt phòng</th>
-                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100">Trạng thái</th>
-                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100">Tổng tiền</th>
-                   <th class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider sticky top-0 bg-slate-100 z-9999">Hành động</th>
+                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">STT</th>
+                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Mã đơn hàng</th>
+                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Tên khách hàng</th>
+                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Tên khách sạn</th>
+                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Ngày đặt phòng</th>
+                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Trạng thái</th>
+                   <th class="px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Tổng tiền</th>
+                   <th class="px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider bg-slate-100">Hành động</th>
                  </tr>
               </thead>
               <tbody class="bg-white divide-y divide-slate-100">

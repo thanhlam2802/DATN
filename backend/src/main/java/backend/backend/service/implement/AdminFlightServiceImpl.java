@@ -2,6 +2,7 @@ package backend.backend.service.implement;
 
 import backend.backend.dao.*;
 import backend.backend.dto.*;
+import backend.backend.dto.auth.UserRoleEnum;
 import backend.backend.entity.*;
 import backend.backend.service.AdminFlightService;
 import backend.backend.service.FlightService;
@@ -18,12 +19,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
 
 @Slf4j
 @Service
 public class AdminFlightServiceImpl implements AdminFlightService {
 
     @Autowired private FlightDAO flightDAO;
+    @Autowired private UserDAO userDAO;
     @Autowired private FlightBookingDAO flightBookingDAO;
     @Autowired private AirportDAO airportDAO;
     @Autowired private FlightSlotDAO flightSlotDAO;
@@ -39,8 +42,11 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_FLIGHTS_REQUEST        - RequestId: {}, page: {}, size: {}, filter: {}", requestId, page, size, filter);
         try {
-            List<FlightDto> dtos = flightDAO.findAll().stream()
-                    .map(this::toFlightDto).collect(Collectors.toList());
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Integer ownerId = currentUser != null ? currentUser.getId() : null;
+            List<FlightDto> dtos = flightDAO.findByOwnerId(ownerId).stream()
+                    .map(this::toFlightListDto)
+                    .collect(Collectors.toList());
             log.info("GET_FLIGHTS_SUCCESS        - RequestId: {}, count: {}", requestId, dtos.size());
             return dtos;
         } catch (Exception e) {
@@ -318,17 +324,42 @@ public class AdminFlightServiceImpl implements AdminFlightService {
             throw e;
         }
     }
-
+    @Transactional
     @Override
-    public List<FlightBookingDetailDto> getFlightBookings(String filter) {
+    public List<FlightOrderReservationDto> getFlightBookings(String filter) {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_BOOKINGS_ADMIN_REQ    - RequestId: {}, filter: {}", requestId, filter);
         try {
-            var dtos = flightBookingDAO.findAll().stream()
-                    .map(b -> toBookingDetailDto(b, b.getFlightSlot().getFlight()))
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Integer ownerId = currentUser != null ? currentUser.getId() : null;
+            log.info("GET_BOOKINGS_ADMIN_REQ    - ownerId: {}", ownerId);
+            List<FlightBooking> bookings = flightBookingDAO.findByOwnerId(ownerId);
+            var result = bookings.stream()
+                    .map(this::toReservationDto)
                     .collect(Collectors.toList());
-            log.info("GET_BOOKINGS_ADMIN_SUC    - RequestId: {}, count: {}", requestId, dtos.size());
-            return dtos;
+            log.info("GET_BOOKINGS_ADMIN_SUC    - RequestId: {}, count: {}", requestId, result.size());
+            return result;
+        } catch (Exception e) {
+            log.error("GET_BOOKINGS_ADMIN_FAIL   - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Transactional
+    @Override
+    public List<FlightOrderReservationDto> getFlightBookings(String filter, int page, int size) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_BOOKINGS_ADMIN_REQ    - RequestId: {}, filter: {}, page: {}, size: {}", requestId, filter, page, size);
+        try {
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Integer ownerId = currentUser != null ? currentUser.getId() : null;
+            var pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+            var bookingsPage = flightBookingDAO.findByOwnerId(ownerId, pageable);
+            var result = bookingsPage.getContent().stream()
+                    .map(this::toReservationDto)
+                    .collect(Collectors.toList());
+            log.info("GET_BOOKINGS_ADMIN_SUC    - RequestId: {}, count: {}, total: {}", requestId, result.size(), bookingsPage.getTotalElements());
+            return result;
         } catch (Exception e) {
             log.error("GET_BOOKINGS_ADMIN_FAIL   - RequestId: {}, error: {}", requestId, e.getMessage(), e);
             throw e;
@@ -336,7 +367,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
     }
 
     @Override
-    public FlightBookingDetailDto getFlightBookingDetail(Integer bookingId) {
+    public FlightOrderReservationDto getFlightBookingDetail(Integer bookingId) {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_BOOKING_ADMIN_REQ     - RequestId: {}, bookingId: {}", requestId, bookingId);
         try {
@@ -345,13 +376,48 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 log.warn("GET_BOOKING_ADMIN_NOT_FOUND- RequestId: {}, bookingId: {}", requestId, bookingId);
                 return null;
             }
-            var dto = toBookingDetailDto(b, b.getFlightSlot().getFlight());
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Integer ownerId = currentUser != null ? currentUser.getId() : null;
+            Flight f = Optional.ofNullable(b.getFlightSlot()).map(FlightSlot::getFlight).orElse(null);
+            if (f == null || f.getOwner() == null || !Objects.equals(f.getOwner().getId(), ownerId)) {
+                log.warn("GET_BOOKING_ADMIN_FORBIDDEN- RequestId: {}, bookingId: {}", requestId, bookingId);
+                return null;
+            }
+            var dto = toReservationDto(b);
             log.info("GET_BOOKING_ADMIN_SUC     - RequestId: {}, bookingId: {}", requestId, bookingId);
             return dto;
         } catch (Exception e) {
             log.error("GET_BOOKING_ADMIN_FAIL    - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
             throw e;
         }
+    }
+
+    private FlightOrderReservationDto toReservationDto(FlightBooking b) {
+        Flight f = b.getFlightSlot().getFlight();
+        FlightOrderReservationDto dto = new FlightOrderReservationDto();
+        // reuse existing mapping helpers
+        dto.setBooking(toBookingDetailDto(b, f));
+        dto.setFlightSlot(toFlightSlotDto(b.getFlightSlot()));
+        // order, customer may require other services; set minimal if available
+        if (b.getOrder() != null) {
+            OrderDto od = new OrderDto();
+            od.setId(b.getOrder().getId());
+            dto.setOrder(od);
+        }
+        if (b.getCustomer() != null) {
+            Customer c = b.getCustomer();
+            CustomerDto cd = CustomerDto.builder()
+                    .id(c.getId())
+                    .fullName(c.getFullName())
+                    .gender(c.getGender())
+                    .dob(c.getDob())
+                    .passport(c.getPassport())
+                    .email(c.getEmail())
+                    .phone(c.getPhone())
+                    .build();
+            dto.setCustomer(cd);
+        }
+        return dto;
     }
 
     @Override
@@ -369,6 +435,73 @@ public class AdminFlightServiceImpl implements AdminFlightService {
             return toBookingDetailDto(b, b.getFlightSlot().getFlight());
         } catch (Exception e) {
             log.error("UPDATE_BOOKING_ADMIN_FAIL - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    public void deleteFlightBooking(Integer bookingId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("DELETE_BOOKING_ADMIN_REQ  - RequestId: {}, bookingId: {}", requestId, bookingId);
+        try {
+            flightBookingDAO.deleteById(bookingId);
+            log.info("DELETE_BOOKING_ADMIN_SUC  - RequestId: {}, bookingId: {}", requestId, bookingId);
+        } catch (Exception e) {
+            log.error("DELETE_BOOKING_ADMIN_FAIL - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public FlightOrderReservationDto updateFlightBooking(Integer bookingId, FlightOrderReservationDto dto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_BOOKING_DETAILS_REQ - RequestId: {}, bookingId: {}", requestId, bookingId);
+        try {
+            FlightBooking booking = flightBookingDAO.findById(bookingId).orElseThrow();
+            // ownership check
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Integer ownerId = currentUser != null ? currentUser.getId() : null;
+            Flight flight = booking.getFlightSlot().getFlight();
+            if (flight == null || flight.getOwner() == null || !Objects.equals(flight.getOwner().getId(), ownerId)) {
+                throw new RuntimeException("Forbidden");
+            }
+
+            // Update customer
+            if (dto.getCustomer() != null && booking.getCustomer() != null) {
+                Customer c = booking.getCustomer();
+                CustomerDto cd = dto.getCustomer();
+                c.setFullName(cd.getFullName());
+                c.setGender(cd.getGender());
+                c.setDob(cd.getDob());
+                c.setPassport(cd.getPassport());
+                c.setEmail(cd.getEmail());
+                c.setPhone(cd.getPhone());
+            }
+
+            // Update flight slot basic fields (price, seatNumber, aisle/window/business, luggage)
+            if (dto.getFlightSlot() != null) {
+                FlightSlot s = booking.getFlightSlot();
+                FlightSlotDto sd = dto.getFlightSlot();
+                if (sd.getPrice() != null) s.setPrice(sd.getPrice());
+                if (sd.getSeatNumber() != null) s.setSeatNumber(sd.getSeatNumber());
+                if (sd.getIsAisle() != null) s.setIsAisle(sd.getIsAisle());
+                if (sd.getIsWindow() != null) s.setIsWindow(sd.getIsWindow());
+                if (sd.getIsBusiness() != null) s.setIsBusiness(sd.getIsBusiness());
+                if (sd.getCarryOnLuggage() != null) s.setCarryOnLuggage(sd.getCarryOnLuggage());
+            }
+
+            // Optionally update totalPrice if provided in booking detail
+            if (dto.getBooking() != null && dto.getBooking().getTotalPrice() != null) {
+                booking.setTotalPrice(java.math.BigDecimal.valueOf(dto.getBooking().getTotalPrice()));
+            }
+
+            // persist via owning repositories already injected
+            // JPA will flush changes on transaction commit
+            log.info("UPDATE_BOOKING_DETAILS_SUC - RequestId: {}, bookingId: {}", requestId, bookingId);
+            return toReservationDto(booking);
+        } catch (Exception e) {
+            log.error("UPDATE_BOOKING_DETAILS_FAIL - RequestId: {}, bookingId: {}, error: {}", requestId, bookingId, e.getMessage(), e);
             throw e;
         }
     }
@@ -625,10 +758,74 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         }   
     }
 
+    // ===== Airlines CRUD =====
+    @Override
+    public List<AirlineDto> getAirlines() {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_AIRLINES_REQUEST      - RequestId: {}", requestId);
+        try {
+            var dtos = airlineDAO.findAll().stream().map(this::toAirlineDto).collect(Collectors.toList());
+            log.info("GET_AIRLINES_SUCCESS      - RequestId: {}, count: {}", requestId, dtos.size());
+            return dtos;
+        } catch (Exception e) {
+            log.error("GET_AIRLINES_FAILED       - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    public AirlineDto createAirline(AirlineDto airlineDto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("CREATE_AIRLINE_REQUEST    - RequestId: {}, payload: {}", requestId, airlineDto);
+        try {
+            Airline a = new Airline(); a.setName(airlineDto.getName());
+            Airline saved = airlineDAO.save(a);
+            AirlineDto dto = toAirlineDto(saved);
+            log.info("CREATE_AIRLINE_SUCCESS    - RequestId: {}, airlineId: {}", requestId, saved.getId());
+            return dto;
+        } catch (Exception e) {
+            log.error("CREATE_AIRLINE_FAILED     - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    public AirlineDto updateAirline(Integer airlineId, AirlineDto airlineDto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_AIRLINE_REQUEST    - RequestId: {}, airlineId: {}, payload: {}", requestId, airlineId, airlineDto);
+        try {
+            Airline a = airlineDAO.findById(airlineId).orElse(null);
+            if (a == null) {
+                log.warn("UPDATE_AIRLINE_NOT_FOUND  - RequestId: {}, airlineId: {}", requestId, airlineId);
+                return null;
+            }
+            a.setName(airlineDto.getName());
+            Airline saved = airlineDAO.save(a);
+            AirlineDto dto = toAirlineDto(saved);
+            log.info("UPDATE_AIRLINE_SUCCESS    - RequestId: {}, airlineId: {}", requestId, airlineId);
+            return dto;
+        } catch (Exception e) {
+            log.error("UPDATE_AIRLINE_FAILED     - RequestId: {}, airlineId: {}, error: {}", requestId, airlineId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    public void deleteAirline(Integer airlineId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("DELETE_AIRLINE_REQUEST    - RequestId: {}, airlineId: {}", requestId, airlineId);
+        try {
+            airlineDAO.deleteById(airlineId);
+            log.info("DELETE_AIRLINE_SUCCESS    - RequestId: {}, airlineId: {}", requestId, airlineId);
+        } catch (Exception e) {
+            log.error("DELETE_AIRLINE_FAILED     - RequestId: {}, airlineId: {}, error: {}", requestId, airlineId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
     @Override
     @Transactional
     public List<ImageDto> updateFlightImages(Integer flightId, List<MultipartFile> files, List<Integer> keepImageIds) {
-        String requestId = UUID.randomUUID().toString();
         Flight flight = flightDAO.findById(flightId).orElseThrow();
         // Lấy danh sách FlightImage hiện tại
         List<FlightImage> currentImages = flightImageDAO.findByFlightId(flightId);
@@ -797,24 +994,135 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         }
     }
 
+    // ===== Super Admin Dashboard =====
+    @Override
+    public List<FlightAdminSummaryDto> getFlightAdminSummaries() {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_FLIGHT_ADMIN_SUMMARIES_REQUEST - RequestId: {}", requestId);
+        try {
+            List<User> flightAdmins = userDAO.findByRole(UserRoleEnum.FLIGHT_SUPPLIER);
+            List<FlightAdminSummaryDto> summaries = new ArrayList<>();
+            
+            for (User admin : flightAdmins) {
+                Integer adminId = admin.getId();
+                int totalFlights = flightDAO.countByOwnerId(adminId);
+                Double totalRevenue = flightBookingDAO.sumRevenueByOwnerId(adminId);
+                if (totalRevenue == null) totalRevenue = 0.0;
+                Long totalBookings = flightBookingDAO.countByOwnerId(adminId);
+                Double avgOccupancy = flightDAO.getAverageOccupancyRateByOwnerId(adminId);
+                if (avgOccupancy == null) avgOccupancy = 0.0;
+                
+                FlightAdminSummaryDto summary = FlightAdminSummaryDto.builder()
+                        .adminId(adminId)
+                        .adminName(admin.getName())
+                        .adminEmail(admin.getEmail())
+                        .totalFlights(totalFlights)
+                        .totalRevenue(totalRevenue)
+                        .totalBookings(totalBookings)
+                        .averageOccupancyRate(avgOccupancy)
+                        .build();
+                
+                summaries.add(summary);
+            }
+            
+            log.info("GET_FLIGHT_ADMIN_SUMMARIES_SUCCESS - RequestId: {}, count: {}", requestId, summaries.size());
+            return summaries;
+        } catch (Exception e) {
+            log.error("GET_FLIGHT_ADMIN_SUMMARIES_FAILED - RequestId: {}, error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    public FlightAdminDetailDto getFlightAdminDetail(Integer adminId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_FLIGHT_ADMIN_DETAIL_REQUEST - RequestId: {}, adminId: {}", requestId, adminId);
+        try {
+            User admin = userDAO.findById(adminId).orElse(null);
+            if (admin == null) {
+                log.warn("GET_FLIGHT_ADMIN_DETAIL_NOT_FOUND - RequestId: {}, adminId: {}", requestId, adminId);
+                return null;
+            }
+            int totalFlights = flightDAO.countByOwnerId(adminId);
+            Double totalRevenue = flightBookingDAO.sumRevenueByOwnerId(adminId);
+            if (totalRevenue == null) totalRevenue = 0.0;
+            Long totalBookings = flightBookingDAO.countByOwnerId(adminId);
+            Double avgOccupancy = flightDAO.getAverageOccupancyRateByOwnerId(adminId);
+            if (avgOccupancy == null) avgOccupancy = 0.0;
+            List<Flight> recentFlights = flightDAO.findRecentFlightsByOwnerId(adminId, 10);
+            List<FlightAdminDetailDto.FlightSummaryDto> flightSummaries = recentFlights.stream()
+                    .map(flight -> {
+                        int totalSeats = flightSlotDAO.countByFlightId(flight.getId());
+                        int bookedSeats = flightBookingDAO.countSoldSeatsByFlightId(flight.getId());
+                        Double revenue = flightBookingDAO.sumRevenueByFlightId(flight.getId());
+                        if (revenue == null) revenue = 0.0;
+                        
+                        return FlightAdminDetailDto.FlightSummaryDto.builder()
+                                .flightId(flight.getId())
+                                .flightNumber(flight.getFlightNumber())
+                                .departureAirport(flight.getDepartureAirport() != null ? flight.getDepartureAirport().getName() : "")
+                                .arrivalAirport(flight.getArrivalAirport() != null ? flight.getArrivalAirport().getName() : "")
+                                .departureTime(flight.getDepartureTime() != null ? flight.getDepartureTime().toString() : "")
+                                .totalSeats(totalSeats)
+                                .bookedSeats(bookedSeats)
+                                .revenue(revenue)
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+            
+            FlightAdminDetailDto detail = FlightAdminDetailDto.builder()
+                    .adminId(adminId)
+                    .adminName(admin.getName())
+                    .adminEmail(admin.getEmail())
+                    .totalFlights(totalFlights)
+                    .totalRevenue(totalRevenue)
+                    .totalBookings(totalBookings)
+                    .averageOccupancyRate(avgOccupancy)
+                    .recentFlights(flightSummaries)
+                    .build();
+            
+            log.info("GET_FLIGHT_ADMIN_DETAIL_SUCCESS - RequestId: {}, adminId: {}", requestId, adminId);
+            return detail;
+        } catch (Exception e) {
+            log.error("GET_FLIGHT_ADMIN_DETAIL_FAILED - RequestId: {}, adminId: {}, error: {}", requestId, adminId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    @Transactional
+    @Override
+    public Page<FlightDto> getFlightsByAdminId(Integer adminId, int page, int size, String filter) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_FLIGHTS_BY_ADMIN_REQUEST - RequestId: {}, adminId: {}, page: {}, size: {}", requestId, adminId, page, size);
+        try {
+            var pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+            var flightsPage = flightDAO.findByOwnerIdWithPagination(adminId, pageable);
+            var dtos = flightsPage.getContent().stream()
+                    .map(this::toFlightListDto)
+                    .collect(Collectors.toList());
+            
+            var result = new org.springframework.data.domain.PageImpl<>(dtos, pageable, flightsPage.getTotalElements());
+            log.info("GET_FLIGHTS_BY_ADMIN_SUCCESS - RequestId: {}, adminId: {}, count: {}, total: {}", requestId, adminId, dtos.size(), flightsPage.getTotalElements());
+            return result;
+        } catch (Exception e) {
+            log.error("GET_FLIGHTS_BY_ADMIN_FAILED - RequestId: {}, adminId: {}, error: {}", requestId, adminId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
     // mapping helpers with debug logging
 
     private FlightDto toFlightDto(Flight flight) {
-        log.info("MAPPING_FLIGHT_TO_DTO  - flightId: {}", flight.getId());
+        // Full detail mapping (used for detail views where necessary)
         List<FlightImageDto> images = Optional.ofNullable(flight.getFlightImages())
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(this::toFlightImageDto)
                 .collect(Collectors.toList());
-        log.info("MAPPED_FLIGHT_IMAGES        - flightId: {}, imageCount: {}", flight.getId(), images.size());
-
         List<FlightSlotDto> slots = Optional.ofNullable(flight.getFlightSlots())
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(this::toFlightSlotDto)
                 .collect(Collectors.toList());
-        log.info("MAPPED_FLIGHT_SLOTS         - flightId: {}, slotCount: {}", flight.getId(), slots.size());
-
         Double minPrice = slots.stream()
                 .map(FlightSlotDto::getPrice)
                 .filter(Objects::nonNull)
@@ -825,10 +1133,8 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .filter(Objects::nonNull)
                 .mapToDouble(BigDecimal::doubleValue)
                 .max().orElse(Double.NaN);
-        log.info("CALCULATED_PRICE_RANGE      - flightId: {}, minPrice: {}, maxPrice: {}",
-                flight.getId(), minPrice, maxPrice);
 
-        FlightDto dto = FlightDto.builder()
+        return FlightDto.builder()
                 .id(flight.getId())
                 .flightNumber(flight.getFlightNumber())
                 .name(flight.getName())
@@ -836,7 +1142,6 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .arrivalTime(flight.getArrivalTime())
                 .createdAt(flight.getCreatedAt())
                 .updatedAt(flight.getUpdatedAt())
-
                 .category(flight.getCategory() != null ? toFlightCategoryDto(flight.getCategory()) : null)
                 .ownerId(flight.getOwner() != null ? flight.getOwner().getId() : null)
                 .departureAirport(flight.getDepartureAirport() != null ? toAirportDto(flight.getDepartureAirport()) : null)
@@ -848,14 +1153,25 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .maxPrice(Double.isNaN(maxPrice) ? null : maxPrice)
                 .totalAvailableSeats(flightDAO.countByBookingId(flight.getId()))
                 .build();
-        log.info("MAPPING_FLIGHT_TO_DTO_DONE  - flightId: {}", flight.getId());
+    }
 
-        return dto;
+    private FlightDto toFlightListDto(Flight flight) {
+        // Lightweight mapping for list: avoid loading images/slots to improve performance
+        return FlightDto.builder()
+                .id(flight.getId())
+                .flightNumber(flight.getFlightNumber())
+                .name(flight.getName())
+                .departureTime(flight.getDepartureTime())
+                .arrivalTime(flight.getArrivalTime())
+                .category(flight.getCategory() != null ? toFlightCategoryDto(flight.getCategory()) : null)
+                .ownerId(flight.getOwner() != null ? flight.getOwner().getId() : null)
+                .departureAirport(flight.getDepartureAirport() != null ? toAirportDto(flight.getDepartureAirport()) : null)
+                .arrivalAirport(flight.getArrivalAirport() != null ? toAirportDto(flight.getArrivalAirport()) : null)
+                .airline(flight.getAirline() != null ? toAirlineDto(flight.getAirline()) : null)
+                .build();
     }
     private FlightImageDto toFlightImageDto(FlightImage fi) {
         Image img = fi.getImage();
-        log.info("MAPPING_IMAGE_TO_DTO        - flightImageId: {}, imageId: {}",
-                fi.getId(), img != null ? img.getId() : null);
         FlightImageDto dto = FlightImageDto.builder()
                 .id(fi.getId())
                 .imageId(img != null ? img.getId() : null)
@@ -864,11 +1180,9 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .altText(img != null ? img.getAltText() : null)
                 .uploadedAt(img != null ? img.getUploadedAt() : null)
                 .build();
-        log.info("MAPPING_IMAGE_TO_DTO_DONE   - flightImageId: {}", fi.getId());
         return dto;
     }
     private FlightSlotDto toFlightSlotDto(FlightSlot s) {
-        log.info("MAPPING_SLOT_TO_DTO        - slotId: {}", s.getId());
         FlightSlotDto dto = FlightSlotDto.builder()
                 .id(s.getId())
                 .flightId(Optional.ofNullable(s.getFlight()).map(Flight::getId).orElse(null))
@@ -879,12 +1193,10 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .isAisle(s.getIsAisle())
                 .carryOnLuggage(s.getCarryOnLuggage())
                 .build();
-        log.info("MAPPING_SLOT_TO_DTO_DONE   - slotId: {}", s.getId());
         return dto;
     }
 
     private FlightBookingDetailDto toBookingDetailDto(FlightBooking b, Flight f) {
-        log.info("MAPPING_BOOKING_TO_DTO     - bookingId: {}", b.getId());
         FlightBookingDetailDto dto = FlightBookingDetailDto.builder()
                 .bookingId(b.getId())
                 .createdAt(b.getBookingDate())
@@ -892,37 +1204,30 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                 .totalPrice(b.getFlightSlot().getPrice().doubleValue())
                 .status("BOOKED")
                 .build();
-        log.info("MAPPING_BOOKING_TO_DTO_DONE- bookingId: {}", b.getId());
         return dto;
     }
 
     private AirportDto toAirportDto(Airport a) {
-        log.info("MAPPING_AIRPORT_TO_DTO     - airportId: {}", a.getId());
         AirportDto dto = AirportDto.builder()
                 .id(a.getId())
                 .name(a.getName())
                 .build();
-        log.info("MAPPING_AIRPORT_TO_DTO_DONE- airportId: {}", a.getId());
         return dto;
     }
 
     private AirlineDto toAirlineDto(Airline a) {
-        log.info("MAPPING_AIRLINE_TO_DTO     - airlineId: {}", a.getId());
         AirlineDto dto = AirlineDto.builder()
                 .id(a.getId())
                 .name(a.getName())
                 .build();
-        log.info("MAPPING_AIRLINE_TO_DTO_DONE- airlineId: {}", a.getId());
         return dto;
     }
 
     private FlightCategoryDto toFlightCategoryDto(FlightCategory c) {
-        log.info("MAPPING_CATEGORY_TO_DTO    - categoryId: {}", c.getId());
         FlightCategoryDto dto = FlightCategoryDto.builder()
                 .id(c.getId())
                 .name(c.getName())
                 .build();
-        log.info("MAPPING_CATEGORY_TO_DTO_DONE- categoryId: {}", c.getId());
         return dto;
     }
 
@@ -1029,31 +1334,8 @@ public class AdminFlightServiceImpl implements AdminFlightService {
 
     private Double calculateAverageOccupancyRate(Integer year, Integer month) {
         try {
-            // Lấy tất cả chuyến bay trong tháng
-            List<Flight> flights = flightDAO.findAll().stream()
-                    .filter(f -> f.getCreatedAt().getYear() == year && f.getCreatedAt().getMonthValue() == month)
-                    .collect(Collectors.toList());
-            
-            if (flights.isEmpty()) {
-                return 0.0;
-            }
-            
-            double totalOccupancyRate = 0.0;
-            int flightCount = 0;
-            
-            for (Flight flight : flights) {
-                int totalSlots = flightSlotDAO.countAvailableSlotsByFlightId(flight.getId()) + 
-                                flightBookingDAO.countSoldSeatsByFlightId(flight.getId());
-                
-                if (totalSlots > 0) {
-                    int soldSeats = flightBookingDAO.countSoldSeatsByFlightId(flight.getId());
-                    double occupancyRate = (soldSeats * 100.0) / totalSlots;
-                    totalOccupancyRate += occupancyRate;
-                    flightCount++;
-                }
-            }
-            
-            return flightCount > 0 ? totalOccupancyRate / flightCount : 0.0;
+            Double avg = flightDAO.getAverageOccupancyRateByMonth(year, month);
+            return avg != null ? avg : 0.0;
             
         } catch (Exception e) {
             log.error("CALCULATE_OCCUPANCY_RATE_FAILED - year: {}, month: {}, error: {}", year, month, e.getMessage(), e);

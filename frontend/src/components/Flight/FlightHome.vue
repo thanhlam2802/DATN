@@ -354,7 +354,7 @@
             Chọn loại vé của bạn
           </h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
+            <div v-if="economySummary.total > 0" class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
                  :class="{'scale-105 -rotate-1 ring-2 ring-indigo-500/60 shadow-indigo-500/20': selectedCabinClass==='economy'}"
                  @click="() => { selectedCabinClass = 'economy'; if (!economySeatType) economySeatType = 'window'; selectedSeatType = economySeatType; }">
               <div
@@ -409,16 +409,16 @@
                   </ul>
 
                   <div class="mt-2 flex flex-col gap-1 text-sm text-indigo-300 hover:underline">
-                    <label class="inline-flex items-center">
-                      <input type="radio" v-model="economySeatType" value="window" @change="selectedSeatType = 'window'"
-                        class="form-radio text-indigo-600" />
+                    <label   class="inline-flex items-center">
+                      <input  type="radio" v-model="economySeatType" value="window" @change="selectedSeatType = 'window'"
+                        class="form-radio text-indigo-600" :disabled="economySummary.countWindow <= 0"/>
                         <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+{{ economySummary.priceWindow }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{ economySummary.countWindow ?? 0
                           }})</span></span>
                     </label>
-                    <label class="inline-flex items-center">
+                    <label  class="inline-flex items-center">
                       <input type="radio" v-model="economySeatType" value="aisle" @change="selectedSeatType = 'aisle'"
-                        class="form-radio text-indigo-600" />
+                        class="form-radio text-indigo-600"  :disabled="economySummary.countAisle <= 0"/>
                       <span class="ml-2 font-bold">Ngồi lối đi <span class="text-xs text-gray-400">(+{{ economySummary.priceAisle }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{
                           economySummary.countAisle ?? 0 }})</span></span>
@@ -428,7 +428,7 @@
               </div>
             </div>
 
-            <div class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
+            <div v-if="businessSummary.total > 0" class="group rounded-3xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1"
                  :class="{'scale-105 -rotate-1 ring-2 ring-yellow-400/60 shadow-yellow-400/20': selectedCabinClass==='business'}"
                  @click="() => { selectedCabinClass = 'business'; if (!businessSeatType) businessSeatType = 'window'; selectedSeatType = businessSeatType; }">
               <div
@@ -450,7 +450,7 @@
                   </div>
                 </div>
 
-                <div class="p-6 relative z-10 flex flex-col space-y-3 overflow-hidden">
+                <div  class="p-6 relative z-10 flex flex-col space-y-3 overflow-hidden">
                   <div class="flex items-center space-x-3 ">
                     <div
                       class="relative flex h-[50px] w-[50px] items-center justify-center p-3 rounded-full border  border-yellow-400/30">
@@ -486,16 +486,16 @@
                   </ul>
 
                   <div class="mt-2 flex flex-col gap-1 text-sm text-yellow-300 hover:underline">
-                    <label class="inline-flex items-center">
-                      <input type="radio" v-model="businessSeatType" value="window"
+                    <label   class="inline-flex items-center">
+                      <input type="radio" v-model="businessSeatType" value="window" :disabled="businessSummary.countWindow <= 0"
                         @change="selectedSeatType = 'window'" class="form-radio text-yellow-500" />
                       <span class="ml-2 font-bold">Ngồi cửa sổ <span class="text-xs text-gray-400">(+{{ businessSummary.priceWindow }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{ businessSummary.countWindow ?? 0
                           }})</span></span>
                     </label>
-                    <label class="inline-flex items-center">
+                    <label  class="inline-flex items-center">
                       <input type="radio" v-model="businessSeatType" value="aisle" @change="selectedSeatType = 'aisle'"
-                        class="form-radio text-yellow-500" />
+                        class="form-radio text-yellow-500" :disabled="businessSummary.countAisle <= 0" />
                       <span class="ml-2 font-bold">Ngồi lối đi <span class="text-xs text-gray-400">(+{{ businessSummary.priceAisle }} VND)</span>
                         <span class="ml-1 text-xs text-gray-500">(Còn {{
                           businessSummary.countAisle ?? 0 }})</span></span>

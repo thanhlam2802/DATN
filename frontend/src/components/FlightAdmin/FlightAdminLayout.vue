@@ -98,6 +98,8 @@ const FlightList = defineAsyncComponent(() => import('./FlightList.vue'))
 const FlightStatistics = defineAsyncComponent(() => import('./FlightStatistics.vue'))
 const FlightBookings = defineAsyncComponent(() => import('./FlightBookings.vue'))
 const FlightSettings = defineAsyncComponent(() => import('./FlightSettings.vue'))
+const AirlineManagement = defineAsyncComponent(() => import('./AirlineManagement.vue'))
+const AirportManagement = defineAsyncComponent(() => import('./AirportManagement.vue'))
 
 // State
 const sidebarOpen = ref(false)
@@ -111,6 +113,8 @@ const components = {
   FlightStatistics,
   FlightBookings,
   FlightSettings,
+  AirlineManagement,
+  AirportManagement,
   DetailFlightAdmin
 }
 
@@ -139,12 +143,6 @@ const navigationItems = ref([
     component: 'FlightBookings',
     title: 'Quản lý đặt chỗ',
     icon: 'fas fa-ticket-alt'
-  },
-  {
-    name: 'Cài đặt',
-    component: 'FlightSettings',
-    title: 'Cài đặt hệ thống',
-    icon: 'fas fa-cog'
   },
   {
     name: 'Chi tiết chuyến bay',

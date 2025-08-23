@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,5 +73,19 @@ public interface FlightBookingDAO extends JpaRepository<FlightBooking, Integer> 
 	       "JOIN FETCH fs.flight f " + // Chúng ta đã join và đặt bí danh `f` cho entity Flight
 	       "WHERE fb.customer.id = :customerId AND f.departureTime < :currentDateTime") // SỬA Ở ĐÂY: Dùng f.departureTime
 	List<FlightBooking> findCompletedBookingsByCustomerId(@Param("customerId") Integer customerId, @Param("currentDateTime") LocalDateTime currentDateTime);
-	
+
+
+    @Query("SELECT fb FROM FlightBooking fb JOIN FETCH fb.flightSlot fs JOIN FETCH fs.flight f WHERE f.owner.id = :ownerId")
+    List<FlightBooking>  findByOwnerId(@Param("ownerId") Integer ownerId);
+
+    @Query(value = "SELECT fb FROM FlightBooking fb JOIN fb.flightSlot fs JOIN fs.flight f WHERE f.owner.id = :ownerId",
+           countQuery = "SELECT COUNT(fb) FROM FlightBooking fb JOIN fb.flightSlot fs JOIN fs.flight f WHERE f.owner.id = :ownerId")
+    Page<FlightBooking> findByOwnerId(@Param("ownerId") Integer ownerId, Pageable pageable);
+
+    // ===== Super Admin Dashboard =====
+    @Query("SELECT SUM(fb.totalPrice) FROM FlightBooking fb WHERE fb.flightSlot.flight.owner.id = :ownerId")
+    Double sumRevenueByOwnerId(@Param("ownerId") Integer ownerId);
+    
+    @Query("SELECT COUNT(fb) FROM FlightBooking fb WHERE fb.flightSlot.flight.owner.id = :ownerId")
+    Long countByOwnerId(@Param("ownerId") Integer ownerId);
 }

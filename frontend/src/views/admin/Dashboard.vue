@@ -81,15 +81,19 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 // Thay đổi các đường dẫn ở đây
 import Widget from "@/components/admin/Widget.vue";
 import RevenueChart from "@/components/admin/RevenueChart.vue";
 import BookingChart from "@/components/admin/BookingChart.vue";
 import RecentActivities from "@/components/admin/RecentActivities.vue";
-
-// --- Dữ liệu giả (mock data) ---
-// (Phần còn lại của script giữ nguyên)
+import SockJS from "sockjs-client/dist/sockjs.min.js";
+import Stomp from "stompjs";
+const stompClient = ref(null);
+const isSocketConnected = ref(false);
+onMounted(() => {
+  connectWebSocket();
+});
 const summary = ref({
   todayRevenue: 12500000,
   newBookings: 32,
@@ -115,36 +119,6 @@ const recentActivities = ref([
   { time: "2 giờ", user: "Admin", action: "đã hủy đơn hàng #1055" },
 ]);
 
-const recentOrders = ref([
-  {
-    id: 1124,
-    customer: "Thanh Nguyen",
-    service: "Tour",
-    amount: 5200000,
-    status: "Đã thanh toán",
-  },
-  {
-    id: 1123,
-    customer: "An Tran",
-    service: "Khách sạn",
-    amount: 1800000,
-    status: "Đã thanh toán",
-  },
-  {
-    id: 1122,
-    customer: "Minh Le",
-    service: "Chuyến bay",
-    amount: 2100000,
-    status: "Chờ thanh toán",
-  },
-  {
-    id: 1121,
-    customer: "Bao Vo",
-    service: "Tour",
-    amount: 8500000,
-    status: "Đã hủy",
-  },
-]);
 
 // --- Hàm hỗ trợ ---
 const formatCurrency = (value) => {
@@ -159,7 +133,23 @@ const getStatusClass = (status) => {
     "Đã thanh toán": "bg-green-100 text-green-800",
     "Chờ thanh toán": "bg-yellow-100 text-yellow-800",
     "Đã hủy": "bg-red-100 text-red-800",
+    "Hoàn tiền": "bg-blue-100 text-blue-800", // thêm dòng này
   };
   return map[status] || "bg-gray-100 text-gray-800";
+};
+const recentOrders = ref([]);
+const connectWebSocket = () => {
+  const socket = new SockJS("http://localhost:8080/ws");
+  stompClient.value = Stomp.over(socket);
+  stompClient.value.debug = null;
+  stompClient.value.connect({}, (frame) => {
+  console.log("WebSocket Connected:", frame);
+  isSocketConnected.value = true;
+  stompClient.value.subscribe("/topic/getTop10NewOrders", (response) => {
+    recentOrders.value = JSON.parse(response.body);
+    console.log(recentOrders.value);
+  });
+  stompClient.value.send("/app/getTop10NewOrders", {}, {});
+});
 };
 </script>

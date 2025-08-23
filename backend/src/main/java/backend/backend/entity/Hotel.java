@@ -46,6 +46,21 @@ public class Hotel {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
+    
+    @Column(name = "approval_status", nullable = false, length = 20)
+    private String approvalStatus = "PENDING";
+
+    @Column(name = "approval_reason", columnDefinition = "TEXT")
+    private String approvalReason;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "approved_by", length = 100)
+    private String approvedBy;
+
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "ACTIVE";
 
     @OneToMany(mappedBy = "hotel")
     private List<HotelImage> hotelImages;

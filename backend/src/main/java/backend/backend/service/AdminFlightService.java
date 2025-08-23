@@ -3,6 +3,7 @@ package backend.backend.service;
 import backend.backend.dto.*;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 public interface AdminFlightService {
 
@@ -28,11 +29,16 @@ public interface AdminFlightService {
     void deleteSeat(Integer slotId);
 
     // Quản lý đặt vé
-    List<FlightBookingDetailDto> getFlightBookings(String filter);
+    List<FlightOrderReservationDto> getFlightBookings(String filter);
+    List<FlightOrderReservationDto> getFlightBookings(String filter, int page, int size);
 
-    FlightBookingDetailDto getFlightBookingDetail(Integer bookingId);
+    FlightOrderReservationDto getFlightBookingDetail(Integer bookingId);
 
     FlightBookingDetailDto updateFlightBookingStatus(Integer bookingId, String status);
+
+    void deleteFlightBooking(Integer bookingId);
+
+    FlightOrderReservationDto updateFlightBooking(Integer bookingId, FlightOrderReservationDto dto);
 
     void updateGroupSeat(Integer flightId, FlightSeatGroupDto dto);
 
@@ -57,6 +63,15 @@ public interface AdminFlightService {
 
     void deleteAirport(Integer airportId);
 
+    // Quản lý hãng bay
+    List<AirlineDto> getAirlines();
+
+    AirlineDto createAirline(AirlineDto airlineDto);
+
+    AirlineDto updateAirline(Integer airlineId, AirlineDto airlineDto);
+
+    void deleteAirline(Integer airlineId);
+
     List<ImageDto> updateFlightImages(Integer flightId, List<org.springframework.web.multipart.MultipartFile> files, List<Integer> keepImageIds);
     
     List<ImageDto> uploadFlightImages(Integer flightId, List<org.springframework.web.multipart.MultipartFile> files);
@@ -65,4 +80,9 @@ public interface AdminFlightService {
     void deleteFlightImage(Integer flightId, Integer imageId);
     
     List<ImageDto> addFlightImages(Integer flightId, List<org.springframework.web.multipart.MultipartFile> files);
+
+    // ===== Super Admin Dashboard =====
+    List<FlightAdminSummaryDto> getFlightAdminSummaries();
+    FlightAdminDetailDto getFlightAdminDetail(Integer adminId);
+    Page<FlightDto> getFlightsByAdminId(Integer adminId, int page, int size, String filter);
 }

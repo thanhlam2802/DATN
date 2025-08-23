@@ -32,4 +32,9 @@ public class HotelSearchRequestDto {
     private LocalDate createdAtTo;
     
     private String roomStatus;
+    
+    private String approvalStatus;
+    private String status;
+    
+    private Boolean isAdminRequest = false;
 }

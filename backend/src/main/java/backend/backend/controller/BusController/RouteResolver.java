@@ -2,6 +2,7 @@ package backend.backend.controller.BusController;
 
 import backend.backend.dto.BusDTO.CreateRouteRequest;
 import backend.backend.dto.BusDTO.UpdateRouteRequest;
+import backend.backend.dto.BusDTO.RouteCard;
 import backend.backend.entity.Route;
 import backend.backend.service.busService.RouteService; // Import interface RouteService
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,12 @@ public class RouteResolver {
     @QueryMapping
     public List<Route> getRoutesByOwnerId(@Argument Integer ownerId) {
         return routeService.getRoutesByOwnerId(ownerId);
+    }
+
+    // ✅ THÊM MỚI: Lấy popular routes cho trang chủ
+    @QueryMapping
+    public List<RouteCard> popularRoutes(@Argument Integer limit) {
+        return routeService.getPopularRoutes(limit != null ? limit : 10);
     }
 
     // ✅ UNIFIED: Schema mapping hỗ trợ cả Route entity và RouteResponse DTO

@@ -27,5 +27,9 @@ public interface RouteDAO extends JpaRepository<Route, Integer> {
     // ✅ UPDATED: Tìm Routes theo ownerId trực tiếp (Route có owner)
     @Query("SELECT r FROM Route r LEFT JOIN FETCH r.owner LEFT JOIN FETCH r.originLocation LEFT JOIN FETCH r.destinationLocation WHERE r.owner.id = :ownerId")
     List<Route> findByOwnerId(@Param("ownerId") Integer ownerId);
+    
+    // ✅ ĐƠN GIẢN HÓA: Lấy tất cả routes với eager loading, sau đó limit trong Java
+    @Query("SELECT r FROM Route r LEFT JOIN FETCH r.originLocation LEFT JOIN FETCH r.destinationLocation ORDER BY r.id")
+    List<Route> findAllRoutesOrderedById();
 
 }

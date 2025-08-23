@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BusSearchForm from '@/components/Bus/BusSearchForm.vue'
 import BusSearchModal from '@/components/Bus/BusSearchModal.vue'
@@ -132,6 +132,14 @@ const handleDestinationClick = (destinationName) => {
 const handleModalClose = () => {
   showSearchModal.value = false
 }
+
+// Scroll to top when component mounts
+onMounted(() => {
+  // Scroll to top với delay nhỏ để đảm bảo DOM đã render
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 100);
+})
 
 // Handle image events
 const handleImageError = (event) => {

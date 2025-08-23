@@ -1,8 +1,9 @@
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted, nextTick } from 'vue'
 import ProvinceAPI, { clearProvinceCache } from '@/api/provinceApi'
 import { graphqlRequest } from '@/api/graphqlClient'
 import { toast } from '@/utils/notifications'
+import { useRouteStore } from '@/stores/routeStore'
 
 // Props
 const props = defineProps({
@@ -13,6 +14,35 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['search'])
+
+// Route store
+const { getRouteData, clearRouteData } = useRouteStore()
+
+// Province name mapping để match với API
+const provinceNameMapping = {
+  'Hồ Chí Minh': 'Thành phố Hồ Chí Minh',
+  'HCM': 'Thành phố Hồ Chí Minh',
+  'Sài Gòn': 'Thành phố Hồ Chí Minh',
+  'TP.HCM': 'Thành phố Hồ Chí Minh',
+  'Hà Nội': 'Thành phố Hà Nội',
+  'HN': 'Thành phố Hà Nội',
+  'Đà Nẵng': 'Thành phố Đà Nẵng',
+  'Vũng Tàu': 'Tỉnh Bà Rịa - Vũng Tàu',
+  'Bà Rịa - Vũng Tàu': 'Tỉnh Bà Rịa - Vũng Tàu',
+  'Cần Thơ': 'Thành phố Cần Thơ',
+  'Nha Trang': 'Tỉnh Khánh Hòa',
+  'Khánh Hòa': 'Tỉnh Khánh Hòa',
+  'Đà Lạt': 'Tỉnh Lâm Đồng',
+  'Lâm Đồng': 'Tỉnh Lâm Đồng',
+  'Phan Thiết': 'Tỉnh Bình Thuận',
+  'Bình Thuận': 'Tỉnh Bình Thuận',
+  'Hải Phòng': 'Thành phố Hải Phòng',
+  'Huế': 'Tỉnh Thừa Thiên Huế',
+  'Thừa Thiên Huế': 'Tỉnh Thừa Thiên Huế',
+  'Sapa': 'Tỉnh Lào Cai',
+  'Lào Cai': 'Tỉnh Lào Cai',
+  'Bình Dương': 'Tỉnh Bình Dương'
+}
 
 // Loading states
 const loadingProvinces = ref(false)
@@ -50,6 +80,53 @@ const loadProvinces = async () => {
   } catch (error) {
   } finally {
     loadingProvinces.value = false
+  }
+}
+
+// Fill form from store data
+const fillFormFromStore = async () => {
+  try {
+    const routeData = getRouteData();
+    
+    if (!routeData) {
+      return;
+    }
+    
+    // Fill form data
+    if (routeData.departureProvince) {
+      // Map tên tỉnh nếu cần
+      const mappedProvinceName = provinceNameMapping[routeData.departureProvince] || routeData.departureProvince;
+      
+      // Kiểm tra xem tỉnh có tồn tại trong danh sách không
+      const provinceExists = provinces.value.some(p => p.name === mappedProvinceName);
+      
+      if (provinceExists) {
+        searchForm.value.departureProvince = mappedProvinceName;
+        await loadDepartureDistricts(mappedProvinceName);
+      }
+    }
+    if (routeData.arrivalProvince) {
+      // Map tên tỉnh nếu cần
+      const mappedProvinceName = provinceNameMapping[routeData.arrivalProvince] || routeData.arrivalProvince;
+      
+      // Kiểm tra xem tỉnh có tồn tại trong danh sách không
+      const provinceExists = provinces.value.some(p => p.name === mappedProvinceName);
+      
+      if (provinceExists) {
+        searchForm.value.arrivalProvince = mappedProvinceName;
+        await loadArrivalDistricts(mappedProvinceName);
+      }
+    }
+    if (routeData.departureDate) {
+      searchForm.value.departureDate = routeData.departureDate;
+    }
+    
+    // Xóa dữ liệu sau khi đã fill để tránh fill lại
+    clearRouteData();
+    
+  } catch (error) {
+    console.error('Lỗi khi đọc dữ liệu từ store:', error);
+    clearRouteData();
   }
 }
 
@@ -238,8 +315,13 @@ searchForm.value.departureDate = today
 
 // Load provinces on mount
 onMounted(async () => {
+  // Scroll to top khi component mount
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  
   clearProvinceCache()
   await loadProvinces()
+  // Fill form from store data after provinces are loaded
+  await fillFormFromStore()
 })
 </script>
 

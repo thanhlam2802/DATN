@@ -1,210 +1,182 @@
 <template>
-    <main class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-x-8 gap-y-6 max-w-full lg:w-[1320px]">
-        <aside class="pt-40 pb-5">
-            <FilterSidebar v-model:filters="activeFilters" />
-        </aside>
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="sticky top-18 w-full flex justify-center mb-6 z-30 mt-4">
+            <div ref="searchWidgetContainer"
+                class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
+                <div class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
+                    <div ref="locationContainer"
+                        class="relative flex flex-grow cursor-pointer items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[200px] rounded-t-md md:rounded-l-md md:rounded-tr-none">
+                        <i class="fas fa-map-marker-alt text-blue-500 text-xl pr-3"></i>
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500">Địa điểm hoặc khách sạn</label>
+                            <input type="text" v-model="searchParams.location" @focus="handleLocationFocus"
+                                class="w-full bg-transparent font-semibold focus:outline-none text-gray-800"
+                                placeholder="Tìm kiếm..." autocomplete="off" />
+                        </div>
+                        <div v-if="showLocationDropdown && suggestions.length > 0"
+                            class="absolute top-full mt-2 left-0 z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                            <ul>
+                                <li v-for="loc in suggestions" :key="loc.type + '-' + loc.id"
+                                    @click="selectLocation(loc.name)"
+                                    class="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-3">
+                                    <i
+                                        :class="loc.type === 'Province' ? 'fas fa-map-marked-alt text-gray-400' : 'fas fa-hotel text-gray-400'"></i>
+                                    <div>
+                                        <p class="font-semibold">{{ loc.name }}</p>
+                                        <p class="text-xs text-gray-500">{{ loc.type === 'Province' ? 'Tỉnh/Thành phố' :
+                                            'Khách sạn' }}</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
 
-        <div>
-            <div class="sticky top-18 w-full flex justify-center mb-6 lg:-translate-x-[156px] z-30 mt-4">
-                <div ref="searchWidgetContainer"
-                    class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
                     <div
-                        class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">
-
-                        <div ref="locationContainer"
-                            class="relative flex flex-grow cursor-pointer items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[200px] rounded-t-md md:rounded-l-md md:rounded-tr-none">
-                            <i class="fas fa-map-marker-alt text-blue-500 text-xl pr-3"></i>
+                        class="flex flex-grow-[2] items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[300px]">
+                        <i class="fas fa-calendar-alt text-blue-500 text-xl pr-3"></i>
+                        <div class="flex flex-1 items-center">
                             <div class="flex-1">
-                                <label class="text-xs text-gray-500">Địa điểm hoặc khách sạn</label>
-                                <input type="text" v-model="searchParams.location" @focus="handleLocationFocus"
-                                    class="w-full bg-transparent font-semibold focus:outline-none text-gray-800"
-                                    placeholder="Tìm kiếm..." autocomplete="off" />
+                                <label class="text-xs text-gray-500">Ngày nhận</label>
+                                <input type="date" v-model="searchParams.checkin" :min="today"
+                                    class="w-full bg-transparent font-semibold focus:outline-none" />
                             </div>
-                            <div v-if="showLocationDropdown && suggestions.length > 0"
-                                class="absolute top-full mt-2 left-0 z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-56 overflow-y-auto">
-                                <ul>
-                                    <li v-for="loc in suggestions" :key="loc.type + '-' + loc.id"
-                                        @click="selectLocation(loc.name)"
-                                        class="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-3">
-                                        <i
-                                            :class="loc.type === 'Province' ? 'fas fa-map-marked-alt text-gray-400' : 'fas fa-hotel text-gray-400'"></i>
-                                        <div>
-                                            <p class="font-semibold">{{ loc.name }}</p>
-                                            <p class="text-xs text-gray-500">{{ loc.type === 'Province' ? 'Tỉnh/Thành phố' : 'Khách sạn' }}</p>
-                                        </div>
-                                    </li>
-                                </ul>
+                            <div class="px-4 text-center">
+                                <div v-if="numberOfNights > 0"
+                                    class="text-xs font-semibold text-blue-600 bg-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">
+                                    {{ numberOfNights }} đêm
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-xs text-gray-500">Ngày trả</label>
+                                <input type="date" v-model="searchParams.checkout" :min="minCheckOut"
+                                    class="w-full bg-transparent font-semibold focus:outline-none" />
                             </div>
                         </div>
-
-                        <div
-                            class="flex flex-grow-[2] items-center p-3 bg-white hover:bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 min-w-[300px]">
-                            <i class="fas fa-calendar-alt text-blue-500 text-xl pr-3"></i>
-                            <div class="flex flex-1 items-center">
-                                <div class="flex-1">
-                                    <label class="text-xs text-gray-500">Ngày nhận</label>
-                                    <input type="date" v-model="searchParams.checkin" :min="today"
-                                        class="w-full bg-transparent font-semibold focus:outline-none" />
-                                </div>
-                                <div class="px-4 text-center">
-                                    <div v-if="numberOfNights > 0"
-                                        class="text-xs font-semibold text-blue-600 bg-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">
-                                        {{ numberOfNights }} đêm
-                                    </div>
-                                </div>
-                                <div class="flex-1">
-                                    <label class="text-xs text-gray-500">Ngày trả</label>
-                                    <input type="date" v-model="searchParams.checkout" :min="minCheckOut"
-                                        class="w-full bg-transparent font-semibold focus:outline-none" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div ref="guestsContainer" class="relative flex-grow">
-                            <div @click="showGuestsDropdown = !showGuestsDropdown"
-                                class="flex items-center p-3 bg-white hover:bg-gray-50 cursor-pointer h-full max-w-[300px]">
-                                <i class="fas fa-users text-blue-500 text-xl pr-3"></i>
-                                <div class="flex-1">
-                                    <label class="text-xs text-gray-500">Khách và Phòng</label>
-                                    <p class="font-semibold truncate text-gray-800">{{ guestsDisplay }}</p>
-                                </div>
-                            </div>
-                            <div v-if="showGuestsDropdown" aria-label="Guest and room selection"
-                                class="absolute top-full mt-2 right-0 z-30 w-[320px] bg-white rounded-lg shadow-lg border border-gray-200 p-4"
-                                role="listbox">
-                                <div class="flex items-center gap-3 mb-4">
-                                    <i class="fas fa-user text-lg text-gray-600 w-5 text-center"></i>
-                                    <span class="text-gray-900 font-semibold text-base">Người lớn</span>
-                                    <div class="ml-auto flex items-center gap-2">
-                                        <button @click.stop="updateGuests('adults', -1)"
-                                            :disabled="searchParams.adults <= 1"
-                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
-                                            type="button">−</button>
-                                        <span
-                                            class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
-                                                searchParams.adults }}</span>
-                                        <button @click.stop="updateGuests('adults', 1)"
-                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                                            type="button">+</button>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3 mb-4">
-                                    <i class="fas fa-child text-lg text-gray-600 w-5 text-center"></i>
-                                    <span class="text-gray-900 font-semibold text-base">Trẻ em</span>
-                                    <div class="ml-auto flex items-center gap-2">
-                                        <button @click.stop="updateGuests('children', -1)"
-                                            :disabled="searchParams.children <= 0"
-                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
-                                            type="button">−</button>
-                                        <span
-                                            class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
-                                                searchParams.children }}</span>
-                                        <button @click.stop="updateGuests('children', 1)"
-                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                                            type="button">+</button>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <i class="fas fa-bed text-lg text-gray-600 w-5 text-center"></i>
-                                    <span class="text-gray-900 font-semibold text-base">Phòng</span>
-                                    <div class="ml-auto flex items-center gap-2">
-                                        <button @click.stop="updateGuests('rooms', -1)"
-                                            :disabled="searchParams.rooms <= 1"
-                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
-                                            type="button">−</button>
-                                        <span
-                                            class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
-                                                searchParams.rooms }}</span>
-                                        <button @click.stop="updateGuests('rooms', 1)"
-                                            class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                                            type="button">+</button>
-                                    </div>
-                                </div>
-                                <p v-if="guestsError" class="text-red-500 text-xs mt-3 text-center">{{ guestsError }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <button aria-label="Search"
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 font-bold transition flex items-center justify-center rounded-b-md md:rounded-l-none md:rounded-r-md"
-                            @click="onSearch">
-                            <i class="fas fa-search"></i>
-                        </button>
                     </div>
-                </div>
-            </div>
 
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pt-7">
-                <h1 class="font-bold text-gray-800">
-                    <span class="block text-base">{{ locationDisplay }}</span>
-                    <span class="block text-xs font-normal text-gray-600">{{ hotelCountDisplay }}</span>
-                </h1>
-                <div class="flex items-center space-x-3 mt-2 sm:mt-0">
-                    <span class="text-xs font-medium text-gray-600 mr-2 whitespace-nowrap">Xếp theo:</span>
-                    <CustomSelect
-                        v-model="sortKey"
-                        :options="sortOptions"
-                        class="w-28"
-                        @update:modelValue="onFilterOrSortChange"
-                    />
-                    <div class="border-l border-gray-200 h-8 mx-2 w-10"></div>
-                    <span class="text-xs font-medium text-gray-600">Xem:</span>
-                    <div class="flex items-center bg-gray-100 rounded-full p-0.5">
-                        <button @click="viewMode = 'list'"
-                            :class="viewMode === 'list' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500 hover:text-gray-800'"
-                            class="w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200"
-                            aria-label="Chế độ xem danh sách"><i class="fas fa-list fa-fw text-sm"></i></button>
-                        <button @click="viewMode = 'grid'"
-                            :class="viewMode === 'grid' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500 hover:text-gray-800'"
-                            class="w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200"
-                            aria-label="Chế độ xem lưới"><i class="fas fa-th-large fa-fw text-sm"></i></button>
+                    <div ref="guestsContainer" class="relative flex-grow">
+                        <div @click="showGuestsDropdown = !showGuestsDropdown"
+                            class="flex items-center p-3 bg-white hover:bg-gray-50 cursor-pointer h-full max-w-[300px]">
+                            <i class="fas fa-users text-blue-500 text-xl pr-3"></i>
+                            <div class="flex-1">
+                                <label class="text-xs text-gray-500">Khách và Phòng</label>
+                                <p class="font-semibold truncate text-gray-800">{{ guestsDisplay }}</p>
+                            </div>
+                        </div>
+                        <div v-if="showGuestsDropdown" aria-label="Guest and room selection"
+                            class="absolute top-full mt-2 right-0 z-30 w-[320px] bg-white rounded-lg shadow-lg border border-gray-200 p-4"
+                            role="listbox">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fas fa-user text-lg text-gray-600 w-5 text-center"></i>
+                                <span class="text-gray-900 font-semibold text-base">Người lớn</span>
+                                <div class="ml-auto flex items-center gap-2">
+                                    <button @click.stop="updateGuests('adults', -1)"
+                                        :disabled="searchParams.adults <= 1"
+                                        class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                                        type="button">−</button>
+                                    <span
+                                        class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                                            searchParams.adults }}</span>
+                                    <button @click.stop="updateGuests('adults', 1)"
+                                        class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                        type="button">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fas fa-child text-lg text-gray-600 w-5 text-center"></i>
+                                <span class="text-gray-900 font-semibold text-base">Trẻ em</span>
+                                <div class="ml-auto flex items-center gap-2">
+                                    <button @click.stop="updateGuests('children', -1)"
+                                        :disabled="searchParams.children <= 0"
+                                        class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                                        type="button">−</button>
+                                    <span
+                                        class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                                            searchParams.children }}</span>
+                                    <button @click.stop="updateGuests('children', 1)"
+                                        class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                        type="button">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-bed text-lg text-gray-600 w-5 text-center"></i>
+                                <span class="text-gray-900 font-semibold text-base">Phòng</span>
+                                <div class="ml-auto flex items-center gap-2">
+                                    <button @click.stop="updateGuests('rooms', -1)" :disabled="searchParams.rooms <= 1"
+                                        class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 disabled:text-gray-300 disabled:border-gray-200 disabled:bg-gray-50 flex items-center justify-center hover:bg-gray-50"
+                                        type="button">−</button>
+                                    <span
+                                        class="w-8 h-8 flex items-center justify-center text-gray-900 font-semibold text-base select-none">{{
+                                            searchParams.rooms }}</span>
+                                    <button @click.stop="updateGuests('rooms', 1)"
+                                        class="w-8 h-8 rounded-md bg-white text-blue-600 font-bold border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                        type="button">+</button>
+                                </div>
+                            </div>
+                            <p v-if="guestsError" class="text-red-500 text-xs mt-3 text-center">{{ guestsError }}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <template v-if="hotels.length > 0">
-                <div
-                    :class="viewMode === 'list' ? 'space-y-4' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'">
-                    <HotelCard v-for="hotel in hotels" :key="hotel.id" :view-mode="viewMode" :image="hotel.image"
-                        :images="hotel.images" :alt="hotel.title" :location="hotel.location" :title="hotel.title"
-                        :stars="hotel.stars" :rating="hotel.rating" :full-address="hotel.fullAddress"
-                        :reviews="hotel.reviews" :details="hotel.details" :amenities="hotel.amenities"
-                        :original-price="hotel.originalPrice" :price="hotel.price"
-                        :is-favorited="favoritedHotels.has(hotel.id)" @click="goToDetail(hotel.id)"
-                        @toggle-favorite="toggleFavorite(hotel.id)" />
+                    <button aria-label="Search"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 font-bold transition flex items-center justify-center rounded-b-md md:rounded-l-none md:rounded-r-md"
+                        @click="onSearch">
+                        <i class="fas fa-search"></i>
+                    </button>
                 </div>
-
-                <div v-if="totalPages > 1" aria-label="Pagination"
-                    class="flex justify-center items-center space-x-2 mt-8 mb-3 text-gray-700 text-sm select-none">
-                    <button aria-label="Previous page"
-                        class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
-                        :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }" :disabled="currentPage === 1"
-                        @click="goToPage(currentPage - 1)"><i class="fas fa-chevron-left"></i></button>
-                    <template v-for="page in pagesToShow" :key="page">
-                        <span v-if="typeof page === 'string'" class="px-2">...</span>
-                        <button v-else :aria-current="currentPage === page ? 'page' : null" :class="[
-                            'rounded-full w-8 h-8 flex items-center justify-center font-semibold',
-                            currentPage === page ?
-                                'bg-indigo-600 text-white shadow-md'
-                                : 'hover:bg-indigo-100 hover:text-indigo-600'
-                        ]" @click="goToPage(page)">
-                            {{ page }}
-                        </button>
-                    </template>
-                    <button aria-label="Next page"
-                        class="hover:text-white hover:bg-indigo-600 border border-gray-300 w-8 h-8 rounded-full transition flex items-center justify-center"
-                        :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
-                        :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)"><i
-                            class="fas fa-chevron-right"></i></button>
-                </div>
-            </template>
-            <div v-else class="text-center py-16 bg-gray-50 rounded-lg">
-                <i class="fas fa-search-dollar text-5xl text-gray-400 mb-4"></i>
-                <p class="text-xl font-semibold text-gray-700">Không tìm thấy khách sạn phù hợp</p>
-                <p class="text-gray-500 mt-2">Vui lòng thử thay đổi khoảng giá hoặc các bộ lọc khác của bạn.</p>
             </div>
         </div>
-    </main>
+
+        <main class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-x-8 gap-y-6">
+            <aside class="pt-7 pb-5">
+                <FilterSidebar v-model:filters="activeFilters" />
+            </aside>
+
+            <div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pt-7">
+                    <h1 class="font-bold text-gray-800">
+                        <span class="block text-base">{{ locationDisplay }}</span>
+                        <span class="block text-xs font-normal text-gray-600">{{ hotelCountDisplay }}</span>
+                    </h1>
+                    <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+                        <span class="text-xs font-medium text-gray-600 mr-2 whitespace-nowrap">Xếp theo:</span>
+                        <CustomSelect v-model="sortKey" :options="sortOptions" class="w-28"
+                            @update:modelValue="onFilterOrSortChange" />
+                        <div class="border-l border-gray-200 h-8 mx-2 w-10"></div>
+                        <span class="text-xs font-medium text-gray-600">Xem:</span>
+                        <div class="flex items-center bg-gray-100 rounded-full p-0.5">
+                            <button @click="viewMode = 'list'"
+                                :class="viewMode === 'list' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500 hover:text-gray-800'"
+                                class="w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200"
+                                aria-label="Chế độ xem danh sách"><i class="fas fa-list fa-fw text-sm"></i></button>
+                            <button @click="viewMode = 'grid'"
+                                :class="viewMode === 'grid' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500 hover:text-gray-800'"
+                                class="w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200"
+                                aria-label="Chế độ xem lưới"><i class="fas fa-th-large fa-fw text-sm"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <template v-if="hotels.length > 0">
+                    <div
+                        :class="viewMode === 'list' ? 'space-y-4 flex flex-col items-center' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'">
+                        <HotelCard v-for="hotel in hotels" :key="hotel.id" :view-mode="viewMode" :image="hotel.image"
+                            :images="hotel.images" :alt="hotel.title" :location="hotel.location" :title="hotel.title"
+                            :stars="hotel.stars" :rating="hotel.rating" :full-address="hotel.fullAddress"
+                            :reviews="hotel.reviews" :details="hotel.details" :amenities="hotel.amenities"
+                            :original-price="hotel.originalPrice" :price="hotel.price"
+                            :is-favorited="favoritedHotels.has(hotel.id)" @click="goToDetail(hotel.id)"
+                            @toggle-favorite="toggleFavorite(hotel.id)" />
+                    </div>
+                </template>
+                <div v-else class="text-center py-16 bg-gray-50 rounded-lg">
+                    <i class="fas fa-search-dollar text-5xl text-gray-400 mb-4"></i>
+                    <p class="text-xl font-semibold text-gray-700">Không tìm thấy khách sạn phù hợp</p>
+                    <p class="text-gray-500 mt-2">Vui lòng thử thay đổi khoảng giá hoặc các bộ lọc khác của bạn.</p>
+                </div>
+            </div>
+        </main>
+    </div>
 </template>
 
 <script setup>
@@ -214,7 +186,7 @@ import HotelCard from '@/components/Hotel/HotelCard.vue'
 import FilterSidebar from '@/components/Hotel/FilterSidebar.vue'
 import CustomSelect from '@/components/CustomSelect.vue'
 import { searchHotels } from '@/api/hotelApi.js'
-import { getAllProvinces } from '@/api/provinceApi'
+import { getAllProvinces } from '@/api/provinceApi.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -368,7 +340,6 @@ function onSearch() {
         numAdults: searchParams.value.adults,
         numChildren: searchParams.value.children,
         rooms: searchParams.value.rooms,
-        page: 1
     }
     router.push({ query })
 }
@@ -406,8 +377,6 @@ const activeFilters = ref({ starRating: 0, priceRange: [0, 20000000], amenities:
 const sortKey = ref('default')
 const viewMode = ref('list')
 
-const currentPage = ref(1);
-const totalPages = ref(1); 
 const totalHotels = ref(0);
 
 const locationDisplay = computed(() => {
@@ -422,25 +391,8 @@ const hotelCountDisplay = computed(() => {
     return `${count} nơi lưu trú được tìm thấy`;
 });
 
-const pagesToShow = computed(() => {
-    const maxD = 5, p = [], tp = totalPages.value, cp = currentPage.value
-    if (tp <= maxD + 2) {
-        for (let i = 1; i <= tp; i++) p.push(i)
-    } else {
-        p.push(1)
-        if (cp > 3) p.push('...')
-        let start = Math.max(2, cp - 1), end = Math.min(tp - 1, cp + 1)
-        if (cp <= 3) { start = 2; end = 4 }
-        if (cp >= tp - 2) { start = tp - 3; end = tp - 1 }
-        for (let i = start; i <= end; i++) p.push(i)
-        if (cp < tp - 2) p.push('...')
-        p.push(tp)
-    }
-    return [...new Set(p)]
-})
-
 function onFilterOrSortChange() {
-    const query = { ...route.query, page: 1 };
+    const query = { ...route.query };
     if (activeFilters.value.starRating > 0) query.minStarRating = activeFilters.value.starRating; else delete query.minStarRating;
     query.minPrice = activeFilters.value.priceRange[0];
     query.maxPrice = activeFilters.value.priceRange[1];
@@ -457,7 +409,6 @@ watch(sortKey, onFilterOrSortChange);
 
 const fetchHotels = async (queryParams) => {
     try {
-        const itemsPerPage = 6;
         let amenitiesToSend = '';
         if (queryParams.amenities) {
             amenitiesToSend = queryParams.amenities;
@@ -476,8 +427,8 @@ const fetchHotels = async (queryParams) => {
             checkOutDate: actualCheckOutDate,
             numAdults: queryParams.numAdults,
             numChildren: queryParams.numChildren,
-            page: currentPage.value - 1,
-            size: itemsPerPage,
+            page: 0,
+            size: 1000, // Hiển thị tất cả khách sạn
             minStarRating: queryParams.minStarRating || null,
             minPrice: queryParams.minPrice || 0,
             maxPrice: queryParams.maxPrice || 20000000,
@@ -488,7 +439,6 @@ const fetchHotels = async (queryParams) => {
         if (response.data?.statusCode === 200) {
             const pageData = response.data.data;
             const hotelDtos = pageData.content;
-            totalPages.value = pageData.totalPages;
             totalHotels.value = pageData.totalElements;
             hotels.value = hotelDtos.map(h => ({
                 id: h.id,
@@ -507,7 +457,6 @@ const fetchHotels = async (queryParams) => {
             }));
         } else {
             hotels.value = [];
-            totalPages.value = 1;
             totalHotels.value = 0;
         }
     } catch (error) { }
@@ -550,17 +499,8 @@ watch(() => route.query, q => {
 
     sortKey.value = q.sortBy || 'default';
 
-    currentPage.value = Number(q.page) || 1;
-
     fetchHotels(q);
 }, { immediate: true, deep: true })
-
-function goToPage(pg) {
-    if (pg >= 1 && pg <= totalPages.value) {
-        currentPage.value = pg
-        router.push({ query: { ...route.query, page: pg } })
-    }
-}
 
 function goToDetail(id) {
     router.push({ name: 'HotelDetail', params: { id }, query: route.query })
@@ -577,10 +517,10 @@ const toggleFavorite = (hotelId) => {
 };
 
 const sortOptions = [
-  { label: 'Mặc định', value: 'default' },
-  { label: 'Giá thấp nhất', value: 'priceAsc' },
-  { label: 'Giá cao nhất', value: 'priceDesc' },
-  { label: 'Đánh giá cao nhất', value: 'ratingDesc' }
+    { label: 'Mặc định', value: 'default' },
+    { label: 'Giá thấp nhất', value: 'priceAsc' },
+    { label: 'Giá cao nhất', value: 'priceDesc' },
+    { label: 'Đánh giá cao nhất', value: 'ratingDesc' }
 ];
 </script>
 

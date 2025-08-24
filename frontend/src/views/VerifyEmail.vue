@@ -117,7 +117,6 @@ const onBackspace = (index, event) => {
 const submitCode = async () => {
   const fullCode = code.value.join("");
 
-  // Check if all digits are filled
   if (fullCode.length !== 6 || code.value.some(d => !/^\d$/.test(d))) {
     otpError.value = "Please enter all 6 digits of the verification code.";
     return;
@@ -130,6 +129,7 @@ const submitCode = async () => {
     email: email.value
   }
   const res = await AuthApi.verifyAccount(request);
+  console.log("Verify acc res",res)
   if (res["errorCode"] === ErrorCodes.otpNotMatch) {
     otpError.value = "Invalid OTP!!!"
     loadingStore.stopLoading();
@@ -146,8 +146,7 @@ const submitCode = async () => {
     return;
   }
   otpError.value = "";
-  saveAccessToken(res.accessToken);
-  userStore.login();
+  userStore.login(null,res.accessToken);
   await router.push("/");
   loadingStore.stopLoading();
 };

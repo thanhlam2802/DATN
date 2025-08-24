@@ -14,6 +14,8 @@ public interface HotelService {
 
     HotelDetailDto getHotelDetails(Integer hotelId, HotelSearchRequestDto requestDto);
 
+    HotelDetailDto getHotelDetailsForAdmin(Integer hotelId, HotelSearchRequestDto requestDto);
+
     List<ReviewDto> getReviewsForHotel(Integer hotelId);
 
     HotelDetailDto createHotel(HotelDetailDto hotelDto, List<MultipartFile> images,
@@ -26,4 +28,14 @@ public interface HotelService {
     void deleteHotel(Integer id);
 
     void createHotelReview(Integer hotelId, String email, Integer rating, String content);
+
+    List<HotelDto> getPopularHotelsByBookings(int size);
+    
+    void approveHotel(Integer id);
+    
+    void rejectHotel(Integer id, String reason);
+    
+    void resubmitHotel(Integer id);
+    
+    void updateHotelStatus(Integer id, String status);
 }

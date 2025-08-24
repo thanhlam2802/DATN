@@ -105,6 +105,27 @@ public class HotelServiceImpl implements HotelService {
         Hotel hotel = hotelDAO.findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId));
 
+        if (!"APPROVED".equals(hotel.getApprovalStatus()) || !"ACTIVE".equals(hotel.getStatus())) {
+            throw new ResourceNotFoundException("Khách sạn này không khả dụng");
+        }
+
+        Double rating = reviewDAO.getAverageRatingByEntity("Hotel", hotelId);
+        Integer reviewCount = reviewDAO.countByEntity("Hotel", hotelId);
+
+        Set<Integer> bookedVariantIds = getBookedVariantIds(hotelId, requestDto);
+
+        return HotelDetailDto.fromEntity(
+                hotel,
+                rating != null ? rating : 0.0,
+                reviewCount != null ? reviewCount : 0,
+                bookedVariantIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public HotelDetailDto getHotelDetailsForAdmin(Integer hotelId, HotelSearchRequestDto requestDto) {
+        Hotel hotel = hotelDAO.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId));
         Double rating = reviewDAO.getAverageRatingByEntity("Hotel", hotelId);
         Integer reviewCount = reviewDAO.countByEntity("Hotel", hotelId);
 
@@ -120,9 +141,14 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Transactional(readOnly = true)
     public List<ReviewDto> getReviewsForHotel(Integer hotelId) {
-        if (!hotelDAO.existsById(hotelId)) {
-            throw new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId);
+        Hotel hotel = hotelDAO.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId));
+
+        // Check if hotel is approved and active for public access
+        if (!"APPROVED".equals(hotel.getApprovalStatus()) || !"ACTIVE".equals(hotel.getStatus())) {
+            throw new ResourceNotFoundException("Khách sạn này không khả dụng");
         }
+
         List<Review> reviews = reviewDAO.findByEntityTypeAndEntityId("Hotel", hotelId);
         return reviews.stream().map(ReviewDto::fromEntity).collect(Collectors.toList());
     }
@@ -311,6 +337,9 @@ public class HotelServiceImpl implements HotelService {
             Province province = new Province();
             province.setId(hotelDto.getProvinceId());
             hotel.setProvince(province);
+        }
+        if (hotelDto.getStatus() != null) {
+            hotel.setStatus(hotelDto.getStatus());
         }
         hotel.setUpdatedAt(java.time.LocalDateTime.now());
         hotel = hotelDAO.save(hotel);
@@ -635,9 +664,12 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Transactional
     public void createHotelReview(Integer hotelId, String email, Integer rating, String content) {
-        if (!hotelDAO.existsById(hotelId)) {
-            throw new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId);
+        Hotel hotel = hotelDAO.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + hotelId));
+        if (!"APPROVED".equals(hotel.getApprovalStatus()) || !"ACTIVE".equals(hotel.getStatus())) {
+            throw new ResourceNotFoundException("Khách sạn này không khả dụng");
         }
+
         var userOpt = userDAO.findByEmail(email);
         if (userOpt.isEmpty()) {
             throw new ResourceNotFoundException("Không tìm thấy user với email: " + email);
@@ -694,5 +726,64 @@ public class HotelServiceImpl implements HotelService {
             return null;
         String temp = java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD);
         return temp.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HotelDto> getPopularHotelsByBookings(int size) {
+        return hotelDAO.findPopularHotelsByBookings(size);
+    }
+
+    @Override
+    @Transactional
+    public void approveHotel(Integer id) {
+        Hotel hotel = hotelDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + id));
+        
+        hotel.setApprovalStatus("APPROVED");
+        hotel.setApprovedAt(java.time.LocalDateTime.now());
+        hotel.setApprovedBy("SUPER_ADMIN");
+        
+        hotelDAO.save(hotel);
+    }
+
+    @Override
+    @Transactional
+    public void rejectHotel(Integer id, String reason) {
+        Hotel hotel = hotelDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + id));
+        
+        hotel.setApprovalStatus("REJECTED");
+        hotel.setApprovalReason(reason);
+        hotel.setApprovedAt(java.time.LocalDateTime.now());
+        hotel.setApprovedBy("SUPER_ADMIN");
+        
+        hotelDAO.save(hotel);
+    }
+
+    @Override
+    @Transactional
+    public void resubmitHotel(Integer id) {
+        Hotel hotel = hotelDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + id));
+        
+        hotel.setApprovalStatus("PENDING");
+        hotel.setApprovalReason(null);
+        hotel.setApprovedAt(null);
+        hotel.setApprovedBy(null);
+        
+        hotelDAO.save(hotel);
+    }
+
+    @Override
+    @Transactional
+    public void updateHotelStatus(Integer id, String status) {
+        Hotel hotel = hotelDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách sạn với ID: " + id));
+        
+        hotel.setStatus(status);
+        hotel.setUpdatedAt(java.time.LocalDateTime.now());
+        
+        hotelDAO.save(hotel);
     }
 }

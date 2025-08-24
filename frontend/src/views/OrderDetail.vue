@@ -50,7 +50,6 @@ const isAwaitingPaymentAfterVoucher = ref(false); // Flag to chain payment after
 // --- END: NEW STATE FOR VOUCHER PREVIEW ---
 
 // --- STATE CHO WEBSOCKET ---
-const stompClient = ref(null);
 const isSocketConnected = ref(false);
 
 const timeLeft = ref(0);
@@ -756,23 +755,46 @@ async function submitPayment() {
 
   isPaying.value = true;
 
+  // ✅ DEBUG: Log current state
+  console.log("💰 submitPayment called with current state:", {
+    voucherCode: voucherCode.value,
+    previewedVoucher: { ...previewedVoucher },
+    orderVoucher: order.value?.voucher
+  });
+
   // If a valid voucher is being previewed, apply it for real first.
   if (
     previewedVoucher.code &&
+    previewedVoucher.code.trim() !== "" &&
     previewedVoucher.discountAmount > 0 &&
     !order.value.voucher
   ) {
-    if (!stompClient.value || !isSocketConnected.value) {
+    console.log("📋 Attempting to apply voucher:", previewedVoucher.code);
+    
+    if (!wsConnection.value || !isSocketConnected.value) {
       window.$toast("Lỗi kết nối real-time. Vui lòng thử lại.", "error");
       isPaying.value = false;
       return;
     }
+    
+    // ✅ Double check voucher code before sending
+    if (!previewedVoucher.code || previewedVoucher.code.trim() === "") {
+      window.$toast("Mã voucher không hợp lệ. Vui lòng thử lại.", "error");
+      isPaying.value = false;
+      return;
+    }
+    
     isAwaitingPaymentAfterVoucher.value = true;
     isApplyingVoucher.value = true; // Show loading state
-    stompClient.value.send(
+    
+    console.log("🚀 Sending voucher application via WebSocket:", {
+      orderId: order.value.id,
+      voucherCode: previewedVoucher.code
+    });
+    
+    wsConnection.value.send(
       `/app/orders/${order.value.id}/apply-voucher`,
-      {},
-      JSON.stringify({ voucherCode: previewedVoucher.code })
+      { voucherCode: previewedVoucher.code.trim() }
     );
     // The flow will now wait for handleVoucherResponse to continue.
   } else {
@@ -921,7 +943,6 @@ async function openRefundDialog() {
   if (order.value.flightBookings && order.value.flightBookings.length > 0) {
     console.log("trong if");
     for (const booking of order.value.flightBookings) {
-
       const flightdetail = await getFlightDetail(booking.flightId);
       if (flightdetail.data.departureTime) {
         const departureTime = new Date(flightdetail.data.departureTime);
@@ -936,20 +957,19 @@ async function openRefundDialog() {
     }
   }
 
-  // Check hotel bookings
-  // if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
-  //   for (const booking of order.value.hotelBookings) {
-  //     if (booking.checkInDate) {
-  //       const checkInDate = new Date(booking.checkInDate);
-  //       const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
+  if (order.value.hotelBookings && order.value.hotelBookings.length > 0) {
+    for (const booking of order.value.hotelBookings) {
+      if (booking.checkInDate) {
+        const checkInDate = new Date(booking.checkInDate);
+        const timeUntilCheckIn = checkInDate.getTime() - now.getTime();
 
-  //       if (timeUntilCheckIn <= oneDayInMs) {
-  //         const remainingTime = formatRemainingTime(timeUntilCheckIn);
-  //         validationErrors.push(`Khách sạn ${booking.hotelName || 'N/A'} nhận phòng trong ${remainingTime}. Không thể hủy đặt phòng.`);
-  //       }
-  //     }
-  //   }
-  // }
+        if (timeUntilCheckIn <= oneDayInMs) {
+          const remainingTime = formatRemainingTime(timeUntilCheckIn);
+          validationErrors.push(`Khách sạn ${booking.hotelName || 'N/A'} nhận phòng trong ${remainingTime}. Không thể hủy đặt phòng.`);
+        }
+      }
+    }
+  }
 
   // Check tour bookings
   // if (order.value.tourBookings && order.value.tourBookings.length > 0) {
@@ -1072,6 +1092,7 @@ async function confirmRefundOtp() {
           console.error('Lỗi khi cập nhật trạng thái đơn hàng');
         }
       } catch (e) {
+        
         console.error('Lỗi khi gọi API cập nhật trạng thái đơn hàng:', e);
       }
 
@@ -1111,6 +1132,9 @@ watch(showRefundDialog, val => {
  */
 const previewVoucherDiscount = () => {
   const code = voucherCode.value.trim().toUpperCase();
+  console.log("🎯 Preview voucher - original input:", voucherCode.value);
+  console.log("🎯 Preview voucher - processed code:", code);
+  
   if (!code) {
     previewedVoucher.code = "";
     previewedVoucher.discountAmount = 0;
@@ -1152,6 +1176,12 @@ const previewVoucherDiscount = () => {
   previewedVoucher.discountAmount = discount;
   previewedVoucher.newTotal = originalAmount - discount;
   previewedVoucher.error = null;
+  
+  console.log("✅ Voucher preview set successfully:", {
+    code: previewedVoucher.code,
+    discountAmount: previewedVoucher.discountAmount,
+    newTotal: previewedVoucher.newTotal
+  });
 
   // Update the payment amount field automatically for better UX
   bankTransfer.amount = previewedVoucher.newTotal;
@@ -1231,6 +1261,32 @@ const handleDeleteItem = async () => {
       }
     }
 
+    if (itemType === 'HOTEL') {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/hotels/bookings/${itemId}/cancel`,
+          { 
+            method: "POST", 
+            headers: { 
+              Authorization: getBearerToken(),
+              'Content-Type': 'application/json'
+            } 
+          }
+        );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Không thể hủy đặt phòng khách sạn.");
+        }
+        console.log('Đã hủy hotel booking thành công');
+      } catch (error) {
+        if (error.message && (error.message.includes('already cancelled') || error.message.includes('already expired'))) {
+          console.log('Hotel booking đã được hủy trước đó');
+        } else {
+          throw error;
+        }
+      }
+    }
+
     // ✅ STEP 2: Xóa item khỏi cart
     const response = await fetch(
       `http://localhost:8080/api/v1/cart/items?orderId=${order.value.id}&itemId=${itemId}&itemType=${itemType}`,
@@ -1252,7 +1308,7 @@ const handleDeleteItem = async () => {
       'BUS': '🚌 Đã hủy vé xe và xóa khỏi đơn hàng thành công! Ghế đã được giải phóng.',
       'TOUR': '🏔️ Đã xóa tour khỏi đơn hàng thành công!',
       'FLIGHT': '✈️ Đã xóa chuyến bay khỏi đơn hàng thành công!',
-      'HOTEL': '🏨 Đã xóa phòng khách sạn khỏi đơn hàng thành công!'
+      'HOTEL': '🏨 Đã hủy đặt phòng khách sạn và xóa khỏi đơn hàng thành công! Phòng đã được hoàn trả.'
     };
 
     const message = successMessages[itemType] || "Đã xóa dịch vụ thành công.";

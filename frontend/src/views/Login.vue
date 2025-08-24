@@ -181,6 +181,7 @@ const submitForm = async () => {
   try {
     loadingStore.startLoading();
     const res = await AuthApi.login(loginRequest);
+    console.log(res);
 
     if (res["errorCode"] === ErrorCodes.userNotVerified) {
       console.log("Not verified");

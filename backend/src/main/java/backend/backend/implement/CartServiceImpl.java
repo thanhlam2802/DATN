@@ -14,11 +14,10 @@ import backend.backend.service.FlightBookingService;
 import backend.backend.service.HotelBookingService;
 import backend.backend.dto.Hotel.HotelBookingRequestDto;
 import backend.backend.controller.AdminWebSocketController;
+import backend.backend.dao.Hotel.HotelRoomVariantDAO;
 
 import backend.backend.service.busService.BusBookingService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j;
-import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -40,6 +38,7 @@ public class CartServiceImpl implements CartService {
      private  final UserDAO userDAO;
      private  final FlightBookingDAO flightBookingDAO;
      private  final HotelBookingDAO hotelBookingDAO;
+     private  final HotelRoomVariantDAO hotelRoomVariantDAO;
      private  final BusBookingDAO busBookingDAO;
      private  final BookingTourDAO bookingTourDAO;
      private  final  BookingTourService tourBookingService;
@@ -258,13 +257,21 @@ public class CartServiceImpl implements CartService {
             }
       
             case HOTEL: {
+                HotelRoomVariant variant = hotelRoomVariantDAO.findById(genericRequest.getRoomId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin phòng"));
+                
+                if (!"APPROVED".equals(variant.getRoom().getHotel().getApprovalStatus()) || 
+                    !"ACTIVE".equals(variant.getRoom().getHotel().getStatus())) {
+                    throw new IllegalArgumentException("Khách sạn này không khả dụng để thêm vào giỏ hàng");
+                }
+                
                 HotelBookingRequestDto hotelRequest = new HotelBookingRequestDto();
                 User user = order.getUser();
                 
-//                hotelRequest.setFullName(genericRequest.getFullName());
-//                hotelRequest.setEmail(genericRequest.getEmail());
-//                hotelRequest.setPhone(genericRequest.getPhone());
-//
+                hotelRequest.setFullName(genericRequest.getFullName());
+                hotelRequest.setEmail(genericRequest.getEmail());
+                hotelRequest.setPhone(genericRequest.getPhone());
+
                 hotelRequest.setRoomVariantId(genericRequest.getRoomId());
                 hotelRequest.setCheckInDate(genericRequest.getCheckInDate() != null ? genericRequest.getCheckInDate().toString() : null);
                 hotelRequest.setCheckOutDate(genericRequest.getCheckOutDate() != null ? genericRequest.getCheckOutDate().toString() : null);

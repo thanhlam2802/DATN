@@ -3,13 +3,10 @@ package backend.backend.controller;
 import backend.backend.dao.BusBookingDAO;
 import backend.backend.dao.UserDAO;
 import backend.backend.dto.ApplyVoucherRequest;
-import backend.backend.dto.BusDTO.DirectBusReservationRequestDto;
 import backend.backend.dto.CheckoutDto;
 import backend.backend.dto.DirectTourReservationRequestDto;
 import backend.backend.dto.OrderDto; 
 import backend.backend.entity.ApiResponse;
-import backend.backend.entity.BusBooking;
-import backend.backend.entity.enumBus.BusBookingStatus;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
 import backend.backend.service.busService.BusBookingService;
@@ -22,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -132,5 +128,23 @@ public class OrderController {
         // Giả sử OrderService có phương thức applyVoucherToOrder
         OrderDto updatedOrder = orderService.applyVoucherToOrder(id, request.getVoucherCode());
         return ResponseFactory.success(updatedOrder, "Áp dụng mã giảm giá thành công.");
+    }
+
+    @PutMapping("/{orderId}/cancel-after-refund")
+    public ResponseEntity<ApiResponse<String>> cancelOrderAfterRefund(@PathVariable Integer orderId) {
+        logger.info("Bắt đầu xử lý hủy đơn hàng sau khi hoàn tiền cho Order ID: {}", orderId);
+        
+        try {
+            // Gọi service để xử lý logic hủy đơn hàng và các booking liên quan
+            orderService.cancelOrderAfterRefund(orderId);
+            
+            logger.info("Đã hủy đơn hàng {} thành công sau khi hoàn tiền", orderId);
+            return ResponseFactory.success("OK", "Đã hủy đơn hàng thành công sau khi hoàn tiền. Trạng thái đã được cập nhật thành REFUNDED.");
+            
+        } catch (Exception e) {
+            logger.error("Lỗi khi hủy đơn hàng {} sau khi hoàn tiền: {}", orderId, e.getMessage());
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, 
+                "Không thể hủy đơn hàng sau khi hoàn tiền: " + e.getMessage(), null);
+        }
     }
 }

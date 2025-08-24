@@ -16,7 +16,7 @@ import backend.backend.entity.HotelRoomVariant;
 import backend.backend.entity.HotelRoom;
 import backend.backend.service.OrderCleanupService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import backend.backend.controller.AdminWebSocketController;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -42,13 +41,13 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
     private final FlightBookingService flightBookingService;
    
 
-    private SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationEventPublisher publisher;
+    private final AdminWebSocketController adminWebSocketController;
     
-   
-    private AdminWebSocketController adminWebSocketController;
-    
-    @Scheduled(fixedRate = 300000)
-    @Transactional
+//    @Scheduled(fixedRate = 300000)
+@Scheduled(fixedDelay = 30000)
+@Transactional
     public void cancelExpiredOrders() {
         System.out.println("Running scheduled task to cancel expired orders...");
         List<Order> expiredOrders = orderDAO.findAllByStatusAndExpiresAtBefore("PENDING_PAYMENT", LocalDateTime.now());
@@ -94,9 +93,11 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
                 }
                 handleExpireBusBooking(order);
                 order.setStatus("CANCELLED");
+                publisher.publishEvent(order);
             }
             handleExpiredBusBookings();
             orderDAO.saveAll(expiredOrders);
+
             System.out.println("Cancelled " + expiredOrders.size() + " expired orders.");
         }
 

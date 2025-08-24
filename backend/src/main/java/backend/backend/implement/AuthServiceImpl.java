@@ -85,6 +85,7 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", newUser.getEmail());
         params.put("userId", newUser.getId().toString());
+        params.put("userName", newUser.getName());
         otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
 
         JwtResultDto jwtResultDto = new JwtResultDto();
@@ -136,6 +137,7 @@ public class AuthServiceImpl implements AuthService {
             Map<String, String> params = new HashMap<>();
             params.put("toEmail", user.getEmail());
             params.put("userId", user.getId().toString());
+            params.put("userName",user.getName());
             otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
             throw new BadRequestException("User is not verified", ErrorCode.AUTH_007);
         }
@@ -161,23 +163,6 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("User not found", ErrorCode.AUTH_002);
         }
         return user.get();
-    }
-
-    @Override
-    @Transactional
-    public JwtResultDto updatePassword(UpdatePasswordRequestDto updatePasswordRequestDto) {
-        String email = SecurityUtil.getCurrentUserEmail();
-        User user = getUserByEmail(email);
-        String oldPassword = updatePasswordRequestDto.getOldPassword();
-        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            throw new BadRequestException("Password is not match", ErrorCode.AUTH_005);
-        }
-        user.setPasswordHash(passwordEncoder.encode(updatePasswordRequestDto.getNewPassword()));
-        user = userRepository.save(user);
-        JwtResultDto jwtResultDto = new JwtResultDto();
-        jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
-        jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));
-        return jwtResultDto;
     }
 
     @Override
@@ -249,6 +234,7 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", user.getEmail());
         params.put("userId", user.getId().toString());
+        params.put("userName", user.getName());
         otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
     }
 

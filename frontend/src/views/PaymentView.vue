@@ -4,6 +4,7 @@ import { useRoute } from "vue-router";
 import { servicePaymentMake, servicePaymentConfirm, accountLookup } from '@/api/coreBankingApi';
 import { markOrderSuccess } from '@/api/OrderApi'
 import { notifyPaymentSuccess } from '@/api/hotelApi';
+import { getBearerToken } from '@/services/TokenService';
 
 /// — Route & Order details + Countdown —
 const route = useRoute();
@@ -18,11 +19,23 @@ const seconds = computed(() => timeLeft.value % 60);
 
 const fetchOrderDetails = async () => {
   try {
-    const res = await fetch(`http://localhost:8080/api/v1/orders/${orderId}`);
+    const res = await fetch(`http://localhost:8080/api/v1/orders/${orderId}`, {
+      headers: {
+        'Authorization': getBearerToken(),
+        'Content-Type': 'application/json'
+      }
+    });
     const json = await res.json();
+    
     if (res.ok) {
       orderDetails.value = json.data;
-      startCountdown(json.data.expiresAt);
+      
+      if (!json.data.expiresAt) {
+        const testExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        startCountdown(testExpiresAt);
+      } else {
+        startCountdown(json.data.expiresAt);
+      }
     } else {
       console.error("Lỗi khi lấy đơn hàng:", json.message);
     }
@@ -32,12 +45,39 @@ const fetchOrderDetails = async () => {
 };
 
 const startCountdown = expiresAt => {
-  if (!expiresAt) return;
-  const expireMs = new Date(expiresAt).getTime();
+  if (!expiresAt) {
+    return;
+  }
+  
+  let expireDate;
+  if (typeof expiresAt === 'string') {
+    expireDate = new Date(expiresAt);
+  } else if (expiresAt instanceof Date) {
+    expireDate = expiresAt;
+  } else {
+    console.error('Invalid expiresAt format:', expiresAt);
+    return;
+  }
+  
+  const expireMs = expireDate.getTime();
+  const currentMs = Date.now();
+  
+  const initialRem = Math.round((expireMs - currentMs) / 1000);
+  
+  if (initialRem <= 0) {
+    timeLeft.value = 0;
+    hasExpired.value = true;
+    return;
+  }
+  
+  timeLeft.value = initialRem;
+  
   timerInterval.value = setInterval(() => {
     const rem = Math.round((expireMs - Date.now()) / 1000);
-    if (rem > 0) timeLeft.value = rem;
-    else {
+    
+    if (rem > 0) {
+      timeLeft.value = rem;
+    } else {
       timeLeft.value = 0;
       hasExpired.value = true;
       clearInterval(timerInterval.value);
@@ -210,7 +250,6 @@ async function submitPayment() {
 }
 
 async function confirmOtp() {
-  console.log('confirmOtp');
   if (!otp.value || !paymentId.value) return;
   isConfirming.value = true;
   otpError.value = '';
@@ -224,7 +263,6 @@ async function confirmOtp() {
 
       try {
         await markOrderSuccess(orderId, res.data.transactionId);
-        console.log(orderId,res.data.transactionId);
         await notifyPaymentSuccess(orderId, orderDetails.value.amount);
       } catch (e) {
         window.$toast(e.message || 'Cập nhật trạng thái đơn hàng thất bại!', 'error');

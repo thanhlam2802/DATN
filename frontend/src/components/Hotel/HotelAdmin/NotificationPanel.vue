@@ -244,10 +244,8 @@ const connectWebSocket = () => {
   if (stompClient.value && isConnected.value) return;
 
   const socket = new SockJS("http://localhost:8080/ws");
-  stompClient.value = Stomp.over(() => socket);
-  stompClient.value.debug = function (str) {
-    // Silent debug
-  };
+  stompClient.value = Stomp.over(socket);
+  stompClient.value.debug = null;
 
   stompClient.value.connect({}, (frame) => {
     console.log("WebSocket Connected for Admin Dashboard:", frame);

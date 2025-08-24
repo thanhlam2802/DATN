@@ -1,7 +1,8 @@
 package backend.backend.controller;
 
+import backend.backend.dto.OrderInfoDto;
+import backend.backend.service.OrderService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.List;
 import java.math.BigDecimal;
 import java.util.Map;
 
@@ -19,51 +22,56 @@ public class WebSocketController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
+    @Autowired
+    private OrderService orderService;
     @Autowired
     private ObjectMapper objectMapper;
 
     @MessageMapping("/hotel/room-booking")
-    @SendTo("/topic/hotels/{hotelId}/booking-notifications")
-    public Map<String, Object> handleHotelRoomBooking(Map<String, Object> bookingNotification) {
+    public void handleHotelRoomBooking(Map<String, Object> bookingNotification) {
         try {
             logger.info("Received hotel room booking notification: {}", bookingNotification);
 
-            Integer hotelId = (Integer) bookingNotification.get("hotelId");
+            Object hotelIdObj = bookingNotification.get("hotelId");
+            Integer hotelId = null;
+            
+            if (hotelIdObj instanceof String) {
+                hotelId = Integer.valueOf((String) hotelIdObj);
+            } else if (hotelIdObj instanceof Integer) {
+                hotelId = (Integer) hotelIdObj;
+            }
+            
             if (hotelId != null) {
                 messagingTemplate.convertAndSend(
                         "/topic/hotels/" + hotelId + "/booking-notifications",
                         bookingNotification);
             }
-
-            return bookingNotification;
         } catch (Exception e) {
             logger.error("Error handling hotel room booking notification", e);
-            Map<String, Object> errorResponse = new java.util.HashMap<>();
-            errorResponse.put("error", "Failed to process booking notification");
-            return errorResponse;
         }
     }
 
     @MessageMapping("/hotel/room-update")
-    @SendTo("/topic/hotels/{hotelId}/room-updates")
-    public Map<String, Object> handleRoomUpdate(Map<String, Object> roomUpdate) {
+    public void handleRoomUpdate(Map<String, Object> roomUpdate) {
         try {
             logger.info("Received room update notification: {}", roomUpdate);
 
-            Integer hotelId = (Integer) roomUpdate.get("hotelId");
+            Object hotelIdObj = roomUpdate.get("hotelId");
+            Integer hotelId = null;
+            
+            if (hotelIdObj instanceof String) {
+                hotelId = Integer.valueOf((String) hotelIdObj);
+            } else if (hotelIdObj instanceof Integer) {
+                hotelId = (Integer) hotelIdObj;
+            }
+            
             if (hotelId != null) {
                 messagingTemplate.convertAndSend(
                         "/topic/hotels/" + hotelId + "/room-updates",
                         roomUpdate);
             }
-
-            return roomUpdate;
         } catch (Exception e) {
             logger.error("Error handling room update notification", e);
-            Map<String, Object> errorResponse = new java.util.HashMap<>();
-            errorResponse.put("error", "Failed to process room update");
-            return errorResponse;
         }
     }
 
@@ -72,7 +80,15 @@ public class WebSocketController {
         try {
             logger.info("Received viewer notification: {}", viewerNotification);
 
-            Integer hotelId = (Integer) viewerNotification.get("hotelId");
+            Object hotelIdObj = viewerNotification.get("hotelId");
+            Integer hotelId = null;
+            
+            if (hotelIdObj instanceof String) {
+                hotelId = Integer.valueOf((String) hotelIdObj);
+            } else if (hotelIdObj instanceof Integer) {
+                hotelId = (Integer) hotelIdObj;
+            }
+            
             if (hotelId != null) {
                 messagingTemplate.convertAndSend(
                         "/topic/hotels/" + hotelId + "/viewer-notifications",
@@ -83,7 +99,19 @@ public class WebSocketController {
         }
     }
 
-    // ✅ THÊM: Bus WebSocket endpoints
+    @MessageMapping("/getTop10NewOrders")
+    public void getTop10NewOrders() {
+        try {
+            logger.info("GET_TOP_10_NEW_ORDERS");
+            List<OrderInfoDto> orderInfoDtos = orderService.getTop10NewOrders();
+            logger.info("GET_TOP_10_NEW_ORDERS_DATA {}", orderInfoDtos.size());
+            messagingTemplate.convertAndSend("/topic/getTop10NewOrders", orderInfoDtos);
+        } catch (Exception e) {
+            logger.error("Error handling viewer notification", e);
+        }
+    }
+
+
     @MessageMapping("/bus/status-update")
     public void handleBusStatusUpdate(Map<String, Object> statusUpdate) {
         try {

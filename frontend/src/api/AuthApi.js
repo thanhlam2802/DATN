@@ -1,8 +1,8 @@
 import axios from "axios";
-import { saveAccessToken } from "@/services/TokenService";
+import {saveAccessToken} from "@/services/TokenService";
 
 const apiClient = axios.create({
-    baseURL: "http://localhost:8080/api", // sửa lại nếu baseURL khác
+    baseURL: "http://localhost:8080/api",
     headers: {
         "Content-Type": "application/json",
     },
@@ -15,65 +15,54 @@ export const AuthApi = {
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response?.data?.errorCode || null,
-                error: err.response?.data || err,
+                errorCode: err.response?.data?.errorCode || null, error: err.response?.data || err,
             };
         }
     },
 
     login: async (request) => {
-    try {
-      const res = await apiClient.post("/v1/auth/login", request);
-      if (res.data && res.data.accessToken) {
-        saveAccessToken(res.data.accessToken);
-      }
-      return res.data;
-    } catch (err) {
-      throw err.response?.data || err;
-    }
-  },
-
-    requestResetPassWord: async (request) => {
         try {
-            const res = await apiClient.post(
-                "/v1/auth/forgot-password/request",
-                request
-            );
+            const res = await apiClient.post("/v1/auth/login", request);
+            if (res.data && res.data.accessToken) {
+                saveAccessToken(res.data.accessToken);
+            }
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response?.data?.errorCode || null,
-                error: err.response?.data || err,
+                errorCode: err.response?.data?.errorCode || null, error: err.response?.data || err,
+            };
+        }
+    },
+
+    requestResetPassWord: async (request) => {
+        try {
+            const res = await apiClient.post("/v1/auth/forgot-password/request", request);
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response?.data?.errorCode || null, error: err.response?.data || err,
             };
         }
     },
 
     resetPassWord: async (request) => {
         try {
-            const res = await apiClient.post(
-                "/v1/auth/forgot-password/reset",
-                request
-            );
+            const res = await apiClient.post("/v1/auth/forgot-password/reset", request);
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response?.data?.errorCode || null,
-                error: err.response?.data || err,
+                errorCode: err.response?.data?.errorCode || null, error: err.response?.data || err,
             };
         }
     },
 
     verifyResetPassLink: async (request) => {
         try {
-            const res = await apiClient.post(
-                "/v1/auth/reset-password/verify-link",
-                request
-            );
+            const res = await apiClient.post("/v1/auth/reset-password/verify-link", request);
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response?.data?.errorCode || null,
-                error: err.response?.data || err,
+                errorCode: err.response?.data?.errorCode || null, error: err.response?.data || err,
             };
         }
     },
@@ -84,23 +73,18 @@ export const AuthApi = {
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response?.data?.errorCode || null,
-                error: err.response?.data || err,
+                errorCode: err.response?.data?.errorCode || null, error: err.response?.data || err,
             };
         }
     },
 
     verifyAccountResend: async (request) => {
         try {
-            const res = await apiClient.post(
-                "/v1/auth/verify-account/resend",
-                request
-            );
+            const res = await apiClient.post("/v1/auth/verify-account/resend", request);
             return res.data;
         } catch (err) {
             return {
-                errorCode: err.response?.data?.errorCode || null,
-                error: err.response?.data || err,
+                errorCode: err.response?.data?.errorCode || null, error: err.response?.data || err,
             };
         }
     },

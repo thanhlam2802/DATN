@@ -21,11 +21,7 @@
                     @click="activeTab = tab.id"
                     :class="
                       activeTab === tab.id
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-white/80 hover:bg-white/20 hover:text-white'
-                    "
-                    class="flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 whitespace-nowrap"
-                  >
+                        ? 'bg-white text-blue-600 shadow-sm': 'text-white/80 hover:bg-white/20 hover:text-white'"class="flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 whitespace-nowrap">
                     <i :class="tab.icon"></i>
                     <span>{{ tab.name }}</span>
                   </button>

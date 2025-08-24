@@ -59,7 +59,7 @@ onBeforeUnmount(() => {
     <div class="absolute right-20 -top-4 group-hover:top-1 group-hover:right-2 z-10 w-16 h-16 rounded-full group-hover:scale-150 duration-500 bg-sky-600"></div>
 
     <img src="@/icon/logo.png" alt="logo" class="relative z-20 w-20 h-20 object-contain" />
-    <span class="relative z-20 text-xl ml-3 font-extrabold text-white tracking-wide">TRAVELOKA</span>
+    <span class="relative z-20 text-xl ml-3 font-extrabold text-white tracking-wide">TRAVELAKO</span>
   </router-link>
 </div>
 

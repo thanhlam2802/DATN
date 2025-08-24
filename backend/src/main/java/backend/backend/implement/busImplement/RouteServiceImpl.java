@@ -8,6 +8,7 @@ import backend.backend.dao.UserDAO;
 import backend.backend.dto.BusDTO.CreateLocationInput;
 import backend.backend.dto.BusDTO.CreateRouteRequest;
 import backend.backend.dto.BusDTO.RouteResponse; // Đảm bảo đã import
+import backend.backend.dto.BusDTO.RouteCard;
 import backend.backend.dto.BusDTO.UpdateRouteRequest;
 import backend.backend.entity.Location; // Đảm bảo đã import
 import backend.backend.entity.Route;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors; // THÊM: Import Collectors cho Stream API
@@ -147,5 +149,32 @@ public class RouteServiceImpl implements RouteService {
     public List<Route> getRoutesByOwnerId(Integer ownerId) {
         return routeDAO.findByOwnerId(ownerId);
     }
+    
+    // ✅ THÊM MỚI: Lấy popular routes cho trang chủ - MOCK DATA ĐƠN GIẢN
+    @Override
+    @Transactional(readOnly = true)
+    public List<RouteCard> getPopularRoutes(Integer limit) {
+        // Tạo mock data cho demo nhanh
+        List<RouteCard> mockRoutes = Arrays.asList(
+            new RouteCard(1, "Vũng Tàu", "Hồ Chí Minh", "https://nld.mediacdn.vn/291774122806476800/2024/8/16/tp-65-1723817004792851519414.jpg", 
+                         new java.math.BigDecimal("150000")),
+            new RouteCard(2, "Hà Nội", "Hải Phòng", "https://static.vinwonders.com/production/2025/04/hai-phong-topbanner.jpg", 
+                         new java.math.BigDecimal("200000")),
+            new RouteCard(3, "Đà Nẵng", "Huế", "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Ng%E1%BB%8D_M%C3%B4n_Hu%E1%BA%BF_-_NKS.jpg/960px-Ng%E1%BB%8D_M%C3%B4n_Hu%E1%BA%BF_-_NKS.jpg", 
+                         new java.math.BigDecimal("120000")),
+            new RouteCard(4, "Cần Thơ", "Hồ Chí Minh", "https://ik.imagekit.io/tvlk/blog/2021/11/dia-diem-du-lich-can-tho-cover.jpg?tr=q-70,c-at_max,w-500,h-250,dpr-2", 
+                         new java.math.BigDecimal("180000")),
+            new RouteCard(5, "Nha Trang", "Đà Lạt", "https://cdn.nhandan.vn/images/6e407d305cea747ceadbf81d9ed5d5614c5275b6497477e68beb293bf8c03a5fa0c142aa2a9708a43dc1b6d808bd3be2f30df6e68b0f816001601be460586338c2381094306107c33e4c998a37d06158/1-da-lat-mong-manh-man-suong-4611-737.jpg", 
+                         new java.math.BigDecimal("160000")),
+            new RouteCard(6, "Hà Nội", "Sapa", "https://thesinhtour.com/wp-content/uploads/2021/12/du-lich-sapa-1.jpg", 
+                         new java.math.BigDecimal("250000")),
+            new RouteCard(8, "Hồ Chí Minh", "Phan Thiết", "https://www.homecredit.vn/upload/01_du_lich_phan_thiet_giup_ban_len_day_cot_tinh_than_hieu_qua_8be4ef09f6.jpg", 
+                         new java.math.BigDecimal("140000"))
+        );
+        
+        int actualLimit = limit != null ? Math.min(limit, mockRoutes.size()) : Math.min(10, mockRoutes.size());
+        return mockRoutes.subList(0, actualLimit);
+    }
+    
 }
 

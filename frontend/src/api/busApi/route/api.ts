@@ -3,9 +3,9 @@
  */
 
 import { graphqlRequest } from '../../graphqlClient';
-import { FIND_ALL_ROUTES, FIND_ROUTE_BY_ID, GET_ROUTES_BY_OWNER_ID } from './queries';
+import { FIND_ALL_ROUTES, FIND_ROUTE_BY_ID, GET_ROUTES_BY_OWNER_ID, GET_POPULAR_ROUTES } from './queries';
 import { CREATE_ROUTE, UPDATE_ROUTE, DELETE_ROUTE } from './mutations';
-import type { Route, CreateRouteInput, UpdateRouteInput } from './types';
+import type { Route, CreateRouteInput, UpdateRouteInput, RouteCard } from './types';
 
 export const RouteAPI = {
   async getAllRoutes(): Promise<Route[]> {
@@ -74,6 +74,19 @@ export const RouteAPI = {
         variables: { id }
       });
       return response.data.deleteRoute;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // ✅ THÊM MỚI: Lấy popular routes cho trang chủ
+  async getPopularRoutes(limit: number = 10): Promise<RouteCard[]> {
+    try {
+      const response = await graphqlRequest({
+        query: GET_POPULAR_ROUTES,
+        variables: { limit }
+      });
+      return response.data.popularRoutes || [];
     } catch (error) {
       throw error;
     }

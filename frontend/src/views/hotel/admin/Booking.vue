@@ -488,7 +488,8 @@ const statusFilterOptions = [
   { label: 'Tất cả trạng thái', value: '' },
   { label: 'Chờ thanh toán', value: 'PENDING_PAYMENT' },
   { label: 'Đã thanh toán', value: 'PAID' },
-  { label: 'Đã hủy', value: 'CANCELLED' }
+  { label: 'Đã hủy', value: 'CANCELLED' },
+  { label: 'Hoàn tiền', value: 'REFUNDED' }
 ];
 
 const sortFilterOptions = [
@@ -949,6 +950,7 @@ function statusLabel(status) {
     case 'PENDING_PAYMENT': return 'Chờ thanh toán';
     case 'PAID': return 'Đã thanh toán';
     case 'CANCELLED': return 'Đã hủy';
+    case 'REFUNDED': return 'Hoàn tiền';
     default: return status;
   }
 }
@@ -957,6 +959,7 @@ function statusClass(status) {
     case 'PENDING_PAYMENT': return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
     case 'PAID': return 'bg-green-100 text-green-800 border border-green-300';
     case 'CANCELLED': return 'bg-red-100 text-red-700 border border-red-300';
+    case 'REFUNDED': return 'bg-blue-100 text-blue-800 border border-blue-300';
     default: return 'bg-gray-100 text-gray-700 border border-gray-300';
   }
 }

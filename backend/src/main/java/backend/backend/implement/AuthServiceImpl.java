@@ -15,9 +15,7 @@ import backend.backend.service.EmailService;
 import backend.backend.service.OTPTransactionService;
 import backend.backend.utils.JwtTokenUtil;
 import backend.backend.utils.RegexUtil;
-import backend.backend.utils.SecurityUtil;
 import backend.backend.utils.TemplateUtil;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -128,12 +126,18 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Wrong password", ErrorCode.AUTH_004);
         }
         if (!user.getIsVerified()) {
+            // Kiểm tra xem user có bị vô hiệu hóa bởi admin không
+            if (user.getIsVerified() != null && !user.getIsVerified()) {
+                throw new BadRequestException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.", ErrorCode.AUTH_008);
+            }
+            
+            // Nếu isVerified = null, có thể là user chưa verify email
             Map<String, String> params = new HashMap<>();
             params.put("toEmail", user.getEmail());
             params.put("userId", user.getId().toString());
             params.put("userName",user.getName());
             otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
-            throw new BadRequestException("User is not verified", ErrorCode.AUTH_007);
+            throw new BadRequestException("Tài khoản chưa được xác thực email. Vui lòng kiểm tra email và xác thực tài khoản.", ErrorCode.AUTH_007);
         }
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
@@ -250,6 +254,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userOptional.get();
 
         if (!user.getIsVerified()) {
+            // Kiểm tra xem user có bị vô hiệu hóa bởi admin không
+            if (user.getIsVerified() != null && !user.getIsVerified()) {
+                throw new BadRequestException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.", ErrorCode.AUTH_008);
+            }
+            
+            // Nếu isVerified = null, có thể là user chưa verify email
             throw new AuthException("User is not verified", ErrorCode.AUTH_007);
         }
 
@@ -265,6 +275,12 @@ public class AuthServiceImpl implements AuthService {
         Optional<User> user = userRepository.findByEmail(requestDto.getEmail());
         if (user.isPresent()) {
             User existingUser = user.get();
+            
+            // Kiểm tra xem user có bị vô hiệu hóa không
+            if (existingUser.getIsVerified() != null && !existingUser.getIsVerified()) {
+                throw new BadRequestException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.", ErrorCode.AUTH_008);
+            }
+            
             if (existingUser.getAuthProvider() == null || !existingUser.getAuthProvider().equals(requestDto.getAuthProvider())) {
                 existingUser.setAuthProvider(requestDto.getAuthProvider());
                 userRepository.save(existingUser);

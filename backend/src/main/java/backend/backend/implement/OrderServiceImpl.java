@@ -61,6 +61,7 @@ public class OrderServiceImpl implements OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
 
+
     @Autowired private BusBookingDAO busBookingDAO;
     @Autowired private BookingTourDAO bookingTourDAO;
     @Autowired private CustomerDAO customerDAO;
@@ -80,6 +81,7 @@ public class OrderServiceImpl implements OrderService {
  
      private final HotelBookingService hotelBookingService;
   
+
     private final BusSlotDAO busSlotDAO;
     private final BusSeatDAO busSeatDAO;
  

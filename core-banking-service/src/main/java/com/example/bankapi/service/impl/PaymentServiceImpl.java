@@ -440,12 +440,14 @@ public class PaymentServiceImpl implements PaymentService {
         OtpMailDto otpMail = new OtpMailDto(
             recipient,
             recipientName,
+            customer.getBankCode(),
             otp,
-            "Xác nhận hủy vé",
-            "Mã OTP để xác nhận hủy vé và hoàn tiền",
-            now
+            transactionId.toString(),
+            tx.getAmount().toString(),
+            now,
+            LocalDateTime.now().plusMinutes(10).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         );
-        streamBridge.send("otp-mail", otpMail);
+        streamBridge.send("otpMail-out-0", otpMail);
         logger.info("[PaymentService] makeRefund - OTP sent to: {}", recipient);
 
         return toPaymentDto(refundPayment);

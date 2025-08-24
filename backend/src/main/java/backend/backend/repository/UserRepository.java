@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -22,5 +23,13 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     	       "WHERE u.email = :email")
     	Optional<User> findByEmailWithRoles(@Param("email") String email);
 
-
+    // Thêm các method mới cho BusManagement
+    @Query("SELECT u FROM User u WHERE u.ownedBuses IS NOT EMPTY")
+    List<User> findByBusesIsNotEmpty();
+    
+    @Query("SELECT COUNT(u) FROM User u WHERE u.ownedBuses IS NOT EMPTY")
+    long countByBusesIsNotEmpty();
+    
+    @Query("SELECT u FROM User u WHERE u.name LIKE %:name% OR u.email LIKE %:email%")
+    List<User> findByNameOrEmailContaining(@Param("name") String name, @Param("email") String email);
 }

@@ -94,6 +94,10 @@ export const updateAdminFlightBookingStatus = (bookingId, status) =>
   api.put(`/admin/flight-bookings/${bookingId}`, null, {
     params: { status }
   });
+export const deleteAdminFlightBooking = (bookingId) =>
+  api.delete(`/admin/flight-bookings/${bookingId}`);
+export const updateAdminFlightBooking = (bookingId, dto) =>
+  api.put(`/admin/flight-bookings/${bookingId}`, dto);
 
 // Admin – Statistics & Airports
 export const getAdminFlightStatistics = (params) =>
@@ -111,6 +115,15 @@ export const updateAdminAirport = (airportId, data) =>
   api.put(`/admin/airports/${airportId}`, data);
 export const deleteAdminAirport = (airportId) =>
   api.delete(`/admin/airports/${airportId}`);
+
+// Admin – Airlines
+export const getAdminAirlines = () => api.get('/admin/airlines');
+export const createAdminAirline = (data) =>
+  api.post('/admin/airlines', data);
+export const updateAdminAirline = (airlineId, data) =>
+  api.put(`/admin/airlines/${airlineId}`, data);
+export const deleteAdminAirline = (airlineId) =>
+  api.delete(`/admin/airlines/${airlineId}`);
 
 // Airlines
 export const getAllAirlines = () => api.get('/flights/airlines');

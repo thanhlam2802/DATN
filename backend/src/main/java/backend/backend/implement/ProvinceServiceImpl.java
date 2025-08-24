@@ -25,9 +25,40 @@ public class ProvinceServiceImpl implements ProvinceService {
                 .collect(Collectors.toList());
     }
 
+
 	@Override
 	public List<Province> getAll() {
 		
 		return provinceDAO.findAll();
 	}
+
+    @Override
+    @Transactional
+    public ProvinceDto createProvince(ProvinceDto dto) {
+        Province p = new Province();
+        p.setName(dto.getName());
+        p.setImageUrl(dto.getImageUrl());
+        Province saved = provinceDAO.save(p);
+        return ProvinceDto.fromEntity(saved);
+    }
+
+    @Override
+    @Transactional
+    public ProvinceDto updateProvince(Integer id, ProvinceDto dto) {
+        Province p = provinceDAO.findById(id).orElseThrow(() -> new IllegalArgumentException("Province not found: " + id));
+        if (dto.getName() != null) p.setName(dto.getName());
+        if (dto.getImageUrl() != null) p.setImageUrl(dto.getImageUrl());
+        Province saved = provinceDAO.save(p);
+        return ProvinceDto.fromEntity(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProvince(Integer id) {
+        if (!provinceDAO.existsById(id)) {
+            throw new IllegalArgumentException("Province not found: " + id);
+        }
+        provinceDAO.deleteById(id);
+    }
+
 }

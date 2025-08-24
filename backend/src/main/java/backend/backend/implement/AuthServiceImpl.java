@@ -85,6 +85,7 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", newUser.getEmail());
         params.put("userId", newUser.getId().toString());
+        params.put("userName", newUser.getName());
         otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
 
         JwtResultDto jwtResultDto = new JwtResultDto();
@@ -136,6 +137,7 @@ public class AuthServiceImpl implements AuthService {
             Map<String, String> params = new HashMap<>();
             params.put("toEmail", user.getEmail());
             params.put("userId", user.getId().toString());
+            params.put("userName",user.getName());
             otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
             throw new BadRequestException("User is not verified", ErrorCode.AUTH_007);
         }
@@ -249,6 +251,7 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> params = new HashMap<>();
         params.put("toEmail", user.getEmail());
         params.put("userId", user.getId().toString());
+        params.put("userName", user.getName());
         otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
     }
 

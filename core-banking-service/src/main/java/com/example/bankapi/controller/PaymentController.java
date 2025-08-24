@@ -34,9 +34,7 @@
         @Autowired
         private PaymentService paymentService;
 
-
         private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
-
         @Operation(summary = "Khởi tạo giao dịch thanh toán",
                 requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                         required = true,

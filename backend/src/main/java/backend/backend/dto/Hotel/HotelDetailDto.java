@@ -31,6 +31,12 @@ public class HotelDetailDto {
         private int reviewCount;
         private List<HotelRoomDto> availableRooms;
         private List<AmenityDto> amenities;
+        
+        private String approvalStatus;
+        private String approvalReason;
+        private java.time.LocalDateTime approvedAt;
+        private String approvedBy;
+        private String status;
 
         public static HotelDetailDto fromEntity(Hotel hotel, double rating, int reviewCount,
                         Set<Integer> bookedVariantIds) {
@@ -68,6 +74,11 @@ public class HotelDetailDto {
                                 rating,
                                 reviewCount,
                                 roomDtoList,
-                                allAmenities);
+                                allAmenities,
+                                hotel.getApprovalStatus(),
+                                hotel.getApprovalReason(),
+                                hotel.getApprovedAt(),
+                                hotel.getApprovedBy(),
+                                hotel.getStatus());
         }
 }

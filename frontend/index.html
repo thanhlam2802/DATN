@@ -23,6 +23,13 @@
   <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
 
   <title>Travela - Nền tảng du lịch hàng đầu Việt Nam</title>
+  
+  <!-- ✅ Fix SockJS global variable issue -->
+  <script>
+    if (typeof global === 'undefined') {
+      window.global = window.globalThis || window;
+    }
+  </script>
 
 </head>
 

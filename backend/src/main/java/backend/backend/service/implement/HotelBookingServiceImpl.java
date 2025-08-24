@@ -122,10 +122,18 @@ public class HotelBookingServiceImpl implements HotelBookingService {
                 order.setStatus("PENDING_PAYMENT");
                 order.setCreatedAt(LocalDateTime.now());
                 order.setExpiresAt(order.getCreatedAt().plus(30, ChronoUnit.MINUTES));
-                String email = authentication.getName();
-                User user = userDAO.findByEmail(email).orElse(null);
-                if (user != null) {
-                    order.setUser(user);
+                
+                String email;
+                if (authentication.getPrincipal() instanceof User) {
+                    User user = (User) authentication.getPrincipal();
+                    email = user.getEmail();
+                } else {
+                    email = authentication.getName();
+                }
+                
+                User userEntity = userDAO.findByEmail(email).orElse(null);
+                if (userEntity != null) {
+                    order.setUser(userEntity);
                 }
                 order = orderDAO.save(order);
                 log.info("[BOOK_HOTEL] Đã tạo order với ID: {}", order.getId());
@@ -134,6 +142,11 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             HotelRoomVariant variant = hotelRoomVariantDAO.findByIdWithRoom(dto.getRoomVariantId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Không tìm thấy room variant với id: " + dto.getRoomVariantId()));
+            
+            if (!"APPROVED".equals(variant.getRoom().getHotel().getApprovalStatus()) || 
+                !"ACTIVE".equals(variant.getRoom().getHotel().getStatus())) {
+                throw new IllegalArgumentException("Khách sạn này không khả dụng để đặt phòng");
+            }
             HotelBooking booking = new HotelBooking();
             booking.setRoomVariant(variant);
             booking.setCheckInDate(LocalDate.parse(dto.getCheckInDate()));
@@ -225,18 +238,31 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             
             HotelRoom hotelRoom = hotelRoomDAO.findById(roomVariant.getRoom().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin phòng!"));
+            
+            if (!"APPROVED".equals(hotelRoom.getHotel().getApprovalStatus()) || 
+                !"ACTIVE".equals(hotelRoom.getHotel().getStatus())) {
+                throw new IllegalArgumentException("Khách sạn này không khả dụng để cập nhật đặt phòng");
+            }
 
             if (authentication == null) {
                 throw new IllegalArgumentException("Bạn cần đăng nhập để cập nhật booking!");
             }
-            String email = authentication.getName();
-            User user = userDAO.findByEmail(email).orElse(null);
-            if (user == null) {
+            
+            String email;
+            if (authentication.getPrincipal() instanceof User) {
+                User user = (User) authentication.getPrincipal();
+                email = user.getEmail();
+            } else {
+                email = authentication.getName();
+            }
+            
+            User userEntity = userDAO.findByEmail(email).orElse(null);
+            if (userEntity == null) {
                 throw new IllegalArgumentException("Không tìm thấy thông tin người dùng!");
             }
             
             Order orderWithUser = orderDAO.findById(booking.getOrder().getId()).orElse(null);
-            if (orderWithUser == null || orderWithUser.getUser() == null || orderWithUser.getUser().getId() != user.getId()) {
+            if (orderWithUser == null || orderWithUser.getUser() == null || orderWithUser.getUser().getId() != userEntity.getId()) {
                 throw new IllegalArgumentException("Bạn không có quyền cập nhật booking này!");
             }
 

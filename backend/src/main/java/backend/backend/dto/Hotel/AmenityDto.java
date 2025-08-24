@@ -12,11 +12,12 @@ public class AmenityDto {
     private Integer id;
     private String name;
     private String icon;
+    private String status;
 
     public static AmenityDto fromEntity(Amenity amenity) {
         if (amenity == null) {
             return null;
         }
-        return new AmenityDto(amenity.getId(), amenity.getName(), amenity.getIcon());
+        return new AmenityDto(amenity.getId(), amenity.getName(), amenity.getIcon(), amenity.getStatus());
     }
 }

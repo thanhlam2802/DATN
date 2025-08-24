@@ -1,18 +1,62 @@
 <template>
   <div class="space-y-6">
+    <!-- Bộ lọc Lịch Mới -->
+    <div class="flex justify-end items-center gap-x-2 mb-2">
+      <label for="filterType" class="text-sm font-medium text-gray-600"
+        >Xem theo:</label
+      >
+      <select
+        v-model="filterType"
+        id="filterType"
+        class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2"
+      >
+        <option value="day">Ngày</option>
+        <option value="month">Tháng</option>
+        <option value="year">Năm</option>
+      </select>
+
+      <input
+        v-if="filterType === 'day'"
+        type="date"
+        v-model="selectedDate"
+        class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5"
+      />
+      <input
+        v-if="filterType === 'month'"
+        type="month"
+        v-model="selectedMonth"
+        class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5"
+      />
+      <input
+        v-if="filterType === 'year'"
+        type="number"
+        placeholder="YYYY"
+        v-model="selectedYear"
+        class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-28 p-1.5"
+      />
+
+      <button
+        @click="applyFilter"
+        class="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300"
+      >
+        Xem
+      </button>
+    </div>
+
+    <!-- Widgets -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <Widget
-        title="Doanh thu hôm nay"
+        :title="`Doanh thu ${filterTitleText}`"
         icon="fas fa-coins"
         :value="formatCurrency(summary.todayRevenue)"
       />
       <Widget
-        title="Booking mới"
+        :title="`Booking mới ${filterTitleText}`"
         icon="fas fa-ticket-alt"
         :value="summary.newBookings"
       />
       <Widget
-        title="Khách hàng mới"
+        :title="`Khách hàng mới ${filterTitleText}`"
         icon="fas fa-users"
         :value="summary.newCustomers"
       />
@@ -23,15 +67,65 @@
       />
     </div>
 
+    <!-- Charts -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-      <div class="lg:col-span-3">
-        <RevenueChart :data="revenueData" />
+      <div class="lg:col-span-3 bg-white rounded-xl shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold text-gray-700">Biểu đồ doanh thu</h3>
+          <div class="flex space-x-2">
+            <button
+              @click="fetchRevenueData('day')"
+              :class="getPeriodButtonClass('day')"
+            >
+              7 Ngày
+            </button>
+            <button
+              @click="fetchRevenueData('month')"
+              :class="getPeriodButtonClass('month')"
+            >
+              Tháng
+            </button>
+            <button
+              @click="fetchRevenueData('year')"
+              :class="getPeriodButtonClass('year')"
+            >
+              Năm
+            </button>
+          </div>
+        </div>
+        <RevenueChart
+          v-if="!isLoadingRevenue && revenueData.labels.length > 0"
+          :data="revenueData"
+        />
+        <div v-else class="flex items-center justify-center h-64 text-gray-500">
+          <p>
+            {{
+              isLoadingRevenue
+                ? "Đang tải dữ liệu..."
+                : "Không có dữ liệu để hiển thị."
+            }}
+          </p>
+        </div>
       </div>
-      <div class="lg:col-span-2">
-        <BookingChart :data="bookingData" />
+      <div class="lg:col-span-2 bg-white rounded-xl shadow p-6">
+        <h3 class="font-semibold text-gray-700 mb-4">Biểu đồ booking</h3>
+        <BookingChart
+          v-if="!isLoadingBookingData && bookingData.labels.length > 0"
+          :data="bookingData"
+        />
+        <div v-else class="flex items-center justify-center h-64 text-gray-500">
+          <p>
+            {{
+              isLoadingBookingData
+                ? "Đang tải dữ liệu..."
+                : "Không có dữ liệu để hiển thị."
+            }}
+          </p>
+        </div>
       </div>
     </div>
 
+    <!-- Recent Activities & Orders -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-1">
         <RecentActivities :activities="recentActivities" />
@@ -50,6 +144,11 @@
                 </tr>
               </thead>
               <tbody>
+                <tr v-if="recentOrders.length === 0">
+                  <td colspan="4" class="text-center py-4 text-gray-500">
+                    Đang chờ dữ liệu đơn hàng mới...
+                  </td>
+                </tr>
                 <tr
                   v-for="order in recentOrders"
                   :key="order.id"
@@ -81,85 +180,211 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-// Thay đổi các đường dẫn ở đây
+import { ref, onMounted, computed } from "vue";
+import axios from "axios";
 import Widget from "@/components/admin/Widget.vue";
 import RevenueChart from "@/components/admin/RevenueChart.vue";
 import BookingChart from "@/components/admin/BookingChart.vue";
 import RecentActivities from "@/components/admin/RecentActivities.vue";
+import SockJS from "sockjs-client/dist/sockjs.min.js";
+import Stomp from "stompjs";
 
-// --- Dữ liệu giả (mock data) ---
-// (Phần còn lại của script giữ nguyên)
+const API_URL = "http://localhost:8080/api/dashboard";
+
+// State cho widgets và bộ lọc lịch
 const summary = ref({
-  todayRevenue: 12500000,
-  newBookings: 32,
-  newCustomers: 15,
-  pendingReviews: 8,
+  todayRevenue: 0,
+  newBookings: 0,
+  newCustomers: 0,
+  pendingReviews: 0,
 });
+const isLoadingSummary = ref(true);
+const filterType = ref("day");
+const selectedDate = ref(new Date().toISOString().slice(0, 10));
+const selectedMonth = ref(new Date().toISOString().slice(0, 7));
+const selectedYear = ref(new Date().getFullYear());
 
-const revenueData = ref({
-  labels: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"],
-  data: [12, 19, 8, 15, 22, 30, 25],
-});
+// State cho biểu đồ doanh thu
+const revenueData = ref({ labels: [], data: [] });
+const isLoadingRevenue = ref(true);
+const selectedPeriod = ref("day");
 
-const bookingData = ref({
-  labels: ["Tour", "Khách sạn", "Chuyến bay", "Xe bus"],
-  data: [120, 190, 85, 40],
-});
+// State cho biểu đồ booking
+const bookingData = ref({ labels: [], data: [] });
+const isLoadingBookingData = ref(true);
 
+// Dữ liệu tĩnh và WebSocket
 const recentActivities = ref([
   { time: "1 phút", user: "Admin", action: "xác nhận đơn hàng #1124" },
   { time: "5 phút", user: "Thanh Nguyen", action: "đặt tour Đà Nẵng" },
-  { time: "10 phút", user: "Admin", action: "cập nhật khách sạn Rex" },
-  { time: "1 giờ", user: "Le Pham", action: "để lại một đánh giá" },
-  { time: "2 giờ", user: "Admin", action: "đã hủy đơn hàng #1055" },
 ]);
+const recentOrders = ref([]);
+const stompClient = ref(null);
+const isSocketConnected = ref(false); // ✅ Re-added this variable
 
-const recentOrders = ref([
-  {
-    id: 1124,
-    customer: "Thanh Nguyen",
-    service: "Tour",
-    amount: 5200000,
-    status: "Đã thanh toán",
-  },
-  {
-    id: 1123,
-    customer: "An Tran",
-    service: "Khách sạn",
-    amount: 1800000,
-    status: "Đã thanh toán",
-  },
-  {
-    id: 1122,
-    customer: "Minh Le",
-    service: "Chuyến bay",
-    amount: 2100000,
-    status: "Chờ thanh toán",
-  },
-  {
-    id: 1121,
-    customer: "Bao Vo",
-    service: "Tour",
-    amount: 8500000,
-    status: "Đã hủy",
-  },
-]);
+// --- Computed Properties ---
+const filterTitleText = computed(() => {
+  try {
+    if (filterType.value === "day") {
+      const [y, m, d] = selectedDate.value.split("-");
+      return `ngày ${d}/${m}/${y}`;
+    }
+    if (filterType.value === "month") {
+      const [y, m] = selectedMonth.value.split("-");
+      return `tháng ${m}/${y}`;
+    }
+    if (filterType.value === "year") {
+      return `năm ${selectedYear.value}`;
+    }
+  } catch {
+    return "";
+  }
+  return "";
+});
 
-// --- Hàm hỗ trợ ---
+// --- API Logic ---
+const fetchSummary = async () => {
+  isLoadingSummary.value = true;
+  let params = { filterType: filterType.value };
+  if (filterType.value === "day") params.value = selectedDate.value;
+  else if (filterType.value === "month") params.value = selectedMonth.value;
+  else if (filterType.value === "year") params.value = selectedYear.value;
+
+  try {
+    const response = await axios.get(`${API_URL}/summary`, { params });
+    summary.value = response.data;
+  } catch (error) {
+    console.error(`Lỗi khi lấy dữ liệu tóm tắt:`, error);
+    summary.value = {
+      todayRevenue: 0,
+      newBookings: 0,
+      newCustomers: 0,
+      pendingReviews: 0,
+    };
+  } finally {
+    isLoadingSummary.value = false;
+  }
+};
+
+const applyFilter = () => {
+  fetchSummary();
+};
+
+const fetchRevenueData = async (period) => {
+  if (selectedPeriod.value === period && revenueData.value.labels.length > 0)
+    return;
+  isLoadingRevenue.value = true;
+  selectedPeriod.value = period;
+  try {
+    const response = await axios.get(`${API_URL}/revenue-chart`, {
+      params: { period },
+    });
+    const labels = response.data.map((item) => formatLabel(item.label, period));
+    const data = response.data.map((item) => item.value);
+    revenueData.value = { labels, data };
+  } catch (error) {
+    console.error(`Lỗi khi lấy dữ liệu doanh thu theo ${period}:`, error);
+    revenueData.value = { labels: [], data: [] };
+  } finally {
+    isLoadingRevenue.value = false;
+  }
+};
+
+const fetchBookingData = async () => {
+  isLoadingBookingData.value = true;
+  try {
+    const response = await axios.get(`${API_URL}/booking-chart`);
+    console.log("Dữ liệu Booking Chart từ API:", response.data);
+    const labels = response.data.map((item) => item.label);
+    const data = response.data.map((item) => item.value);
+    bookingData.value = { labels, data };
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu biểu đồ booking:", error);
+    bookingData.value = { labels: [], data: [] };
+  } finally {
+    isLoadingBookingData.value = false;
+  }
+};
+
+// ✅ Reverted to the requested WebSocket function
+const connectWebSocket = () => {
+  const socket = new SockJS("http://localhost:8080/ws");
+  stompClient.value = Stomp.over(socket);
+  stompClient.value.debug = null;
+  stompClient.value.connect({}, (frame) => {
+    console.log("WebSocket Connected:", frame);
+    isSocketConnected.value = true;
+    stompClient.value.subscribe("/topic/getTop10NewOrders", (response) => {
+      recentOrders.value = JSON.parse(response.body);
+      console.log(recentOrders.value);
+    });
+    stompClient.value.send("/app/getTop10NewOrders", {}, {});
+  });
+};
+
+onMounted(() => {
+  fetchSummary();
+  fetchRevenueData("day");
+  fetchBookingData();
+  connectWebSocket();
+});
+
+// --- Helper Functions ---
 const formatCurrency = (value) => {
+  if (typeof value !== "number" || !value) return "0 ₫";
+  if (Math.abs(value) >= 1000000000) {
+    const formattedValue = (value / 1000000000).toLocaleString("vi-VN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${formattedValue} tỷ`;
+  }
+  if (Math.abs(value) >= 1000000) {
+    const formattedValue = (value / 1000000).toLocaleString("vi-VN", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    return `${formattedValue} tr`;
+  }
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
   }).format(value);
 };
 
+// ✅ Reverted to the old status function
 const getStatusClass = (status) => {
   const map = {
     "Đã thanh toán": "bg-green-100 text-green-800",
     "Chờ thanh toán": "bg-yellow-100 text-yellow-800",
     "Đã hủy": "bg-red-100 text-red-800",
+    "Hoàn tiền": "bg-blue-100 text-blue-800",
   };
   return map[status] || "bg-gray-100 text-gray-800";
+};
+
+const getPeriodButtonClass = (period) => {
+  const baseClass =
+    "px-3 py-1 text-sm rounded-md transition-colors font-medium";
+  if (selectedPeriod.value === period)
+    return `${baseClass} bg-blue-500 text-white`;
+  return `${baseClass} bg-gray-200 text-gray-700 hover:bg-gray-300`;
+};
+
+const formatLabel = (label, period) => {
+  if (!label) return "";
+  try {
+    if (period === "day") {
+      const [year, month, day] = label.split(" ")[0].split("-");
+      return `Ngày ${day}/${month}`;
+    }
+    if (period === "month") {
+      const [year, month] = label.split("-");
+      return `Thg ${month}/${year}`;
+    }
+  } catch (e) {
+    return label;
+  }
+  return label;
 };
 </script>

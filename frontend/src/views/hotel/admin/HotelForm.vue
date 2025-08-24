@@ -51,135 +51,177 @@
         <div v-if="mode === 'list'">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold text-slate-800 mb-4">Danh sách khách sạn</h1>
-                <div class="flex flex-col sm:flex-row items-center gap-2">
-                    <div class="flex flex-1 flex-col sm:flex-row items-center gap-2 w-full">
-                        <div class="relative w-full sm:w-[300px]">
-                            <input type="text" v-model="searchQuery" placeholder="Tìm theo tên khách sạn hoặc thành phố"
-                                class="w-full sm:w-[350px] pl-10 pr-4 py-2 h-12 text-base border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
-                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                        </div>
-                        <div ref="filterDropdownContainer" class="relative sm:w-[140px]">
-                            <button @click="toggleFilterDropdown"
-                                class="bg-white ml-15 border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center flex-nowrap justify-center sm:w-[140px] h-12 text-base">
-                                <i class="fas fa-filter mr-2"></i>
-                                <span>Bộ lọc</span>
-                                <i class="fas ml-2"
-                                    :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
-                            </button>
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col sm:flex-row items-center gap-2">
+                        <div class="flex flex-1 flex-col sm:flex-row items-center gap-2 w-full">
+                            <div class="relative w-full sm:w-[300px]">
+                                <input type="text" v-model="searchQuery" placeholder="Tìm theo tên khách sạn hoặc thành phố"
+                                    class="w-full sm:w-[350px] pl-10 pr-4 py-2 h-12 text-base border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900" />
+                                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                            </div>
+                            <div ref="filterDropdownContainer" class="relative sm:w-[140px]">
+                                <button @click="toggleFilterDropdown"
+                                    class="bg-white ml-15 border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md shadow-sm transition-colors duration-200 flex items-center flex-nowrap justify-center sm:w-[140px] h-12 text-base">
+                                    <i class="fas fa-filter mr-2"></i>
+                                    <span>Bộ lọc</span>
+                                    <i class="fas ml-2"
+                                        :class="{ 'fa-chevron-up': showFilterDropdown, 'fa-chevron-down': !showFilterDropdown }"></i>
+                                </button>
 
-                            <div v-if="showFilterDropdown"
-                                class="origin-top-right absolute mt-2 ml-15 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
-                                style="max-height: calc(100vh - 12rem);">
+                                <div v-if="showFilterDropdown"
+                                    class="origin-top-right absolute mt-2 ml-15 w-full sm:w-80 rounded-xl shadow-xl bg-white focus:outline-none z-20 border border-slate-200 flex flex-col"
+                                    style="max-height: calc(100vh - 12rem);">
 
-                                <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
-                                    <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
-                                </div>
-
-                                <div class="p-5 overflow-y-auto">
-                                    <div class="mb-5">
-                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
-                                        <div class="flex flex-wrap gap-2">
-                                            <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
-                                                :class="{ 'bg-blue-600 text-white': tempFilterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== n }"
-                                                class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                                {{ n }} <i class="fas fa-star text-yellow-400"></i>
-                                            </button>
-                                            <button @click="setFilterStar('')"
-                                                :class="{ 'bg-blue-600 text-white': tempFilterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== '' }"
-                                                class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
-                                                Tất cả
-                                            </button>
-                                        </div>
+                                    <div class="p-5 pb-4 border-b border-slate-100 flex-shrink-0">
+                                        <h3 class="text-lg font-bold text-slate-800">Tùy chọn lọc</h3>
                                     </div>
 
-                                    <div class="mb-5">
-                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối
-                                            đa):</label>
-                                        <input type="range" v-model="tempFilterPriceMax" min="0" max="20000000" step="100000"
-                                            class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                                        <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
-                                            <span>Giá tối đa:</span>
-                                            <span class="text-blue-600">{{ formatCurrency(tempFilterPriceMax) }} VND</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="mb-5">
-                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Thời gian tạo:</label>
-                                        <div class="flex flex-wrap gap-2 mb-2">
-                                            <button v-for="preset in createdAtPresets" :key="preset.value"
-                                                @click="setCreatedAtPreset(preset.value)"
-                                                :class="tempFilterCreatedAtPreset === preset.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
-                                                class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200">
-                                                {{ preset.label }}
-                                            </button>
-                                        </div>
-                                        <div class="flex flex-col gap-3">
-                                          <div>
-                                            <label class="block text-xs font-semibold text-slate-700 mb-1">Từ ngày</label>
-                                            <div class="relative">
-                                              <input
-                                                type="date"
-                                                v-model="tempFilterCreatedAtFrom"
-                                                class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                placeholder="dd/mm/yyyy"
-                                              />
+                                    <div class="p-5 overflow-y-auto">
+                                        <div class="mb-5">
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Hạng sao:</label>
+                                            <div class="flex flex-wrap gap-2">
+                                                <button v-for="n in 5" :key="n" @click="setFilterStar(n)"
+                                                    :class="{ 'bg-blue-600 text-white': tempFilterStar === n, 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== n }"
+                                                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                                    {{ n }} <i class="fas fa-star text-yellow-400"></i>
+                                                </button>
+                                                <button @click="setFilterStar('')"
+                                                    :class="{ 'bg-blue-600 text-white': tempFilterStar === '', 'bg-slate-100 text-slate-700 hover:bg-slate-200': tempFilterStar !== '' }"
+                                                    class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200">
+                                                    Tất cả
+                                                </button>
                                             </div>
-                                          </div>
-                                          <div>
-                                            <label class="block text-xs font-semibold text-slate-700 mb-1">Đến ngày</label>
-                                            <div class="relative">
-                                              <input
-                                                type="date"
-                                                v-model="tempFilterCreatedAtTo"
-                                                class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                placeholder="dd/mm/yyyy"
-                                              />
+                                        </div>
+
+                                        <div class="mb-5">
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Giá mỗi đêm (tối
+                                                đa):</label>
+                                            <input type="range" v-model="tempFilterPriceMax" min="0" max="20000000" step="100000"
+                                                class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                            <div class="flex justify-between text-sm font-medium text-slate-700 mt-2">
+                                                <span>Giá tối đa:</span>
+                                                <span class="text-blue-600">{{ formatCurrency(tempFilterPriceMax) }} VND</span>
                                             </div>
-                                          </div>
+                                        </div>
+
+                                        <div class="mb-5">
+                                            <label class="block text-sm font-semibold text-slate-700 mb-2">Thời gian tạo:</label>
+                                            <div class="flex flex-wrap gap-2 mb-2">
+                                                <button v-for="preset in createdAtPresets" :key="preset.value"
+                                                    @click="setCreatedAtPreset(preset.value)"
+                                                    :class="tempFilterCreatedAtPreset === preset.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                                                    class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200">
+                                                    {{ preset.label }}
+                                                </button>
+                                            </div>
+                                            <div class="flex flex-col gap-3">
+                                              <div>
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1">Từ ngày</label>
+                                                <div class="relative">
+                                                  <input
+                                                    type="date"
+                                                    v-model="tempFilterCreatedAtFrom"
+                                                    class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    placeholder="dd/mm/yyyy"
+                                                  />
+                                                </div>
+                                              </div>
+                                              <div>
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1">Đến ngày</label>
+                                                <div class="relative">
+                                                  <input
+                                                    type="date"
+                                                    v-model="tempFilterCreatedAtTo"
+                                                    class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    placeholder="dd/mm/yyyy"
+                                                  />
+                                                </div>
+                                              </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
-                                    <div class="flex justify-end">
-                                        <button @click="resetFilters"
-                                            class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
-                                            <i class="fas fa-redo-alt mr-2"></i> Đặt lại
-                                        </button>
-                                        <button @click="applyFilters"
-                                            class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm ml-2">
-                                            <i class="fas fa-check mr-2"></i> Áp dụng
-                                        </button>
+                                    <div class="p-5 pt-4 border-t border-slate-100 mt-auto flex-shrink-0">
+                                        <div class="flex justify-end">
+                                            <button @click="resetFilters"
+                                                class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
+                                                <i class="fas fa-redo-alt mr-2"></i> Đặt lại
+                                            </button>
+                                            <button @click="applyFilters"
+                                                class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm ml-2">
+                                                <i class="fas fa-check mr-2"></i> Áp dụng
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm w-full sm:w-auto whitespace-nowrap">
-                        Thêm khách sạn
-                    </button>
+                    
+                    <div class="flex flex-col sm:flex-row items-center gap-2">
+                        <div class="w-full sm:w-[218px]">
+                            <CustomSelect
+                                v-model="filterProvince"
+                                :options="[{ label: 'Tất cả thành phố', value: '' }, ...provinces.map(p => ({ label: p.name, value: p.id }))]"
+                                placeholder="Tất cả thành phố"
+                                class="w-full h-12 [&>button]:h-12 [&>button]:py-3 [&>button]:text-sm"
+                                :direction="'down'"
+                            />
+                        </div>
+                        <div class="w-full sm:w-[170px]">
+                            <CustomSelect
+                                v-model="filterStatus"
+                                :options="[
+                                    { label: 'Tất cả trạng thái', value: '' },
+                                    { label: 'Hoạt động', value: 'ACTIVE' },
+                                    { label: 'Không hoạt động', value: 'INACTIVE' }
+                                ]"
+                                placeholder="Tất cả trạng thái"
+                                class="w-full h-12 [&>button]:h-12 [&>button]:py-3 [&>button]:text-sm"
+                                :direction="'down'"
+                            />
+                        </div>
+                        <div class="w-full sm:w-[200px]">
+                            <CustomSelect
+                                v-model="filterApprovalStatus"
+                                :options="[
+                                    { label: 'Tất cả trạng thái duyệt', value: '' },
+                                    { label: 'Đã duyệt', value: 'APPROVED' },
+                                    { label: 'Chờ duyệt', value: 'PENDING' },
+                                    { label: 'Bị từ chối', value: 'REJECTED' }
+                                ]"
+                                placeholder="Tất cả trạng thái duyệt"
+                                class="w-full h-12 [&>button]:h-12 [&>button]:py-3 [&>button]:text-sm"
+                                :direction="'down'"
+                            />
+                        </div>
+                        <button @click="addHotel" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md shadow-sm w-full sm:w-auto whitespace-nowrap h-12">
+                            Thêm khách sạn
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div class="mb-8 bg-white rounded-xl shadow-lg border border-slate-200">
                 <div class="overflow-x-auto">
-                  <div class="overflow-y-auto h-[453px]">
+                  <div class="overflow-y-auto h-[452px]">
                     <table class="min-w-[1200px] w-full divide-y divide-slate-200">
-                      <thead class="bg-slate-100">
+                      <thead class="bg-slate-100 sticky top-0 z-10">
                         <tr>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Hạng sao</th>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Giá từ (VND)</th>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày tạo</th>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày sửa</th>
-                          <th class="sticky top-0 bg-slate-100 px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider z-9999">Hành động</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">STT</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Tên khách sạn</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Thành phố</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Giá từ (VND)</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày tạo</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ngày sửa</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Trạng thái</th>
+                          <th class="bg-slate-100 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Trạng thái duyệt</th>
+                          <th class="bg-slate-100 px-3 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Hành động</th>
                         </tr>
                       </thead>
                       <tbody class="bg-white divide-y divide-slate-100">
                         <tr v-if="paginatedHotels.length === 0" class="hover:bg-slate-50">
-                            <td colspan="8" class="px-6 py-12 text-center">
+                            <td colspan="9" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center space-y-3">
                                     <i class="fas fa-search text-4xl text-slate-300"></i>
                                     <p class="text-lg font-medium text-slate-500">Không tìm thấy khách sạn nào</p>
@@ -197,17 +239,8 @@
                             </td>
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="flex items-center space-x-3">
-                                    <div>
-                                        <div class="text-sm font-semibold text-slate-900">{{ h.name }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-3 py-5 whitespace-nowrap">
-                                <div class="flex items-center space-x-1">
-                                    <span class="text-sm font-medium text-slate-900">{{ h.starRating }}</span>
-                                    <div class="flex space-x-0.5">
-                                        <i v-for="star in h.starRating" :key="star"
-                                            class="fas fa-star text-yellow-400 text-xs"></i>
+                                    <div class="max-w-[175px]">
+                                        <div class="text-sm font-semibold text-slate-900 truncate" :title="h.name">{{ h.name }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -229,6 +262,46 @@
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <span class="text-xs text-slate-700">{{ formatDateTime(h.updatedAt) }}</span>
                             </td>
+                                                        <td class="px-3 py-5 whitespace-nowrap" @click.stop>
+                              <div class="flex items-center">
+                                <div class="flex items-center space-x-3">
+                                  <label class="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                      type="checkbox" 
+                                      :checked="h.status === 'ACTIVE'"
+                                      @click.prevent="toggleHotelStatus(h)"
+                                      class="sr-only peer"
+                                      readonly
+                                    >
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                                  </label>
+                                  <span class="text-xs font-medium text-slate-700 min-w-[80px] text-center">
+                                    {{ h.status === 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động' }}
+                                  </span>
+                                </div>
+
+                              </div>
+                            </td>
+                            <td class="px-3 py-5 whitespace-nowrap">
+                              <span v-if="h.approvalStatus === 'APPROVED'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                Đã duyệt
+                              </span>
+                              <span v-else-if="h.approvalStatus === 'PENDING'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i>
+                                Chờ duyệt
+                              </span>
+                              <span v-else-if="h.approvalStatus === 'REJECTED'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 cursor-help" 
+                                    :title="h.approvalReason ? `Lý do từ chối: ${h.approvalReason}` : 'Không có lý do từ chối'">
+                                <i class="fas fa-times-circle mr-1"></i>
+                                Bị từ chối
+                                <i v-if="h.approvalReason" class="fas fa-info-circle ml-1 text-xs"></i>
+                              </span>
+                              <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <i class="fas fa-question-circle mr-1"></i>
+                                Không xác định
+                              </span>
+                            </td>
                             <td
                                 class="px-3 py-5 whitespace-nowrap text-right align-middle">
                                 <div class="relative inline-block text-left flex items-center justify-end h-full">
@@ -248,6 +321,11 @@
                                             <button class="block w-full text-left px-4 py-2 hover:bg-blue-50"
                                                 @click.stop="editHotel(h)"><i class="fas fa-edit mr-2"></i>Chỉnh
                                                 sửa</button>
+                                            <button
+                                                v-if="h.approvalStatus === 'REJECTED'"
+                                                class="block w-full text-left px-4 py-2 hover:bg-orange-50 text-orange-600"
+                                                @click.stop="resubmitHotel(h)"><i
+                                                    class="fas fa-redo mr-2"></i>Gửi lại để duyệt</button>
                                             <button
                                                 class="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600"
                                                 @click.stop="deleteHotel(h.id)"><i
@@ -299,7 +377,7 @@
             </div>
         </div>
         <div v-else-if="mode === 'edit'">
-            <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-5xl mx-auto">
+            <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-8 max-w-6xl mx-auto">
                 <div class="flex justify-between items-center border-b border-slate-200 pb-4 mb-4">
                     <h2 class="text-xl font-bold">
                         <span v-if="isEditMode && !isViewMode">Chỉnh sửa khách sạn</span>
@@ -390,6 +468,18 @@
                                     'w-full border border-slate-300 rounded-md px-3 py-2 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
                                     isViewMode ? 'bg-gray-100 cursor-not-allowed' : ''
                                 ]" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Trạng thái khách sạn</label>
+                            <CustomSelect
+                                v-model="newHotel.status"
+                                :options="[
+                                    { label: 'Hoạt động', value: 'ACTIVE' },
+                                    { label: 'Không hoạt động', value: 'INACTIVE' }
+                                ]"
+                                placeholder="Chọn trạng thái"
+                                :disabled="isViewMode"
+                            />
                         </div>
                     </div>
                     <div>
@@ -531,7 +621,7 @@
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1">Tiện ích phòng</label>
                                 <div class="flex flex-wrap gap-2 mb-2">
-                                    <template v-for="a in amenities">
+                                    <template v-for="a in displayAmenities">
                                         <span v-if="r.amenities[a.id]" :key="'chip-' + a.id"
                                             class="flex items-center bg-blue-100 text-blue-700 px-1.5 py-0 rounded-full text-xs font-medium mr-2 mb-2 items-center justify-center"
                                             style="font-size: 0.8rem; min-height: 2rem;">
@@ -555,7 +645,7 @@
                                         <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl relative">
                                             <h3 class="text-xl font-bold mb-6">Chọn tiện ích phòng</h3>
                                             <div class="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto mb-6 pr-3">
-                                                <button v-for="a in amenities" :key="'modal-' + a.id" type="button"
+                                                <button v-for="a in activeAmenities" :key="'modal-' + a.id" type="button"
                                                     @click="toggleAmenityModalSelected(a.id)" :class="[
                                                         'flex items-center w-full min-w-0 px-3 py-2 rounded-lg border transition text-sm font-medium',
                                                         amenityModalSelected.includes(a.id)
@@ -718,8 +808,7 @@
                 </form>
             </div>
         </div>
-        <ConfirmDialog v-if="showConfirmDialog" :message="confirmMessage" @confirm="onConfirmDelete"
-            @cancel="showConfirmDialog = false" />
+        <ConfirmDialog ref="confirmDialog" />
     </div>
 </template>
 
@@ -757,6 +846,8 @@ export default {
                 description: '',
                 imageUrls: [],
                 provinceId: '',
+                status: 'ACTIVE', // Thêm field status
+                approvalStatus: 'PENDING', // Thêm field approval_status
                 availableRooms: [
                     {
                         id: null,
@@ -790,7 +881,6 @@ export default {
             },
             modalMode: 'add', activeDropdown: null,
             searchQuery: '', showFilterDropdown: false, filterStar: '', filterPriceMax: 20000000,
-            filterAmenities: {},
             form: { amenities: { wifi: false, parking: false, pool: false, restaurant: false, spa: false, gym: false, ac: false, breakfast: false, elevator: false }, policy: { checkin: '', checkout: '', other: '' } },
             amenityLabels: { wifi: 'WiFi miễn phí', parking: 'Bãi đỗ xe', pool: 'Hồ bơi', restaurant: 'Nhà hàng', spa: 'Spa', gym: 'Phòng tập gym', ac: 'Điều hòa', breakfast: 'Bữa sáng', elevator: 'Thang máy' },
             currentPage: 1,
@@ -811,6 +901,9 @@ export default {
             filterCreatedAtPreset: '',
             filterCreatedAtFrom: '',
             filterCreatedAtTo: '',
+            filterProvince: '',
+            filterStatus: '',
+            filterApprovalStatus: '',
             createdAtPresets: [
                 { label: 'Hôm nay', value: 'today' },
                 { label: 'Hôm qua', value: 'yesterday' },
@@ -826,8 +919,7 @@ export default {
             tempFilterCreatedAtFrom: '',
             tempFilterCreatedAtTo: '',
             dropdownMenuPosition: { top: 0, left: 0 },
-            showConfirmDialog: false,
-            confirmMessage: '',
+
             hotelIdToDelete: null,
             showAmenityModal: false,
             amenityModalRoomIdx: null,
@@ -903,10 +995,36 @@ export default {
         isOutOfStockFilterActive() {
             return this.roomStatusFilter === 'out_of_stock';
         },
+        activeAmenities() {
+            // Chỉ hiển thị những amenities có status là ACTIVE
+            return this.amenities.filter(a => a.status === 'ACTIVE');
+        },
+        displayAmenities() {
+            // Kết hợp amenities active và những amenities đã được chọn trong phòng
+            const activeIds = new Set(this.activeAmenities.map(a => a.id));
+            const selectedIds = new Set();
+            
+            // Lấy tất cả amenities đã được chọn trong các phòng
+            this.newHotel.availableRooms.forEach(room => {
+                if (room.amenities) {
+                    Object.keys(room.amenities).forEach(id => {
+                        if (room.amenities[id]) {
+                            selectedIds.add(Number(id));
+                        }
+                    });
+                }
+            });
+            
+            // Trả về amenities active + những amenities đã được chọn (dù có status inactive)
+            return this.amenities.filter(a => activeIds.has(a.id) || selectedIds.has(a.id));
+        },
     },
     watch: {
         searchQuery() { this.currentPage = 1; this.fetchHotels(); },
         itemsPerPageStr() { this.currentPage = 1; this.fetchHotels(); },
+        filterProvince() { this.currentPage = 1; this.fetchHotels(); },
+        filterStatus() { this.currentPage = 1; this.fetchHotels(); },
+        filterApprovalStatus() { this.currentPage = 1; this.fetchHotels(); },
         mode() {
             this.$nextTick(() => this.updateBreadcrumb());
         },
@@ -937,10 +1055,9 @@ export default {
                 } catch { }
             }
             if (!this.amenities.length) {
-                try {
-                    const res = await AmenityApi.getAllAmenities();
+                AmenityApi.getAllAmenities().then(res => {
                     this.amenities = res.data.data || res.data;
-                } catch { }
+                });
             }
             this.resetAll();
             this.modalMode = mode;
@@ -958,6 +1075,8 @@ export default {
                         email: detail.email || '',
                         description: detail.description || '',
                         imageUrls: detail.imageUrls || [],
+                        status: detail.status || 'ACTIVE', // Thêm field status
+                        approvalStatus: detail.approvalStatus || 'PENDING', // Thêm field approval_status
                         availableRooms: (detail.availableRooms || []).map(room => ({
                             id: room.id || null,
                             roomType: room.roomType || '',
@@ -1039,6 +1158,9 @@ export default {
             this.filterCreatedAtPreset = '';
             this.filterCreatedAtFrom = '';
             this.filterCreatedAtTo = '';
+            this.filterProvince = '';
+            this.filterStatus = '';
+            this.filterApprovalStatus = '';
             this.roomStatusFilter = null;
             this.showFilterDropdown = false;
             this.currentPage = 1;
@@ -1066,8 +1188,10 @@ export default {
                     email: detail.email || '',
                     description: detail.description || '',
                     imageUrls: detail.imageUrls || [],
+                    status: detail.status || 'ACTIVE', 
+                    approvalStatus: detail.approvalStatus || 'PENDING',
                     availableRooms: (detail.availableRooms || []).map(room => ({
-                        id: room.id,
+                        id: room.id || null,
                         roomType: room.roomType || '',
                         bedType: room.bedType || '',
                         roomArea: room.roomArea || 0,
@@ -1075,8 +1199,8 @@ export default {
                         maxAdults: room.maxAdults || 0,
                         maxChildren: room.maxChildren || 0,
                         imageUrls: room.imageUrls || [],
-                        imageFiles: [],
-                        imagePreviews: [],
+                        imageFiles: room.imageFiles || [],
+                        imagePreviews: room.imagePreviews || [],
                         amenities: (room.amenities || []).reduce((acc, a) => { acc[a.id] = true; return acc; }, {}),
                         availableVariants: (room.availableVariants || []).map(variant => ({
                             id: variant.id || null,
@@ -1144,14 +1268,53 @@ export default {
                 window.$toast('Phải có ít nhất một loại phòng.', 'error');
             }
         },
-        deleteHotel(hotelId) {
+        async deleteHotel(hotelId) {
             this.hotelIdToDelete = hotelId;
-            this.confirmMessage = 'Bạn có chắc chắn muốn xóa khách sạn này không?';
-            this.showConfirmDialog = true;
+            const hotelToDelete = this.hotels.find(h => h.id === hotelId);
+            const hotelName = hotelToDelete ? hotelToDelete.name : 'khách sạn này';
             this.activeDropdown = null;
+            
+            const result = await this.$refs.confirmDialog.showDialog({
+                type: 'danger',
+                title: 'Xác nhận xóa khách sạn',
+                message: `Bạn có chắc chắn muốn xóa khách sạn "${hotelName}" không? Hành động này không thể hoàn tác.`,
+                confirmText: 'Xóa',
+                cancelText: 'Hủy'
+            });
+            
+            if (result) {
+                await this.onConfirmDelete();
+            }
+        },
+
+        async resubmitHotel(hotel) {
+            try {
+                const result = await this.$refs.confirmDialog.showDialog({
+                    type: 'info',
+                    title: 'Gửi lại khách sạn để duyệt',
+                    message: `Bạn có chắc chắn muốn gửi lại khách sạn "${hotel.name}" để Super Admin duyệt lại không?`,
+                    details: 'Khách sạn sẽ được chuyển về trạng thái "Chờ duyệt" và Super Admin sẽ xem xét lại.',
+                    confirmText: 'Gửi lại',
+                    cancelText: 'Hủy'
+                });
+                
+                if (result) {
+                    await hotelAdminApi.resubmitHotel(hotel.id);
+                    window.$toast('Đã gửi lại khách sạn để duyệt!', 'success');
+                    await this.fetchHotels();
+                }
+            } catch (error) {
+                let msg = 'Gửi lại khách sạn thất bại!';
+                if (error?.response?.data?.message) {
+                    msg = error.response.data.message;
+                } else if (error?.message) {
+                    msg = error.message;
+                }
+                window.$toast(msg, 'error');
+                console.error('Resubmit hotel error:', error);
+            }
         },
         async onConfirmDelete() {
-            this.showConfirmDialog = false;
             try {
                 const hotelToDelete = this.hotels.find(h => h.id === this.hotelIdToDelete);
                 const hotelName = hotelToDelete ? hotelToDelete.name : 'Khách sạn';
@@ -1200,6 +1363,8 @@ export default {
                 description: '',
                 imageUrls: [],
                 provinceId: '',
+                status: 'ACTIVE', // Thêm field status
+                approvalStatus: 'PENDING', // Thêm field approval_status
                 availableRooms: [
                     {
                         id: null,
@@ -1252,6 +1417,9 @@ export default {
                     maxPrice: this.filterPriceMax < 20000000 ? this.filterPriceMax : undefined,
                     createdAtFrom: this.filterCreatedAtFrom || undefined,
                     createdAtTo: this.filterCreatedAtTo || undefined,
+                    provinceId: this.filterProvince || undefined,
+                    status: this.filterStatus || undefined,
+                    approvalStatus: this.filterApprovalStatus || undefined,
                     roomStatus: this.roomStatusFilter || undefined,
                     page: 0,
                     size: 1000,
@@ -1637,8 +1805,10 @@ export default {
                     email: detail.email || '',
                     description: detail.description || '',
                     imageUrls: detail.imageUrls || [],
+                    status: detail.status || 'ACTIVE', // Thêm field status
+                    approvalStatus: detail.approvalStatus || 'PENDING', // Thêm field approval_status
                     availableRooms: (detail.availableRooms || []).map(room => ({
-                        id: room.id,
+                        id: room.id || null,
                         roomType: room.roomType || '',
                         bedType: room.bedType || '',
                         roomArea: room.roomArea || 0,
@@ -1678,13 +1848,8 @@ export default {
             if (!this.amenities.length) {
                 AmenityApi.getAllAmenities().then(res => {
                     this.amenities = res.data.data || res.data;
-                    this.filterAmenities = {};
-                    this.amenities.forEach(a => { this.filterAmenities[a.id] = false; });
                 });
             }
-        },
-        toggleAmenity(amenities, amenityKey) {
-            amenities[amenityKey] = !amenities[amenityKey];
         },
         setCreatedAtPreset(preset) {
             this.tempFilterCreatedAtPreset = preset;
@@ -1787,6 +1952,8 @@ export default {
                         email: detail.email || '',
                         description: detail.description || '',
                         imageUrls: detail.imageUrls || [],
+                        status: detail.status || 'ACTIVE', // Thêm field status
+                        approvalStatus: detail.approvalStatus || 'PENDING', // Thêm field approval_status
                         availableRooms: (detail.availableRooms || []).map(room => ({
                             id: room.id,
                             roomType: room.roomType || '',
@@ -2009,6 +2176,49 @@ export default {
                 }
             });
             return min === Infinity ? 0 : min;
+        },
+        async toggleHotelStatus(hotel) {
+            
+            // Lưu trạng thái ban đầu để có thể rollback nếu có lỗi
+            const originalStatus = hotel.status;
+            
+            try {
+                // Nếu đang tắt (chuyển từ ACTIVE sang INACTIVE) thì hiện confirm dialog
+                if (hotel.status === 'ACTIVE') {
+                    const confirmed = await this.$refs.confirmDialog.showDialog({
+                        type: 'warning',
+                        title: 'Xác nhận tắt khách sạn',
+                        message: `Bạn có chắc chắn muốn tắt khách sạn "${hotel.name}"?`,
+                        details: 'Khách sạn này sẽ không hiển thị cho người dùng và không thể đặt phòng.',
+                        confirmText: 'Tắt khách sạn',
+                        cancelText: 'Hủy bỏ'
+                    });
+                    
+                    if (!confirmed) {
+                        return;
+                    }
+                }
+                
+                // Cập nhật trạng thái
+                const newStatus = hotel.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+                
+                // Gọi API đơn giản để cập nhật status
+                await hotelAdminApi.updateHotelStatus(hotel.id, newStatus);
+                
+                // Cập nhật local state
+                hotel.status = newStatus;
+                
+                // Hiển thị thông báo
+                const statusText = newStatus === 'ACTIVE' ? 'bật' : 'tắt';
+                window.$toast(`Đã ${statusText} khách sạn "${hotel.name}" thành công!`, 'success');
+                
+            } catch (error) {
+                console.error('Lỗi khi cập nhật trạng thái khách sạn:', error);
+                window.$toast('Có lỗi xảy ra khi cập nhật trạng thái khách sạn!', 'error');
+                
+                // Rollback về trạng thái ban đầu nếu có lỗi
+                hotel.status = originalStatus;
+            }
         },
     },
     mounted() {

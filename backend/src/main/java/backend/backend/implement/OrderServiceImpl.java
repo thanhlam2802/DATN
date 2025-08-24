@@ -2,8 +2,13 @@ package backend.backend.implement;
 
 import backend.backend.controller.OrderController;
 import backend.backend.dao.*;
+import backend.backend.dao.Bus.BusSeatDAO;
+import backend.backend.dao.Bus.BusSlotDAO;
 import backend.backend.dto.*;
+import backend.backend.dto.BusDTO.BusBookingDto;
+import backend.backend.dto.BusDTO.DirectBusReservationRequestDto;
 import backend.backend.entity.*;
+import backend.backend.entity.enumBus.BusBookingStatus;
 import backend.backend.event.VoucherUsedUpEvent;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
@@ -14,16 +19,22 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +60,7 @@ import com.itextpdf.layout.properties.UnitValue;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
+
     @Autowired private BusBookingDAO busBookingDAO;
     @Autowired private BookingTourDAO bookingTourDAO;
     @Autowired private CustomerDAO customerDAO;
@@ -64,7 +76,22 @@ public class OrderServiceImpl implements OrderService {
     
     @Autowired private  ApplicationEventPublisher eventPublisher;
 
-    
+    private ApplicationEventPublisher publisher;
+   
+    private final BusSlotDAO busSlotDAO;
+    private final BusSeatDAO busSeatDAO;
+ 
+
+    private User mustGetCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            throw new AuthenticationCredentialsNotFoundException("Bạn chưa đăng nhập");
+        }
+        Object p = auth.getPrincipal();
+        if (p instanceof User u) return u;
+        // (Trong filter của bạn principal = User rồi, fallback vẫn trả 401)
+        throw new AuthenticationCredentialsNotFoundException("Bạn chưa đăng nhập");
+    }
 
     @Override
     @Transactional
@@ -81,6 +108,7 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException("Voucher không hợp lệ."));
             order.setVoucher(voucher);
         }
+
         order.setStatus("PAID");
         order.setPayDate(LocalDateTime.now());
         orderDAO.save(order);
@@ -126,12 +154,12 @@ public class OrderServiceImpl implements OrderService {
         temporaryOrder.setExpiresAt(LocalDateTime.now().plusMinutes(30));
         temporaryOrder.setCreatedAt(LocalDateTime.now());
         Order savedOrder = orderDAO.save(temporaryOrder);
-
+        publisher.publishEvent(savedOrder);
         BookingTour bookingTour = new BookingTour();
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(savedOrder);
         bookingTour.setCustomerName(directRequest.getCustomerName());
-        bookingTour.setEmail(directRequest.getEmail());  
+        bookingTour.setEmail(directRequest.getEmail());
         bookingTour.setPhone(directRequest.getPhone());
         bookingTour.setNumberOfAdults(directRequest.getNumberOfAdults());
         bookingTour.setNumberOfChildren(directRequest.getNumberOfChildren());
@@ -178,7 +206,7 @@ public class OrderServiceImpl implements OrderService {
         order.setExpiresAt(expiresAt);
         order.setCreatedAt(now);
         Order savedOrder = orderDAO.save(order);
-
+        publisher.publishEvent(savedOrder);
         // 7. Lưu thông tin khách hàng
         Customer customer = new Customer();
         customer.setFullName(directRequest.getCustomerName());
@@ -206,11 +234,126 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
+    public Integer createDirectBusReservation(DirectBusReservationRequestDto directRequest) {
+        List<String> selectedSeatNumbers = directRequest.getSelectedSeatNumbers();
+        if (selectedSeatNumbers == null || selectedSeatNumbers.isEmpty()) {
+            throw new IllegalArgumentException("Phải chọn ít nhất một ghế.");
+        }
+
+        User user = mustGetCurrentUser(); // ✅ KHÔNG lấy từ request nữa
+
+        BusSlot busSlot = busSlotDAO.findById(directRequest.getBusSlotId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyến xe."));
+
+        // ✅ LOCK GHẾ theo seat numbers
+        List<BusSeat> selectedSeats = busSeatDAO.lockSeatsForUpdate(busSlot.getId(), selectedSeatNumbers);
+        if (selectedSeats.size() != selectedSeatNumbers.size()) {
+            throw new IllegalStateException("Một số ghế không tồn tại.");
+        }
+
+        // ✅ Check ghế đã booked chưa
+        List<String> alreadyBooked = selectedSeats.stream()
+                .filter(BusSeat::getIsBooked)
+                .map(BusSeat::getSeatNumber)
+                .collect(Collectors.toList());
+        if (!alreadyBooked.isEmpty()) {
+            throw new IllegalStateException("Các ghế đã có người đặt: " + String.join(", ", alreadyBooked));
+        }
+
+        // ✅ Tính tiền
+        BigDecimal totalPrice = selectedSeats.stream()
+                .map(BusSeat::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // ✅ Tạo order
+        Order order = new Order();
+        order.setUser(user);
+        order.setAmount(totalPrice);
+        order.setStatus("PENDING_PAYMENT");
+        order.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        order.setCreatedAt(LocalDateTime.now());
+        Order savedOrder = orderDAO.save(order);
+
+        // ✅ Customer
+        Customer customer = new Customer();
+        customer.setFullName(directRequest.getCustomerName());
+        customer.setPhone(directRequest.getPhone());
+        customer.setEmail(directRequest.getEmail());
+        Customer savedCustomer = customerDAO.save(customer);
+
+        // ✅ Booking
+        BusBooking booking = new BusBooking();
+        booking.setBusSlot(busSlot);
+        booking.setOrder(savedOrder);
+        booking.setCustomer(savedCustomer);
+        booking.setStatus(BusBookingStatus.RESERVED);
+        booking.setNumPassengers(selectedSeats.size());
+        booking.setTotalPrice(totalPrice);
+        booking.setBookingDate(LocalDateTime.now());
+        booking.setSelectedSeats(selectedSeats);
+        busBookingDAO.save(booking);
+
+        // ✅ Đánh dấu ghế đã booked (vẫn trong cùng transaction/lock)
+        selectedSeats.forEach(s -> s.setIsBooked(true));
+        busSeatDAO.saveAll(selectedSeats);
+
+        return savedOrder.getId();
+    }
+
+
+    @Override
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersByUserId(Integer userId) {
         List<Order> orders = orderDAO.findByUserIdOrderByCreatedAtDesc(userId);
         return orders.stream().map(this::toOrderDTOWithProductInfo).collect(Collectors.toList());
     }
+    @Override
+    @Transactional
+    public List<OrderInfoDto> getTop10NewOrders(){
+        List<OrderInfoDto> orderInfoDtos = new ArrayList<>();
+        List <Order> orders = orderDAO.findTop10NewOrder();
+        for (Order order : orders) {
+            OrderInfoDto orderInfoDto = new OrderInfoDto();
+            orderInfoDto.setId(order.getId());
+            orderInfoDto.setAmount(order.getAmount());
+            orderInfoDto.setCustomer(order.getUser().getName());
+            switch (order.getStatus()) {
+                case "PAID": orderInfoDto.setStatus("Đã thanh toán");
+                    break;
+                case "PENDING_PAYMENT": orderInfoDto.setStatus("Mới khởi tạo");
+                    break;
+                case "CANCELLED" : orderInfoDto.setStatus("Đã hủy");
+                    break;
+                case "REFUNDED" : orderInfoDto.setStatus("Hoàn tiền");
+                    break;
+            }
+            int check =0 ;
+            String service = null;
+            if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
+                service = "Khách sạn";
+                check++;
+            }
+            if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
+                service = "Máy bay";
+                check++;
+            }
+            if (order.getBusBookings() != null && !order.getBusBookings().isEmpty()) {
+                service = "Xe khách";
+                check++;
+            }
+            if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
+                service = "Tour";
+                check++;
+            }
+            if (check >= 2) service = "Nhiều dịch vụ";
+            orderInfoDto.setService(service);
+            orderInfoDtos.add(orderInfoDto);
+        }
+
+        return orderInfoDtos;
+    }
+
 
     @Override
     public OrderDto paidOrder(Integer id, String transactionId) {
@@ -220,8 +363,7 @@ public class OrderServiceImpl implements OrderService {
             order.setTransactionId(transactionId);
             order.setStatus("PAID");
             order.setPayDate(LocalDateTime.now());
-          
-            
+            publisher.publishEvent(order);
             orderDAO.save(order);
             logger.info("––– Order Saved –––");
         }
@@ -236,8 +378,9 @@ public class OrderServiceImpl implements OrderService {
         List<BookingTour> tourBookings = bookingTourDAO.findByOrderId(entity.getId());
         List<FlightBooking> flightBookings = flightBookingDAO.findByOrderId(entity.getId());
         List<HotelBooking> hotelBookings = hotelBookingDAO.findByOrderId(entity.getId());
+        List<BusBooking> busBookings = busBookingDAO.findByOrderId(entity.getId());
 
-        int totalItems = tourBookings.size() + flightBookings.size() + hotelBookings.size();
+        int totalItems = tourBookings.size() + flightBookings.size() + hotelBookings.size() + busBookings.size();
 
         if (totalItems == 1) {
             if (!tourBookings.isEmpty()) {
@@ -252,6 +395,18 @@ public class OrderServiceImpl implements OrderService {
                 }
                 String variantName = hotel.getRoomVariant() != null ? hotel.getRoomVariant().getVariantName() : "";
                 mainProductName = hotelName + (variantName.isEmpty() ? "" : (" - " + variantName));
+            }   else if (!busBookings.isEmpty()) {
+                BusBooking bus = busBookings.get(0);
+                String busName = "Vé xe khách";
+                if (bus.getBusSlot() != null && bus.getBusSlot().getBus() != null) {
+                    busName = bus.getBusSlot().getBus().getName();
+                }
+                String routeInfo = "";
+                if (bus.getBusSlot() != null && bus.getBusSlot().getRoute() != null) {
+                    routeInfo = " (" + getSimpleLocationName(bus.getBusSlot().getRoute().getOriginLocation()) +
+                            " → " + getSimpleLocationName(bus.getBusSlot().getRoute().getDestinationLocation()) + ")";
+                }
+                mainProductName = busName + routeInfo;
             }
         }
 
@@ -280,6 +435,9 @@ public class OrderServiceImpl implements OrderService {
         dto.setTourBookings(bookingTourDAO.findByOrderId(entity.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
         dto.setFlightBookings(flightBookingDAO.findByOrderId(entity.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
         dto.setHotelBookings(hotelBookingDAO.findByOrderId(entity.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
+        dto.setBusBookings(busBookingDAO.findByOrderIdWithSeats(entity.getId()).stream().map(this::toBusBookingDto).collect(Collectors.toList())); // ✅ ADD
+
+
         return dto;
     }
 
@@ -405,7 +563,7 @@ public class OrderServiceImpl implements OrderService {
         // 7. Cập nhật thông tin đơn hàng
         order.setOriginalAmount(originalAmount); 
         order.setAmount(newAmount);              
-        order.setVoucher(voucher);      
+        order.setVoucher(voucher);
         voucher.setUsageCount(voucher.getUsageCount() + 1);
         Voucher updatedVoucher = voucherDAO.save(voucher);
 
@@ -418,8 +576,8 @@ public class OrderServiceImpl implements OrderService {
 
         return convertToDto(updatedOrder); 
     }
-    
-    
+
+
     private void validateVoucher(Voucher voucher, BigDecimal orderAmount) {
         if (voucher.getStatus() != VoucherStatus.ACTIVE) {
             throw new RuntimeException("Mã giảm giá này không còn hoạt động.");
@@ -453,6 +611,31 @@ public class OrderServiceImpl implements OrderService {
         return BigDecimal.ZERO;
     }
 
+    // ✅ ADD MISSING getSimpleLocationName METHOD
+    private String getSimpleLocationName(Location location) {
+        if (location == null) return "N/A";
+
+        StringBuilder display = new StringBuilder();
+
+        if (location.getName() != null && !location.getName().trim().isEmpty()) {
+            display.append(location.getName());
+        }
+
+        if (location.getProvinceCity() != null && !location.getProvinceCity().trim().isEmpty()) {
+            if (display.length() > 0) display.append(" - ");
+            display.append(location.getProvinceCity());
+        }
+
+        if (location.getDistrict() != null && !location.getDistrict().trim().isEmpty()) {
+            if (display.length() > 0) display.append(" - ");
+            display.append(location.getDistrict());
+        }
+
+        return display.length() > 0 ? display.toString() : "N/A";
+    }
+
+    // ✅ FIX BROKEN convertToDto METHOD
+
     private OrderDto convertToDto(Order order) {
         if (order == null) return null;
         // This method combines the logic of toOrderDTO and toDetailedOrderDto,
@@ -478,6 +661,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setTourBookings(bookingTourDAO.findByOrderId(order.getId()).stream().map(this::toBookingTourDto).collect(Collectors.toList()));
         dto.setFlightBookings(flightBookingDAO.findByOrderId(order.getId()).stream().map(this::toFlightBookingDto).collect(Collectors.toList()));
         dto.setHotelBookings(hotelBookingDAO.findByOrderId(order.getId()).stream().map(this::toHotelBookingDto).collect(Collectors.toList()));
+        dto.setBusBookings(busBookingDAO.findByOrderId(order.getId()).stream().map(this::toBusBookingDto).collect(Collectors.toList()));
         return dto;
     }
 
@@ -485,18 +669,15 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderDto cancelOrderAfterRefund(Integer orderId) {
         logger.info("Bắt đầu hủy đơn hàng sau hoàn tiền cho Order ID: {}", orderId);
-        
         Order order = orderDAO.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));
-
         if (!"PAID".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể hủy đơn hàng đã thanh toán.");
         }
-
         // Cập nhật trạng thái đơn hàng thành CANCELLED
-        order.setStatus("CANCELLED");
+        order.setStatus("REFUNDED");
         orderDAO.save(order);
-
+        publisher.publishEvent(order);
         // Xử lý các booking trong đơn hàng
         // 1. Flight bookings - cập nhật flight slots thành AVAILABLE
         if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
@@ -509,14 +690,14 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
         }
-
         // 2. Hotel bookings - placeholder logic
         if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
             logger.info("Đơn hàng có {} hotel bookings - xử lý placeholder", order.getHotelBookings().size());
             // TODO: Implement hotel booking cancellation logic
         }
 
-   
+        // 3. Tour bookings - placeholder logic
+
         if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
             logger.info("Đơn hàng có {} tour bookings. Bắt đầu xử lý hoàn lại số chỗ.", order.getBookingTours().size());
             for (BookingTour bookingTour : order.getBookingTours()) {
@@ -543,7 +724,6 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
         }
-
         // 4. Bus bookings - placeholder logic
         if (order.getBusBookings() != null && !order.getBusBookings().isEmpty()) {
             logger.info("Đơn hàng có {} bus bookings - xử lý placeholder", order.getBusBookings().size());
@@ -553,6 +733,7 @@ public class OrderServiceImpl implements OrderService {
         logger.info("Hủy đơn hàng thành công cho Order ID: {}", orderId);
         return toOrderDTO(order);
     }
+
 
 
    
@@ -706,5 +887,62 @@ public class OrderServiceImpl implements OrderService {
     }
     
     
+
+    @Transactional(readOnly = true)
+    protected BusBookingDto toBusBookingDto(BusBooking busBooking) {
+        BusBookingDto dto = new BusBookingDto();
+
+        // Basic info
+        dto.setId(busBooking.getId());
+        dto.setBookingReference(busBooking.getBookingReference());
+        dto.setStatus(busBooking.getStatus().name()); // Convert enum to string
+        dto.setNumPassengers(busBooking.getNumPassengers());
+        dto.setTotalPrice(busBooking.getTotalPrice());
+        dto.setBookingDate(busBooking.getBookingDate());
+        dto.setOrderId(busBooking.getOrder() != null ? busBooking.getOrder().getId() : null);
+
+        // Customer info
+        if (busBooking.getCustomer() != null) {
+            dto.setCustomerId(busBooking.getCustomer().getId());
+            dto.setCustomerName(busBooking.getCustomer().getFullName());
+            dto.setCustomerPhone(busBooking.getCustomer().getPhone());
+            dto.setCustomerEmail(busBooking.getCustomer().getEmail());
+        }
+
+        // Bus slot info
+        if (busBooking.getBusSlot() != null) {
+            dto.setBusSlotId(busBooking.getBusSlot().getId());
+            dto.setDepartureDate(busBooking.getBusSlot().getSlotDate());
+            dto.setDepartureTime(busBooking.getBusSlot().getDepartureTime());
+            dto.setArrivalTime(busBooking.getBusSlot().getArrivalTime());
+
+            // ✅ ADD: Map route info (avoid lazy loading)
+            if (busBooking.getBusSlot().getRoute() != null) {
+                dto.setDepartureLocation(busBooking.getBusSlot().getRoute().getOriginLocation().getName());
+                dto.setArrivalLocation(busBooking.getBusSlot().getRoute().getDestinationLocation().getName());
+            }
+
+            if (busBooking.getBusSlot().getBus() != null) {
+                dto.setBusName(busBooking.getBusSlot().getBus().getName());
+                dto.setBusLicensePlate(busBooking.getBusSlot().getBus().getLicensePlate());
+
+                // ✅ ADD: Map bus category name only (avoid lazy loading)
+                if (busBooking.getBusSlot().getBus().getCategory() != null) {
+                    dto.setBusCategoryName(busBooking.getBusSlot().getBus().getCategory().getName());
+                }
+            }
+        }
+
+        // ✅ ENHANCED: Map selected seats (avoid lazy loading)
+        if (busBooking.getSelectedSeats() != null) {
+            // Map seat numbers as strings
+            List<String> seatNumbers = busBooking.getSelectedSeats().stream()
+                    .map(seat -> seat.getSeatNumber())
+                    .collect(Collectors.toList());
+            dto.setSeatNumbers(seatNumbers);
+        }
+
+        return dto;
+    }
 
 }

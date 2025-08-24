@@ -1,8 +1,10 @@
 package backend.backend.exception;
 
+import backend.backend.entity.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +17,15 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(org.springframework.security.authentication.AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleAuth(AuthenticationCredentialsNotFoundException ex) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("status", 401);
+        body.put("error", "UNAUTHORIZED");
+        body.put("message", "Bạn chưa đăng nhập");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(
@@ -67,6 +78,20 @@ public class GlobalExceptionHandler {
         log.error("RUNTIME_ERROR - Message: {}", ex.getMessage(), ex);
         
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(exception = BadRequestException.class)
+    ResponseEntity<?> handleBadRequestException(BadRequestException e) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(400, e.getMessage(), e.errorCode.getFullErrorCode(), null);
+        return ResponseEntity
+                .badRequest()
+                .body(apiResponse);
+    }
+
+    @ExceptionHandler(exception = AuthException.class)
+    ResponseEntity<?> handleAuthException(AuthException e) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(401, e.getMessage(), e.errorCode.getFullErrorCode(), null);
+        return ResponseEntity.status(401).body(apiResponse);
     }
 
     @ExceptionHandler(Exception.class)

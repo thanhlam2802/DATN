@@ -2,7 +2,6 @@ package backend.backend.controller;
 
 import backend.backend.dto.*;
 import backend.backend.service.AdminFlightService;
-import backend.backend.service.ImageStorageService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 @Slf4j
 @RestController
@@ -21,8 +21,7 @@ public class AdminFlightController {
     @Autowired
     private AdminFlightService adminFlightService;
 
-    @Autowired
-    private ImageStorageService imageStorageService;
+    // ImageStorageService is injected elsewhere as needed
 
     @GetMapping("/flights")
     public ResponseEntity<List<FlightDto>> getFlights(
@@ -178,12 +177,14 @@ public class AdminFlightController {
     }
 
     @GetMapping("/flight-bookings")
-    public ResponseEntity<List<FlightBookingDetailDto>> getFlightBookings(
-            @RequestParam(required = false) String filter) {
+    public ResponseEntity<List<FlightOrderReservationDto>> getFlightBookings(
+            @RequestParam(required = false) String filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_BOOKINGS_REQUEST - RequestId: {}, filter: {}", requestId, filter);
         try {
-            List<FlightBookingDetailDto> list = adminFlightService.getFlightBookings(filter);
+            List<FlightOrderReservationDto> list = adminFlightService.getFlightBookings(filter, page, size);
             log.info("GET_BOOKINGS_SUCCESS - RequestId: {}, Count: {}", requestId, list.size());
             return ResponseEntity.ok(list);
         } catch (Exception e) {
@@ -193,15 +194,31 @@ public class AdminFlightController {
     }
 
     @GetMapping("/flight-bookings/{bookingId}")
-    public ResponseEntity<FlightBookingDetailDto> getFlightBookingDetail(@PathVariable Integer bookingId) {
+    public ResponseEntity<FlightOrderReservationDto> getFlightBookingDetail(@PathVariable Integer bookingId) {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_BOOKING_DETAIL_REQUEST - RequestId: {}, bookingId: {}", requestId, bookingId);
         try {
-            FlightBookingDetailDto detail = adminFlightService.getFlightBookingDetail(bookingId);
+            FlightOrderReservationDto detail = adminFlightService.getFlightBookingDetail(bookingId);
             log.info("GET_BOOKING_DETAIL_SUCCESS - RequestId: {}, bookingId: {}", requestId, bookingId);
             return ResponseEntity.ok(detail);
         } catch (Exception e) {
             log.error("GET_BOOKING_DETAIL_FAILED - RequestId: {}, bookingId: {}, Error: {}", requestId, bookingId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @PutMapping("/flight-bookings/{bookingId}")
+    public ResponseEntity<FlightOrderReservationDto> updateFlightBooking(
+            @PathVariable Integer bookingId,
+            @Valid @RequestBody FlightOrderReservationDto dto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_BOOKING_REQUEST - RequestId: {}, bookingId: {}, Payload: {}", requestId, bookingId, dto);
+        try {
+            FlightOrderReservationDto updated = adminFlightService.updateFlightBooking(bookingId, dto);
+            log.info("UPDATE_BOOKING_SUCCESS - RequestId: {}, bookingId: {}", requestId, bookingId);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            log.error("UPDATE_BOOKING_FAILED - RequestId: {}, bookingId: {}, Error: {}", requestId, bookingId, e.getMessage(), e);
             throw e;
         }
     }
@@ -219,7 +236,7 @@ public class AdminFlightController {
         }
     }
 
-    @PutMapping("/flight-bookings/{bookingId}")
+    @PutMapping("/flight-bookings/status/{bookingId}")
     public ResponseEntity<FlightBookingDetailDto> updateFlightBookingStatus(
             @PathVariable Integer bookingId,
             @RequestParam String status) {
@@ -231,6 +248,20 @@ public class AdminFlightController {
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             log.error("UPDATE_BOOKING_STATUS_FAILED - RequestId: {}, bookingId: {}, Error: {}", requestId, bookingId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @DeleteMapping("/flight-bookings/{bookingId}")
+    public ResponseEntity<Void> deleteFlightBooking(@PathVariable Integer bookingId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("DELETE_BOOKING_ADMIN_REQUEST - RequestId: {}, bookingId: {}", requestId, bookingId);
+        try {
+            adminFlightService.deleteFlightBooking(bookingId);
+            log.info("DELETE_BOOKING_ADMIN_SUCCESS - RequestId: {}, bookingId: {}", requestId, bookingId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("DELETE_BOOKING_ADMIN_FAILED - RequestId: {}, bookingId: {}, Error: {}", requestId, bookingId, e.getMessage(), e);
             throw e;
         }
     }
@@ -375,6 +406,65 @@ public class AdminFlightController {
         }
     }
 
+    // Airlines CRUD
+    @GetMapping("/airlines")
+    public ResponseEntity<List<AirlineDto>> getAirlines() {
+        String requestId = UUID.randomUUID().toString();
+        log.info("GET_AIRLINES_REQUEST - RequestId: {}", requestId);
+        try {
+            List<AirlineDto> list = adminFlightService.getAirlines();
+            log.info("GET_AIRLINES_SUCCESS - RequestId: {}, Count: {}", requestId, list.size());
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            log.error("GET_AIRLINES_FAILED - RequestId: {}, Error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @PostMapping("/airlines")
+    public ResponseEntity<AirlineDto> createAirline(@Valid @RequestBody AirlineDto airlineDto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("CREATE_AIRLINE_REQUEST - RequestId: {}, Payload: {}", requestId, airlineDto);
+        try {
+            AirlineDto created = adminFlightService.createAirline(airlineDto);
+            log.info("CREATE_AIRLINE_SUCCESS - RequestId: {}, AirlineId: {}", requestId, created.getId());
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            log.error("CREATE_AIRLINE_FAILED - RequestId: {}, Error: {}", requestId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @PutMapping("/airlines/{airlineId}")
+    public ResponseEntity<AirlineDto> updateAirline(
+            @PathVariable Integer airlineId,
+            @Valid @RequestBody AirlineDto airlineDto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_AIRLINE_REQUEST - RequestId: {}, airlineId: {}, Payload: {}", requestId, airlineId, airlineDto);
+        try {
+            AirlineDto updated = adminFlightService.updateAirline(airlineId, airlineDto);
+            log.info("UPDATE_AIRLINE_SUCCESS - RequestId: {}, airlineId: {}", requestId, airlineId);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            log.error("UPDATE_AIRLINE_FAILED - RequestId: {}, airlineId: {}, Error: {}", requestId, airlineId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @DeleteMapping("/airlines/{airlineId}")
+    public ResponseEntity<Void> deleteAirline(@PathVariable Integer airlineId) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("DELETE_AIRLINE_REQUEST - RequestId: {}, airlineId: {}", requestId, airlineId);
+        try {
+            adminFlightService.deleteAirline(airlineId);
+            log.info("DELETE_AIRLINE_SUCCESS - RequestId: {}, airlineId: {}", requestId, airlineId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("DELETE_AIRLINE_FAILED - RequestId: {}, airlineId: {}, Error: {}", requestId, airlineId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
 //    @PutMapping("/flights/{flightId}/images")
 //    public ResponseEntity<List<ImageDto>> updateFlightImages(
 //            @PathVariable Integer flightId,
@@ -422,5 +512,31 @@ public class AdminFlightController {
             log.error("ADD_FLIGHT_IMAGES_FAILED - RequestId: {}, flightId: {}, Error: {}", requestId, flightId, e.getMessage(), e);
             throw e;
         }
+    }
+
+    // ===== Super Admin Dashboard =====
+    @GetMapping("/super-admin/flight-admins")
+    public ResponseEntity<List<FlightAdminSummaryDto>> getFlightAdminSummaries() {
+        List<FlightAdminSummaryDto> summaries = adminFlightService.getFlightAdminSummaries();
+        return ResponseEntity.ok(summaries);
+    }
+
+    @GetMapping("/super-admin/flight-admins/{adminId}")
+    public ResponseEntity<FlightAdminDetailDto> getFlightAdminDetail(@PathVariable Integer adminId) {
+        FlightAdminDetailDto detail = adminFlightService.getFlightAdminDetail(adminId);
+        if (detail == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(detail);
+    }
+
+    @GetMapping("/super-admin/flight-admins/{adminId}/flights")
+    public ResponseEntity<Page<FlightDto>> getFlightsByAdminId(
+            @PathVariable Integer adminId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String filter) {
+        Page<FlightDto> flights = adminFlightService.getFlightsByAdminId(adminId, page, size, filter);
+        return ResponseEntity.ok(flights);
     }
 }

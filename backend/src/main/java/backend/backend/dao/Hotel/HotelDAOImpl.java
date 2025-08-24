@@ -61,15 +61,23 @@ public class HotelDAOImpl implements HotelDAOCustom {
                 HotelDto.class,
                 hotelRoot.get("id"),
                 hotelRoot.get("name"),
-                cb.nullLiteral(String.class),
+                cb.literal(null),
+                cb.literal(null),
                 hotelRoot.get("address"),
                 provinceJoin.get("name"),
                 hotelRoot.get("starRating"),
                 avgRatingSubquery.getSelection(),
                 reviewCountSubquery.getSelection().as(Integer.class),
                 minPriceSubquery.getSelection(),
+                cb.literal(null), 
+                cb.literal(null), 
                 hotelRoot.get("createdAt"),
-                hotelRoot.get("updatedAt")
+                hotelRoot.get("updatedAt"),
+                hotelRoot.get("approvalStatus"),
+                hotelRoot.get("approvalReason"),
+                hotelRoot.get("approvedAt"),
+                hotelRoot.get("approvedBy"),
+                hotelRoot.get("status")
         ));
 
         Predicate filterPredicate = spec.toPredicate(hotelRoot, query, cb);
@@ -206,5 +214,128 @@ public class HotelDAOImpl implements HotelDAOCustom {
             }
         }
         return imagesByHotelId;
+    }
+
+    @Override
+    public List<HotelDto> findPopularHotelsByBookings(int size) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<HotelDto> query = cb.createQuery(HotelDto.class);
+        Root<Hotel> hotelRoot = query.from(Hotel.class);
+
+        Subquery<Long> bookingCountSubquery = query.subquery(Long.class);
+        Root<backend.backend.entity.HotelBooking> bookingRoot = bookingCountSubquery.from(backend.backend.entity.HotelBooking.class);
+        Join<backend.backend.entity.HotelBooking, backend.backend.entity.HotelRoomVariant> variantJoin = bookingRoot.join("roomVariant");
+        Join<backend.backend.entity.HotelRoomVariant, backend.backend.entity.HotelRoom> roomJoin = variantJoin.join("room");
+        Join<backend.backend.entity.HotelBooking, backend.backend.entity.Order> orderJoin = bookingRoot.join("order");
+        bookingCountSubquery.select(cb.countDistinct(bookingRoot.get("id")))
+                .where(cb.and(
+                    cb.equal(roomJoin.get("hotel"), hotelRoot),
+                    cb.equal(orderJoin.get("status"), "PAID")
+                ));
+
+        Subquery<String> imageUrlSubquery = query.subquery(String.class);
+        Root<HotelImage> hiRoot = imageUrlSubquery.from(HotelImage.class);
+        Subquery<Integer> minImageIdSubquery = imageUrlSubquery.subquery(Integer.class);
+        Root<HotelImage> minHiRoot = minImageIdSubquery.from(HotelImage.class);
+        minImageIdSubquery.select(cb.min(minHiRoot.get("id").get("imageId")))
+                .where(cb.equal(minHiRoot.get("hotel"), hotelRoot));
+        imageUrlSubquery.select(hiRoot.get("image").get("url"))
+                .where(cb.equal(hiRoot.get("id").get("imageId"), minImageIdSubquery));
+
+        Subquery<Double> avgRatingSubquery = query.subquery(Double.class);
+        Root<Review> reviewRootAvg = avgRatingSubquery.from(Review.class);
+        avgRatingSubquery.select(cb.coalesce(cb.avg(reviewRootAvg.get("rating")), 0.0))
+                .where(cb.and(
+                    cb.equal(reviewRootAvg.get("entityId"), hotelRoot.get("id")),
+                    cb.equal(reviewRootAvg.get("entityType"), "Hotel")
+                ));
+
+        Subquery<Long> reviewCountSubquery = query.subquery(Long.class);
+        Root<Review> reviewRootCt = reviewCountSubquery.from(Review.class);
+        reviewCountSubquery.select(cb.count(reviewRootCt.get("id")))
+                .where(cb.and(
+                    cb.equal(reviewRootCt.get("entityId"), hotelRoot.get("id")),
+                    cb.equal(reviewRootCt.get("entityType"), "Hotel")
+                ));
+
+        Subquery<BigDecimal> minPriceSubquery = query.subquery(BigDecimal.class);
+        Root<backend.backend.entity.HotelRoomVariant> variantRoot = minPriceSubquery.from(backend.backend.entity.HotelRoomVariant.class);
+        minPriceSubquery.select(cb.min(variantRoot.get("price")))
+                .where(cb.equal(variantRoot.get("room").get("hotel"), hotelRoot));
+
+        Join<Hotel, Province> provinceJoin = hotelRoot.join("province", JoinType.LEFT);
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.equal(hotelRoot.get("approvalStatus"), "APPROVED"));
+        predicates.add(cb.equal(hotelRoot.get("status"), "ACTIVE"));
+        
+        query.where(cb.and(predicates.toArray(new Predicate[0])));
+        
+        query.select(cb.construct(
+                HotelDto.class,
+                hotelRoot.get("id"),
+                hotelRoot.get("name"),
+                cb.literal(null), 
+                cb.literal(null),
+                hotelRoot.get("address"),
+                provinceJoin.get("name"),
+                hotelRoot.get("starRating"),
+                avgRatingSubquery.getSelection(),
+                reviewCountSubquery.getSelection().as(Integer.class),
+                minPriceSubquery.getSelection(),
+                cb.literal(null), 
+                cb.literal(null), 
+                hotelRoot.get("createdAt"),
+                hotelRoot.get("updatedAt"),
+                hotelRoot.get("approvalStatus"),
+                hotelRoot.get("approvalReason"),
+                hotelRoot.get("approvedAt"),
+                hotelRoot.get("approvedBy"),
+                hotelRoot.get("status")
+        ));
+
+        query.orderBy(cb.desc(bookingCountSubquery.getSelection()));
+
+        TypedQuery<HotelDto> typedQuery = em.createQuery(query);
+        typedQuery.setMaxResults(size);
+        List<HotelDto> resultList = typedQuery.getResultList();
+
+        if (!resultList.isEmpty()) {
+            List<Integer> hotelIds = resultList.stream().map(HotelDto::getId).collect(Collectors.toList());
+            Map<Integer, List<AmenityDto>> amenitiesByHotelId = findAmenitiesForHotels(hotelIds);
+            Map<Integer, List<String>> imagesByHotelId = findImagesForHotels(hotelIds);
+
+            Map<Integer, BigDecimal> minDiscountedPriceByHotelId = new HashMap<>();
+            for (Integer hotelId : hotelIds) {
+                TypedQuery<backend.backend.entity.HotelRoomVariant> q = em.createQuery(
+                    "SELECT v FROM HotelRoomVariant v WHERE v.room.hotel.id = :hotelId", backend.backend.entity.HotelRoomVariant.class);
+                q.setParameter("hotelId", hotelId);
+                List<backend.backend.entity.HotelRoomVariant> variants = q.getResultList();
+                BigDecimal min = null;
+                for (backend.backend.entity.HotelRoomVariant v : variants) {
+                    BigDecimal price = v.getPrice();
+                    if (v.getDiscountType() != null && v.getDiscountValue() != null && v.getDiscountValue().compareTo(BigDecimal.ZERO) > 0) {
+                        if ("amount".equals(v.getDiscountType())) {
+                            price = price.subtract(v.getDiscountValue());
+                        } else if ("percent".equals(v.getDiscountType())) {
+                            price = price.multiply(BigDecimal.ONE.subtract(v.getDiscountValue().divide(new BigDecimal("100"))));
+                        }
+                        if (price.compareTo(BigDecimal.ZERO) < 0) price = BigDecimal.ZERO;
+                    }
+                    if (min == null || price.compareTo(min) < 0) min = price;
+                }
+                minDiscountedPriceByHotelId.put(hotelId, min);
+            }
+
+            resultList.forEach(hotelDto -> {
+                hotelDto.setAmenities(amenitiesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList()));
+                List<String> images = imagesByHotelId.getOrDefault(hotelDto.getId(), Collections.emptyList());
+                hotelDto.setImageUrls(images);
+                hotelDto.setImageUrl(images.isEmpty() ? null : images.get(0));
+                hotelDto.setMinDiscountedPrice(minDiscountedPriceByHotelId.getOrDefault(hotelDto.getId(), null));
+            });
+        }
+
+        return resultList;
     }
 }

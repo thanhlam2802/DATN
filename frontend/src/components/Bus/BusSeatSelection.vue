@@ -1,545 +1,520 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { toast } from '@/utils/notifications'
 
 const props = defineProps({
-  selectedBus: {
+  busSlot: {
     type: Object,
     required: true
   },
-  busType: {
-    type: String,
-    required: true
+  selectedSeats: {
+    type: Array,
+    default: () => []
+  },
+  maxSeats: {
+    type: Number,
+    default: 10
   }
 })
 
-const emit = defineEmits(['seat-selected', 'close'])
-
-// Animation state
-const isVisible = ref(false)
-
-// Show sidebar with animation
-onMounted(() => {
-  nextTick(() => {
-    isVisible.value = true
-  })
-})
+const emit = defineEmits(['seat-selected', 'seat-deselected', 'selection-change'])
 
 // State management
-const selectedSeats = ref([])
+const seats = ref([])
+const loading = ref(true)
+const selectedSeatIds = ref([...props.selectedSeats])
 
-// Mock seat status data
-const seatStatus = ref({
-  sold: ['A11', 'A13', 'B12', 'C24', 'D21', 'E23', 'F22'],
-  selecting: ['B24', 'C22'],
-  unavailable: ['D24', 'F24']
-})
-
-// Seat layout generation
+// Computed layout properties
 const seatLayout = computed(() => {
-  const rows = ['A', 'B', 'C']
-  const floors = [1, 2]
-  const columns = [1, 2, 3, 4, 5, 6, 7]
+  if (!seats.value.length) return { levels: [], busType: 'SHUTTLE_STANDARD' }
   
-  return floors.map(floor => {
-    return rows.map(row => {
-      return columns.map(col => {
-        const seatId = `${row}${floor}${col}`
-        return {
-          id: seatId,
-          row: row,
-          floor: floor,
-          column: col,
-          price: getSeatPrice(row, floor, col),
-          status: getSeatStatus(seatId)
-        }
-      })
-    })
-  })
+  const totalSeats = seats.value.length
+  const busType = determineBusType(totalSeats)
+  
+  // Phân chia ghế theo tầng cho xe 45 chỗ
+  if (totalSeats > 30) {
+    return createTwoLevelLayout(seats.value, busType)
+  } else {
+    return createSingleLevelLayout(seats.value, busType)
+  }
 })
 
-// Price calculation
-const getSeatPrice = (row, floor, col) => {
-  const basePrice = props.selectedBus.price
-  let floorMultiplier = floor === 2 ? 1.2 : 1
+// Create two-level layout for large buses (45 seats)
+const createTwoLevelLayout = (allSeats, busType) => {
+  const level1Seats = allSeats.filter(seat => {
+    const { row, col } = parseSeatNumber(seat.seatNumber, busType)
+    // Tầng 1: A1-A8, B1-B8, C1-C8 (24 ghế)
+    return ['A', 'B', 'C'].includes(row) && col <= 8
+  })
   
-  if (row === 'A') {
-    return Math.round(basePrice * floorMultiplier * 1.3)
-  } else if (row === 'B') {
-    return Math.round(basePrice * floorMultiplier * 1.1)
-  } else {
-    return Math.round(basePrice * floorMultiplier)
+  const level2Seats = allSeats.filter(seat => {
+    const { row, col } = parseSeatNumber(seat.seatNumber, busType)
+    // Tầng 2: ghế còn lại
+    return !((['A', 'B', 'C'].includes(row) && col <= 8))
+  })
+  
+  return {
+    busType,
+    levels: [
+      {
+        name: 'Tầng 1',
+        rows: createRowsFromSeats(level1Seats, ['A', 'B', 'C'])
+      },
+      {
+        name: 'Tầng 2', 
+        rows: createRowsFromSeats(level2Seats, ['A', 'B', 'C'])
+      }
+    ]
   }
 }
 
-// Get seat status
-const getSeatStatus = (seatId) => {
-  if (seatStatus.value.sold.includes(seatId)) return 'sold'
-  if (seatStatus.value.selecting.includes(seatId)) return 'selecting'
-  if (seatStatus.value.unavailable.includes(seatId)) return 'unavailable'
-  if (selectedSeats.value.includes(seatId)) return 'selected'
-  return 'available'
+// Create single-level layout for smaller buses
+const createSingleLevelLayout = (allSeats, busType) => {
+  const rowLetters = busType === 'BED_DOUBLE_ROOM' ? ['A', 'B'] : ['A', 'B', 'C']
+  
+  return {
+    busType,
+    levels: [{
+      name: 'Tầng đơn',
+      rows: createRowsFromSeats(allSeats, rowLetters)
+    }]
+  }
 }
 
-// Seat selection
-const selectSeat = (seat) => {
-  if (seat.status !== 'available' && seat.status !== 'selected') return
+// Helper function to create rows from seats
+const createRowsFromSeats = (seatsList, rowLetters) => {
+  const seatsByPosition = {}
   
-  const seatIndex = selectedSeats.value.indexOf(seat.id)
+  seatsList.forEach(seat => {
+    const { row, col } = parseSeatNumber(seat.seatNumber, 'BED_SINGLE_ROOM')
+    if (!seatsByPosition[row]) {
+      seatsByPosition[row] = {}
+    }
+    seatsByPosition[row][col] = seat
+  })
   
-  if (seatIndex > -1) {
-    selectedSeats.value.splice(seatIndex, 1)
-  } else {
-    if (selectedSeats.value.length < 4) {
-      selectedSeats.value.push(seat.id)
+  // Tạo rows theo thứ tự A, B, C
+  return rowLetters
+    .filter(rowKey => seatsByPosition[rowKey]) // Chỉ lấy row có ghế
+    .map(rowKey => ({
+      id: rowKey,
+      seats: Object.keys(seatsByPosition[rowKey])
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map(colKey => seatsByPosition[rowKey][colKey])
+    }))
+}
+
+// Determine bus type for layout
+const determineBusType = (totalSeats) => {
+  if (totalSeats <= 20) return 'SHUTTLE_STANDARD' // 16 chỗ: A1-A16
+  if (totalSeats <= 30) return 'BED_DOUBLE_ROOM'  // 20 chỗ: 2 dãy AB
+  return 'BED_SINGLE_ROOM' // 40+ chỗ: 3 dãy ABC
+}
+
+// Parse seat number to row/col
+const parseSeatNumber = (seatNumber, busType) => {
+  // Xử lý các format: A1, B2, C3, hoặc A1, A2, A3...
+  const match = seatNumber.match(/^([A-Z])?(\d+)$/)
+  
+  if (match) {
+    const [, letter, number] = match
+    
+    if (letter) {
+      // Format: A1, B2, C3
+      return {
+        row: letter,
+        col: parseInt(number)
+      }
     } else {
-      alert('Chỉ có thể chọn tối đa 4 ghế')
+      // Format: 1, 2, 3... (for SHUTTLE_STANDARD)
+      return {
+        row: 'A',
+        col: parseInt(number)
+      }
     }
   }
+  
+  // Fallback
+  return { row: 'A', col: 1 }
 }
 
-// Total price calculation
-const totalPrice = computed(() => {
-  return selectedSeats.value.reduce((total, seatId) => {
-    const seat = seatLayout.value.flat().flat().find(s => s.id === seatId)
-    return total + (seat ? seat.price : 0)
-  }, 0)
-})
-
-// Confirm selection
-const confirmSelection = () => {
-  if (selectedSeats.value.length === 0) {
-    alert('Vui lòng chọn ít nhất một ghế')
+// Seat selection methods
+const selectSeat = (seat) => {
+  if (seat.isBooked) {
+    toast.warning('Ghế này đã được đặt')
     return
   }
   
-  emit('seat-selected', {
-    seats: selectedSeats.value,
-    totalPrice: totalPrice.value
-  })
-}
-
-// Format price
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(price)
-}
-
-// Methods for bus facilities
-const getBusFacilities = () => {
-  if (props.busType === 'sleeping-bus') {
-    return [
-      { name: 'WiFi miễn phí', icon: 'fas fa-wifi', color: 'text-blue-600' },
-      { name: 'Điều hòa', icon: 'fas fa-snowflake', color: 'text-cyan-600' },
-      { name: 'Chăn gối cao cấp', icon: 'fas fa-bed', color: 'text-purple-600' },
-      { name: 'TV cá nhân', icon: 'fas fa-tv', color: 'text-green-600' },
-      { name: 'Suất ăn miễn phí', icon: 'fas fa-utensils', color: 'text-orange-600' },
-      { name: 'WC riêng', icon: 'fas fa-restroom', color: 'text-gray-600' },
-      { name: 'Nước uống', icon: 'fas fa-glass-water', color: 'text-blue-500' },
-      { name: 'Ổ cắm điện', icon: 'fas fa-plug', color: 'text-yellow-600' }
-    ]
+  if (selectedSeatIds.value.includes(seat.id)) {
+    // Deselect
+    selectedSeatIds.value = selectedSeatIds.value.filter(id => id !== seat.id)
+    emit('seat-deselected', seat)
   } else {
-    return [
-      { name: 'WiFi miễn phí', icon: 'fas fa-wifi', color: 'text-blue-600' },
-      { name: 'Điều hòa', icon: 'fas fa-snowflake', color: 'text-cyan-600' },
-      { name: 'Ghế ngả 160°', icon: 'fas fa-chair', color: 'text-purple-600' },
-      { name: 'Sạc USB', icon: 'fas fa-usb', color: 'text-green-600' },
-      { name: 'Nước uống', icon: 'fas fa-glass-water', color: 'text-blue-500' },
-      { name: 'Gối kê cổ', icon: 'fas fa-heart', color: 'text-pink-600' }
-    ]
+    // Check max seats limit
+    if (selectedSeatIds.value.length >= props.maxSeats) {
+      toast.warning(`Chỉ có thể chọn tối đa ${props.maxSeats} ghế`)
+      return
+    }
+    
+    // Select
+    selectedSeatIds.value.push(seat.id)
+    emit('seat-selected', seat)
   }
+  
+  // Emit selection change
+  const selectedSeats = seats.value.filter(seat => selectedSeatIds.value.includes(seat.id))
+  emit('selection-change', selectedSeats)
 }
 
-// Seat CSS classes
+// Get seat status class
 const getSeatClass = (seat) => {
-  const baseClass = 'h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center rounded-lg border-2 transition-all duration-200 transform'
+  const baseClass = 'border-2 cursor-pointer transition-all duration-200 flex items-center justify-center'
   
-  switch (seat.status) {
-    case 'sold':
-      return `${baseClass} bg-red-100 border-red-300 text-red-600 cursor-not-allowed opacity-60`
-    case 'selecting':
-      return `${baseClass} bg-amber-100 border-amber-400 text-amber-700 cursor-not-allowed animate-pulse`
-    case 'unavailable':
-      return `${baseClass} bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-50`
-    case 'selected':
-      return `${baseClass} bg-indigo-600 border-indigo-500 text-white scale-110 shadow-lg ring-2 ring-indigo-200`
-    default:
-      return `${baseClass} bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 hover:scale-105 cursor-pointer`
+  if (seat.isBooked) {
+    return `${baseClass} bg-red-100 border-red-300 text-red-600 cursor-not-allowed`
   }
+  
+  if (selectedSeatIds.value.includes(seat.id)) {
+    return `${baseClass} bg-blue-500 border-blue-600 text-white shadow-lg`
+  }
+  
+  return `${baseClass} bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:shadow-md`
 }
+
+
+
+// Watch props changes
+watch(() => props.selectedSeats, (newSeats) => {
+  selectedSeatIds.value = [...newSeats]
+}, { deep: true })
+
+// Load seats data
+onMounted(() => {
+  if (props.busSlot?.seats) {
+    seats.value = [...props.busSlot.seats]
+    loading.value = false
+  } else {
+    toast.error('Không thể tải thông tin ghế')
+    loading.value = false
+  }
+})
+
+// Computed selections
+const selectedSeatsInfo = computed(() => {
+  const selected = seats.value.filter(seat => selectedSeatIds.value.includes(seat.id))
+  const totalPrice = selected.reduce((sum, seat) => sum + (seat.price || 0), 0)
+  
+  return {
+    seats: selected,
+    count: selected.length,
+    totalPrice,
+    seatNumbers: selected.map(s => s.seatNumber).join(', ')
+  }
+})
+
+const availableSeatsCount = computed(() => {
+  return seats.value.filter(seat => !seat.isBooked).length
+})
 </script>
 
 <template>
-  <!-- Background Overlay with animation -->
-  <Transition
-    enter-active-class="ease-out duration-300"
-    enter-from-class="opacity-0"
-    enter-to-class="opacity-100"
-    leave-active-class="ease-in duration-200"
-    leave-from-class="opacity-100"
-    leave-to-class="opacity-0"
-  >
-    <div 
-      v-if="isVisible"
-      class="fixed inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-sm transition-opacity z-40"
-      @click="emit('close')"
-    />
-  </Transition>
-
-  <!-- Sidebar Panel with slide animation -->
-  <Transition
-    enter-active-class="transform transition ease-in-out duration-500"
-    enter-from-class="translate-x-full"
-    enter-to-class="translate-x-0"
-    leave-active-class="transform transition ease-in-out duration-300"
-    leave-from-class="translate-x-0"
-    leave-to-class="translate-x-full"
-  >
-    <div 
-      v-if="isVisible"
-      class="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl 2xl:max-w-6xl"
-    >
-      <div class="relative flex w-full flex-col overflow-y-auto bg-white shadow-2xl">
-        <!-- Header -->
-        <div class="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 px-4 py-6 sm:px-6">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white bg-opacity-20 sm:h-12 sm:w-12">
-                <svg class="h-5 w-5 text-white sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0V9a1.5 1.5 0 013 0v9.75z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 18.75a1.5 1.5 0 01-3 0V9a1.5 1.5 0 013 0v9.75z" />
-                </svg>
-              </div>
-              <div>
-                <h2 class="text-lg font-semibold text-white sm:text-xl">Chọn ghế yêu thích</h2>
-                <p class="text-sm text-indigo-100 sm:text-base">{{ selectedBus.company }} • {{ selectedBus.route }}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              @click="emit('close')"
-              class="relative -m-2 p-2 text-indigo-200 hover:text-white transition-colors duration-200"
-            >
-              <span class="absolute -inset-0.5"></span>
-              <span class="sr-only">Đóng panel</span>
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+  <div class="bus-seat-selection">
+    <!-- Compact Header - Only essential info -->
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+      <div class="text-sm text-gray-600">
+        Còn <span class="font-medium text-green-600">{{ availableSeatsCount }}</span> ghế trống
+      </div>
+      
+      <!-- Compact Legend -->
+      <div class="flex items-center space-x-4 text-xs">
+        <div class="flex items-center space-x-1">
+          <div class="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+          <span class="text-gray-600">Trống</span>
         </div>
+        <div class="flex items-center space-x-1">
+          <div class="w-3 h-3 bg-blue-500 border border-blue-600 rounded"></div>
+          <span class="text-gray-600">Đã chọn</span>
+        </div>
+        <div class="flex items-center space-x-1">
+          <div class="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+          <span class="text-gray-600">Đã đặt</span>
+        </div>
+      </div>
+    </div>
 
-        <!-- Content -->
-        <div class="flex-1 px-4 py-6 sm:px-6">
-          <div class="space-y-6 lg:space-y-8">
-            <!-- Bus Direction Indicator -->
-            <div class="text-center">
-              <div class="inline-flex items-center rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
-                <svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span class="mr-2">Hướng xe chạy</span>
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <i class="fas fa-spinner fa-spin text-2xl text-gray-400 mb-2"></i>
+        <p class="text-gray-600">Đang tải sơ đồ ghế...</p>
+      </div>
+    </div>
+
+    <!-- Seat Layout -->
+    <div v-else-if="seatLayout.levels.length > 0" class="seat-layout">
+      <!-- Bus Front Indicator -->
+      <div class="flex justify-center mb-4">
+        <div class="bg-gray-200 px-4 py-2 rounded-full text-sm text-gray-600 font-medium">
+          <i class="fas fa-steering-wheel mr-2"></i>
+          Tài xế
+        </div>
+      </div>
+
+      <div class="levels-container p-4 md:p-6">
+  <div v-if="seatLayout.levels.length > 1" class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+    <div v-for="level in seatLayout.levels" :key="level.name" class="level-section bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+
+      <h4 class="text-center text-lg font-semibold text-gray-800 mb-4">
+        {{ level.name }}
+      </h4>
+
+      <div class="bus-container">
+        <div class="bus-interior flex flex-col items-center">
+          <div class="vertical-layout flex justify-center space-x-4 md:space-x-6">
+            <div v-for="(row, rowIndex) in level.rows" :key="row.id" class="seat-column flex flex-col items-center">
+              <div class="row-header mb-2">
+                <span class="text-sm font-medium text-gray-600">{{ row.id }}</span>
               </div>
-            </div>
 
-            <!-- Seat Layout - Responsive Grid -->
-            <div class="space-y-6">
-              <div 
-                v-for="(floor, floorIndex) in seatLayout" 
-                :key="floorIndex"
-                class="overflow-hidden rounded-xl bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm ring-1 ring-gray-200"
-              >
-                <!-- Floor Header -->
-                <div class="border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
-                  <div class="flex items-center justify-center">
-                    <div class="flex items-center space-x-2">
-                      <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100">
-                        <span class="text-xs font-medium text-indigo-600">{{ floorIndex + 1 }}</span>
-                      </div>
-                      <h3 class="text-sm font-medium text-gray-900 sm:text-base">Tầng {{ floorIndex + 1 }}</h3>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="p-4 sm:p-6">
-                  <!-- Driver Area (only on floor 1) -->
-                  <div v-if="floorIndex === 0" class="mb-4 flex justify-start">
-                    <div class="flex h-8 w-12 items-center justify-center rounded-lg bg-gradient-to-r from-gray-600 to-gray-800 shadow-sm sm:h-10 sm:w-14">
-                      <svg class="h-4 w-4 text-white sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0V9a1.5 1.5 0 013 0v9.75z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Seat Rows -->
-                  <div class="space-y-4">
-                    <div 
-                      v-for="(row, rowIndex) in floor" 
-                      :key="rowIndex"
-                      class="flex items-center justify-center space-x-4"
-                    >
-                      <!-- Row Label -->
-                      <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 text-xs font-bold text-white shadow-sm sm:h-10 sm:w-10 sm:text-sm">
-                        {{ row[0].row }}{{ floorIndex + 1 }}
-                      </div>
-                      
-                      <!-- Seats Grid -->
-                      <div class="flex items-center space-x-3 sm:space-x-4">
-                        <!-- Left Section (3 seats) -->
-                        <div class="flex space-x-1 sm:space-x-2">
-                          <button
-                            v-for="seat in row.slice(0, 3)"
-                            :key="seat.id"
-                            @click="selectSeat(seat)"
-                            :disabled="seat.status === 'sold' || seat.status === 'selecting' || seat.status === 'unavailable'"
-                            :class="getSeatClass(seat)"
-                            class="group relative"
-                          >
-                            <span class="text-xs font-bold">{{ seat.id }}</span>
-                            <!-- Tooltip -->
-                            <div class="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 transform opacity-0 transition-opacity group-hover:opacity-100">
-                              <div class="whitespace-nowrap rounded-lg bg-gray-900 px-2 py-1 text-xs text-white shadow-lg">
-                                {{ formatPrice(seat.price) }}
-                                <div class="absolute top-full left-1/2 -translate-x-1/2 transform">
-                                  <div class="border-4 border-transparent border-t-gray-900"></div>
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        </div>
-                        
-                        <!-- Aisle -->
-                        <div class="flex h-8 w-4 items-center justify-center sm:h-10 sm:w-6">
-                          <div class="h-6 w-1 rounded-full bg-gradient-to-b from-gray-300 to-gray-400 opacity-60 sm:h-8 sm:w-1.5"></div>
-                        </div>
-                        
-                        <!-- Right Section (4 seats) -->
-                        <div class="flex space-x-1 sm:space-x-2">
-                          <button
-                            v-for="seat in row.slice(3)"
-                            :key="seat.id"
-                            @click="selectSeat(seat)"
-                            :disabled="seat.status === 'sold' || seat.status === 'selecting' || seat.status === 'unavailable'"
-                            :class="getSeatClass(seat)"
-                            class="group relative"
-                          >
-                            <span class="text-xs font-bold">{{ seat.id }}</span>
-                            <!-- Tooltip -->
-                            <div class="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 transform opacity-0 transition-opacity group-hover:opacity-100">
-                              <div class="whitespace-nowrap rounded-lg bg-gray-900 px-2 py-1 text-xs text-white shadow-lg">
-                                {{ formatPrice(seat.price) }}
-                                <div class="absolute top-full left-1/2 -translate-x-1/2 transform">
-                                  <div class="border-4 border-transparent border-t-gray-900"></div>
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Legend -->
-            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 sm:p-6">
-              <h4 class="text-sm font-medium text-gray-900 sm:text-base">Chú giải trạng thái ghế</h4>
-              <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                <div class="flex items-center space-x-2">
-                  <div class="h-4 w-4 rounded border-2 border-emerald-300 bg-emerald-50 sm:h-6 sm:w-6"></div>
-                  <span class="text-xs text-gray-600 sm:text-sm">Trống</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="h-4 w-4 rounded border-2 border-indigo-400 bg-indigo-600 sm:h-6 sm:w-6"></div>
-                  <span class="text-xs text-gray-600 sm:text-sm">Đang chọn</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="h-4 w-4 rounded border-2 border-red-300 bg-red-100 sm:h-6 sm:w-6"></div>
-                  <span class="text-xs text-gray-600 sm:text-sm">Đã bán</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="h-4 w-4 rounded border-2 border-amber-400 bg-amber-100 sm:h-6 sm:w-6"></div>
-                  <span class="text-xs text-gray-600 sm:text-sm">Đang giữ</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="h-4 w-4 rounded border-2 border-gray-300 bg-gray-100 sm:h-6 sm:w-6"></div>
-                  <span class="text-xs text-gray-600 sm:text-sm">Không khả dụng</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bus Facilities -->
-            <div class="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4 shadow-sm ring-1 ring-blue-200 sm:p-6">
-              <h4 class="text-sm font-medium text-gray-900 sm:text-base mb-4 flex items-center">
-                <i class="fas fa-star mr-2 text-yellow-500"></i>
-                Tiện ích xe {{ busType === 'sleeping-bus' ? 'Giường nằm' : 'Ghế ngồi' }}
-              </h4>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div
-                  v-for="facility in getBusFacilities()"
-                  :key="facility.name"
-                  class="flex items-center space-x-3 p-3 bg-white rounded-lg border border-blue-100 hover:border-blue-200 transition-colors"
+              <div class="seats-vertical flex flex-col space-y-2">
+                <button
+                  v-for="seat in row.seats"
+                  :key="seat.id"
+                  @click="selectSeat(seat)"
+                  :class="getSeatClass(seat)"
+                  :disabled="seat.isBooked"
+                  :title="`Ghế ${seat.seatNumber} - ${seat.isBooked ? 'Đã đặt' : formatPrice(seat.price)} đ`"
+                  class="w-10 h-10 flex items-center justify-center rounded-md font-medium transition-colors duration-200 ease-in-out"
                 >
-                  <div class="flex-shrink-0">
-                    <i :class="[facility.icon, facility.color, 'text-lg']"></i>
-                  </div>
-                  <span class="text-sm font-medium text-gray-700">{{ facility.name }}</span>
-                </div>
-              </div>
-              
-              <!-- Special note for sleeping bus -->
-              <div v-if="busType === 'sleeping-bus'" class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <div class="flex items-start space-x-2">
-                  <i class="fas fa-crown text-purple-600 mt-0.5"></i>
-                  <div class="text-sm text-purple-800">
-                    <p class="font-semibold mb-1">Dịch vụ VIP:</p>
-                    <p>Giường nằm thương gia với không gian riêng tư, chăn gối cao cấp và dịch vụ 5 sao.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bus Info -->
-            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 sm:p-6">
-              <h4 class="text-sm font-medium text-gray-900 sm:text-base mb-4 flex items-center">
-                <i class="fas fa-info-circle mr-2 text-blue-500"></i>
-                Thông tin chuyến xe
-              </h4>
-              <div class="space-y-3 text-sm">
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Nhà xe:</span>
-                  <span class="font-semibold text-gray-900">{{ selectedBus.company }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Tuyến đường:</span>
-                  <span class="font-medium text-gray-900">{{ selectedBus.route }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Khởi hành:</span>
-                  <span class="font-semibold text-purple-600">{{ selectedBus.departureTime }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Thời gian:</span>
-                  <span class="font-medium text-gray-900">{{ selectedBus.duration }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Đến nơi:</span>
-                  <span class="font-semibold text-gray-900">{{ selectedBus.arrivalTime }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sticky Footer with Booking Summary -->
-        <div class="border-t border-gray-200 bg-gray-50 px-4 py-6 sm:px-6">
-          <div class="space-y-4">
-            <!-- Selected Seats -->
-            <div>
-              <h4 class="text-sm font-medium text-gray-900">Ghế đã chọn</h4>
-              <div class="mt-2">
-                <div v-if="selectedSeats.length > 0" class="flex flex-wrap gap-2">
-                  <span
-                    v-for="seatId in selectedSeats"
-                    :key="seatId"
-                    class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800"
-                  >
-                    {{ seatId }}
-                  </span>
-                </div>
-                <p v-else class="text-sm text-gray-500">Chưa chọn ghế nào</p>
-              </div>
-            </div>
-
-            <!-- Price Summary -->
-            <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-200">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Số ghế:</span>
-                <span class="text-sm font-medium text-gray-900">{{ selectedSeats.length }}</span>
-              </div>
-              <div class="mt-2 flex items-center justify-between border-t border-gray-200 pt-2">
-                <span class="text-base font-medium text-gray-900">Tổng tiền:</span>
-                <span class="text-lg font-bold text-indigo-600">{{ formatPrice(totalPrice) }}</span>
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex space-x-3">
-              <button
-                type="button"
-                @click="emit('close')"
-                class="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                @click="confirmSelection"
-                :disabled="selectedSeats.length === 0"
-                class="flex-1 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                Xác nhận ({{ selectedSeats.length }})
-              </button>
-            </div>
-
-            <!-- Notes -->
-            <div class="rounded-md bg-amber-50 p-3">
-              <div class="flex">
-                <div class="flex-shrink-0">
-                  <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-                <div class="ml-3">
-                  <p class="text-xs text-amber-700">
-                    Ghế sẽ được giữ trong 10 phút. Tối đa 4 ghế mỗi lần đặt.
-                  </p>
-                </div>
+                  {{ seat.seatNumber }}
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </Transition>
+  </div>
+
+  <div v-else class="single-level-container max-w-2xl mx-auto p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div v-for="level in seatLayout.levels" :key="level.name" class="level-section">
+      <h4 class="text-center text-lg font-semibold text-gray-800 mb-4">
+        {{ level.name }}
+      </h4>
+
+      <div class="bus-container">
+        <div class="bus-interior flex flex-col items-center">
+          <div class="vertical-layout flex justify-center space-x-4 md:space-x-6">
+            <div v-for="(row, rowIndex) in level.rows" :key="row.id" class="seat-column flex flex-col items-center">
+              <div class="row-header mb-2">
+                <span class="text-sm font-medium text-gray-600">{{ row.id }}</span>
+              </div>
+
+              <div class="seats-vertical flex flex-col space-y-2">
+                <button
+                  v-for="seat in row.seats"
+                  :key="seat.id"
+                  @click="selectSeat(seat)"
+                  :class="getSeatClass(seat)"
+                  :disabled="seat.isBooked"
+                  :title="`Ghế ${seat.seatNumber} - ${seat.isBooked ? 'Đã đặt' : formatPrice(seat.price)} đ`"
+                  class="w-10 h-10 flex items-center justify-center rounded-md font-medium transition-colors duration-200 ease-in-out"
+                >
+                  {{ seat.seatNumber }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+
+    <!-- No Seats Available -->
+    <div v-else class="text-center py-12">
+      <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">Không có ghế khả dụng</h3>
+      <p class="text-gray-600">Chuyến xe này hiện không có thông tin ghế.</p>
+    </div>
+
+    
+  </div>
 </template>
 
+<script>
+// Helper function for price formatting
+const formatPrice = (price) => {
+  if (typeof price === 'number') {
+    return new Intl.NumberFormat('vi-VN').format(price)
+  }
+  return '0'
+}
+</script>
+
 <style scoped>
-/* Custom animations */
+.seat-layout {
+  user-select: none;
+}
+
+.bus-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.seat-row {
+  min-height: 3.5rem;
+}
+
+/* Vertical layout styling */
+.vertical-layout {
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.seat-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 400px;
+}
+
+.seats-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.seats-vertical button {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+}
+
+/* Aisle styling - simplified */
+.aisle-vertical {
+  width: 1rem;
+  min-height: 300px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aisle-vertical::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 200px;
+  background: linear-gradient(to bottom, #d1d5db 0%, #9ca3af 50%, #d1d5db 100%);
+  border-radius: 1px;
+}
+
+/* Grid layout for side-by-side levels */
+.levels-container .grid {
+  align-items: start;
+}
+
+.level-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #fafafa;
+  height: fit-content;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .levels-container .grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .bus-container {
+    padding: 0.5rem;
+  }
+  
+  .seats-vertical button {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.625rem;
+  }
+  
+  .vertical-layout {
+    gap: 0.5rem;
+  }
+  
+  .seat-column {
+    min-height: 320px;
+  }
+  
+  .aisle-vertical {
+    width: 0.75rem;
+    min-height: 250px;
+  }
+  
+  .aisle-vertical::before {
+    height: 150px;
+  }
+}
+
+@media (max-width: 640px) {
+  .seats-vertical button {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.5rem;
+  }
+  
+  .vertical-layout {
+    gap: 0.375rem;
+  }
+  
+  .seat-column {
+    min-height: 280px;
+  }
+  
+  .aisle-vertical {
+    width: 0.5rem;
+    min-height: 200px;
+  }
+  
+  .aisle-vertical::before {
+    height: 120px;
+    width: 1px;
+  }
+  
+  .level-section {
+    padding: 0.75rem;
+  }
+}
+
+/* Seat hover effects */
+.seats-vertical button:not(:disabled):hover {
+  transform: scale(1.1);
+  z-index: 10;
+}
+
+/* Animation for selected seats */
+.seats-vertical button.selected {
+  animation: pulse 1s ease-in-out;
+}
+
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: .5;
-  }
+  0%, 100% { transform: scale(1.05); }
+  50% { transform: scale(1.15); }
 }
 
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Smooth scrollbar */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+/* Bus interior styling */
+.bus-interior {
+  background: linear-gradient(90deg, #f9fafb 0%, #ffffff 50%, #f9fafb 100%);
+  border-radius: 0.5rem;
+  padding: 1rem 0.5rem;
 }
 </style> 

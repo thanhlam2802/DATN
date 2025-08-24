@@ -1,0 +1,183 @@
+# src/main/resources/graphql/BusSlot.graphqls
+
+# ... (Giữ nguyên các định nghĩa Scalar Instant, DateTime, BusSlotStatus) ...
+enum BusSlotStatus { # Real-time Bus Slot Status
+    SCHEDULED     # Đã được lên lịch, chưa khởi hành
+    IN_PROGRESS   # Đang hoạt động/đang chạy (thay thế ACTIVE)
+    COMPLETED     # Đã hoàn thành chuyến đi
+    CANCELLED     # Đã bị hủy
+    DELAYED       # Bị trì hoãn (tùy chọn)
+    ARCHIVED      # Đã lưu trữ (cho old trips)
+}
+
+# Real-time Management Enums
+enum DelayReason {
+    TRAFFIC_JAM      # Kẹt xe
+    WEATHER          # Thời tiết xấu
+    VEHICLE_ISSUE    # Sự cố xe
+    PASSENGER_DELAY  # Khách trễ
+    ROAD_ACCIDENT    # Tai nạn giao thông
+    FUEL_STOP        # Dừng đổ xăng
+    DRIVER_BREAK     # Nghỉ giải lao
+    EARLY_ARRIVAL    # Đến sớm
+    OTHER            # Lý do khác
+}
+
+enum TripType {
+    ONE_TIME         # Chuyến một lần
+    RECURRING        # Chuyến định kỳ
+}
+
+enum RecurringPattern {
+    DAILY            # Hàng ngày
+    WEEKLY           # Hàng tuần
+    WEEKDAYS         # Thứ 2-6
+    WEEKENDS         # Thứ 7, CN
+}
+
+enum RealTimeStatus {
+    ON_SCHEDULE      # Đúng giờ
+    EARLY            # Sớm hơn dự kiến
+    DELAYED          # Trễ hơn dự kiến
+    UNKNOWN          # Chưa xác định
+}
+type BusSlot {
+    id: ID!
+    bus: Bus!
+    route: Route!
+    ownerId: ID! # ID doanh nghiệp sở hữu slot
+    slotDate: Date!
+    departureTime: DateTime!
+    arrivalTime: DateTime!
+    actualDepartureTime: DateTime
+    actualArrivalTime: DateTime
+    price: BigDecimal!
+    totalSeats: Int!
+    availableSeats: Int!
+    status: BusSlotStatus!
+    delayReason: DelayReason
+    currentLocation: String
+    driverContactInfo: String
+    allowManualOverride: Boolean!
+    timeToleranceMinutes: Int!
+    tripType: TripType!
+    recurringPattern: RecurringPattern
+    recurringEndDate: Date
+    autoStatusUpdate: Boolean!
+    autoResetSeats: Boolean!
+    seats: [BusSeat!]! # Thêm field này
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+
+
+# --- Kiểu đầu vào cho Create BusSlot ---
+input CreateBusSlotInput {
+    busId: ID!
+    routeId: ID!
+    ownerId: ID! # ID doanh nghiệp sở hữu - bắt buộc
+    slotDate: String!   # <-- THÊM LẠI TRƯỜNG NÀY (dạng "YYYY-MM-DD")
+    departureTime: String! # <-- Chuyển thành String (dạng "HH:MM:SS")
+    arrivalTime: String!   # <-- Chuyển thành String (dạng "HH:MM:SS")
+    price: BigDecimal!  # <-- THÊM LẠI TRƯỜNG NÀY
+    totalSeats: Int!    # <-- THÊM LẠI TRƯỜNG NÀY
+    # status: BusSlotStatus # Không cần thiết ở đây, backend sẽ mặc định là SCHEDULED
+}
+
+# --- Kiểu đầu vào cho Update BusSlot ---
+input UpdateBusSlotInput {
+    busId: ID
+    routeId: ID
+    ownerId: ID # ✅ THÊM: ID doanh nghiệp sở hữu - cho multi-tenant
+    slotDate: String
+    departureTime: String
+    arrivalTime: String
+    actualDepartureTime: DateTime
+    actualArrivalTime: DateTime
+    price: BigDecimal
+    totalSeats: Int
+    availableSeats: Int
+    status: BusSlotStatus
+    
+    # Real-time Management Fields
+    delayReason: DelayReason
+    currentLocation: String
+    driverContactInfo: String
+    allowManualOverride: Boolean
+    timeToleranceMinutes: Int
+    
+    # Auto-management Fields
+    tripType: TripType
+    recurringPattern: RecurringPattern
+    recurringEndDate: String
+    autoStatusUpdate: Boolean
+    autoResetSeats: Boolean
+}
+
+# --- Input Types for Real-time Management ---
+input UpdateActualTimesInput {
+    actualDepartureTime: DateTime    # Thời gian khởi hành thực tế
+    actualArrivalTime: DateTime      # Thời gian đến thực tế
+    delayReason: DelayReason         # Lý do delay
+    currentLocation: String          # Vị trí hiện tại
+    driverNotes: String              # Ghi chú từ tài xế
+}
+
+input QuickStatusUpdateInput {
+    status: BusSlotStatus!           # Trạng thái mới
+    delayReason: DelayReason         # Lý do delay (optional)
+    currentLocation: String          # Vị trí hiện tại (optional)
+    driverNotes: String              # Ghi chú từ tài xế (optional)
+    autoSetActualTime: Boolean       # Tự động set actual time dựa trên status
+}
+
+# --- Định nghĩa các Query (đọc dữ liệu) ---
+extend type Query {
+    # Basic Queries
+    findAllBusSlots: [BusSlot!]!
+    findBusSlotById(id: ID!): BusSlot
+    findBusSlotsByBusId(busId: ID!): [BusSlot!]!
+    findBusSlotsByRouteId(routeId: ID!): [BusSlot!]!
+    findBusSlotsByStatus(status: BusSlotStatus!): [BusSlot!]!
+    # ✅ THÊM MỚI: Owner-specific queries
+    findBusSlotsByOwnerId(ownerId: ID!): [BusSlot!]!
+
+    searchBusSlotsDetailed(
+        departureProvince: String!
+        departureDistrict: String
+        arrivalProvince: String!
+        arrivalDistrict: String
+        slotDate: String!
+        minAvailableSeats: Int
+        busCategoryId: ID
+        minPrice: BigDecimal
+        maxPrice: BigDecimal
+        status: BusSlotStatus
+    ): [BusSlot!]!
+    
+    # Real-time Management Queries
+    findTripsNeedingStatusUpdate: [BusSlot!]!
+    findCompletedTripsForArchive(daysOld: Int): [BusSlot!]!
+
+}
+
+# --- Định nghĩa các Mutation (ghi dữ liệu) ---
+extend type Mutation {
+    # Basic CRUD Operations
+    createBusSlot(input: CreateBusSlotInput!): BusSlot!
+    updateBusSlot(id: ID!, input: UpdateBusSlotInput!): BusSlot!
+    deleteBusSlot(id: ID!): Boolean!
+
+    # Legacy Status Updates
+    activateBusSlot(id: ID!): BusSlot!
+    completeBusSlot(id: ID!): BusSlot!
+    cancelBusSlot(id: ID!): BusSlot!
+    
+    # Real-time Management Mutations
+    updateActualTimes(id: ID!, input: UpdateActualTimesInput!): BusSlot!
+    quickStatusUpdate(id: ID!, input: QuickStatusUpdateInput!): BusSlot!
+    markBusSlotInProgress(id: ID!): BusSlot!
+    markBusSlotCompleted(id: ID!): BusSlot!
+    archiveBusSlot(id: ID!): BusSlot!
+}

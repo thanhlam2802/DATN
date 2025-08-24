@@ -135,9 +135,6 @@ export const respondToHotelReview = (reviewId, response) => {
     });
 };
 
-
-export default adminApi;
-
 // ===== Super Admin Dashboard =====
 export const getFlightAdminSummaries = () => {
   return adminApi.get('/api/admin/super-admin/flight-admins');

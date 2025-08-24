@@ -1,5 +1,6 @@
 <template>
   <div class="w-full px-4 sm:px-6 lg:px-2 py-5">
+    <ToastContainer ref="toastContainer" />
     <div class="relative w-full rounded-md overflow-hidden shadow-md">
       <img
           alt="Scenic lake"
@@ -57,7 +58,6 @@
               </button>
             </div>
             <p v-if="passwordError" class="text-red-500 text-xs mt-1">{{ passwordError }}</p>
-            <p v-if="wrongCredentialError" class="text-red-500 text-xs mt-1">{{ wrongCredentialError }}</p>
           </div>
 
           <div class="flex items-center justify-between mb-6 text-sm">
@@ -114,7 +114,7 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
+import {ref, onMounted} from "vue";
 import {useRouter} from "vue-router";
 import {AuthApi} from "@/api/AuthApi.js";
 import {AccountApi} from "@/api/AccountApi.js";
@@ -123,6 +123,7 @@ import {useUserStore} from "@/store/UserStore.js";
 import {ErrorCodes} from "@/data/ErrorCode.js";
 import {useLoadingStore} from "@/store/GlobalStore.js";
 import {getRedirectPath} from "@/utils/redirectUtils.js";
+import ToastContainer from "@/components/ToastContainer.vue";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -138,7 +139,31 @@ const showPassword = ref(false);
 
 const emailError = ref("");
 const passwordError = ref("");
-const wrongCredentialError = ref("");
+
+const toastContainer = ref(null);
+
+onMounted(() => {
+  console.log('Login.vue onMounted called');
+  console.log('toastContainer ref:', toastContainer.value);
+  
+  const oauth2Error = localStorage.getItem('oauth2Error');
+  if (oauth2Error) {
+    console.log('Found oauth2Error in localStorage:', oauth2Error);
+    showToast('error', 'Đăng nhập thất bại', oauth2Error);
+    localStorage.removeItem('oauth2Error');
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const errorParam = urlParams.get('error');
+  if (errorParam) {
+    console.log('Found error in URL parameter:', errorParam);
+    const errorMessage = decodeURIComponent(errorParam);
+    console.log('Decoded error message:', errorMessage);
+    showToast('error', 'Đăng nhập thất bại', errorMessage);
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
+  }
+});
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value;
@@ -163,6 +188,21 @@ const validatePassword = () => {
   return true;
 };
 
+const showToast = (type, title, message) => {
+  console.log('showToast called with:', { type, title, message });
+  if (toastContainer.value) {
+    console.log('toastContainer found, adding toast');
+    toastContainer.value.addToast({
+      type,
+      title,
+      message,
+      duration: type === 'error' ? 6000 : 4000
+    });
+  } else {
+    console.log('toastContainer is null!');
+  }
+};
+
 const googleLogin = () => {
   window.location.href = `${BASE_URL}/oauth2/authorization/google`;
 }
@@ -178,10 +218,13 @@ const submitForm = async () => {
     password: password.value
   };
 
-  try {
-    loadingStore.startLoading();
-    const res = await AuthApi.login(loginRequest);
-    console.log(res);
+      try {
+      loadingStore.startLoading();
+      const res = await AuthApi.login(loginRequest);
+      console.log("Login response:", res);
+      console.log("Error code:", res["errorCode"]);
+      console.log("Expected userDeactivated:", ErrorCodes.userDeactivated);
+      console.log("Are they equal?", res["errorCode"] === ErrorCodes.userDeactivated);
 
     if (res["errorCode"] === ErrorCodes.userNotVerified) {
       console.log("Not verified");
@@ -189,13 +232,19 @@ const submitForm = async () => {
       loadingStore.stopLoading();
       return;
     }
+    if (res["errorCode"] === ErrorCodes.userDeactivated) {
+      console.log("User deactivated detected, stopping loading and showing toast");
+      showToast('error', 'Đăng nhập thất bại', 'Tài khoản của bạn hiện tại bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.');
+      loadingStore.stopLoading();
+      return;
+    }
     if (res["errorCode"] === ErrorCodes.invalidPassword) {
-      wrongCredentialError.value = "Wrong credential !!!"
+      showToast('error', 'Đăng nhập thất bại', 'Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại email và mật khẩu.');
       loadingStore.stopLoading();
       return;
     }
     if (res["errorCode"]) {
-      wrongCredentialError.value = "An error occur !!!"
+      showToast('error', 'Đăng nhập thất bại', 'Đã xảy ra lỗi. Vui lòng thử lại sau.');
       return;
     }
 
@@ -231,11 +280,10 @@ const submitForm = async () => {
 
     emailError.value = "";
     passwordError.value = "";
-    wrongCredentialError.value = "";
     loadingStore.stopLoading();
   } catch (error) {
     console.error("Login failed:", error);
-    passwordError.value = "Login failed. Please try again.";
+    showToast('error', 'Đăng nhập thất bại', 'Đã xảy ra lỗi. Vui lòng thử lại sau.');
     loadingStore.stopLoading();
   }
 };

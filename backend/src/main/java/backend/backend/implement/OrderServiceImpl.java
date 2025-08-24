@@ -12,6 +12,7 @@ import backend.backend.entity.enumBus.BusBookingStatus;
 import backend.backend.event.VoucherUsedUpEvent;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
+import backend.backend.service.HotelBookingService;
 import lombok.RequiredArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,11 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -38,8 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
-    private ApplicationEventPublisher publisher;
-     private final BusBookingDAO busBookingDAO;
+    private final BusBookingDAO busBookingDAO;
      private final BookingTourDAO bookingTourDAO;
      private final CustomerDAO customerDAO;
      private final DepartureDAO departureDAO;
@@ -47,6 +45,7 @@ public class OrderServiceImpl implements OrderService {
      private final VoucherDAO voucherDAO;
      private final FlightSlotDAO flightSlotDAO;
      private final HotelBookingDAO hotelBookingDAO;
+     private final HotelBookingService hotelBookingService;
      private final OrderDAO orderDAO;
      private final TourDAO tourDAO;
     private final UserDAO userDAO;
@@ -126,7 +125,7 @@ public class OrderServiceImpl implements OrderService {
         temporaryOrder.setExpiresAt(LocalDateTime.now().plusMinutes(30));
         temporaryOrder.setCreatedAt(LocalDateTime.now());
         Order savedOrder = orderDAO.save(temporaryOrder);
-        publisher.publishEvent(savedOrder);
+        eventPublisher.publishEvent(savedOrder);
         BookingTour bookingTour = new BookingTour();
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(savedOrder);
@@ -178,7 +177,7 @@ public class OrderServiceImpl implements OrderService {
         order.setExpiresAt(expiresAt);
         order.setCreatedAt(now);
         Order savedOrder = orderDAO.save(order);
-        publisher.publishEvent(savedOrder);
+        eventPublisher.publishEvent(savedOrder);
         // 7. Lưu thông tin khách hàng
         Customer customer = new Customer();
         customer.setFullName(directRequest.getCustomerName());
@@ -335,7 +334,7 @@ public class OrderServiceImpl implements OrderService {
             order.setTransactionId(transactionId);
             order.setStatus("PAID");
             order.setPayDate(LocalDateTime.now());
-            publisher.publishEvent(order);
+            eventPublisher.publishEvent(order);
             orderDAO.save(order);
             logger.info("––– Order Saved –––");
         }
@@ -645,7 +644,7 @@ public class OrderServiceImpl implements OrderService {
         // Cập nhật trạng thái đơn hàng thành CANCELLED
         order.setStatus("REFUNDED");
         orderDAO.save(order);
-        publisher.publishEvent(order);
+        eventPublisher.publishEvent(order);
         // Xử lý các booking trong đơn hàng
         // 1. Flight bookings - cập nhật flight slots thành AVAILABLE
         if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
@@ -658,10 +657,19 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
         }
-        // 2. Hotel bookings - placeholder logic
+        // 2. Hotel bookings - ✅ IMPLEMENTED: Gọi service để hủy booking và hoàn trả phòng
         if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
-            logger.info("Đơn hàng có {} hotel bookings - xử lý placeholder", order.getHotelBookings().size());
-            // TODO: Implement hotel booking cancellation logic
+            logger.info("Đơn hàng có {} hotel bookings - xử lý hủy booking", order.getHotelBookings().size());
+            for (HotelBooking hotelBooking : order.getHotelBookings()) {
+                try {
+                    // Gọi service để hủy booking và hoàn trả phòng
+                    hotelBookingService.cancelHotelBooking(hotelBooking.getId());
+                    logger.info("Đã hủy hotel booking {} thành công", hotelBooking.getId());
+                } catch (Exception e) {
+                    logger.error("Lỗi khi hủy hotel booking {}: {}", hotelBooking.getId(), e.getMessage());
+                    // Không throw exception để không ảnh hưởng đến việc hủy các booking khác
+                }
+            }
         }
         // 3. Tour bookings - placeholder logic
         if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {

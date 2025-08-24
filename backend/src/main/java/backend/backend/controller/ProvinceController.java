@@ -2,6 +2,7 @@ package backend.backend.controller;
 
 import backend.backend.dto.Hotel.ProvinceDto;
 import backend.backend.entity.ApiResponse;
+import backend.backend.entity.Province;
 import backend.backend.service.ProvinceService;
 import backend.backend.service.CloudinaryService;
 import backend.backend.utils.ResponseFactory;
@@ -39,6 +40,15 @@ public class ProvinceController {
         List<ProvinceDto> provinces = provinceService.getAllProvinces();
         return ResponseFactory.success(provinces, "Lấy danh sách tỉnh thành công");
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<Province>>> getAll() {
+        List<Province> provinces = provinceService.getAll();
+        return ResponseFactory.success(provinces, "Lấy danh sách tỉnh thành công");
+    }
+    
+    
+
 
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -107,4 +117,5 @@ public class ProvinceController {
         provinceService.deleteProvince(id);
         return ResponseFactory.success(null, "Xóa khu vực thành công.");
     }
+
 }

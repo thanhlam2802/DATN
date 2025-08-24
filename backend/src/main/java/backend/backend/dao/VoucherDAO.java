@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 
@@ -31,6 +33,7 @@ public interface VoucherDAO  extends JpaRepository<Voucher, Integer> {
      * @return Danh sách các voucher hợp lệ.
      */
     List<Voucher> findAllByStatusAndStartDateLessThanEqualAndExpiryDateGreaterThanEqual(VoucherStatus status, LocalDate startDate, LocalDate expiryDate);
+    Page<Voucher> findByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(String name, String code, Pageable pageable);
 
 
 }

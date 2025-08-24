@@ -66,10 +66,6 @@ const menu = [
   { name: "Đánh giá", icon: "fas fa-comments", link: "/admin/reviews" },
   { name: "Nội dung & Blog", icon: "fas fa-blog", link: "/admin/content" },
   { name: "Người dùng", icon: "fas fa-users", link: "/admin/users" },
-  { name: "Doanh thu", icon: "fas fa-coins", link: "/admin/revenue" },
-  { name: "Báo cáo", icon: "fas fa-chart-line", link: "/admin/reports" },
-  { name: "Hỗ trợ khách hàng", icon: "fas fa-headset", link: "/admin/support" },
-  { name: "Cài đặt", icon: "fas fa-cog", link: "/admin/settings" },
   {
     name: "Duyệt đăng ký",
     icon: "fas fa-user-check",

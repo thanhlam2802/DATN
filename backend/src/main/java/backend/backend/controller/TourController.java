@@ -27,6 +27,7 @@ import backend.backend.dto.ReviewDto;
 import backend.backend.dto.TourDetailDto;
 import backend.backend.dto.TourDto;
 import backend.backend.dto.TourSearchRequestDto;
+import backend.backend.dto.TourSuggestionDto;
 import backend.backend.entity.ApiResponse; // Import lớp ApiResponse
 import backend.backend.entity.TourSchedule;
 import backend.backend.service.TourService;
@@ -79,6 +80,13 @@ public class TourController {
     public ResponseEntity<ApiResponse<List<ItineraryDayDto>>> getTourItinerary(@PathVariable Long id) {
         List<ItineraryDayDto> itinerary = tourService.getStructuredItinerary(id);
         return ResponseFactory.success(itinerary, "Lấy lịch trình chi tiết thành công");
+    }
+    
+    
+    @GetMapping("/suggestions")
+    public ResponseEntity<?> getTourSuggestions(@RequestParam(required = false) String keyword) {
+        List<TourSuggestionDto> suggestions = tourService.getSuggestions(keyword);
+        return ResponseEntity.ok(suggestions);
     }
 //    @PostMapping("/book-tour")
 //    public ResponseEntity<ApiResponse<BookingConfirmationDto>> handleTourBooking(

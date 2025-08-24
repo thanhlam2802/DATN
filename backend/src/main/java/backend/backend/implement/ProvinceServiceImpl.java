@@ -25,6 +25,13 @@ public class ProvinceServiceImpl implements ProvinceService {
                 .collect(Collectors.toList());
     }
 
+
+	@Override
+	public List<Province> getAll() {
+		
+		return provinceDAO.findAll();
+	}
+
     @Override
     @Transactional
     public ProvinceDto createProvince(ProvinceDto dto) {
@@ -53,4 +60,5 @@ public class ProvinceServiceImpl implements ProvinceService {
         }
         provinceDAO.deleteById(id);
     }
+
 }

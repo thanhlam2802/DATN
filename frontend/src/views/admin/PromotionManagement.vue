@@ -33,6 +33,13 @@
       <div v-else-if="error" class="text-center py-10 text-red-500">
         <p><strong>Lỗi:</strong> {{ error }}</p>
       </div>
+      <div
+        v-else-if="!vouchers || !vouchers.length"
+        class="text-center py-10 text-gray-500"
+      >
+        <p>Không tìm thấy voucher nào phù hợp.</p>
+      </div>
+      <div v-else class="overflow-x-auto"></div>
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm text-left">
           <thead class="text-xs text-gray-500 uppercase bg-gray-50">
@@ -48,7 +55,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="voucher in filteredVouchers"
+              v-for="voucher in vouchersWithFinalStatus"
               :key="voucher.id"
               class="border-b hover:bg-gray-50"
             >
@@ -87,10 +94,16 @@
               <td class="px-4 py-3">{{ formatDate(voucher.expiryDate) }}</td>
               <td class="px-4 py-3 text-center">
                 <span
-                  :class="getStatusClass(voucher.status)"
+                  :class="getStatusClass(voucher.finalStatus)"
                   class="px-2 py-1 text-xs font-medium rounded-full"
                 >
-                  {{ voucher.status }}
+                  {{
+                    voucher.finalStatus === "EXPIRED"
+                      ? "HẾT HẠN"
+                      : voucher.status === "ACTIVE"
+                      ? "HOẠT ĐỘNG"
+                      : "KHÔNG HOẠT ĐỘNG"
+                  }}
                 </span>
               </td>
               <td class="px-4 py-3 text-center">
@@ -112,6 +125,13 @@
             </tr>
           </tbody>
         </table>
+        <Pagination
+          v-if="pagination.totalPages > 1"
+          :current-page="pagination.currentPage"
+          :total-pages="pagination.totalPages"
+          @change-page="handlePageChange"
+          class="mt-6"
+        />
       </div>
     </div>
 
@@ -288,10 +308,10 @@
     </div>
   </div>
 </template>
-
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import voucherService from "@/api/voucherApi";
+import Pagination from "@/components/Tours/Pagination.vue"; // Đảm bảo đường dẫn này đúng
 
 // --- STATE MANAGEMENT ---
 const vouchers = ref([]);
@@ -303,20 +323,51 @@ const isModalOpen = ref(false);
 const isEditing = ref(false);
 const currentVoucher = ref({});
 
-// --- LIFECYCLE HOOK ---
+// MỚI: State cho phân trang và kích thước trang
+const pagination = ref({
+  currentPage: 0,
+  totalPages: 0,
+  pageSize: 10,
+});
+
+// --- LIFECYCLE HOOKS ---
 onMounted(() => {
   fetchVouchers();
 });
+
+// --- WATCHERS ---
+let debounceTimer = null;
+watch(
+  () => [pagination.value.currentPage, searchQuery.value],
+  () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      // Khi tìm kiếm, luôn quay về trang đầu tiên
+      if (searchQuery.value) {
+        pagination.value.currentPage = 0;
+      }
+      fetchVouchers();
+    }, 300); // Đợi 300ms sau khi người dùng dừng gõ
+  }
+);
 
 // --- API METHODS ---
 const fetchVouchers = async () => {
   isLoading.value = true;
   error.value = null;
   try {
-    const response = await voucherService.getAllVouchers();
-    vouchers.value = response.data;
+    const response = await voucherService.getAllVouchers({
+      page: pagination.value.currentPage,
+      size: pagination.value.pageSize,
+      query: searchQuery.value, // Gửi từ khóa tìm kiếm lên backend
+    });
+
+    // SỬA LỖI: Lấy danh sách voucher từ trường 'content'
+    vouchers.value = response.data.content;
+    pagination.value.totalPages = response.data.totalPages;
   } catch (err) {
     error.value = "Không thể tải danh sách voucher.";
+    vouchers.value = []; // Đảm bảo mảng rỗng khi có lỗi
     console.error(err);
   } finally {
     isLoading.value = false;
@@ -334,6 +385,7 @@ const handleSaveVoucher = async () => {
       await voucherService.createVoucher(currentVoucher.value);
     }
     closeModal();
+    pagination.value.currentPage = 0;
     await fetchVouchers();
   } catch (err) {
     const errorMsg =
@@ -347,6 +399,7 @@ const handleDeleteVoucher = async (id) => {
   if (confirm("Bạn có chắc chắn muốn xóa voucher này?")) {
     try {
       await voucherService.deleteVoucher(id);
+      pagination.value.currentPage = 0;
       await fetchVouchers();
     } catch (err) {
       alert("Đã xảy ra lỗi khi xóa voucher!");
@@ -355,15 +408,26 @@ const handleDeleteVoucher = async (id) => {
   }
 };
 
+// --- PAGINATION HANDLER ---
+const handlePageChange = (newPage) => {
+  pagination.value.currentPage = newPage;
+};
+
 // --- COMPUTED & HELPERS ---
-const filteredVouchers = computed(() => {
-  if (!searchQuery.value) return vouchers.value;
-  const query = searchQuery.value.toLowerCase();
-  return vouchers.value.filter(
-    (v) =>
-      v.code.toLowerCase().includes(query) ||
-      v.name.toLowerCase().includes(query)
-  );
+const vouchersWithFinalStatus = computed(() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return vouchers.value.map((voucher) => {
+    const expiryDate = new Date(voucher.expiryDate);
+    expiryDate.setHours(0, 0, 0, 0);
+    const isExpired = expiryDate.getTime() < today.getTime();
+
+    return {
+      ...voucher,
+      finalStatus: isExpired ? "EXPIRED" : voucher.status,
+    };
+  });
 });
 
 const openAddModal = () => {

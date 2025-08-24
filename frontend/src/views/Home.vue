@@ -3,7 +3,7 @@
     <div class="relative">
       <BannerAndSearch />
     </div>
-    <SignatureSection />
+    <!-- <SignatureSection /> -->
     <CouponSection />
     <div class="container mx-auto px-4 py-8 space-y-12 md:space-y-16">
       <section>
@@ -218,6 +218,7 @@ import FlightCard from "../components/Home/FlightCard.vue";
 import TourHomeCard from "../components/Home/TourHomeCard.vue";
 import { searchFlights } from "@/api/flightApi";
 import { getPopularHotelsByBookings } from "../api/hotelApi";
+
 
 // State variables
 const hotels = ref([]);

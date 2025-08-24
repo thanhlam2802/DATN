@@ -45,8 +45,7 @@ public class OrderCleanupServiceImpl implements OrderCleanupService {
     private final ApplicationEventPublisher publisher;
     private final AdminWebSocketController adminWebSocketController;
     
-//    @Scheduled(fixedRate = 300000)
-@Scheduled(fixedDelay = 30000)
+@Scheduled(fixedDelay = 100000)
 @Transactional
     public void cancelExpiredOrders() {
         System.out.println("Running scheduled task to cancel expired orders...");

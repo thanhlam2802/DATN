@@ -3,10 +3,14 @@ package backend.backend.dao;
 
 import backend.backend.entity.ApplicationStatus;
 import backend.backend.entity.SupplierApplication;
+import backend.backend.entity.User;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Interface DAO sử dụng Spring Data JPA để tương tác với cơ sở dữ liệu
@@ -30,5 +34,12 @@ public interface SupplierApplicationDAO extends JpaRepository<SupplierApplicatio
     long countByStatus(ApplicationStatus status);
 
 	List<SupplierApplication> findByStatus(ApplicationStatus status);
+
+	Optional<SupplierApplication> findByUserAndStatus(User owner, ApplicationStatus approved);
+
+	   Optional<SupplierApplication> findByUserAndStatusAndServiceType(User user, ApplicationStatus status, String serviceType);
+
+	List<SupplierApplication> findByStatusAndServiceType(ApplicationStatus approved, String string);
+
 
 }

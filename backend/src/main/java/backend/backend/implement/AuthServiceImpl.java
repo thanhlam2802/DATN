@@ -80,12 +80,6 @@ public class AuthServiceImpl implements AuthService {
         userRole.setId(new UserRoleId(newUser.getId(), role.get().getId()));
         userRoleRepository.save(userRole);
 
-        Map<String, String> params = new HashMap<>();
-        params.put("toEmail", newUser.getEmail());
-        params.put("userId", newUser.getId().toString());
-        params.put("userName", newUser.getName());
-        otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
-
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
         jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(newUser));
@@ -98,23 +92,23 @@ public class AuthServiceImpl implements AuthService {
         if (header == null) {
             throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
         }
-//        if (!header.startsWith("Bearer ")) {
-//            throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
-//        }
-//
-//        String token = header.substring(7);
-//
-//        Claims claims = jwtTokenUtil.extractAllClaims(token);
-//        Integer userId = jwtTokenUtil.extractUserId(token);
-//        String email = jwtTokenUtil.extractUserEmail(token);
-//        boolean verified = claims.get("isVerified", Boolean.class);
-//        if (!verified) {
-//            Map<String, String> params = new HashMap<>();
-//            params.put("toEmail", email);
-//            params.put("userId", userId.toString());
-//            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
-//            throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
-//        }
+        if (!header.startsWith("Bearer ")) {
+            throw new AuthException("Unauthorized", ErrorCode.AUTH_003);
+        }
+
+        String token = header.substring(7);
+
+        Claims claims = jwtTokenUtil.extractAllClaims(token);
+        Integer userId = jwtTokenUtil.extractUserId(token);
+        String email = jwtTokenUtil.extractUserEmail(token);
+        boolean verified = claims.get("isVerified", Boolean.class);
+        if (!verified) {
+            Map<String, String> params = new HashMap<>();
+            params.put("toEmail", email);
+            params.put("userId", userId.toString());
+            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
+            throw new AuthException("Unauthorized", ErrorCode.AUTH_007);
+        }
     }
 
     @Override
@@ -291,6 +285,11 @@ public class AuthServiceImpl implements AuthService {
                 existingUser.setAuthProvider(requestDto.getAuthProvider());
                 userRepository.save(existingUser);
             }
+            if (!existingUser.getIsVerified()) {
+                verifyAccountResend(existingUser.getEmail());
+                throw new BadRequestException("User is not verified", ErrorCode.AUTH_007);
+            }
+
 
             JwtResultDto jwtResultDto = new JwtResultDto();
             jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(existingUser));

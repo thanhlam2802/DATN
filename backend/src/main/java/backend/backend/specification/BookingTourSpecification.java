@@ -42,14 +42,20 @@ public class BookingTourSpecification {
                 }
             }
 
-            // Lọc theo status
+       
             if (params.containsKey("status")) {
-                String status = params.get("status");
-                if (status != null && !status.trim().isEmpty()) {
+                String statusStr = params.get("status");
+                if (statusStr != null && !statusStr.trim().isEmpty()) {
+                    String[] statuses = statusStr.split(",");
                     Join<BookingTour, Order> orderJoin = root.join("order");
-                    predicates.add(criteriaBuilder.equal(orderJoin.get("status"), status));
+                    CriteriaBuilder.In<String> inClause = criteriaBuilder.in(orderJoin.get("status"));
+                    for (String s : statuses) {
+                        inClause.value(s.trim());
+                    }
+                    predicates.add(inClause);
                 }
             }
+
             
             // --- NÂNG CẤP: Lọc theo khoảng ngày đặt tour (bookingDate) ---
             // Giả định entity BookingTour có trường `private LocalDate bookingDate;`

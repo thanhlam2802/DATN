@@ -3,7 +3,7 @@
     <div class="relative">
       <BannerAndSearch />
     </div>
-    <SignatureSection />
+    <!-- <SignatureSection /> -->
     <CouponSection />
     <div class="container mx-auto px-4 py-8 space-y-12 md:space-y-16">
       <section>
@@ -74,7 +74,16 @@
             Xem tất cả
           </router-link>
         </div>
-        <div class="relative group">
+        <div v-if="loading.buses" class="text-center p-10">
+          <p class="text-gray-600">Đang tìm những tuyến xe phổ biến...</p>
+        </div>
+        <div
+          v-else-if="error.buses"
+          class="text-center p-10 bg-red-50 text-red-600 rounded-lg"
+        >
+          <p>{{ error.buses }}</p>
+        </div>
+        <div v-else-if="buses.length > 0" class="relative group">
           <div
             ref="busScrollContainer"
             @scroll="() => handleScroll('buses')"
@@ -208,6 +217,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
 import BannerAndSearch from "../components/Home/BannerAndSearch.vue";
 import SignatureSection from "../components/Home/SignatureSection.vue";
@@ -218,6 +228,12 @@ import FlightCard from "../components/Home/FlightCard.vue";
 import TourHomeCard from "../components/Home/TourHomeCard.vue";
 import { searchFlights } from "@/api/flightApi";
 import { getPopularHotelsByBookings } from "../api/hotelApi";
+import { RouteAPI } from "@/api/busApi/route";
+
+// Router
+const router = useRouter();
+
+
 
 // State variables
 const hotels = ref([]);
@@ -228,10 +244,12 @@ const buses = ref([]);
 const loading = reactive({
   hotels: true,
   tours: true,
+  buses: true,
 });
 const error = reactive({
   hotels: null,
   tours: null,
+  buses: null,
 });
 
 // Hàm fetch dữ liệu
@@ -279,6 +297,24 @@ const fetchTours = async () => {
     });
   }
 };
+
+// ✅ THÊM MỚI: Fetch popular routes
+const fetchPopularRoutes = async () => {
+  try {
+    loading.buses = true;
+    error.buses = null;
+    const popularRoutes = await RouteAPI.getPopularRoutes(8);
+    buses.value = popularRoutes;
+  } catch (err) {
+    console.error("Lỗi khi tải danh sách tuyến xe phổ biến:", err);
+    error.buses = "Không thể tải dữ liệu tuyến xe. Vui lòng thử lại sau.";
+  } finally {
+    loading.buses = false;
+    nextTick(() => handleScroll("buses"));
+  }
+};
+
+
 
 // Logic xử lý cuộn ngang
 const hotelScrollContainer = ref(null);
@@ -328,6 +364,7 @@ onMounted(async () => {
   // Gọi các API
   fetchHotels();
   fetchTours();
+  fetchPopularRoutes(); // ✅ THÊM MỚI: Fetch popular routes
 
   try {
     const res = await searchFlights({});

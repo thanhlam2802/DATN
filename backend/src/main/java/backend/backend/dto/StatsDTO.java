@@ -1,4 +1,3 @@
-// File: backend/backend/dto/StatsDTO.java
 package backend.backend.dto;
 
 import lombok.AllArgsConstructor;
@@ -16,24 +15,22 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StatsDTO {
-    // Các chỉ số tính theo khoảng thời gian được chọn
+
     private BigDecimal revenue;
     private long customers;
     private long bookingsCount;
     private long toursWithBookings;
-
-    // Các chỉ số tính trên toàn bộ hệ thống
     private long systemTotalTours;
     private long systemActiveTours;
 
     /**
-     * ✅ BƯỚC 1: THÊM CONSTRUCTOR NÀY
-     * Constructor này được sử dụng bởi câu lệnh query JPQL trong BookingTourDAO
-     * để tạo đối tượng StatsDTO từ kết quả truy vấn.
+     * Thêm constructor này để phục vụ cho câu lệnh query JPQL trong Repository.
+     * Hibernate sẽ sử dụng constructor này để tạo đối tượng từ kết quả query.
+     *
      * @param revenue Doanh thu (từ SUM)
-     * @param customers Lượng khách (từ COUNT DISTINCT)
-     * @param bookingsCount Số booking (từ COUNT)
-     * @param toursWithBookings Số tour có booking (từ COUNT DISTINCT)
+     * @param customers Số lượng khách hàng (từ COUNT)
+     * @param bookingsCount Tổng số booking (từ COUNT)
+     * @param toursWithBookings Số tour có booking (từ COUNT)
      */
     public StatsDTO(BigDecimal revenue, long customers, long bookingsCount, long toursWithBookings) {
         this.revenue = revenue;

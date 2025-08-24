@@ -2,6 +2,9 @@ package backend.backend.dao;
 
 import backend.backend.dto.auth.UserRoleEnum;
 import backend.backend.entity.User;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,4 +23,7 @@ public interface UserDAO extends JpaRepository<User, Integer> {
 
     @Query("SELECT u FROM User u JOIN u.userRoles r join r.role  rl WHERE rl.name = :roleName")
     List<User> findByRole(@Param("roleName") UserRoleEnum role);
+    
+
+
 }

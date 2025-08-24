@@ -25,7 +25,10 @@ public class BookingTourRequestDto {
      * Tên của khách hàng liên hệ.
      */
     private String customerName;
-
+    /**
+     * Số điện thoại của khách hàng.
+     */
+    private String email;
     /**
      * Số điện thoại của khách hàng.
      */
@@ -48,7 +51,7 @@ public class BookingTourRequestDto {
      */
     private String notes;
     
-    // --- Các trường này có thể vẫn cần thiết cho logic ở tầng service ---
+  
     
     /**
      * ID của người dùng đang đăng nhập để xác thực.

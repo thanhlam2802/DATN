@@ -10,10 +10,11 @@ const apiClient = axios.create({
 // Xuất ra một đối tượng chứa tất cả các hàm gọi API liên quan đến Voucher
 export default {
   /**
-   * Lấy tất cả voucher
+   * Lấy tất cả voucher có phân trang và tìm kiếm
+   * @param {object} params - Các tham số truy vấn (page, size, query)
    */
-  getAllVouchers() {
-    return apiClient.get("/vouchers");
+  getAllVouchers(params) {
+    return apiClient.get("/vouchers", { params });
   },
 
   /**

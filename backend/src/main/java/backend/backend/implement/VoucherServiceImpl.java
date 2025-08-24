@@ -13,6 +13,8 @@ import backend.backend.service.VoucherService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -82,13 +84,18 @@ public class VoucherServiceImpl implements VoucherService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy voucher với mã: " + code));
         return modelMapper.map(voucher, VoucherDTO.class);
     }
-
     @Override
-    public List<VoucherDTO> getAllVouchers() {
-        List<Voucher> vouchers = voucherRepository.findAll();
-        return vouchers.stream()
-                .map(voucher -> modelMapper.map(voucher, VoucherDTO.class))
-                .collect(Collectors.toList());
+    public Page<VoucherDTO> getAllVouchers(Pageable pageable, String query) {
+        Page<Voucher> voucherPage;
+        if (query != null && !query.isEmpty()) {
+            // Tìm theo tên hoặc mã code nếu có query
+            voucherPage = voucherRepository.findByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(query, query, pageable);
+        } else {
+            // Nếu không có query, lấy tất cả voucher
+            voucherPage = voucherRepository.findAll(pageable);
+        }
+        
+        return voucherPage.map(voucher -> modelMapper.map(voucher, VoucherDTO.class));
     }
 
     /**

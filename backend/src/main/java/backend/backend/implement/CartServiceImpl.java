@@ -320,6 +320,7 @@ public class CartServiceImpl implements CartService {
         tourRequest.setDepartureId(genericRequest.getDepartureId());
         tourRequest.setNumberOfAdults(genericRequest.getNumberOfAdults());
         tourRequest.setNumberOfChildren(genericRequest.getNumberOfChildren());
+        tourRequest.setEmail(genericRequest.getEmail());
         return tourRequest;
     }
 

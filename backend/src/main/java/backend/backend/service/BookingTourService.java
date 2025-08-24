@@ -42,6 +42,6 @@ public interface BookingTourService {
 	 StatsDTO getStatsByDateRange(Long userId, LocalDate startDate, LocalDate endDate);
 	 List<TopTourDTO> getTopSellingTours(Long userId,LocalDate startDate, LocalDate endDate, int limit);
 	    Page<MyTourBookingDTO> getPaidBookingsByDateRange(Long userId,LocalDate startDate, LocalDate endDate, Pageable pageable);
-	    
+	    BookingTourDto updateBookingTour(Integer id, BookingTourRequestDto requestDto);
 
 }

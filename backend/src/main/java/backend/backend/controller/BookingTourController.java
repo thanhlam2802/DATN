@@ -77,4 +77,20 @@ public class BookingTourController {
         List<MyTourBookingDTO> bookings = bookingTourService.filterAdminBookings(params);
         return ResponseFactory.success(bookings, "Lấy danh sách booking của admin thành công.");
     }
+    /**
+     * Endpoint để cập nhật thông tin của một booking tour bằng ID.
+     * URL: PUT /api/v1/bookings/tours/{id}
+     *
+     * @param id ID của booking tour cần cập nhật.
+     * @param requestDto Dữ liệu cập nhật, được gửi trong body của request.
+     * @return Thông tin chi tiết của booking sau khi cập nhật.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<BookingTourDto>> updateBookingTour(
+            @PathVariable Integer id,
+            @RequestBody BookingTourRequestDto requestDto) {
+        
+        BookingTourDto updatedBooking = bookingTourService.updateBookingTour(id, requestDto);
+        return ResponseFactory.success(updatedBooking, "Cập nhật booking tour thành công!");
+    }
 }

@@ -32,6 +32,12 @@ onMounted(async () => {
     loadingStore.stopLoading();
     return;
   }
+  if (res["errorCode"] === ErrorCodes.userDeactivated) {
+    localStorage.setItem('oauth2Error', 'Tài khoản của bạn hiện tại bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.');
+    await router.push("/login");
+    loadingStore.stopLoading();
+    return;
+  }
 
   if (!res.errorCode) {
     userStore.login(res.data, token);

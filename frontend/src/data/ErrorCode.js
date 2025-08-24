@@ -6,6 +6,7 @@ export const ErrorCodes = {
     invalidRole: "AUTH:005:403",
     passwordNotMatch: "AUTH:006:400",
     userNotVerified: "AUTH:007:400",
+    userDeactivated: "AUTH:008:401",
     otpNotFound: "OTP:001:400",
     otpNotMatch: "OTP:002:400",
     otpExpired: "OTP:003:400",

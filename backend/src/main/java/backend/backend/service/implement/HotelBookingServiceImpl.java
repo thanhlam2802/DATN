@@ -142,6 +142,11 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             HotelRoomVariant variant = hotelRoomVariantDAO.findByIdWithRoom(dto.getRoomVariantId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Không tìm thấy room variant với id: " + dto.getRoomVariantId()));
+            
+            if (!"APPROVED".equals(variant.getRoom().getHotel().getApprovalStatus()) || 
+                !"ACTIVE".equals(variant.getRoom().getHotel().getStatus())) {
+                throw new IllegalArgumentException("Khách sạn này không khả dụng để đặt phòng");
+            }
             HotelBooking booking = new HotelBooking();
             booking.setRoomVariant(variant);
             booking.setCheckInDate(LocalDate.parse(dto.getCheckInDate()));
@@ -233,6 +238,11 @@ public class HotelBookingServiceImpl implements HotelBookingService {
             
             HotelRoom hotelRoom = hotelRoomDAO.findById(roomVariant.getRoom().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin phòng!"));
+            
+            if (!"APPROVED".equals(hotelRoom.getHotel().getApprovalStatus()) || 
+                !"ACTIVE".equals(hotelRoom.getHotel().getStatus())) {
+                throw new IllegalArgumentException("Khách sạn này không khả dụng để cập nhật đặt phòng");
+            }
 
             if (authentication == null) {
                 throw new IllegalArgumentException("Bạn cần đăng nhập để cập nhật booking!");
@@ -313,6 +323,63 @@ public class HotelBookingServiceImpl implements HotelBookingService {
 
         } catch (Exception e) {
             log.error("[UPDATE_HOTEL_BOOKING] Lỗi khi cập nhật booking: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public void cancelHotelBooking(Integer bookingId) {
+        log.info("[CANCEL_HOTEL_BOOKING] Bắt đầu hủy hotel booking với ID: {}", bookingId);
+        
+        try {
+            HotelBooking booking = hotelBookingDAO.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hotel booking với ID: " + bookingId));
+            
+            if (booking.getOrder() != null && "PAID".equals(booking.getOrder().getStatus())) {
+                LocalDate today = LocalDate.now();
+                LocalDate checkInDate = booking.getCheckInDate();
+                
+                if (checkInDate != null && today.isAfter(checkInDate)) {
+                    throw new IllegalArgumentException("Không thể hủy booking sau ngày check-in");
+                }
+                
+                if (checkInDate != null && today.isAfter(checkInDate.minusDays(1))) {
+                    throw new IllegalArgumentException("Không thể hủy booking trong vòng 24h trước ngày check-in");
+                }
+            }
+            
+            if (booking.getRoomVariant() != null && booking.getRoomVariant().getRoom() != null && booking.getRooms() != null) {
+                HotelRoom room = booking.getRoomVariant().getRoom();
+                Short currentQty = room.getRoomQuantity();
+                short roomsBooked = booking.getRooms();
+                
+                if (currentQty != null) {
+                    room.setRoomQuantity((short) (currentQty + roomsBooked));
+                    hotelRoomDAO.save(room);
+                    log.info("[CANCEL_HOTEL_BOOKING] Đã hoàn trả {} phòng cho roomId={}", roomsBooked, room.getId());
+                    
+                    try {
+                        Integer hotelId = room.getHotel().getId();
+                        Map<String, Object> roomUpdate = new java.util.HashMap<>();
+                        roomUpdate.put("hotelId", hotelId);
+                        roomUpdate.put("roomId", room.getId());
+                        roomUpdate.put("previousQuantity", currentQty);
+                        roomUpdate.put("newQuantity", room.getRoomQuantity());
+                        roomUpdate.put("action", "ROOM_RESTORED_FROM_CANCELLATION");
+                        messagingTemplate.convertAndSend("/topic/hotels/" + hotelId + "/room-updates", roomUpdate);
+                        log.info("[CANCEL_HOTEL_BOOKING] Đã gửi WebSocket notification cho hotelId={}, roomId={}", hotelId, room.getId());
+                    } catch (Exception e) {
+                        log.error("[CANCEL_HOTEL_BOOKING] Không thể gửi WebSocket notification: {}", e.getMessage());
+                    }
+                }
+            }
+            
+            hotelBookingDAO.delete(booking);
+            log.info("[CANCEL_HOTEL_BOOKING] Đã xóa hotel booking với ID: {}", bookingId);
+            
+        } catch (Exception e) {
+            log.error("[CANCEL_HOTEL_BOOKING] Lỗi khi hủy hotel booking: {}", e.getMessage(), e);
             throw e;
         }
     }

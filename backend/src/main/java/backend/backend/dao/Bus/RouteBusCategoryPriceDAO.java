@@ -57,4 +57,13 @@ public interface RouteBusCategoryPriceDAO extends JpaRepository<RouteBusCategory
                 @Param("ownerId") Integer ownerId, 
                 @Param("routeId") Integer routeId
         );
+        
+        // ✅ THÊM MỚI: Tìm giá thấp nhất cho route
+        @Query("SELECT MIN(rbc.basePrice) FROM RouteBusCategoryPrice rbc " +
+               "WHERE rbc.route.id = :routeId " +
+               "AND :currentDate BETWEEN rbc.validFrom AND rbc.validTo")
+        Optional<java.math.BigDecimal> findMinPriceByRouteId(
+                @Param("routeId") Integer routeId,
+                @Param("currentDate") LocalDate currentDate
+        );
 }

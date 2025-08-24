@@ -42,6 +42,7 @@
             v-if="activeTab === 'bus'"
             v-model:busTripType="busTripType"
           />
+          <TourSearch v-if="activeTab === 'tour'" />
         </div>
       </div>
     </div>
@@ -53,6 +54,7 @@ import { ref } from "vue";
 import HotelSearch from "./HotelSearch.vue";
 import FlightSearch from "./FlightSearch.vue";
 import BusSearch from "./BusSearch.vue";
+import TourSearch from "./TourSearch.vue"; // <-- 1. IMPORT COMPONENT TOURSEARCH
 
 const heroImage =
   "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?q=80&w=2940&auto=format&fit=crop";

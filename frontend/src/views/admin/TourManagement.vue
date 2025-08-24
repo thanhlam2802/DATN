@@ -17,11 +17,6 @@
         >
           <i :class="tab.icon"></i>
           <span>{{ tab.name }}</span>
-          <span
-            v-if="tab.id === 'pending' && pendingTours.length > 0"
-            class="ml-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full"
-            >{{ pendingTours.length }}</span
-          >
         </button>
       </nav>
     </div>
@@ -29,49 +24,55 @@
     <div v-if="isLoading" class="text-center py-20">
       <i class="fas fa-spinner fa-spin text-5xl text-indigo-500"></i>
     </div>
+
     <div v-else>
-      <div v-if="activeTab === 'pending'">
+      <!-- TAB 1: Vendors -->
+      <div v-if="activeTab === 'vendors'">
         <div class="bg-white p-6 rounded-xl shadow-lg">
           <h2 class="text-xl font-bold text-gray-700 mb-4">
-            Danh sách Tour chờ phê duyệt
+            Danh sách Nhà cung cấp Tour
           </h2>
           <table class="w-full text-sm">
             <thead class="text-xs text-gray-500 uppercase bg-gray-50">
               <tr>
-                <th class="px-4 py-3 text-left">Tên Tour</th>
-                <th class="px-4 py-3 text-left">Nhà cung cấp</th>
-                <th class="px-4 py-3 text-left">Điểm đến</th>
+                <th class="px-4 py-3 text-left">Tên Nhà cung cấp</th>
+                <th class="px-4 py-3 text-center">Số lượng Tour</th>
                 <th class="px-4 py-3 text-center">Hành động</th>
               </tr>
             </thead>
             <tbody class="divide-y">
               <tr
-                v-for="tour in pendingTours"
-                :key="tour.id"
+                v-for="vendor in vendorsWithTourCount"
+                :key="vendor.vendorId"
                 class="hover:bg-gray-50"
               >
-                <td class="px-4 py-3 font-semibold">{{ tour.name }}</td>
-                <td class="px-4 py-3">{{ tour.vendor }}</td>
-                <td class="px-4 py-3">{{ tour.destination }}</td>
-                <td class="px-4 py-3 text-center space-x-2">
-                  <button class="text-blue-600 hover:underline text-xs">
-                    Xem trước
-                  </button>
-                  <button
-                    class="bg-green-500 text-white px-3 py-1 rounded-md text-xs hover:bg-green-600"
+                <td class="px-4 py-3 font-semibold">{{ vendor.vendorName }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span
+                    class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
                   >
-                    Duyệt
-                  </button>
+                    {{ vendor.tourCount }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-center">
                   <button
-                    class="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600"
+                    class="text-blue-600 hover:underline text-xs"
+                    @click="
+                      toggleVendorTours(vendor.vendorId, vendor.vendorName)
+                    "
                   >
-                    Từ chối
+                    {{
+                      showVendorTours && selectedVendor === vendor.vendorName
+                        ? "Ẩn danh sách Tour"
+                        : "Xem danh sách Tour"
+                    }}
                   </button>
                 </td>
               </tr>
-              <tr v-if="pendingTours.length === 0">
-                <td colspan="4" class="text-center py-10 text-gray-500">
-                  Không có tour nào chờ phê duyệt.
+
+              <tr v-if="vendorsWithTourCount.length === 0">
+                <td colspan="3" class="text-center py-10 text-gray-500">
+                  Chưa có nhà cung cấp nào đăng ký.
                 </td>
               </tr>
             </tbody>
@@ -79,8 +80,12 @@
         </div>
       </div>
 
+      <!-- TAB 2: All Tours -->
       <div v-if="activeTab === 'all_tours'">
         <div class="bg-white p-4 rounded-xl shadow-lg mb-6">
+          <h2 class="text-xl font-bold text-gray-700 mb-4 px-2 pt-2">
+            Bộ lọc Tour
+          </h2>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <input
               type="text"
@@ -91,13 +96,17 @@
               <option value="">Tất cả trạng thái</option>
               <option value="ACTIVE">Đang bán</option>
               <option value="PENDING">Chờ duyệt</option>
-              <option value="DISABLED">Bị vô hiệu hóa</option>
+              <option value="DISABLED">Đã vô hiệu hóa</option>
             </select>
             <select class="border p-2 rounded-lg">
               <option value="">Tất cả nhà cung cấp</option>
-            </select>
-            <select class="border p-2 rounded-lg">
-              <option value="">Tất cả điểm đến</option>
+              <option
+                v-for="vendor in vendors"
+                :key="vendor.vendorId"
+                :value="vendor.vendorId"
+              >
+                {{ vendor.vendorName }}
+              </option>
             </select>
           </div>
         </div>
@@ -108,7 +117,6 @@
                 <th class="px-4 py-3 text-left">Tên Tour / Nhà cung cấp</th>
                 <th class="px-4 py-3 text-left">Điểm đến</th>
                 <th class="px-4 py-3 text-center">Trạng thái</th>
-                <th class="px-4 py-3 text-center">Nổi bật</th>
                 <th class="px-4 py-3 text-center">Hành động</th>
               </tr>
             </thead>
@@ -127,65 +135,21 @@
                   <span
                     :class="getStatusClass(tour.status)"
                     class="px-2 py-1 text-xs font-medium rounded-full"
-                    >{{ tour.status }}</span
+                    >{{ getStatusText(tour.status) }}</span
                   >
                 </td>
-                <td class="px-4 py-3 text-center">
-                  <label
-                    class="relative inline-flex items-center cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      v-model="tour.isFeatured"
-                      class="sr-only peer"
-                    />
-                    <div
-                      class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"
-                    ></div>
-                  </label>
-                </td>
-                <td class="px-4 py-3 text-center">
+                <td class="px-4 py-3 text-center space-x-2">
                   <button class="text-indigo-600 hover:underline text-xs">
-                    Sửa
+                    Xem
                   </button>
-                  <button class="ml-2 text-red-600 hover:underline text-xs">
+                  <button class="text-red-600 hover:underline text-xs">
                     Vô hiệu hóa
                   </button>
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div v-if="activeTab === 'destinations'">
-        <div class="flex justify-end mb-4">
-          <button
-            class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition"
-          >
-            <i class="fas fa-plus mr-2"></i>Thêm Điểm đến
-          </button>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-          <table class="w-full text-sm">
-            <thead class="text-xs text-gray-500 uppercase bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left">Tên Điểm đến</th>
-                <th class="px-4 py-3 text-center">Số Tour</th>
-                <th class="px-4 py-3 text-center">Hành động</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              <tr v-for="dest in destinations" :key="dest.id">
-                <td class="px-4 py-3 font-semibold">{{ dest.name }}</td>
-                <td class="px-4 py-3 text-center">{{ dest.tourCount }}</td>
-                <td class="px-4 py-3 text-center">
-                  <button class="text-indigo-600 hover:underline text-xs">
-                    Sửa
-                  </button>
-                  <button class="ml-2 text-red-600 hover:underline text-xs">
-                    Xóa
-                  </button>
+              <tr v-if="allTours.length === 0">
+                <td colspan="4" class="text-center py-10 text-gray-500">
+                  Không có tour nào.
                 </td>
               </tr>
             </tbody>
@@ -193,111 +157,130 @@
         </div>
       </div>
 
-      <div v-if="activeTab === 'tags'">
-        <div class="flex justify-end mb-4">
-          <button
-            class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition"
-          >
-            <i class="fas fa-plus mr-2"></i>Thêm Thẻ mới
-          </button>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-          <table class="w-full text-sm">
-            <thead class="text-xs text-gray-500 uppercase bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left">Tên Thẻ</th>
-                <th class="px-4 py-3 text-center">Số Tour</th>
-                <th class="px-4 py-3 text-center">Hành động</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              <tr v-for="tag in tags" :key="tag.id">
-                <td class="px-4 py-3 font-semibold">{{ tag.name }}</td>
-                <td class="px-4 py-3 text-center">{{ tag.tourCount }}</td>
-                <td class="px-4 py-3 text-center">
-                  <button class="text-indigo-600 hover:underline text-xs">
-                    Sửa
-                  </button>
-                  <button class="ml-2 text-red-600 hover:underline text-xs">
-                    Xóa
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- TAB 3: Trends (ẩn tạm hoặc placeholder) -->
+      <div v-if="activeTab === 'trends'">
+        <div
+          class="bg-white p-6 rounded-xl shadow-lg text-center text-gray-500"
+        >
+          Tính năng Xu hướng tìm kiếm sẽ được bổ sung sau.
         </div>
       </div>
     </div>
   </div>
+  <div v-if="showVendorTours" class="mt-6 bg-white p-6 rounded-xl shadow-lg">
+    <h3 class="text-lg font-bold text-gray-700 mb-4">
+      Danh sách Tour của {{ selectedVendor }}
+    </h3>
+    <table class="w-full text-sm">
+      <thead class="text-xs text-gray-500 uppercase bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left">Tên Tour</th>
+          <th class="px-4 py-3 text-left">Điểm đến</th>
+          <th class="px-4 py-3 text-center">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        <tr v-for="tour in vendorTours" :key="tour.id" class="hover:bg-gray-50">
+          <td class="px-4 py-3 font-semibold">{{ tour.name }}</td>
+          <td class="px-4 py-3">{{ tour.destination }}</td>
+          <td class="px-4 py-3 text-center">
+            <span
+              :class="getStatusClass(tour.status)"
+              class="px-2 py-1 text-xs font-medium rounded-full"
+            >
+              {{ getStatusText(tour.status) }}
+            </span>
+          </td>
+        </tr>
+        <tr v-if="vendorTours.length === 0">
+          <td colspan="3" class="text-center py-10 text-gray-500">
+            Nhà cung cấp này chưa có tour nào.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import axios from "axios";
 
-const isLoading = ref(false);
-const activeTab = ref("pending");
+const isLoading = ref(true);
+const activeTab = ref("vendors");
+const vendorTours = ref([]);
+const selectedVendor = ref(null);
+const showVendorTours = ref(false);
+
+const fetchVendorTours = async (vendorId, vendorName) => {
+  try {
+    isLoading.value = true;
+    selectedVendor.value = vendorName;
+    const res = await axios.get(
+      `http://localhost:8080/api/manage/vendors/${vendorId}/tours`
+    );
+    vendorTours.value = res.data.data || [];
+    showVendorTours.value = true;
+  } catch (err) {
+    console.error("Lỗi khi load tour của vendor:", err);
+  } finally {
+    isLoading.value = false;
+  }
+};
+const toggleVendorTours = async (vendorId, vendorName) => {
+  if (showVendorTours.value && selectedVendor.value === vendorName) {
+    // Nếu đang mở, click sẽ ẩn
+    showVendorTours.value = false;
+    selectedVendor.value = null;
+    vendorTours.value = [];
+  } else {
+    // Nếu đang ẩn, click sẽ load và hiện
+    await fetchVendorTours(vendorId, vendorName);
+  }
+};
+
 const tabs = ref([
-  { id: "pending", name: "Chờ Phê duyệt", icon: "fas fa-hourglass-half" },
-  { id: "all_tours", name: "Tất cả Tour", icon: "fas fa-list-ul" },
-  {
-    id: "destinations",
-    name: "Quản lý Điểm đến",
-    icon: "fas fa-map-marker-alt",
-  },
-  { id: "tags", name: "Quản lý Thẻ Tour", icon: "fas fa-tags" },
+  { id: "vendors", name: "Nhà cung cấp", icon: "fas fa-building" },
+  { id: "all_tours", name: "Quản lý Tour", icon: "fas fa-list-ul" },
+  { id: "trends", name: "Xu hướng tìm kiếm", icon: "fas fa-chart-line" },
 ]);
 
-// --- Dữ liệu giả ---
-const allTours = ref([
-  {
-    id: 1,
-    name: "Khám phá Vịnh Hạ Long 2N1Đ",
-    vendor: "VietTravel",
-    destination: "Hạ Long",
-    status: "ACTIVE",
-    isFeatured: true,
-  },
-  {
-    id: 2,
-    name: "Chinh phục Fansipan",
-    vendor: "Sapa Tours",
-    destination: "Sapa",
-    status: "ACTIVE",
-    isFeatured: false,
-  },
-  {
-    id: 3,
-    name: "Tour Ẩm thực Phố cổ Hà Nội",
-    vendor: "Hanoi Foodies",
-    destination: "Hà Nội",
-    status: "PENDING",
-    isFeatured: false,
-  },
-  {
-    id: 4,
-    name: "Nghỉ dưỡng tại Resort Phú Quốc",
-    vendor: "BestPrice Travel",
-    destination: "Phú Quốc",
-    status: "DISABLED",
-    isFeatured: false,
-  },
-]);
-const destinations = ref([
-  { id: 1, name: "Hạ Long", tourCount: 15 },
-  { id: 2, name: "Sapa", tourCount: 12 },
-  { id: 3, name: "Hà Nội", tourCount: 25 },
-  { id: 4, name: "Phú Quốc", tourCount: 18 },
-]);
-const tags = ref([
-  { id: 1, name: "Biển", tourCount: 33 },
-  { id: 2, name: "Leo núi", tourCount: 12 },
-  { id: 3, name: "Ẩm thực", tourCount: 25 },
-  { id: 4, name: "Nghỉ dưỡng", tourCount: 18 },
-]);
+// --- Dữ liệu ---
+const allTours = ref([]);
+const vendors = ref([]);
+
+// --- Lấy dữ liệu từ API ---
+const fetchData = async () => {
+  try {
+    isLoading.value = true;
+
+    // 1. Vendors summary
+    const vendorRes = await axios.get(
+      "http://localhost:8080/api/manage/vendors/summary"
+    );
+    vendors.value = vendorRes.data.data || [];
+
+    // 2. All tours
+    const toursRes = await axios.get("http://localhost:8080/api/manage/tours");
+    allTours.value = toursRes.data.data || [];
+  } catch (err) {
+    console.error("Lỗi khi load dữ liệu:", err);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// --- Lifecycle ---
+onMounted(() => {
+  fetchData();
+});
 
 // --- Computed ---
-const pendingTours = computed(() =>
-  allTours.value.filter((tour) => tour.status === "PENDING")
+const vendorsWithTourCount = computed(() =>
+  vendors.value.map((vendor) => ({
+    ...vendor,
+    tourCount: vendor.tourCount || 0,
+  }))
 );
 
 // --- Helpers ---
@@ -305,6 +288,13 @@ const getStatusClass = (status) =>
   ({
     ACTIVE: "bg-green-100 text-green-800",
     PENDING: "bg-yellow-100 text-yellow-800",
-    DISABLED: "bg-red-100 text-red-800",
+    DISABLED: "bg-gray-200 text-gray-800",
   }[status] || "bg-gray-100");
+
+const getStatusText = (status) =>
+  ({
+    ACTIVE: "Đang bán",
+    PENDING: "Chờ duyệt",
+    DISABLED: "Vô hiệu hóa",
+  }[status] || "Không xác định");
 </script>

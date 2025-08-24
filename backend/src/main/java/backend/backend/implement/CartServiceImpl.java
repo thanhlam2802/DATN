@@ -14,6 +14,7 @@ import backend.backend.service.FlightBookingService;
 import backend.backend.service.HotelBookingService;
 import backend.backend.dto.Hotel.HotelBookingRequestDto;
 import backend.backend.controller.AdminWebSocketController;
+import backend.backend.dao.Hotel.HotelRoomVariantDAO;
 
 import backend.backend.service.busService.BusBookingService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class CartServiceImpl implements CartService {
      private  final UserDAO userDAO;
      private  final FlightBookingDAO flightBookingDAO;
      private  final HotelBookingDAO hotelBookingDAO;
+     private  final HotelRoomVariantDAO hotelRoomVariantDAO;
      private  final BusBookingDAO busBookingDAO;
      private  final BookingTourDAO bookingTourDAO;
      private  final  BookingTourService tourBookingService;
@@ -255,6 +257,14 @@ public class CartServiceImpl implements CartService {
             }
       
             case HOTEL: {
+                HotelRoomVariant variant = hotelRoomVariantDAO.findById(genericRequest.getRoomId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin phòng"));
+                
+                if (!"APPROVED".equals(variant.getRoom().getHotel().getApprovalStatus()) || 
+                    !"ACTIVE".equals(variant.getRoom().getHotel().getStatus())) {
+                    throw new IllegalArgumentException("Khách sạn này không khả dụng để thêm vào giỏ hàng");
+                }
+                
                 HotelBookingRequestDto hotelRequest = new HotelBookingRequestDto();
                 User user = order.getUser();
                 
@@ -310,6 +320,7 @@ public class CartServiceImpl implements CartService {
         tourRequest.setDepartureId(genericRequest.getDepartureId());
         tourRequest.setNumberOfAdults(genericRequest.getNumberOfAdults());
         tourRequest.setNumberOfChildren(genericRequest.getNumberOfChildren());
+        tourRequest.setEmail(genericRequest.getEmail());
         return tourRequest;
     }
 

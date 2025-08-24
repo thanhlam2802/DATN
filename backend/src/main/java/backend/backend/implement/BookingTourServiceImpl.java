@@ -103,6 +103,8 @@ public class BookingTourServiceImpl implements BookingTourService {
         bookingTourDAO.save(bookingTour);
         return toDto(bookingTour);
     }
+    
+    
 
     /**
      * Lấy thông tin chi tiết của một lần đặt tour bằng ID của nó.
@@ -112,6 +114,57 @@ public class BookingTourServiceImpl implements BookingTourService {
         BookingTour booking = bookingTourDAO.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy booking tour với ID: " + id));
         return toDto(booking);
+    }
+    
+    @Override
+    @Transactional
+    public BookingTourDto updateBookingTour(Integer id, BookingTourRequestDto requestDto) {
+        // 1. Tìm booking tour entity từ database
+        BookingTour bookingTour = bookingTourDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy booking tour với ID: " + id));
+        
+        Departure departure = bookingTour.getDeparture();
+        Order order = bookingTour.getOrder();
+
+        // 2. Xử lý cập nhật số chỗ đã đặt (bookedSeats)
+        int oldSeats = bookingTour.getNumberOfAdults() + bookingTour.getNumberOfChildren();
+        int newSeats = requestDto.getNumberOfAdults() + requestDto.getNumberOfChildren();
+        int seatDifference = newSeats - oldSeats;
+
+        if (seatDifference != 0) {
+            int availableSeats = departure.getSeatCount() - departure.getBookedSeats();
+            if (seatDifference > availableSeats) {
+                throw new RuntimeException("Không đủ chỗ trống cho tour. Chỉ còn " + availableSeats + " chỗ.");
+            }
+            departure.setBookedSeats(departure.getBookedSeats() + seatDifference);
+            departureDAO.save(departure);
+        }
+
+        // 3. Cập nhật thông tin cơ bản của booking
+        bookingTour.setCustomerName(requestDto.getCustomerName());
+        bookingTour.setPhone(requestDto.getPhone());
+        bookingTour.setEmail(requestDto.getEmail());
+        bookingTour.setNotes(requestDto.getNotes());
+        bookingTour.setNumberOfAdults(requestDto.getNumberOfAdults());
+        bookingTour.setNumberOfChildren(requestDto.getNumberOfChildren());
+        
+        // 4. Tính toán lại tổng tiền của booking tour này
+        BigDecimal oldTotalPrice = bookingTour.getTotalPrice();
+        BigDecimal newTotalPrice = calculateTotalPrice(departure, requestDto.getNumberOfAdults(), requestDto.getNumberOfChildren());
+        bookingTour.setTotalPrice(newTotalPrice);
+        
+        // 5. Cập nhật tổng tiền của cả đơn hàng (Order)
+        BigDecimal priceDifference = newTotalPrice.subtract(oldTotalPrice);
+        order.setAmount(order.getAmount().add(priceDifference));
+        if (order.getOriginalAmount() != null) {
+            order.setOriginalAmount(order.getOriginalAmount().add(priceDifference));
+        }
+        orderDAO.save(order);
+
+        // 6. Lưu booking tour đã cập nhật và trả về DTO
+        BookingTour savedBookingTour = bookingTourDAO.save(bookingTour);
+        
+        return toDto(savedBookingTour);
     }
     
     /**
@@ -221,7 +274,14 @@ public class BookingTourServiceImpl implements BookingTourService {
 
     @Override
     public StatsDTO getStatsByDateRange(Long userId,LocalDate startDate, LocalDate endDate) {
-    	return bookingTourDAO.getStatsByDateRange(userId, startDate, endDate);
+    	  LocalDate endDatePlusOne = null;
+          if (endDate != null) {
+              endDatePlusOne = endDate.plusDays(1);
+          }
+
+          // 2. Gọi DAO với tham số đã được sửa lại
+          return bookingTourDAO.getStatsByDateRange(userId, startDate, endDatePlusOne);
+      
     }
 
     @Override
@@ -230,32 +290,46 @@ public class BookingTourServiceImpl implements BookingTourService {
         Pageable pageable = PageRequest.of(0, limit);
         return bookingTourDAO.findTopSellingTours(userId, startDate, endDate, pageable);
     }
-
+    
+    
     @Override
-    public Page<MyTourBookingDTO> getPaidBookingsByDateRange(Long userId,LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        // 1. Tạo các tham số để build specification
-        Map<String, String> params = new HashMap<>();
-        if (userId != null) {
-            params.put("ownerId", userId.toString());
-        }
-        if (startDate != null) {
-            params.put("startDate", startDate.toString());
-        }
-        if (endDate != null) {
-            params.put("endDate", endDate.toString());
-        }
-        // Chỉ lấy các booking đã thanh toán hoặc xác nhận
-        params.put("status", "PAID,CONFIRMED"); // Giả sử specification có thể xử lý list status
+    @Transactional 
+    public Page<MyTourBookingDTO> getPaidBookingsByDateRange(Long userId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        try {
+            Map<String, String> params = new HashMap<>();
+            if (userId != null) {
+                params.put("ownerId", userId.toString());
+            }
+            if (startDate != null) {
+                params.put("startDate", startDate.toString());
+            }
+            if (endDate != null) {
+                params.put("endDate", endDate.toString());
+            }
+            params.put("status", "PAID,CONFIRMED");
 
-        // 2. Build Specification
-        Specification<BookingTour> spec = BookingTourSpecification.findByCriteria(params);
+            // 👉 Log tham số
+            System.out.println("==== [getPaidBookingsByDateRange] Params ====");
+            params.forEach((k, v) -> System.out.println(k + " = " + v));
 
-        // 3. Gọi DAO để lấy Page<BookingTour>
-        Page<BookingTour> bookingTourPage = bookingTourDAO.findAll(spec, pageable);
+            Specification<BookingTour> spec = BookingTourSpecification.findByCriteria(params);
 
-        // 4. Chuyển đổi Page<BookingTour> sang Page<MyTourBookingDTO>
-        return bookingTourPage.map(this::mapToMyBookingDTO);
+            Page<BookingTour> bookingTourPage = bookingTourDAO.findAll(spec, pageable);
+
+           
+
+            return bookingTourPage.map(this::mapToMyBookingDTO);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
+
+    private BigDecimal calculateTotalPrice(Departure departure, int numAdults, int numChildren) {
+        BigDecimal adultTotal = departure.getAdultPrice().multiply(BigDecimal.valueOf(numAdults));
+        BigDecimal childTotal = departure.getChildPrice().multiply(BigDecimal.valueOf(numChildren));
+        return adultTotal.add(childTotal);
+    }
     
 }

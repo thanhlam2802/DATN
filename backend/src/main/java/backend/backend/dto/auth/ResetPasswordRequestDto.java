@@ -15,7 +15,6 @@ public class ResetPasswordRequestDto {
     @NotBlank
     private String newPassword;
 
-
     @NotBlank
     private String otpCode;
 

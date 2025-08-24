@@ -7,7 +7,7 @@ import backend.backend.entity.ApiResponse;
 import backend.backend.entity.TourStatus;
 import backend.backend.service.BookingTourService;
 import backend.backend.service.TourAdminService;
-import backend.backend.utils.ResponseFactory; // <-- Đảm bảo đã import
+import backend.backend.utils.ResponseFactory; 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus; // <-- Import HttpStatus để sử dụng
+import org.springframework.http.HttpStatus; 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,14 +52,6 @@ public class DashboardTournController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             Pageable pageable) {
-
-        // ✅ BẮT ĐẦU KIỂM TRA
-        System.out.println("==========================================================");
-        System.out.println("✅ [DashboardTour] Endpoint /overview được gọi.");
-        System.out.println("   - userId nhận được: " + userId);
-        System.out.println("   - startDate nhận được: " + startDate);
-        System.out.println("   - endDate nhận được: " + endDate);
-        System.out.println("==========================================================");
 
 
         if (userId == null) {

@@ -8,6 +8,7 @@ import backend.backend.dto.ReviewDto;
 import backend.backend.dto.TourDetailDto;
 import backend.backend.dto.TourDto;
 import backend.backend.dto.TourSearchRequestDto;
+import backend.backend.dto.TourSuggestionDto;
 import backend.backend.dto.ItineraryDayDto;
 
 /**
@@ -29,7 +30,7 @@ public interface TourService {
     List<ReviewDto> getReviewsForTour(Integer tourId);
     List<DepartureDto> getDeparturesForTour(Long tourId);
     List<ItineraryDayDto> getStructuredItinerary(Long tourId);
-
+    List<TourSuggestionDto> getSuggestions(String keyword);
 //     String processBooking(BookingRequest bookingRequest);
 
 }

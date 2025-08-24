@@ -17,7 +17,6 @@ import ServiceReviews from "@/components/User/Sidebar/ServiceReviews.vue";
 import AccountDetails from "@/components/User/Sidebar/AccountDetails.vue";
 import BookingHistory from "@/components/User/Sidebar/BookingHistory.vue";
 import PaymentDetails from "@/components/User/Sidebar/PaymentDetails.vue";
-import AccountSecurity from "@/components/User/Sidebar/AccountSecurity.vue";
 import BookingPage from "@/views/BookingPage.vue";
 import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.vue";
 
@@ -64,6 +63,7 @@ import ExpiredLink from "@/views/ExpiredLink.vue";
 import VerifyEmail from "@/views/VerifyEmail.vue";
 import OAuth2LoginSuccessView from "@/views/OAuth2LoginSuccessView.vue";
 import Unauthorized from "@/views/Unauthorized.vue";
+import ChangePassword from "@/components/User/Sidebar/ChangePassword.vue";
 
 const routes = [
   {
@@ -191,7 +191,7 @@ const routes = [
           { path: "personal", component: AccountDetails },
           { path: "bookings", component: BookingHistory },
           { path: "payment", component: PaymentDetails },
-          { path: "security", component: AccountSecurity },
+          { path: "change-password", component: ChangePassword },
           { path: "notifications", component: NotificationSetting },
           {
             path: "reviews",
@@ -244,7 +244,7 @@ const routes = [
   {
     path: "/hotel/admin",
     component: AdminLayout,
-    meta: { requiresAuth: true, requiresAdmin: true },
+    meta: { requiresAuth: true, requiresHotelAdmin: true },
     children: [
       { path: "dashboard", component: Dashboard },
       { path: "hotelform", component: HotelForm },
@@ -363,28 +363,40 @@ router.beforeEach(async (to, from, next) => {
         return;
       }
 
-      const hasAdminRole = userStore.user.roles.some(role =>
-        role === 'ADMIN_HOTELS' ||
-        role === 'HOTEL_SUPPLIER' ||
-        role === 'ADMIN_FLIGHTS' ||
-        role === 'FLIGHT_SUPPLIER' ||
-        role === 'ADMIN_TOURS' ||
-        role === 'TOUR_SUPPLIER' ||
-        role === 'ADMIN_BUSES' ||
-        role === 'BUS_SUPPLIER' ||
-        role === 'SUPER_ADMIN'
-      );
+      const hasSuperAdminRole = userStore.user.roles.some(role => role === 'SUPER_ADMIN');
 
-      if (!hasAdminRole) {
-        console.log('User does not have admin role, redirecting to unauthorized...');
+      if (!hasSuperAdminRole) {
+        console.log('User does not have super admin role, redirecting to unauthorized...');
         next({ name: 'Unauthorized' });
         return;
       }
 
-      console.log('User has admin role, proceeding...');
+      console.log('User has super admin role, proceeding...');
     }
 
-    // ✅ Check for bus supplier access
+    if (to.meta.requiresHotelAdmin) {
+      console.log('Route requires hotel admin, checking user roles...');
+
+      if (!userStore.user || !userStore.user.roles) {
+        console.log('User has no roles, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      const hasHotelAdminRole = userStore.user.roles.some(role =>
+        role === 'ADMIN_HOTELS' ||
+        role === 'HOTEL_SUPPLIER'
+      );
+
+      if (!hasHotelAdminRole) {
+        console.log('User does not have hotel admin role, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      console.log('User has hotel admin role, proceeding...');
+    }
+
     if (to.meta.requiresBusSupplier) {
       console.log('Route requires bus supplier, checking user roles...');
 
@@ -396,8 +408,7 @@ router.beforeEach(async (to, from, next) => {
 
       const hasBusSupplierRole = userStore.user.roles.some(role =>
         role === 'BUS_SUPPLIER' ||
-        role === 'ADMIN_BUSES' ||
-        role === 'SUPER_ADMIN'
+        role === 'ADMIN_BUSES'
       );
 
       if (!hasBusSupplierRole) {

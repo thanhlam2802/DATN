@@ -91,18 +91,21 @@ export default {
     async fetchVouchers() {
       try {
         const response = await voucherApi.getAllVouchers();
-        // Lọc chỉ lấy các voucher đang 'ACTIVE' và ánh xạ dữ liệu
-        this.vouchers = response.data
-          .filter((voucher) => voucher.status === "ACTIVE")
-          .map((voucher) => ({
+
+        if (Array.isArray(response.data.content)) {
+          // Bỏ dòng .filter() để xem tất cả vouchers có hiện không
+          this.vouchers = response.data.content.map((voucher) => ({
             ...voucher,
             descriptionLines: this.getVoucherDescription(voucher),
           }));
+        } else {
+          console.error("Dữ liệu content từ API không phải là mảng.");
+          this.vouchers = [];
+        }
       } catch (error) {
         console.error("Lỗi khi tải voucher:", error);
       }
     },
-
     getVoucherDescription(voucher) {
       const lines = [];
       if (voucher.type === "PERCENTAGE") {

@@ -82,12 +82,6 @@ public class AuthServiceImpl implements AuthService {
         userRole.setId(new UserRoleId(newUser.getId(), role.get().getId()));
         userRoleRepository.save(userRole);
 
-        Map<String, String> params = new HashMap<>();
-        params.put("toEmail", newUser.getEmail());
-        params.put("userId", newUser.getId().toString());
-        params.put("userName", newUser.getName());
-        otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
-
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
         jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(newUser));

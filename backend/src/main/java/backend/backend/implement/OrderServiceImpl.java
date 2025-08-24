@@ -38,7 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
-    private ApplicationEventPublisher publisher;
+    private final ApplicationEventPublisher publisher;
      private final BusBookingDAO busBookingDAO;
      private final BookingTourDAO bookingTourDAO;
      private final CustomerDAO customerDAO;

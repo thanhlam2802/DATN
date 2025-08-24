@@ -64,7 +64,6 @@ const activeTab = ref("hotel");
 
 const tabs = [
   { id: "hotel", name: "Khách sạn", icon: "fas fa-hotel" },
-  { id: "flight", name: "Vé máy bay", icon: "fas fa-plane" },
   { id: "bus", name: "Vé xe khách", icon: "fas fa-bus" },
   { id: "tour", name: "Tour du lịch", icon: "fas fa-globe" },
 ];

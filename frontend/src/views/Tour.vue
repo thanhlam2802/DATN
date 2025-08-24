@@ -7,6 +7,7 @@ import SideBar from "../components/Tours/Sidebar.vue";
 import TourGrid from "../components/Tours/TourGrid.vue";
 import { useGeolocation } from "../composables/useGeolocation";
 import { FilterIcon, XIcon } from "lucide-vue-next";
+import Pagination from "../components/Tours/Pagination.vue";
 const route = useRoute();
 // --- CÁC HẰNG SỐ VÀ TRẠNG THÁI GIAO DIỆN ---
 const BANNER_IMAGE =
@@ -26,12 +27,17 @@ const filters = reactive({
   keyword: "",
   destination: "",
   minPrice: 0,
-  maxPrice: 5000000,
+  maxPrice: 10000000,
   minRating: 0,
   tags: [],
   sortBy: "popular",
   page: 0,
-  size: 12,
+  size: 6,
+});
+const pagination = ref({
+  currentPage: 0,
+  totalPages: 0,
+  totalElements: 0,
 });
 
 // --- CÁC HÀM XỬ LÝ ---
@@ -49,14 +55,17 @@ const handleUpdateFilters = (sidebarFilters) => {
 const fetchTours = async () => {
   try {
     const params = new URLSearchParams();
+
     if (filters.keyword) params.append("keyword", filters.keyword);
     if (filters.destination) params.append("destination", filters.destination);
     if (filters.minPrice > 0) params.append("minPrice", filters.minPrice);
-    if (filters.maxPrice < 5000000) params.append("maxPrice", filters.maxPrice);
+    if (filters.maxPrice < 10000000)
+      params.append("maxPrice", filters.maxPrice);
     if (filters.minRating > 0) params.append("minRating", filters.minRating);
     if (filters.tags && filters.tags.length > 0) {
       filters.tags.forEach((tag) => params.append("tags", tag));
     }
+
     params.append("sortBy", filters.sortBy);
     params.append("page", filters.page);
     params.append("size", filters.size);
@@ -69,6 +78,12 @@ const fetchTours = async () => {
 
     if (responseData.statusCode === 200 && responseData.data.content) {
       tourCount.value = responseData.data.totalElements;
+      const { content, totalElements, number, totalPages } = responseData.data;
+      pagination.value = {
+        totalElements,
+        currentPage: number,
+        totalPages,
+      };
       const mappedTours = responseData.data.content.map((tour) => ({
         id: tour.id,
         title: tour.name,
@@ -87,12 +102,16 @@ const fetchTours = async () => {
     } else {
       tourList.value = [];
       tourCount.value = 0;
+      pagination.value = { totalElements: 0, currentPage: 0, totalPages: 0 };
     }
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu tour:", error);
     tourList.value = [];
     tourCount.value = 0;
   }
+};
+const handlePageChange = (newPage) => {
+  filters.page = newPage;
 };
 
 const fetchProvinces = async () => {
@@ -315,6 +334,11 @@ onMounted(() => {
             </div>
           </div>
           <TourGrid :tours="tourList" />
+          <Pagination
+            :current-page="pagination.currentPage"
+            :total-pages="pagination.totalPages"
+            @change-page="handlePageChange"
+          />
         </main>
       </div>
     </section>

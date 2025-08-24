@@ -274,7 +274,14 @@ public class BookingTourServiceImpl implements BookingTourService {
 
     @Override
     public StatsDTO getStatsByDateRange(Long userId,LocalDate startDate, LocalDate endDate) {
-    	return bookingTourDAO.getStatsByDateRange(userId, startDate, endDate);
+    	  LocalDate endDatePlusOne = null;
+          if (endDate != null) {
+              endDatePlusOne = endDate.plusDays(1);
+          }
+
+          // 2. Gọi DAO với tham số đã được sửa lại
+          return bookingTourDAO.getStatsByDateRange(userId, startDate, endDatePlusOne);
+      
     }
 
     @Override
@@ -283,32 +290,42 @@ public class BookingTourServiceImpl implements BookingTourService {
         Pageable pageable = PageRequest.of(0, limit);
         return bookingTourDAO.findTopSellingTours(userId, startDate, endDate, pageable);
     }
-
+    
+    
     @Override
-    public Page<MyTourBookingDTO> getPaidBookingsByDateRange(Long userId,LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        // 1. Tạo các tham số để build specification
-        Map<String, String> params = new HashMap<>();
-        if (userId != null) {
-            params.put("ownerId", userId.toString());
-        }
-        if (startDate != null) {
-            params.put("startDate", startDate.toString());
-        }
-        if (endDate != null) {
-            params.put("endDate", endDate.toString());
-        }
-        // Chỉ lấy các booking đã thanh toán hoặc xác nhận
-        params.put("status", "PAID,CONFIRMED"); // Giả sử specification có thể xử lý list status
+    @Transactional 
+    public Page<MyTourBookingDTO> getPaidBookingsByDateRange(Long userId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        try {
+            Map<String, String> params = new HashMap<>();
+            if (userId != null) {
+                params.put("ownerId", userId.toString());
+            }
+            if (startDate != null) {
+                params.put("startDate", startDate.toString());
+            }
+            if (endDate != null) {
+                params.put("endDate", endDate.toString());
+            }
+            params.put("status", "PAID,CONFIRMED");
 
-        // 2. Build Specification
-        Specification<BookingTour> spec = BookingTourSpecification.findByCriteria(params);
+            // 👉 Log tham số
+            System.out.println("==== [getPaidBookingsByDateRange] Params ====");
+            params.forEach((k, v) -> System.out.println(k + " = " + v));
 
-        // 3. Gọi DAO để lấy Page<BookingTour>
-        Page<BookingTour> bookingTourPage = bookingTourDAO.findAll(spec, pageable);
+            Specification<BookingTour> spec = BookingTourSpecification.findByCriteria(params);
 
-        // 4. Chuyển đổi Page<BookingTour> sang Page<MyTourBookingDTO>
-        return bookingTourPage.map(this::mapToMyBookingDTO);
+            Page<BookingTour> bookingTourPage = bookingTourDAO.findAll(spec, pageable);
+
+           
+
+            return bookingTourPage.map(this::mapToMyBookingDTO);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
+
+
     private BigDecimal calculateTotalPrice(Departure departure, int numAdults, int numChildren) {
         BigDecimal adultTotal = departure.getAdultPrice().multiply(BigDecimal.valueOf(numAdults));
         BigDecimal childTotal = departure.getChildPrice().multiply(BigDecimal.valueOf(numChildren));

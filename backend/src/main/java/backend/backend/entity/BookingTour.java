@@ -6,6 +6,7 @@ import lombok.Data;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class BookingTour {
     @Lob
     private String notes;
 
-
+ 
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")

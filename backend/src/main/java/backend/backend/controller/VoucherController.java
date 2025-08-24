@@ -4,6 +4,9 @@ import backend.backend.dto.VoucherDTO;
 import backend.backend.service.VoucherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +27,17 @@ public class VoucherController {
         VoucherDTO createdVoucher = voucherService.createVoucher(voucherDTO);
         return new ResponseEntity<>(createdVoucher, HttpStatus.CREATED);
     }
+    
 
-    // API lấy danh sách tất cả voucher
     @GetMapping
-    public ResponseEntity<List<VoucherDTO>> getAllVouchers() {
-        List<VoucherDTO> vouchers = voucherService.getAllVouchers();
+    public ResponseEntity<Page<VoucherDTO>> getAllVouchers(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size,
+        @RequestParam(required = false) String query) { // Thêm tham số query
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<VoucherDTO> vouchers = voucherService.getAllVouchers(pageable, query);
+        
         return ResponseEntity.ok(vouchers);
     }
 

@@ -1,34 +1,47 @@
 <template>
   <div class="space-y-6">
     <div class="p-4 bg-white rounded-lg shadow">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Chọn khoảng thời gian</label
-          >
-          <Datepicker
-            v-model="dateRange"
-            range
-            :enable-time-picker="false"
-            format="dd/MM/yyyy"
-            auto-apply
-            placeholder="Chọn một khoảng ngày để lọc"
-          />
-        </div>
-        <div class="flex items-end space-x-2">
-          <button @click="setPresetRange('today')" class="preset-btn">
-            Hôm nay
-          </button>
-          <button @click="setPresetRange('last7days')" class="preset-btn">
-            7 ngày qua
-          </button>
-          <button @click="setPresetRange('thisMonth')" class="preset-btn">
-            Tháng này
-          </button>
-          <button @click="setPresetRange('thisYear')" class="preset-btn">
-            Năm nay
-          </button>
-        </div>
+      <div class="flex justify-end items-center gap-x-2">
+        <label for="filterType" class="text-sm font-medium text-gray-600"
+          >Xem theo:</label
+        >
+        <select
+          v-model="filterType"
+          id="filterType"
+          class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2"
+        >
+          <option value="day">Ngày</option>
+          <option value="month">Tháng</option>
+          <option value="year">Năm</option>
+        </select>
+
+        <input
+          v-if="filterType === 'day'"
+          type="date"
+          v-model="selectedDate"
+          class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5"
+        />
+        <input
+          v-if="filterType === 'month'"
+          type="month"
+          v-model="selectedMonth"
+          class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5"
+        />
+        <input
+          v-if="filterType === 'year'"
+          type="number"
+          placeholder="YYYY"
+          v-model="selectedYear"
+          @keyup.enter="applyFilter"
+          class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-28 p-1.5"
+        />
+
+        <button
+          @click="applyFilter"
+          class="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300"
+        >
+          Xem
+        </button>
       </div>
     </div>
 
@@ -37,28 +50,24 @@
         icon="cash"
         title="Doanh thu"
         :value="stats.revenue"
-        :change="stats.revenueChange"
         :filterText="filterText"
       />
       <StatCard
         icon="users"
         title="Khách hàng"
         :value="stats.customers"
-        :change="stats.customersChange"
         :filterText="filterText"
       />
       <StatCard
         icon="ticket"
         title="Số Booking"
         :value="stats.bookingsCount"
-        :change="stats.bookingsChange"
         :filterText="filterText"
       />
       <StatCard
         icon="briefcase"
         title="Tour có booking"
         :value="stats.toursWithBookings"
-        :change="stats.toursWithBookingsChange"
         :filterText="filterText"
       />
     </div>
@@ -75,7 +84,7 @@
               :disabled="pagination.currentPage === 0"
               class="page-btn"
             >
-              Trước
+              <i class="fas fa-chevron-left"></i>
             </button>
             <span
               >Trang
@@ -87,7 +96,7 @@
               :disabled="pagination.currentPage >= pagination.totalPages - 1"
               class="page-btn"
             >
-              Sau
+              <i class="fas fa-chevron-right"></i>
             </button>
           </div>
         </div>
@@ -124,8 +133,10 @@
       <div class="bg-white rounded-lg shadow lg:col-span-1">
         <div class="p-6 border-b">
           <h3 class="text-lg font-semibold text-gray-800">
-            Top Tour bán chạy
-            <span class="font-normal text-blue-600">{{ filterText }}</span>
+            Top Tour Bán Chạy
+            <span class="font-normal text-sm text-blue-600">{{
+              filterText
+            }}</span>
           </h3>
         </div>
         <div class="p-4 space-y-4">
@@ -156,97 +167,117 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch, computed } from "vue";
-import { useUserStore } from "@/store/UserStore.js";
-import OverviewApi from "@/api/OverviewTourApi.js";
-import Datepicker from "@vuepic/vue-datepicker";
-import "@vuepic/vue-datepicker/dist/main.css";
-import StatCard from "@/components/Tours/StatCard.vue";
+import { ref, onMounted, reactive, computed } from "vue";
+import { useUserStore } from "@/store/UserStore.js"; // Giả định bạn dùng Pinia
+import OverviewTourApi from "@/api/OverviewTourApi.js"; // Module gọi API
+import StatCard from "@/components/Tours/StatCard.vue"; // Component thẻ thống kê
 
+// --- STATE MANAGEMENT ---
 const userStore = useUserStore();
 const loading = ref(true);
-const isInitialLoadDone = ref(false); // Cờ mới để kiểm soát
-const dateRange = ref(null);
+
+// State cho bộ lọc mới
+const filterType = ref("day"); // 'day', 'month', 'year'
+const today = new Date();
+const toYYYYMMDD = (d) => d.toISOString().split("T")[0]; // Helper to format date
+const toYYYYMM = (d) => d.toISOString().slice(0, 7); // Helper to format month
+const selectedDate = ref(toYYYYMMDD(today));
+const selectedMonth = ref(toYYYYMM(today));
+const selectedYear = ref(today.getFullYear());
+
+// State cho dữ liệu dashboard
 const bookings = ref([]);
 const topTours = ref([]);
-const pagination = reactive({ currentPage: 0, totalPages: 0, pageSize: 5 });
 const stats = reactive({
   revenue: "₫0",
   customers: 0,
   bookingsCount: 0,
   toursWithBookings: 0,
 });
+const pagination = reactive({
+  currentPage: 0,
+  totalPages: 0,
+  pageSize: 5,
+  startDate: null,
+  endDate: null,
+});
+
+// State cho UI
 const filterText = ref("");
 
-// ✅ LOGIC GỠ RỐI CHI TIẾT TRONG onMounted
+// --- LIFECYCLE HOOKS ---
 onMounted(async () => {
-  console.log("--- BẮT ĐẦU onMounted ---");
   loading.value = true;
-
-  // Bước 1: Kiểm tra trạng thái user ban đầu
-  console.log("1. Trạng thái user ban đầu:", JSON.stringify(userStore.user));
   if (!userStore.user) {
-    console.log("2. User chưa có, đang chờ restoreUserFromToken...");
     await userStore.restoreUserFromToken();
-    console.log(
-      "3. Đã chạy xong restoreUser. User hiện tại:",
-      JSON.stringify(userStore.user)
-    );
   }
 
-  // Bước 2: Kiểm tra lại user ID một cách tường minh
-  const userId = userStore.user?.id;
-  console.log(
-    `4. Kiểm tra lần cuối: userId là '${userId}' (kiểu dữ liệu: ${typeof userId})`
-  );
-
-  if (userId) {
-    console.log("5. Đã có userId. Bắt đầu tải dữ liệu lần đầu.");
-    setPresetRange("thisMonth");
-    await fetchData(0);
+  if (userStore.user?.id) {
+    // Tải dữ liệu lần đầu với ngày hôm nay
+    await applyFilter();
   } else {
-    console.error(
-      "6. Vẫn không tìm thấy userId sau khi restore. Dừng tải dữ liệu."
-    );
+    console.error("Không tìm thấy User ID, không thể tải dữ liệu dashboard.");
     loading.value = false;
   }
-
-  // Đánh dấu đã tải xong lần đầu để watch có thể hoạt động
-  isInitialLoadDone.value = true;
-  console.log("--- KẾT THÚC onMounted ---");
 });
 
-// Watcher giờ chỉ phản ứng sau khi onMounted đã hoàn tất
-watch(dateRange, (newVal) => {
-  // Chỉ chạy khi onMounted đã xong và có giá trị mới
-  if (!isInitialLoadDone.value || !newVal) {
-    return;
+// --- API & DATA LOGIC ---
+const applyFilter = async () => {
+  let startDate, endDate;
+  const now = new Date();
+
+  switch (filterType.value) {
+    case "day":
+      startDate = new Date(selectedDate.value);
+      endDate = new Date(selectedDate.value);
+      break;
+    case "month":
+      const [yearM, monthM] = selectedMonth.value.split("-").map(Number);
+      startDate = new Date(yearM, monthM - 1, 1);
+      endDate = new Date(yearM, monthM, 0); // Ngày cuối cùng của tháng
+      break;
+    case "year":
+      const year = selectedYear.value || now.getFullYear();
+      startDate = new Date(year, 0, 1); // 1/1
+      endDate = new Date(year, 11, 31); // 31/12
+      break;
   }
-  console.log("Người dùng thay đổi dateRange, fetch lại dữ liệu.");
+
+  // Đảm bảo ngày kết thúc bao gồm cả ngày
+  endDate.setHours(23, 59, 59, 999);
+
+  // Lưu lại khoảng thời gian để dùng cho phân trang
+  pagination.startDate = startDate;
+  pagination.endDate = endDate;
+
   updateFilterText();
-  fetchData(0);
-});
+  await fetchData(0); // Luôn bắt đầu từ trang đầu tiên khi lọc
+};
 
 const fetchData = async (page = 0) => {
-  if (!userStore.user?.id || !dateRange.value) {
-    console.error("fetchData được gọi nhưng thiếu userId hoặc dateRange.");
+  if (!userStore.user?.id || !pagination.startDate || !pagination.endDate) {
+    console.error("Thiếu thông tin để tải dữ liệu (userId hoặc khoảng ngày).");
     loading.value = false;
     return;
   }
+
   loading.value = true;
   pagination.currentPage = page;
-  const [startDate, endDate] = dateRange.value;
+
   try {
     const params = {
       userId: userStore.user.id,
-      startDate: startDate.toISOString().split("T")[0],
-      endDate: endDate.toISOString().split("T")[0],
+      startDate: pagination.startDate.toISOString().split("T")[0],
+      endDate: pagination.endDate.toISOString().split("T")[0],
       page: pagination.currentPage,
       size: pagination.pageSize,
     };
-    const response = await OverviewApi.getOverviewData(params);
+
+    const response = await OverviewTourApi.getOverviewData(params);
     const overviewData = response.data?.data;
-    if (!overviewData) throw new Error("API response không có trường data.");
+
+    if (!overviewData) throw new Error("Dữ liệu API không hợp lệ.");
+
     if (overviewData.stats) {
       Object.assign(stats, overviewData.stats);
       stats.revenue = formatCurrency(overviewData.stats.revenue);
@@ -264,43 +295,38 @@ const fetchData = async (page = 0) => {
   }
 };
 
-// --- CÁC HÀM HELPER KHÁC ---
-const setPresetRange = (preset) => {
-  const end = new Date();
-  let start = new Date();
-  end.setHours(23, 59, 59, 999);
-  start.setHours(0, 0, 0, 0);
-  switch (preset) {
-    case "today":
-      break;
-    case "last7days":
-      start.setDate(end.getDate() - 6);
-      break;
-    case "thisMonth":
-      start.setDate(1);
-      break;
-    case "thisYear":
-      start.setMonth(0, 1);
-      break;
-  }
-  dateRange.value = [start, end];
-};
-
-const updateFilterText = () => {
-  if (!dateRange.value) {
-    filterText.value = "gần đây";
-    return;
-  }
-  const [start, end] = dateRange.value;
-  if (start.toDateString() === end.toDateString()) {
-    filterText.value = `trong ngày ${formatDate(start)}`;
-    return;
-  }
-  filterText.value = `từ ${formatDate(start)} đến ${formatDate(end)}`;
-};
-
 const changePage = (page) => {
-  if (page >= 0 && page < pagination.totalPages) fetchData(page);
+  if (page >= 0 && page < pagination.totalPages) {
+    fetchData(page);
+  }
+};
+
+// --- UI HELPERS ---
+const updateFilterText = () => {
+  switch (filterType.value) {
+    case "day":
+      const [y, m, d] = selectedDate.value.split("-");
+      filterText.value = `trong ngày ${d}/${m}/${y}`;
+      break;
+    case "month":
+      const [yM, mM] = selectedMonth.value.split("-");
+      filterText.value = `trong tháng ${mM}/${yM}`;
+      break;
+    case "year":
+      filterText.value = `trong năm ${selectedYear.value}`;
+      break;
+    default:
+      filterText.value = "";
+  }
+};
+
+const totalRevenueOfTopTours = computed(() =>
+  topTours.value.reduce((sum, tour) => sum + tour.totalRevenue, 0)
+);
+
+const calculatePercentage = (revenue) => {
+  if (totalRevenueOfTopTours.value === 0) return 0;
+  return (revenue / totalRevenueOfTopTours.value) * 100;
 };
 
 const formatCurrency = (v) =>
@@ -310,36 +336,16 @@ const formatCurrency = (v) =>
         currency: "VND",
       }).format(v)
     : "₫0";
-const formatDate = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "N/A");
 
-const totalRevenueOfTopTours = computed(() =>
-  topTours.value.reduce((sum, tour) => sum + tour.totalRevenue, 0)
-);
-const calculatePercentage = (revenue) =>
-  totalRevenueOfTopTours.value === 0
-    ? 0
-    : (revenue / totalRevenueOfTopTours.value) * 100;
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "N/A");
 </script>
 
-<style>
-.preset-btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border-radius: 9999px;
-  background-color: #e5e7eb;
-  color: #374151;
-  transition: background-color 0.2s;
-}
-.preset-btn:hover {
-  background-color: #d1d5db;
-}
-
+<style scoped>
 .page-btn {
   padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
   border-radius: 0.25rem;
-  background-color: #e5e7eb;
+  background-color: #f3f4f6;
   transition: background-color 0.2s;
 }
 .page-btn:hover:not(:disabled) {
@@ -354,14 +360,9 @@ const calculatePercentage = (revenue) =>
   padding: 0.75rem 1.5rem;
   text-align: left;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
-}
-
-:root {
-  --dp-input-padding: 8px 12px;
-  --dp-font-size: 0.875rem;
-  --dp-border-radius: 0.375rem;
+  letter-spacing: 0.05em;
 }
 </style>

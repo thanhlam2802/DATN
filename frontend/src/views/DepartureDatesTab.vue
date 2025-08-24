@@ -70,7 +70,9 @@
             <p>Tour này chưa có ngày khởi hành nào.</p>
           </div>
           <div v-else class="space-y-6 pt-4">
-            <section v-if="categorizedDepartures.upcoming.length">
+            <section
+              v-if="paginatedCategorizedDepartures.upcoming.items.length"
+            >
               <h3
                 class="text-md font-semibold text-gray-700 mb-3 flex items-center"
               >
@@ -78,7 +80,7 @@
               </h3>
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <DepartureCard
-                  v-for="dep in categorizedDepartures.upcoming"
+                  v-for="dep in paginatedCategorizedDepartures.upcoming.items"
                   :key="dep.id"
                   :departure="dep"
                   :tour-id="tour.id"
@@ -86,8 +88,18 @@
                   @delete="handleDelete"
                 />
               </div>
+              <Pagination
+                v-if="paginatedCategorizedDepartures.upcoming.totalPages > 1"
+                :current-page="departurePagination.upcoming.currentPage"
+                :total-pages="
+                  paginatedCategorizedDepartures.upcoming.totalPages
+                "
+                @change-page="handleDeparturePageChange('upcoming', $event)"
+                class="mt-4"
+              />
             </section>
-            <section v-if="categorizedDepartures.today.length">
+
+            <section v-if="paginatedCategorizedDepartures.today.items.length">
               <h3
                 class="text-md font-semibold text-gray-700 mb-3 flex items-center"
               >
@@ -95,7 +107,7 @@
               </h3>
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <DepartureCard
-                  v-for="dep in categorizedDepartures.today"
+                  v-for="dep in paginatedCategorizedDepartures.today.items"
                   :key="dep.id"
                   :departure="dep"
                   :tour-id="tour.id"
@@ -103,8 +115,16 @@
                   @delete="handleDelete"
                 />
               </div>
+              <Pagination
+                v-if="paginatedCategorizedDepartures.today.totalPages > 1"
+                :current-page="departurePagination.today.currentPage"
+                :total-pages="paginatedCategorizedDepartures.today.totalPages"
+                @change-page="handleDeparturePageChange('today', $event)"
+                class="mt-4"
+              />
             </section>
-            <section v-if="categorizedDepartures.past.length">
+
+            <section v-if="paginatedCategorizedDepartures.past.items.length">
               <h3
                 class="text-md font-semibold text-gray-700 mb-3 flex items-center"
               >
@@ -112,7 +132,7 @@
               </h3>
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <DepartureCard
-                  v-for="dep in categorizedDepartures.past"
+                  v-for="dep in paginatedCategorizedDepartures.past.items"
                   :key="dep.id"
                   :departure="dep"
                   :tour-id="tour.id"
@@ -121,13 +141,19 @@
                   @delete="handleDelete"
                 />
               </div>
+              <Pagination
+                v-if="paginatedCategorizedDepartures.past.totalPages > 1"
+                :current-page="departurePagination.past.currentPage"
+                :total-pages="paginatedCategorizedDepartures.past.totalPages"
+                @change-page="handleDeparturePageChange('past', $event)"
+                class="mt-4"
+              />
             </section>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- MODAL ĐÃ ĐƯỢC CẬP NHẬT -->
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
@@ -142,7 +168,6 @@
           }}
         </h3>
         <form @submit.prevent="handleSave" class="space-y-4">
-          <!-- Các trường form cơ bản -->
           <div v-for="field in formFields" :key="field.key">
             <label
               :for="field.key"
@@ -162,7 +187,6 @@
             />
           </div>
 
-          <!-- MỚI: Tùy chọn tạo hàng loạt (chỉ hiển thị khi thêm mới) -->
           <div
             v-if="!isEditing"
             class="space-y-4 pt-4 border-t border-gray-200"
@@ -220,7 +244,6 @@
             </div>
           </div>
 
-          <!-- Số chỗ đã đặt (chỉ hiển thị khi sửa) -->
           <div v-if="isEditing">
             <label
               for="bookedSeats"
@@ -268,8 +291,8 @@ import {
   SearchIcon,
 } from "lucide-vue-next";
 import DepartureCard from "../components/Tours/DepartureCard.vue";
+import Pagination from "../components/Tours/Pagination.vue"; // Đảm bảo đã import
 import tourAdminApi from "../api/tourAdminApi";
-// Import API đã có hàm createRecurringDepartures
 import { departureApi } from "../api/DepartureApi.js";
 
 // --- STATE & LOGIC ---
@@ -283,7 +306,13 @@ const isEditing = ref(false);
 const form = ref({});
 const currentTourIdForModal = ref(null);
 
-// CẬP NHẬT: Thay đổi label cho rõ ràng hơn khi tạo hàng loạt
+// MỚI: State để quản lý phân trang cho các ngày khởi hành
+const departurePagination = ref({
+  upcoming: { currentPage: 0, pageSize: 4 },
+  today: { currentPage: 0, pageSize: 4 },
+  past: { currentPage: 0, pageSize: 4 },
+});
+
 const formFields = [
   {
     key: "departureDate",
@@ -312,17 +341,15 @@ const formatDateForInput = (dateStr) => {
 
 const todayString = formatDateForInput(new Date());
 
-// CẬP NHẬT: Thêm các trường cho chế độ tạo hàng loạt vào form mặc định
 const createEmptyForm = () => ({
   departureDate: todayString,
   adultPrice: 1000000,
   childPrice: 500000,
   discount: 0,
   seatCount: 30,
-  // MỚI: Các trường cho tạo hàng loạt
   isBatch: false,
-  count: 3, // Mặc định lặp lại 3 lần
-  intervalDays: 30, // Mặc định cách nhau 30 ngày
+  count: 3,
+  intervalDays: 30,
 });
 
 // --- COMPUTED PROPERTIES ---
@@ -339,6 +366,7 @@ const getDeparturesForActiveTour = () => {
   return activeTour && activeTour.departures ? activeTour.departures : [];
 };
 
+// Đã cập nhật: Lấy tất cả các ngày khởi hành và phân loại chúng
 const categorizedDepartures = computed(() => {
   const categories = { upcoming: [], today: [], past: [] };
   const departures = getDeparturesForActiveTour();
@@ -366,9 +394,41 @@ const categorizedDepartures = computed(() => {
   return categories;
 });
 
+// MỚI: Computed property để phân trang các danh mục đã phân loại
+const paginatedCategorizedDepartures = computed(() => {
+  const allDepartures = categorizedDepartures.value;
+  const paginatedResult = {};
+
+  for (const category in allDepartures) {
+    const { currentPage, pageSize } = departurePagination.value[category];
+    const items = allDepartures[category];
+
+    const startIndex = currentPage * pageSize;
+    const endIndex = startIndex + pageSize;
+
+    paginatedResult[category] = {
+      items: items.slice(startIndex, endIndex),
+      totalPages: Math.ceil(items.length / pageSize),
+    };
+  }
+  return paginatedResult;
+});
+
 // --- METHODS ---
 const toggleTour = (tourId) => {
+  // Reset phân trang về trang đầu tiên mỗi khi mở một tour
+  departurePagination.value.upcoming.currentPage = 0;
+  departurePagination.value.today.currentPage = 0;
+  departurePagination.value.past.currentPage = 0;
+
   activeTourId.value = activeTourId.value === tourId ? null : tourId;
+};
+
+// MỚI: Hàm xử lý chuyển trang cho các ngày khởi hành
+const handleDeparturePageChange = (category, newPage) => {
+  if (departurePagination.value[category]) {
+    departurePagination.value[category].currentPage = newPage;
+  }
 };
 
 onMounted(async () => {
@@ -410,12 +470,10 @@ const closeModal = () => {
   showModal.value = false;
 };
 
-// CẬP NHẬT: Logic lưu form để xử lý cả hai trường hợp
 const handleSave = async () => {
   try {
     const tour = tours.value.find((t) => t.id === currentTourIdForModal.value);
 
-    // TRƯỜNG HỢP SỬA (không đổi)
     if (isEditing.value) {
       const updatedData = await departureApi.updateDeparture(
         form.value.id,
@@ -425,10 +483,7 @@ const handleSave = async () => {
       if (index !== -1) {
         tour.departures[index] = updatedData;
       }
-    }
-    // TRƯỜNG HỢP THÊM MỚI
-    else {
-      // MỚI: Nếu chế độ tạo hàng loạt được bật
+    } else {
       if (form.value.isBatch) {
         const payload = {
           templateDto: {
@@ -441,17 +496,13 @@ const handleSave = async () => {
           intervalDays: parseInt(form.value.intervalDays, 10),
           count: parseInt(form.value.count, 10),
         };
-        // Gọi API mới để tạo hàng loạt
         const newDepartures = await departureApi.createRecurringDepartures(
           currentTourIdForModal.value,
           payload
         );
-        // Cập nhật state với danh sách ngày mới
         if (!tour.departures) tour.departures = [];
         tour.departures.push(...newDepartures);
-      }
-      // Nếu chỉ thêm một ngày như bình thường
-      else {
+      } else {
         const newData = await departureApi.createDeparture(
           currentTourIdForModal.value,
           form.value
@@ -484,7 +535,6 @@ const handleDelete = async (departureId, tourId) => {
 </script>
 
 <style scoped>
-/* Thêm hiệu ứng fade-in mượt mà cho phần tùy chọn */
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }

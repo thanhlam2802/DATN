@@ -50,8 +50,7 @@ export default {
         { name: "bookings", label: "Chuyến đi của tôi", icon: "fas fa-suitcase-rolling" },
         { name: "reviews", label: "Đánh giá dịch vụ", icon: "fas fa-star" },
         { name: "payment", label: "Ngân hàng", icon: "far fa-credit-card" },
-        { name: "security", label: "Bảo mật tài khoản", icon: "fas fa-lock" },
-        { name: "preferences", label: "Tùy chỉnh", icon: "fas fa-sliders-h" },
+        { name: "change-password", label: "Thay đổi mật khẩu", icon: "fas fa-lock" },
         { name: "notifications", label: "Cài đặt thông báo", icon: "far fa-bell" },
       ],
     };

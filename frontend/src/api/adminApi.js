@@ -192,4 +192,5 @@ export const amenityAdminApi = {
   remove: (id) => adminApi.delete(`/api/v1/amenities/${id}`),
 };
 
+
 export default adminApi;

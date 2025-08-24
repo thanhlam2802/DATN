@@ -3,7 +3,7 @@
     <div class="relative">
       <BannerAndSearch />
     </div>
-    <SignatureSection />
+    <!-- <SignatureSection /> -->
     <CouponSection />
     <div class="container mx-auto px-4 py-8 space-y-12 md:space-y-16">
       <section>

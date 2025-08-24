@@ -100,6 +100,22 @@ public class HotelPublicController {
         return ResponseFactory.success(order, "Cập nhật booking thành công.");
     }
 
+    @PostMapping("/bookings/{bookingId}/cancel")
+    public ResponseEntity<ApiResponse<String>> cancelHotelBooking(
+            @PathVariable Integer bookingId, 
+            Authentication authentication) {
+        if (authentication == null) {
+            return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để hủy booking!", null);
+        }
+        
+        try {
+            hotelBookingService.cancelHotelBooking(bookingId);
+            return ResponseFactory.success("OK", "Hủy đặt phòng khách sạn thành công. Phòng đã được hoàn trả.");
+        } catch (Exception e) {
+            return ResponseFactory.error(HttpStatus.BAD_REQUEST, "Không thể hủy booking: " + e.getMessage(), null);
+        }
+    }
+
     @GetMapping("/popular-by-bookings")
     public ResponseEntity<ApiResponse<List<HotelDto>>> getPopularHotelsByBookings(
             @RequestParam(defaultValue = "10") int size) {

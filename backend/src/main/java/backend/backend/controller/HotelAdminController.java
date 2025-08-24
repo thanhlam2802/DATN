@@ -636,6 +636,27 @@ public class HotelAdminController {
         }
     }
 
+    @PutMapping("/{id}/resubmit")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<Void>> resubmitHotel(@PathVariable Integer id) {
+        try {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (currentUserEmail == null) {
+                return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Không có quyền truy cập", null);
+            }
+
+            hotelService.resubmitHotel(id);
+            
+            logger.info("[RESUBMIT] Hotel {} resubmitted by admin {}", id, currentUserEmail);
+            return ResponseFactory.success(null, "Đã gửi lại khách sạn để Super Admin duyệt thành công");
+            
+        } catch (Exception e) {
+            logger.error("[RESUBMIT] Error resubmitting hotel {}: {}", id, e.getMessage(), e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, 
+                "Lỗi khi gửi lại khách sạn: " + e.getMessage(), null);
+        }
+    }
+
     private String getComparisonPeriod(String timePeriod) {
         switch (timePeriod) {
             case "today":

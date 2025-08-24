@@ -41,13 +41,5 @@ public class HotelApprovalController {
         }
     }
 
-    @PutMapping("/{id}/resubmit")
-    public ResponseEntity<?> resubmitHotel(@PathVariable Integer id) {
-        try {
-            hotelService.resubmitHotel(id);
-            return ResponseEntity.ok(Map.of("message", "Khách sạn đã được gửi lại để duyệt"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
+
 }

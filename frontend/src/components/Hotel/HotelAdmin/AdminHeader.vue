@@ -1,5 +1,5 @@
 <template>
-  <header class="flex flex-col w-full h-19 bg-white border-b border-slate-200 sticky top-0 z-10 justify-center">
+  <header class="flex flex-col w-full h-19 bg-white border-b border-slate-200 sticky top-0 z-20 justify-center">
     <div class="flex-1 flex items-center justify-end px-8 h-full">
       <AdminBreadcrumb :items="breadcrumbItems" />
       <div class="flex items-center space-x-3 ml-auto">
@@ -22,7 +22,7 @@
 
           <div 
             v-if="isUserDropdownOpen"
-            class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-200 z-50"
+            class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-200 z-[9999]"
           >
             <div class="px-4 py-3 border-b border-slate-200">
               <div class="flex items-center space-x-3">

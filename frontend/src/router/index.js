@@ -244,7 +244,7 @@ const routes = [
   {
     path: "/hotel/admin",
     component: AdminLayout,
-    meta: { requiresAuth: true, requiresAdmin: true },
+    meta: { requiresAuth: true, requiresHotelAdmin: true },
     children: [
       { path: "dashboard", component: Dashboard },
       { path: "hotelform", component: HotelForm },
@@ -363,28 +363,40 @@ router.beforeEach(async (to, from, next) => {
         return;
       }
 
-      const hasAdminRole = userStore.user.roles.some(role =>
-        role === 'ADMIN_HOTELS' ||
-        role === 'HOTEL_SUPPLIER' ||
-        role === 'ADMIN_FLIGHTS' ||
-        role === 'FLIGHT_SUPPLIER' ||
-        role === 'ADMIN_TOURS' ||
-        role === 'TOUR_SUPPLIER' ||
-        role === 'ADMIN_BUSES' ||
-        role === 'BUS_SUPPLIER' ||
-        role === 'SUPER_ADMIN'
-      );
+      const hasSuperAdminRole = userStore.user.roles.some(role => role === 'SUPER_ADMIN');
 
-      if (!hasAdminRole) {
-        console.log('User does not have admin role, redirecting to unauthorized...');
+      if (!hasSuperAdminRole) {
+        console.log('User does not have super admin role, redirecting to unauthorized...');
         next({ name: 'Unauthorized' });
         return;
       }
 
-      console.log('User has admin role, proceeding...');
+      console.log('User has super admin role, proceeding...');
     }
 
-    // ✅ Check for bus supplier access
+    if (to.meta.requiresHotelAdmin) {
+      console.log('Route requires hotel admin, checking user roles...');
+
+      if (!userStore.user || !userStore.user.roles) {
+        console.log('User has no roles, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      const hasHotelAdminRole = userStore.user.roles.some(role =>
+        role === 'ADMIN_HOTELS' ||
+        role === 'HOTEL_SUPPLIER'
+      );
+
+      if (!hasHotelAdminRole) {
+        console.log('User does not have hotel admin role, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      console.log('User has hotel admin role, proceeding...');
+    }
+
     if (to.meta.requiresBusSupplier) {
       console.log('Route requires bus supplier, checking user roles...');
 
@@ -396,8 +408,7 @@ router.beforeEach(async (to, from, next) => {
 
       const hasBusSupplierRole = userStore.user.roles.some(role =>
         role === 'BUS_SUPPLIER' ||
-        role === 'ADMIN_BUSES' ||
-        role === 'SUPER_ADMIN'
+        role === 'ADMIN_BUSES'
       );
 
       if (!hasBusSupplierRole) {

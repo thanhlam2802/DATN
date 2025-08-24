@@ -9,6 +9,7 @@ public class OtpMailDto {
     private String amount;
     private String time;
     private String expiredTime;
+
     public OtpMailDto() {}
     public OtpMailDto(String recipient, String recipientName, String bankName, String otp, String transactionId, String amount, String time, String expiredTime) {
         this.recipient = recipient;

@@ -193,4 +193,3 @@ export const amenityAdminApi = {
 };
 
 
-export default adminApi;

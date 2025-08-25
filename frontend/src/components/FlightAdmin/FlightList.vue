@@ -132,6 +132,9 @@
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-for="flight in paginatedFlights" :key="flight.id" class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              {{ flight.id }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
               {{ flight.flightNumber }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

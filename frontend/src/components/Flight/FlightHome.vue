@@ -23,15 +23,13 @@
               Sân bay khởi hành
             </label>
             <select id="departureAirport" v-model="filters.departureAirportId"
-              :class="`w-full border rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.departureAirportId ? 'border-red-500' : 'border-gray-300'}`">
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">Chọn sân bay khởi hành</option>
               <option v-for="airport in airports" :key="airport.id" :value="airport.id">
                 {{ airport.name }}
               </option>
             </select>
-            <div v-if="validationErrors.departureAirportId" class="text-red-500 text-sm mt-1">
-              {{ validationErrors.departureAirportId[0] }}
-            </div>
+            <!-- Xóa validation error display -->
           </div>
           <div>
             <label for="to" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -44,15 +42,13 @@
               Sân bay hạ cánh
             </label>
             <select id="arrivalAirport" v-model="filters.arrivalAirportId"
-              :class="`w-full border rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.arrivalAirportId ? 'border-red-500' : 'border-gray-300'}`">
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">Chọn sân bay hạ cánh</option>
               <option v-for="airport in airports" :key="airport.id" :value="airport.id">
                 {{ airport.name }}
               </option>
             </select>
-            <div v-if="validationErrors.arrivalAirportId" class="text-red-500 text-sm mt-1">
-              {{ validationErrors.arrivalAirportId[0] }}
-            </div>
+            <!-- Xóa validation error display -->
           </div>
           <div>
             <label for="departDate" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -65,7 +61,7 @@
             </label>
             <div class="relative">
               <input id="departDate" v-model="filters.departureDate" type="date"
-                :class="`w-full border rounded-lg px-4 py-2 pr-10 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${validationErrors.departureDate ? 'border-red-500' : 'border-gray-300'}`" />
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               <svg xmlns="http://www.w3.org/2000/svg"
                 class="h-5 w-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -73,9 +69,7 @@
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <div v-if="validationErrors.departureDate" class="text-red-500 text-sm mt-1">
-              {{ validationErrors.departureDate[0] }}
-            </div>
+            <!-- Xóa validation error display -->
           </div>
 
 
@@ -225,7 +219,28 @@
       </form>
 
       <h2 class="text-2xl font-semibold text-gray-800 mb-4">Flight options</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      
+      <!-- Loading state -->
+      <div v-if="loading" class="flex justify-center items-center py-20">
+        <div class="flex flex-col items-center">
+          <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mb-4"></div>
+          <p class="text-lg text-gray-600 font-medium">Đang tìm kiếm chuyến bay...</p>
+        </div>
+      </div>
+      
+      <!-- Error state -->
+      <div v-else-if="error" class="text-center py-20">
+        <div class="text-red-500 text-lg mb-4">
+          <i class="fas fa-exclamation-triangle text-3xl mb-4"></i>
+          <p>{{ error }}</p>
+        </div>
+        <button @click="onSearch" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg">
+          Thử lại
+        </button>
+      </div>
+      
+      <!-- Flight list -->
+      <div v-else-if="flights.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div v-for="flight in paginatedFlights" :key="flight.id"
           class="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-shadow">
           <img
@@ -524,7 +539,6 @@ import { useRouter } from 'vue-router';
 import { searchFlights, getAvailableSeats, getAllAirlines,getAllAirports ,getAllFlightCategories} from '@/api/flightApi'
 import Flight from '@/entity/Flight'
 import FindAvailableSlotRequestDto from '@/dto/FindAvailableSlotRequestDto'
-import { validateForm, flightSearchSchema } from '@/utils/validation'
 
 const router = useRouter();
 const showBookingModal = ref(false);
@@ -604,23 +618,15 @@ const filters = ref({
   priceMax: 10000000,
 });
 
-// Validation errors
-const validationErrors = ref({})
+// Xóa validation errors - không còn sử dụng
+// const validationErrors = ref({})
 
 const flights = ref([])
 const loading = ref(false)
 const error = ref('')
 
 function onSearch() {
-  // Validate form before search
-  const { isValid, errors } = validateForm(filters.value, flightSearchSchema)
-  validationErrors.value = errors
-  
-  if (!isValid) {
-    window.$toast('Vui lòng kiểm tra lại thông tin tìm kiếm!', 'error')
-    return
-  }
-  
+  // Xóa validation - chỉ search trực tiếp
   loading.value = true
   console.log(filters.value);
   

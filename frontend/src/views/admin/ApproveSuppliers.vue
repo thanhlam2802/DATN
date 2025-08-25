@@ -123,7 +123,7 @@ const fetchApplications = async () => {
     const res = await SupplierApi.getPendingApplications();
     applications.value = res.data || [];
   } catch (err) {
-    window.$toast.error("Không thể tải danh sách đơn đăng ký.");
+    window.toast.error("Không thể tải danh sách đơn đăng ký.");
   } finally {
     loading.value = false;
   }
@@ -135,15 +135,15 @@ const approve = async (applicationItem) => {
     const roleToAssign = applicationItem.serviceType;
 
     if (!roleToAssign) {
-      window.$toast.error("Lỗi: Loại dịch vụ (vai trò) không được để trống!");
+      window.toast.error("Lỗi: Loại dịch vụ (vai trò) không được để trống!");
       return;
     }
     await SupplierApi.approveApplication(id, roleToAssign);
 
     applications.value = applications.value.filter((a) => a.id !== id);
-    window.$toast.success("Đã duyệt đơn đăng ký thành công!");
+    window.toast.success("Đã duyệt đơn đăng ký thành công!");
   } catch (err) {
-    window.$toast.error("Duyệt đơn thất bại!");
+    window.toast.error("Duyệt đơn thất bại!");
   }
 };
 
@@ -151,9 +151,9 @@ const reject = async (id) => {
   try {
     await SupplierApi.rejectApplication(id);
     applications.value = applications.value.filter((a) => a.id !== id);
-    window.toast.success("Đã từ chối đơn đăng ký thành công!");
+    window.$toast("Đã từ chối đơn đăng ký thành công!");
   } catch (err) {
-    window.$toast.error("Từ chối đơn thất bại!");
+    window.toast.error("Từ chối đơn thất bại!");
   }
 };
 

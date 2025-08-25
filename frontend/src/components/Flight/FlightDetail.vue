@@ -5,6 +5,10 @@
       <div class="relative h-72 md:h-96 w-full">
         <img :src="mainImage" class="w-full h-full object-cover object-center" />
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+        
+        <!-- Nút ẩn cho admin flight - chỉ hiện khi hover vào góc phải trên -->
+        
+        
         <div class="absolute bottom-0 left-0 p-8 text-white">
           <h1 class="text-4xl md:text-5xl font-bold mb-2 flex items-center gap-3 drop-shadow">
             <i class="fa-solid fa-plane-departure text-indigo-200 text-3xl"></i>
@@ -139,6 +143,13 @@
             </div>
           </div>
          <div class="bg-indigo-50 rounded-xl p-6 shadow-inner mt-8">
+          <div class="  hover:opacity-100 transition-opacity duration-300 group">
+          <button @click="goToFlightAdmin" 
+                  >
+            <i class="fas fa-edit"></i>
+            <span class="hidden group-hover:inline">Cập nhật chuyến bay</span>
+          </button>
+        </div>
             <h3 class="text-lg font-bold text-indigo-700 mb-4 flex items-center gap-2">
               <i class="fa-solid fa-ticket-alt"></i> Thông tin vé đã chọn
             </h3>
@@ -194,6 +205,7 @@ import { ref, computed, onMounted ,watch} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getFlightDetail, getAvailableSeats } from "@/api/flightApi";
 import FindAvailableSlotRequestDto from "@/dto/FindAvailableSlotRequestDto";
+import { useAdminAuth } from "@/composables/useAdminAuth";
 
 const route = useRoute();
 const flightDetail = ref({
@@ -363,6 +375,12 @@ function handleBooking() {
     path: "/plane/pay",
     query: { dto: JSON.stringify(findAvailableSlotDto.value.toObject()) },
   });
+}
+
+const { hasFlightAdminAccess } = useAdminAuth();
+
+function goToFlightAdmin() {
+  router.push({ name: 'AdminFlightEdit', params: { id: route.params.id } });
 }
 </script>
 

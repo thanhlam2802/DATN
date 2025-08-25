@@ -133,6 +133,59 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         }
     }
 
+    @Transactional
+    @Override
+    public FlightDto updateFlightWithIds(Integer flightId, UpdateFlightRequestDto updateFlightRequestDto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_FLIGHT_WITH_IDS_REQUEST - RequestId: {}, flightId: {}, payload: {}", requestId, flightId, updateFlightRequestDto);
+        try {
+            Flight f = flightDAO.findById(flightId).orElse(null);
+            if (f == null) {
+                log.warn("UPDATE_FLIGHT_WITH_IDS_NOT_FOUND - RequestId: {}, flightId: {}", requestId, flightId);
+                return null;
+            }
+            
+            // Cập nhật thông tin cơ bản
+            f.setFlightNumber(updateFlightRequestDto.getFlightNumber());
+            f.setName(updateFlightRequestDto.getName());
+            f.setDepartureTime(updateFlightRequestDto.getDepartureTime());
+            f.setArrivalTime(updateFlightRequestDto.getArrivalTime());
+            f.setUpdatedAt(LocalDateTime.now());
+            
+            // Cập nhật hãng bay
+            if (updateFlightRequestDto.getAirlineId() != null) {
+                Airline a = airlineDAO.findById(updateFlightRequestDto.getAirlineId()).orElse(null);
+                f.setAirline(a);
+            }
+            
+            // Cập nhật danh mục
+            if (updateFlightRequestDto.getCategoryId() != null) {
+                FlightCategory c = flightCategoryDAO.findById(updateFlightRequestDto.getCategoryId()).orElse(null);
+                f.setCategory(c);
+            }
+            
+            // Cập nhật sân bay đi
+            if (updateFlightRequestDto.getDepartureAirportId() != null) {
+                Airport da = airportDAO.findById(updateFlightRequestDto.getDepartureAirportId()).orElse(null);
+                f.setDepartureAirport(da);
+            }
+            
+            // Cập nhật sân bay đến
+            if (updateFlightRequestDto.getArrivalAirportId() != null) {
+                Airport aa = airportDAO.findById(updateFlightRequestDto.getArrivalAirportId()).orElse(null);
+                f.setArrivalAirport(aa);
+            }
+            
+            Flight saved = flightDAO.save(f);
+            FlightDto dto = toFlightDto(saved);
+            log.info("UPDATE_FLIGHT_WITH_IDS_SUCCESS - RequestId: {}, flightId: {}", requestId, flightId);
+            return dto;
+        } catch (Exception e) {
+            log.error("UPDATE_FLIGHT_WITH_IDS_FAILED - RequestId: {}, flightId: {}, error: {}", requestId, flightId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
     @Override
     public void deleteFlight(Integer flightId) {
         String requestId = UUID.randomUUID().toString();
@@ -243,7 +296,7 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         log.info("""
                 GET_SEATS_REQUEST   - RequestId: {}, flightId: {}""", requestId, flightId);
         try {
-            List<FlightSlot> ls= flightDAO.findslotByBooked(flightId);
+            List<FlightSlot> ls= flightSlotDAO.findslotByBooked(flightId);
             if (ls.size() == 0) {
                 log.warn("GET_SEATS_NOT_FOUND       - RequestId: {}, flightId: {}", requestId, flightId);
                 return Collections.emptyList();

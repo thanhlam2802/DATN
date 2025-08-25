@@ -84,6 +84,13 @@ public class AuthServiceImpl implements AuthService {
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(newUser));
         jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(newUser));
+
+        Map<String, String> params = new HashMap<>();
+        params.put("toEmail", newUser.getEmail());
+        params.put("userId", newUser.getId().toString());
+        params.put("userName",newUser.getName());
+        otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
+        System.out.println("Gửi mail"+ newUser.getEmail());
         return jwtResultDto;
     }
 
@@ -126,20 +133,7 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(password, storedPassword)) {
             throw new BadRequestException("Wrong password", ErrorCode.AUTH_004);
         }
-        if (!user.getIsVerified()) {
-            // Kiểm tra xem user có bị vô hiệu hóa bởi admin không
-            if (user.getIsVerified() != null && !user.getIsVerified()) {
-                throw new BadRequestException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.", ErrorCode.AUTH_008);
-            }
-            
-            // Nếu isVerified = null, có thể là user chưa verify email
-            Map<String, String> params = new HashMap<>();
-            params.put("toEmail", user.getEmail());
-            params.put("userId", user.getId().toString());
-            params.put("userName",user.getName());
-            otpTransactionService.sendOtp(params, OtpType.VERIFY_ACCOUNT);
-            throw new BadRequestException("Tài khoản chưa được xác thực email. Vui lòng kiểm tra email và xác thực tài khoản.", ErrorCode.AUTH_007);
-        }
+
         JwtResultDto jwtResultDto = new JwtResultDto();
         jwtResultDto.setAccessToken(jwtTokenUtil.generateToken(user));
         jwtResultDto.setRefreshToken(jwtTokenUtil.generateRefreshToken(user));

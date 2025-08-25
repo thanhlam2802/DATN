@@ -342,11 +342,11 @@ OrderCleanupService -> continue: Tiếp tục với các seat khác
 System -> log: "Failed to release bus seat: {seatId}"
 ```
 
-### 4. Hoàn tiền cho đơn hàng đã hủy
+### 4. HỦy vé , Hoàn tiền cho đơn hàng đã trả
 
 #### **Happy Path:**
 ```
-User -> OrderDetail.vue: Click "Yêu cầu hoàn tiền" trên order CANCELLED
+User -> OrderDetail.vue: Click "Yêu cầu hoàn tiền" trên order Paid
 Frontend -> openRefundDialog(): Mở modal hoàn tiền
 
 // VALIDATION: Kiểm tra có thể hủy vé không

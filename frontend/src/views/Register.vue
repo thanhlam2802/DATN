@@ -263,7 +263,6 @@ export default {
         const responseData = await AuthApi.register(registerRequest);
 
         if (responseData && !responseData.errorCode) {
-          // ✅ Không login, chuyển sang verify email
           this.$router.push("/verify-email?email=" + this.email);
         } else {
           throw new Error("Đăng ký thất bại, vui lòng thử lại.");

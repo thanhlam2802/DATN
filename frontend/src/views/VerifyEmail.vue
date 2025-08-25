@@ -129,7 +129,7 @@ const submitCode = async () => {
     email: email.value
   }
   const res = await AuthApi.verifyAccount(request);
-  console.log("Verify acc res",res)
+  console.log("Verify acc res", res)
   if (res["errorCode"] === ErrorCodes.otpNotMatch) {
     otpError.value = "Invalid OTP!!!"
     loadingStore.stopLoading();
@@ -146,9 +146,16 @@ const submitCode = async () => {
     return;
   }
   otpError.value = "";
-  userStore.login(null,res.accessToken);
-  await router.push("/");
-  loadingStore.stopLoading();
+  if (res && res.accessToken) {
+    await userStore.handleRegistration(res);
+    router.push("/post-registration-choice");
+    loadingStore.stopLoading();
+
+  } else {
+    // response thành công nhưng không có token
+    this.emailError = "";
+    throw new Error("Đăng ký thành công nhưng không nhận được token xác thực.");
+  }
 };
 
 const resendCode = async () => {

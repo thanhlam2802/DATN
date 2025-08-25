@@ -59,6 +59,8 @@ export const uploadFlightImages = (flightId, formData) =>
   });
 export const updateAdminFlight = (flightId, data) =>
   api.put(`/admin/flights/${flightId}`, data);
+export const updateAdminFlightWithIds = (flightId, data) =>
+  api.put(`/admin/flights/${flightId}/update`, data);
 export const deleteAdminFlight = (flightId) =>
   api.delete(`/admin/flights/${flightId}`);
 // export const updateAdminFlightImages = (flightId, formData) =>

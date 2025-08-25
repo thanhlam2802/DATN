@@ -1,3 +1,36 @@
+// Helper functions for validation
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+const isValidPhone = (phone) => {
+  const phoneRegex = /^(\+84|84|0)[0-9]{9}$/
+  return phoneRegex.test(phone)
+}
+
+const isValidPassport = (passport) => {
+  const passportRegex = /^[A-Z0-9]{6,9}$/
+  return passportRegex.test(passport)
+}
+
+const isValidDate = (date) => {
+  const inputDate = new Date(date)
+  return inputDate instanceof Date && !isNaN(inputDate)
+}
+
+const isFutureDate = (date) => {
+  const inputDate = new Date(date)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return inputDate > today
+}
+
+const isValidPrice = (price) => {
+  const numValue = parseFloat(price)
+  return !isNaN(numValue) && numValue >= 0
+}
+
 // Validation utilities for flight forms
 export const validationRules = {
   // Email validation
@@ -43,53 +76,47 @@ export const validationRules = {
 }
 
 // Validation functions
-export const validateField = (value, rules) => {
+export const validateField = (value, rules, formData = {}) => {
   const errors = []
   
   // Required validation
-  if (rules.required && (!value || value.toString().trim() === '')) {
-    errors.push(rules.required.message || validationRules.required.message)
+  if (rules.required && (!value || value === '' || value === null || value === undefined)) {
+    errors.push('Trường này là bắt buộc')
     return errors
   }
   
-  if (!value) return errors
+  // Skip other validations if value is empty and not required
+  if (!value || value === '' || value === null || value === undefined) {
+    return errors
+  }
   
   // Email validation
-  if (rules.email && !validationRules.email.pattern.test(value)) {
-    errors.push(validationRules.email.message)
+  if (rules.email && !isValidEmail(value)) {
+    errors.push('Email không hợp lệ')
   }
   
   // Phone validation
-  if (rules.phone && !validationRules.phone.pattern.test(value)) {
-    errors.push(validationRules.phone.message)
+  if (rules.phone && !isValidPhone(value)) {
+    errors.push('Số điện thoại không hợp lệ')
   }
   
   // Passport validation
-  if (rules.passport && !validationRules.passport.pattern.test(value)) {
-    errors.push(validationRules.passport.message)
-  }
-  
-  // Flight number validation
-  if (rules.flightNumber && !validationRules.flightNumber.pattern.test(value)) {
-    errors.push(validationRules.flightNumber.message)
-  }
-  
-  // Price validation
-  if (rules.price) {
-    const numValue = parseFloat(value)
-    if (isNaN(numValue) || numValue < validationRules.price.min) {
-      errors.push(validationRules.price.message)
-    }
+  if (rules.passport && !isValidPassport(value)) {
+    errors.push('Số hộ chiếu không hợp lệ')
   }
   
   // Date validation
-  if (rules.date && rules.date.future) {
-    const inputDate = new Date(value)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    if (inputDate <= today) {
-      errors.push(validationRules.date.message)
+  if (rules.date) {
+    if (!isValidDate(value)) {
+      errors.push('Ngày không hợp lệ')
+    } else if (rules.date.future && !isFutureDate(value)) {
+      errors.push('Ngày phải là ngày trong tương lai')
     }
+  }
+  
+  // Price validation
+  if (rules.price && !isValidPrice(value)) {
+    errors.push('Giá không hợp lệ')
   }
   
   // Min length validation
@@ -104,7 +131,7 @@ export const validateField = (value, rules) => {
   
   // Custom validation
   if (rules.custom) {
-    const customError = rules.custom(value)
+    const customError = rules.custom(value, formData)
     if (customError) {
       errors.push(customError)
     }
@@ -119,7 +146,7 @@ export const validateForm = (formData, validationSchema) => {
   let isValid = true
   
   Object.keys(validationSchema).forEach(field => {
-    const fieldErrors = validateField(formData[field], validationSchema[field])
+    const fieldErrors = validateField(formData[field], validationSchema[field], formData)
     if (fieldErrors.length > 0) {
       errors[field] = fieldErrors
       isValid = false

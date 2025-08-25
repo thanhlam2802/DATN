@@ -55,7 +55,7 @@ export function useAdminAuth() {
         return hasAccess;
     };
 
-    const hasFlightAdminAccess = () => {
+    const hasFlightAdminAccess = computed(() => {
         const user = userStore.user;
         if (!user || !user.roles) {
             return false;
@@ -65,7 +65,7 @@ export function useAdminAuth() {
         return roles.includes('SUPER_ADMIN') || 
                roles.includes('ADMIN_FLIGHTS') || 
                roles.includes('FLIGHT_SUPPLIER');
-    };
+    });
 
     const hasTourAdminAccess = () => {
         const user = userStore.user;
@@ -103,7 +103,7 @@ export function useAdminAuth() {
                 hasAccess = hasHotelAdminAccess();
                 break;
             case 'flight':
-                hasAccess = hasFlightAdminAccess();
+                hasAccess = hasFlightAdminAccess.value;
                 break;
             case 'tour':
                 hasAccess = hasTourAdminAccess();

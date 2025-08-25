@@ -100,6 +100,22 @@ public class AdminFlightController {
         }
     }
 
+    @PutMapping("/flights/{flightId}/update")
+    public ResponseEntity<FlightDto> updateFlightWithIds(
+            @PathVariable Integer flightId,
+            @Valid @RequestBody UpdateFlightRequestDto updateFlightRequestDto) {
+        String requestId = UUID.randomUUID().toString();
+        log.info("UPDATE_FLIGHT_WITH_IDS_REQUEST - RequestId: {}, flightId: {}, Payload: {}", requestId, flightId, updateFlightRequestDto);
+        try {
+            FlightDto updated = adminFlightService.updateFlightWithIds(flightId, updateFlightRequestDto);
+            log.info("UPDATE_FLIGHT_WITH_IDS_SUCCESS - RequestId: {}, flightId: {}", requestId, flightId);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            log.error("UPDATE_FLIGHT_WITH_IDS_FAILED - RequestId: {}, flightId: {}, Error: {}", requestId, flightId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
     @DeleteMapping("/flights/{flightId}")
     public ResponseEntity<Void> deleteFlight(@PathVariable Integer flightId) {
         String requestId = UUID.randomUUID().toString();

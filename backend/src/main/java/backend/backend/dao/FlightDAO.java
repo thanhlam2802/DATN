@@ -29,8 +29,6 @@ public interface FlightDAO extends JpaRepository<Flight, Integer> {
     @Query("SELECT COUNT(f) FROM Flight f WHERE YEAR(f.departureTime) = :year AND MONTH(f.departureTime) = :month")
     Long countFlightsByYearAndMonth(@Param("year") Integer year, @Param("month") Integer month);
 
-    @Query("SELECT fs FROM FlightSlot fs WHERE fs.flight.id = :flightId  AND fs.id  IN ( SELECT fb.flightSlot.id FROM FlightBooking fb)")
-    List<FlightSlot> findslotByBooked(@Param("flightId")Integer flightId);
 
     @Query("SELECT fs FROM FlightSlot fs " +
             "WHERE fs.flight.id = :flightId " +

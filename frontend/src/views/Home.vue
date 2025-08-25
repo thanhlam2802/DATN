@@ -127,7 +127,22 @@
             Xem tất cả
           </router-link>
         </div>
-        <div class="relative group">
+        
+        <!-- Loading state for flights -->
+        <div v-if="loading.flights" class="text-center p-10">
+          <div class="flex flex-col items-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p class="text-gray-600">Đang tìm những chuyến bay giá tốt nhất...</p>
+          </div>
+        </div>
+        
+        <!-- Error state for flights -->
+        <div v-else-if="error.flights" class="text-center p-10 bg-red-50 text-red-600 rounded-lg">
+          <p>Rất tiếc, đã có lỗi xảy ra khi tải chuyến bay. Vui lòng thử lại sau.</p>
+        </div>
+        
+        <!-- Flight list -->
+        <div v-else-if="flights.length > 0" class="relative group">
           <div
             ref="flightScrollContainer"
             @scroll="() => handleScroll('flights')"
@@ -244,11 +259,13 @@ const buses = ref([]);
 const loading = reactive({
   hotels: true,
   tours: true,
+  flights: true,
   buses: true,
 });
 const error = reactive({
   hotels: null,
   tours: null,
+  flights: null,
   buses: null,
 });
 
@@ -366,12 +383,18 @@ onMounted(async () => {
   fetchTours();
   fetchPopularRoutes(); // ✅ THÊM MỚI: Fetch popular routes
 
+  // Load flights với loading state
+  loading.flights = true;
+  error.flights = null;
   try {
     const res = await searchFlights({});
     flights.value = res.data;
   } catch (e) {
     flights.value = [];
+    error.flights = "Không thể tải dữ liệu chuyến bay. Vui lòng thử lại sau.";
     console.error("Lỗi khi tải chuyến bay:", e);
+  } finally {
+    loading.flights = false;
   }
 
   // Khởi tạo trạng thái scroll

@@ -18,6 +18,8 @@ public interface AdminFlightService {
 
     FlightDto updateFlight(Integer flightId, FlightDto flightDto);
 
+    FlightDto updateFlightWithIds(Integer flightId, UpdateFlightRequestDto updateFlightRequestDto);
+
     void deleteFlight(Integer flightId);
 
     // Quản lý ghế

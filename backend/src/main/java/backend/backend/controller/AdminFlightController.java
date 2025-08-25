@@ -24,15 +24,15 @@ public class AdminFlightController {
     // ImageStorageService is injected elsewhere as needed
 
     @GetMapping("/flights")
-    public ResponseEntity<List<FlightDto>> getFlights(
+    public ResponseEntity<Page<FlightDto>> getFlights(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String filter) {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_FLIGHTS_REQUEST - RequestId: {}, page: {}, size: {}, filter: {}", requestId, page, size, filter);
         try {
-            List<FlightDto> list = adminFlightService.getFlights(page, size, filter);
-            log.info("GET_FLIGHTS_SUCCESS - RequestId: {}, Count: {}", requestId, list.size());
+            Page<FlightDto> list = adminFlightService.getFlights(page, size, filter);
+            log.info("GET_FLIGHTS_SUCCESS - RequestId: {}, Count: {}", requestId, list.getNumberOfElements());
             return ResponseEntity.ok(list);
         } catch (Exception e) {
             log.error("GET_FLIGHTS_FAILED - RequestId: {}, Error: {}", requestId, e.getMessage(), e);

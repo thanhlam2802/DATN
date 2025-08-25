@@ -38,17 +38,20 @@ public class AdminFlightServiceImpl implements AdminFlightService {
     @Autowired private FlightService flightService;
     @Override
     @Transactional
-    public List<FlightDto> getFlights(int page, int size, String filter) {
+    public Page<FlightDto> getFlights(int page, int size, String filter) {
         String requestId = UUID.randomUUID().toString();
         log.info("GET_FLIGHTS_REQUEST        - RequestId: {}, page: {}, size: {}, filter: {}", requestId, page, size, filter);
         try {
             User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             Integer ownerId = currentUser != null ? currentUser.getId() : null;
-            List<FlightDto> dtos = flightDAO.findByOwnerId(ownerId).stream()
+            var pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+            var flightsPage = flightDAO.findByOwnerIdWithPagination(ownerId, pageable);
+            var dtos = flightsPage.getContent().stream()
                     .map(this::toFlightListDto)
                     .collect(Collectors.toList());
-            log.info("GET_FLIGHTS_SUCCESS        - RequestId: {}, count: {}", requestId, dtos.size());
-            return dtos;
+            var result = new org.springframework.data.domain.PageImpl<>(dtos, pageable, flightsPage.getTotalElements());
+            log.info("GET_FLIGHTS_SUCCESS        - RequestId: {}, count: {}, total: {}", requestId, dtos.size(), flightsPage.getTotalElements());
+            return result;
         } catch (Exception e) {
             log.error("GET_FLIGHTS_FAILED         - RequestId: {}, error: {}", requestId, e.getMessage(), e);
             throw e;
@@ -1054,17 +1057,31 @@ public class AdminFlightServiceImpl implements AdminFlightService {
         log.info("GET_FLIGHT_ADMIN_SUMMARIES_REQUEST - RequestId: {}", requestId);
         try {
             List<User> flightAdmins = userDAO.findByRole(UserRoleEnum.FLIGHT_SUPPLIER);
+            List<Object[]> flightsGrouped = flightDAO.countByOwnerGrouped();
+            List<Object[]> revenueGrouped = flightBookingDAO.sumRevenueByOwnerGrouped();
+            List<Object[]> bookingsGrouped = flightBookingDAO.countByOwnerGrouped();
+            // Map grouped results
+            java.util.Map<Integer, Integer> flightsMap = new java.util.HashMap<>();
+            for (Object[] row : flightsGrouped) {
+                flightsMap.put(((Number) row[0]).intValue(), ((Number) row[1]).intValue());
+            }
+            java.util.Map<Integer, Double> revenueMap = new java.util.HashMap<>();
+            for (Object[] row : revenueGrouped) {
+                revenueMap.put(((Number) row[0]).intValue(), row[1] == null ? 0.0 : ((Number) row[1]).doubleValue());
+            }
+            java.util.Map<Integer, Long> bookingsMap = new java.util.HashMap<>();
+            for (Object[] row : bookingsGrouped) {
+                bookingsMap.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
+            }
+            // Average occupancy per owner (keep existing per-owner native avg; can batch later if needed)
             List<FlightAdminSummaryDto> summaries = new ArrayList<>();
-            
             for (User admin : flightAdmins) {
                 Integer adminId = admin.getId();
-                int totalFlights = flightDAO.countByOwnerId(adminId);
-                Double totalRevenue = flightBookingDAO.sumRevenueByOwnerId(adminId);
-                if (totalRevenue == null) totalRevenue = 0.0;
-                Long totalBookings = flightBookingDAO.countByOwnerId(adminId);
+                int totalFlights = flightsMap.getOrDefault(adminId, 0);
+                Double totalRevenue = revenueMap.getOrDefault(adminId, 0.0);
+                Long totalBookings = bookingsMap.getOrDefault(adminId, 0L);
                 Double avgOccupancy = flightDAO.getAverageOccupancyRateByOwnerId(adminId);
                 if (avgOccupancy == null) avgOccupancy = 0.0;
-                
                 FlightAdminSummaryDto summary = FlightAdminSummaryDto.builder()
                         .adminId(adminId)
                         .adminName(admin.getName())
@@ -1074,7 +1091,6 @@ public class AdminFlightServiceImpl implements AdminFlightService {
                         .totalBookings(totalBookings)
                         .averageOccupancyRate(avgOccupancy)
                         .build();
-                
                 summaries.add(summary);
             }
             
@@ -1295,53 +1311,19 @@ public class AdminFlightServiceImpl implements AdminFlightService {
             int previousYear = (month == 1) ? year - 1 : year;
             log.info("[THỐNG_KÊ_THÁNG][{}] Tháng trước được tính là: năm={}, tháng={}", requestId, previousYear, previousMonth);
 
-            // Thống kê tháng hiện tại
-            log.info("[THỐNG_KÊ_THÁNG][{}] Bắt đầu lấy dữ liệu thống kê tháng hiện tại...", requestId);
-            Long totalFlightsCurrentMonth = flightDAO.countFlightsByMonth(year, month);
-            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số chuyến bay tháng {}/{}: {}", requestId, month, year, totalFlightsCurrentMonth);
-
-            Long totalBookingsCurrentMonth = flightBookingDAO.countBookingsByMonth(year, month);
-            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số lượt đặt vé tháng {}/{}: {}", requestId, month, year, totalBookingsCurrentMonth);
-
-            Double totalRevenueCurrentMonth = flightBookingDAO.sumRevenueByMonth(year, month);
-            if (totalRevenueCurrentMonth == null) {
-                totalRevenueCurrentMonth = 0.0;
-                log.warn("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, month, year);
-            } else {
-                log.info("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{}: {}", requestId, month, year, totalRevenueCurrentMonth);
-            }
-
-            Double averageOccupancyRateCurrentMonth = calculateAverageOccupancyRate(year, month);
-            if (averageOccupancyRateCurrentMonth == null) {
-                averageOccupancyRateCurrentMonth = 0.0;
-                log.warn("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, month, year);
-            } else {
-                log.info("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy trung bình tháng {}/{}: {}%", requestId, month, year, averageOccupancyRateCurrentMonth);
-            }
+            // Thống kê tháng hiện tại (gộp 1 query)
+            Object[] cur = flightDAO.getMonthlyAggregate(year, month).get(0);
+            Long totalFlightsCurrentMonth = ((Number) cur[0]).longValue();
+            Long totalBookingsCurrentMonth = ((Number) cur[1]).longValue();
+            Double totalRevenueCurrentMonth = cur[2] == null ? 0.0 : ((Number) cur[2]).doubleValue();
+            Double averageOccupancyRateCurrentMonth = cur[3] == null ? 0.0 : ((Number) cur[3]).doubleValue();
 
             // Thống kê tháng trước
-            log.info("[THỐNG_KÊ_THÁNG][{}] Bắt đầu lấy dữ liệu thống kê tháng trước...", requestId);
-            Long totalFlightsPreviousMonth = flightDAO.countFlightsByMonth(previousYear, previousMonth);
-            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số chuyến bay tháng {}/{}: {}", requestId, previousMonth, previousYear, totalFlightsPreviousMonth);
-
-            Long totalBookingsPreviousMonth = flightBookingDAO.countBookingsByMonth(previousYear, previousMonth);
-            log.info("[THỐNG_KÊ_THÁNG][{}] Tổng số lượt đặt vé tháng {}/{}: {}", requestId, previousMonth, previousYear, totalBookingsPreviousMonth);
-
-            Double totalRevenuePreviousMonth = flightBookingDAO.sumRevenueByMonth(previousYear, previousMonth);
-            if (totalRevenuePreviousMonth == null) {
-                totalRevenuePreviousMonth = 0.0;
-                log.warn("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, previousMonth, previousYear);
-            } else {
-                log.info("[THỐNG_KÊ_THÁNG][{}] Doanh thu tháng {}/{}: {}", requestId, previousMonth, previousYear, totalRevenuePreviousMonth);
-            }
-
-            Double averageOccupancyRatePreviousMonth = calculateAverageOccupancyRate(previousYear, previousMonth);
-            if (averageOccupancyRatePreviousMonth == null) {
-                averageOccupancyRatePreviousMonth = 0.0;
-                log.warn("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy tháng {}/{} không có dữ liệu, gán mặc định = 0.0", requestId, previousMonth, previousYear);
-            } else {
-                log.info("[THỐNG_KÊ_THÁNG][{}] Tỷ lệ lấp đầy trung bình tháng {}/{}: {}%", requestId, previousMonth, previousYear, averageOccupancyRatePreviousMonth);
-            }
+            Object[] prev = flightDAO.getMonthlyAggregate(previousYear, previousMonth).get(0);
+            Long totalFlightsPreviousMonth = ((Number) prev[0]).longValue();
+            Long totalBookingsPreviousMonth = ((Number) prev[1]).longValue();
+            Double totalRevenuePreviousMonth = prev[2] == null ? 0.0 : ((Number) prev[2]).doubleValue();
+            Double averageOccupancyRatePreviousMonth = prev[3] == null ? 0.0 : ((Number) prev[3]).doubleValue();
 
             // Tính phần trăm thay đổi
             log.info("[THỐNG_KÊ_THÁNG][{}] Đang tính phần trăm thay đổi giữa hai tháng...", requestId);

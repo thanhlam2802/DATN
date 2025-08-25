@@ -270,8 +270,8 @@ const handleDirectBooking = async () => {
       const order = result.data;
       // Chuyển hướng đến trang thanh toán
       router.push({
-        name: "payment",
-        params: { orderId: order.id },
+        name: "order-detail",
+        params: { id: order.id },
       });
     } else {
       if (window.$toast)

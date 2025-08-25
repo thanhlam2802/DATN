@@ -260,7 +260,6 @@ const routes = [
     redirect: "/admin/dashboard",
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
-      // Route cho dashboard chung
       {
         path: "dashboard",
         name: "AdminDashboard",
@@ -320,7 +319,7 @@ const routes = [
         component: TourManagement,
       },
       {
-        path: "/admin/approve-suppliers",
+        path: "approve-suppliers",
         name: "ApproveSuppliers",
         component: ApproveSuppliers,
       },
@@ -419,6 +418,17 @@ router.beforeEach(async (to, from, next) => {
 
       if (!hasBusSupplierRole) {
         console.log('User does not have bus supplier role, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
+      const hasFlightSupplierRole = userStore.user.roles.some(role =>
+        role === 'FLIGHT_SUPPLIER' ||
+        role === 'ADMIN_FLIGHTS'
+      );
+
+      if (!hasFlightSupplierRole) {
+        console.log('User does not have flight supplier role, redirecting to unauthorized...');
         next({ name: 'Unauthorized' });
         return;
       }

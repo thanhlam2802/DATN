@@ -795,10 +795,12 @@ const bookDirectly = async () => {
 
     // Create booking
     const result = await BookingAPI.createDirectBooking(bookingRequest)
-    
+    console.log('Booking created:', result)
     if (isMounted.value) {
-      // Redirect to payment
-      await router.push(`/payment/${result.data}`)
+      router.push({
+                        name: 'order-detail',
+                        params: { id: result.data },
+                    });
     }
 
   } catch (error) {

@@ -1327,32 +1327,6 @@ const handleDeleteItem = async () => {
       }
     }
 
-    if (itemType === 'HOTEL') {
-      try {
-        const response = await fetch(
-          `http://localhost:8080/api/hotels/bookings/${itemId}/cancel`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: getBearerToken(),
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Không thể hủy đặt phòng khách sạn.");
-        }
-        console.log('Đã hủy hotel booking thành công');
-      } catch (error) {
-        if (error.message && (error.message.includes('already cancelled') || error.message.includes('already expired'))) {
-          console.log('Hotel booking đã được hủy trước đó');
-        } else {
-          throw error;
-        }
-      }
-    }
-
     // ✅ STEP 2: Xóa item khỏi cart
     const response = await fetch(
       `http://localhost:8080/api/v1/cart/items?orderId=${order.value.id}&itemId=${itemId}&itemType=${itemType}`,

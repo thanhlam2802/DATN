@@ -43,7 +43,7 @@ public class BookingTour {
     @Column(length = 255)
     private String email;
     
-    @Lob
+
     private String notes;
 
  

@@ -141,6 +141,7 @@ const approve = async (applicationItem) => {
     await SupplierApi.approveApplication(id, roleToAssign);
 
     applications.value = applications.value.filter((a) => a.id !== id);
+
     window.$toast("Đã duyệt đơn đăng ký thành công!");
   } catch (err) {
     window.$toast("Duyệt đơn thất bại!");
@@ -153,6 +154,7 @@ const reject = async (id) => {
     applications.value = applications.value.filter((a) => a.id !== id);
     window.$toast("Đã từ chối đơn đăng ký thành công!");
   } catch (err) {
+
     window.$toast("Từ chối đơn thất bại!");
   }
 };

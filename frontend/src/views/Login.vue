@@ -226,12 +226,12 @@ const submitForm = async () => {
       console.log("Expected userDeactivated:", ErrorCodes.userDeactivated);
       console.log("Are they equal?", res["errorCode"] === ErrorCodes.userDeactivated);
 
-    if (res["errorCode"] === ErrorCodes.userNotVerified) {
-      console.log("Not verified");
-      await router.push("/verify-email?email=" + email.value);
-      loadingStore.stopLoading();
-      return;
-    }
+    // if (res["errorCode"] === ErrorCodes.userNotVerified) {
+    //   console.log("Not verified");
+    //   await router.push("/verify-email?email=" + email.value);
+    //   loadingStore.stopLoading();
+    //   return;
+    // }
     if (res["errorCode"] === ErrorCodes.userDeactivated) {
       console.log("User deactivated detected, stopping loading and showing toast");
       showToast('error', 'Đăng nhập thất bại', 'Tài khoản của bạn hiện tại bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.');

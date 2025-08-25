@@ -863,6 +863,7 @@ const steps = [
 </script>
 
 <template>
+  <teleport to="body">
   <!-- Modal Backdrop -->
   <Transition
     enter-active-class="transition-opacity duration-300"
@@ -873,7 +874,7 @@ const steps = [
     leave-to-class="opacity-0"
   >
     <div v-if="show" 
-         class="fixed inset-0 z-50 bg-black-100 bg-opacity-50 backdrop-blur-sm"
+         class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm"
          @click="handleBackdropClick">
       
       <!-- Modal Content -->
@@ -1273,6 +1274,7 @@ const steps = [
       </Transition>
     </div>
   </Transition>
+  </teleport>
 </template>
 
 <style scoped>

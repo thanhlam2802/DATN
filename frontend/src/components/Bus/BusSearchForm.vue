@@ -337,6 +337,11 @@ onMounted(async () => {
   // Fill form from store data after provinces are loaded
   await fillFormFromStore();
 });
+
+// Expose search function for parent components (e.g., Homepage BusSearch)
+defineExpose({
+  handleSearch,
+});
 </script>
 
 <template>

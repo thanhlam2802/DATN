@@ -18,7 +18,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/bus-booking")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "https://poly-java-6-fb151.web.app",
+        "https://www.travela.io.vn",
+        "http://localhost:5173"
+})
 @Log4j2
 public class BusBookingController {
 

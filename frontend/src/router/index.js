@@ -261,7 +261,6 @@ const routes = [
     redirect: "/admin/dashboard",
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
-      // Route cho dashboard chung
       {
         path: "dashboard",
         name: "AdminDashboard",
@@ -314,7 +313,7 @@ const routes = [
         component: TourManagement,
       },
       {
-        path: "/admin/approve-suppliers",
+        path: "approve-suppliers",
         name: "ApproveSuppliers",
         component: ApproveSuppliers,
       },

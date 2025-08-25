@@ -261,13 +261,12 @@ export default {
         };
 
         const responseData = await AuthApi.register(registerRequest);
-        if (responseData && responseData.accessToken) {
-          await userStore.handleRegistration(responseData);
-          this.$router.push("/post-registration-choice");
+
+        if (responseData && !responseData.errorCode) {
+          // ✅ Không login, chuyển sang verify email
+          this.$router.push("/verify-email?email=" + this.email);
         } else {
-          // response thành công nhưng không có token
-          this.emailError = "";
-          throw new Error("Đăng ký thành công nhưng không nhận được token xác thực.");
+          throw new Error("Đăng ký thất bại, vui lòng thử lại.");
         }
       } catch (error) {
         console.error("Registration failed:", error);
@@ -281,7 +280,6 @@ export default {
             alert(`Đăng ký thất bại: ${message}`);
           }
         } else {
-          // Các lỗi khác (ví dụ mạng, server down...)
           alert(`Đăng ký thất bại: ${error.message || "Vui lòng thử lại."}`);
         }
       } finally {

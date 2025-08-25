@@ -839,6 +839,13 @@ public class OrderServiceImpl implements OrderService {
                 itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
                 itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
             }
+            for(BusBooking booking : order.getBusBookings()) {
+                String busName = (booking.getBusSlot() != null && booking.getBusSlot().getBus() != null) ? safeString(booking.getBusSlot().getBus().getName()) : "Vé xe khách";
+                itemTable.addCell(new Cell().add(new Paragraph("Vé xe khách: " + busName).setFont(fontRegular)).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph("1").setFont(fontRegular)).setTextAlignment(TextAlignment.CENTER).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+            }
             document.add(itemTable);
 
             // C. Phần tổng kết

@@ -15,7 +15,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -56,7 +55,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 User user = userDAO.findByEmailWithRoles(email).orElse(null);
 
                 if (user == null) {
-
+                    log.warn("User not found for email: {}", email);
+                } else if (user.getIsVerified() == null || !user.getIsVerified()) {
+                    log.warn("User {} is not verified/active. isVerified: {}", email, user.getIsVerified());
                 } else if (jwtUtil.validateToken(token, user.getEmail())) {
 
                     List<UserRole> userRoles = user.getUserRoles() != null ? user.getUserRoles() : Collections.emptyList();

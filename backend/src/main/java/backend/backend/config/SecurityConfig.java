@@ -1,6 +1,7 @@
 package backend.backend.config;
 
 import backend.backend.config.filters.OAuth2LoginSuccessHandler;
+import backend.backend.config.filters.OAuth2LoginFailureHandler;
 import backend.backend.service.OAuth2UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2UserService oAuth2UserService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -95,7 +97,7 @@ public class SecurityConfig {
                             userInfo.userService(oAuth2UserService);
                         })
                         .successHandler(oAuth2LoginSuccessHandler)
-                        .failureUrl("/error")
+                        .failureHandler(oAuth2LoginFailureHandler)
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

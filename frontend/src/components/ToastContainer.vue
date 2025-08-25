@@ -74,6 +74,8 @@ const TOAST_TYPES = {
 
 // Methods
 const addToast = (options) => {
+  console.log('ToastContainer.addToast called with:', options);
+  
   const id = Date.now() + Math.random()
   const toast = {
     id,
@@ -85,7 +87,9 @@ const addToast = (options) => {
     createdAt: Date.now()
   }
   
+  console.log('Created toast object:', toast);
   toasts.value.push(toast)
+  console.log('Current toasts:', toasts.value);
   
   // Auto remove
   setTimeout(() => {

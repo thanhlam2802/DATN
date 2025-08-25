@@ -242,7 +242,7 @@ import BusCard from "../components/Home/BusCard.vue";
 import FlightCard from "../components/Home/FlightCard.vue";
 import TourHomeCard from "../components/Home/TourHomeCard.vue";
 import { searchFlights } from "@/api/flightApi";
-import { searchHotels } from "../api/hotelApi";
+import { getPopularHotelsByBookings } from "../api/hotelApi";
 import { RouteAPI } from "@/api/busApi/route";
 
 // Router

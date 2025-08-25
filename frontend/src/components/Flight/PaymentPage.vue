@@ -238,7 +238,7 @@
                         Thêm vào đơn hàng hiện tại
                 </button>
                     </div>
-                    <div v-else>
+                    <div >
                         <button @click="confirmAndPay"
                         class="w-full block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-3 rounded-lg transition-colors shadow-md">
                         Đặt chỗ

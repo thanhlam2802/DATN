@@ -1,6 +1,6 @@
 <template>
     <div class="max-w-7xl mx-auto px-4">
-        <div class="sticky top-18 w-full flex justify-center mb-6 z-30 mt-4">
+        <div class="sticky top-24 w-full flex justify-center mb-6 z-30 mt-4">
             <div ref="searchWidgetContainer"
                 class="w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3">
                 <div class="flex flex-col md:flex-row items-stretch h-auto md:h-auto border border-gray-300 rounded-lg">

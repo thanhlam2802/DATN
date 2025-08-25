@@ -127,10 +127,7 @@
 
     <!-- Recent Activities & Orders -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-1">
-        <RecentActivities :activities="recentActivities" />
-      </div>
-      <div class="lg:col-span-2">
+      <div class="lg:col-span-3 ">
         <div class="bg-white rounded-xl shadow p-6">
           <div class="font-semibold mb-4 text-gray-700">Đơn hàng gần đây</div>
           <div class="overflow-x-auto">

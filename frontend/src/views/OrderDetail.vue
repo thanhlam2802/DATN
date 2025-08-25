@@ -627,7 +627,7 @@ const fetchOrderDetails = async () => {
       await fetchSuggestedVouchers();
     }
 
-    flightBookingDetails.value = [];
+     console.log("khang2",flightBookingDetails)
     if (order.value.flightBookings && order.value.flightBookings.length > 0) {
       for (const booking of order.value.flightBookings) {
         const detailRes = await fetch(
@@ -637,6 +637,7 @@ const fetchOrderDetails = async () => {
         if (detailRes.ok) {
           const detail = await detailRes.json();
           flightBookingDetails.value.push({ ...detail, showDetail: false });
+          console.log("khang",flightBookingDetails)
         }
       }
     }
@@ -762,7 +763,6 @@ const fetchBusBookingDetail = async (bookingId) => {
   }
 };
 
-onMounted(fetchOrderDetails);
 
 /**
  * Contains the core logic for making the payment after all checks and voucher applications are done.
@@ -2403,7 +2403,7 @@ function prevHotelImage(hotel) {
               >
                 <div class="mb-4 border-b flex justify-between">
                   <h2 class="text-xl font-semibold">Tóm tắt đơn hàng</h2>
-                  <div
+                  <div v-if="order.status =='PENDING_PAYMENT' &&  order.status !='REFUNDED'"
                     class="px-2 border border-red-200 bg-red-50 rounded-lg text-center mb-6 flex items-center justify-center gap-2"
                   >
                     <p v-if="!hasExpired" class="text-sm text-red-700">

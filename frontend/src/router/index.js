@@ -416,6 +416,17 @@ router.beforeEach(async (to, from, next) => {
         return;
       }
 
+      const hasFlightSupplierRole = userStore.user.roles.some(role =>
+        role === 'FLIGHT_SUPPLIER' ||
+        role === 'ADMIN_FLIGHTS'
+      );
+
+      if (!hasFlightSupplierRole) {
+        console.log('User does not have flight supplier role, redirecting to unauthorized...');
+        next({ name: 'Unauthorized' });
+        return;
+      }
+
       console.log('User has bus supplier role, proceeding...');
     }
   }

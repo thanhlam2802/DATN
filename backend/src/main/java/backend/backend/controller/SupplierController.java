@@ -46,6 +46,7 @@ public class SupplierController {
             @Valid @RequestBody SupplierApplicationRequest request,
             @AuthenticationPrincipal User currentUser) {
         // Giả sử service `createApplication` trả về đối tượng đã lưu
+        System.out.println(currentUser);
         SupplierApplication savedApplication = supplierService.createApplication(request, currentUser);
         return ResponseFactory.created(savedApplication, "Đơn đăng ký đã được gửi thành công.");
     }

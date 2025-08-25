@@ -28,7 +28,7 @@ public class FlightDto {
     private java.time.LocalDateTime departureTime;
     
     @NotBlank(message = "Số hiệu chuyến bay không được để trống")
-    @Pattern(regexp = "^[A-Z0-9]{2,10}$", message = "Số hiệu chuyến bay phải có 2-10 ký tự chữ hoa và số")
+
     private String flightNumber;
     
     @NotBlank(message = "Tên chuyến bay không được để trống")

@@ -23,7 +23,6 @@ import NotificationSetting from "@/components/User/Sidebar/NotificationSetting.v
 import PayFlight from "@/components/Flight/PaymentPage.vue";
 import AdminFight from "@/components/FlightAdmin/FlightAdminLayout.vue";
 import GetTicket from "@/components/Flight/TicketReceipt.vue";
-import DetailFlightAdmin from "@/components/FlightAdmin/DetailFlightAdmin.vue";
 import RevenueManagement from "@/views/admin/RevenueManagement.vue";
 import Reports from "@/views/admin/Reports.vue";
 import HotelManagement from "@/views/admin/HotelManagement.vue";
@@ -47,7 +46,7 @@ import PromotionManagement from "@/views/admin/PromotionManagement.vue";
 import UserManagement from "@/views/admin/UserManagement.vue";
 import BookingManagement from "@/views/admin/BookingManagement.vue";
 import TourManagement from "@/views/admin/TourManagement.vue";
-
+import DetailFlightAdmin from "@/components/FlightAdmin/DetailFlightAdmin.vue"; 
 import TourManager from "../layouts/TourManager.vue";
 import Register from "@/views/Register.vue";
 import Login from "@/views/Login.vue";
@@ -277,6 +276,13 @@ const routes = [
         path: "flights",
         name: "AdminFlights",
         component: FlightManagement,
+      },
+      {
+        path: "flights/:id/edit",
+        name: "AdminFlightEdit",
+        component: () => import("@/components/FlightAdmin/DetailFlightAdmin.vue"),
+        props: true,
+        meta: { requiresAuth: true, requiresAdmin: true },
       },
       {
         path: "buses",

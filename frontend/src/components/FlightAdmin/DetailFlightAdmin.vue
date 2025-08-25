@@ -174,7 +174,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import EditFlightSeatAdmin from './EditFlightSeatAdmin.vue'
-import { getAllAirlines, getAllAirports, getAllFlightCategories, updateAdminFlight, getFlightDetail, flightBooked, addFlightImages, deleteFlightImage ,getAvailableSeats,updateGroupSeat} from '@/api/flightApi'
+import { getAllAirlines, getAllAirports, getAllFlightCategories, updateAdminFlightWithIds, getFlightDetail, flightBooked, addFlightImages, deleteFlightImage ,getAvailableSeats,updateGroupSeat} from '@/api/flightApi'
 
 const props = defineProps({ flightId: [String, Number] })
 const route = useRoute()
@@ -339,8 +339,8 @@ async function submitUpdate() {
       departureAirportId: flight.value.departureAirport ? flight.value.departureAirport.id : null,
       arrivalAirportId: flight.value.arrivalAirport ? flight.value.arrivalAirport.id : null
     }
-
-    await updateAdminFlight(flight.value.id, flightData)
+    console.log('Cập nhật chuyến bay với dữ liệu:', flightData)
+    await updateAdminFlightWithIds(flight.value.id, flightData)
     window.$toast('Cập nhật chuyến bay thành công!', 'success')
   } catch (error) {
     console.error('Lỗi khi cập nhật chuyến bay:', error)

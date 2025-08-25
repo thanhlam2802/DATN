@@ -412,8 +412,8 @@ export default {
                 console.log('Chuyển sang PaymentView với orderId:', order.id);
                 try {
                     router.push({
-                        name: 'payment',
-                        params: { orderId: order.id },
+                        name: 'order-detail',
+                        params: { id: order.id },
                     });
                 } catch (pushErr) {
                     console.error('Lỗi khi chuyển trang PaymentView:', pushErr);

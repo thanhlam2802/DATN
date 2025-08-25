@@ -53,7 +53,6 @@ const menu = [
     icon: "fas fa-tachometer-alt",
     link: "/admin/dashboard",
   },
-  { name: "Booking", icon: "fas fa-ticket-alt", link: "/admin/bookings" },
   { name: "Tour", icon: "fas fa-map-marked-alt", link: "/admin/tours" },
   { name: "Khách sạn", icon: "fas fa-hotel", link: "/admin/hotels" },
   { name: "Chuyến bay", icon: "fas fa-plane", link: "/admin/flights" },
@@ -63,8 +62,6 @@ const menu = [
     icon: "fas fa-tags",
     link: "/admin/promotions",
   },
-  { name: "Đánh giá", icon: "fas fa-comments", link: "/admin/reviews" },
-  { name: "Nội dung & Blog", icon: "fas fa-blog", link: "/admin/content" },
   { name: "Người dùng", icon: "fas fa-users", link: "/admin/users" },
   {
     name: "Duyệt đăng ký",

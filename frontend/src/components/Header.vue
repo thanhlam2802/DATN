@@ -89,7 +89,7 @@ onBeforeUnmount(() => {
             <i class="fas fa-suitcase-rolling"></i>
           </router-link>
 
-          <i class="fas fa-bell" @click.stop="toggleNotificationMenu"></i>
+         
           <i class="fas fa-user-circle" @click.stop="toggleUserMenu"></i>
         </div>
         <UserMenu :show="isUserMenuVisible" @close="isUserMenuVisible = false" />

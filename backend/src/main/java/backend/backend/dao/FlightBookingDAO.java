@@ -88,4 +88,11 @@ public interface FlightBookingDAO extends JpaRepository<FlightBooking, Integer> 
     
     @Query("SELECT COUNT(fb) FROM FlightBooking fb WHERE fb.flightSlot.flight.owner.id = :ownerId")
     Long countByOwnerId(@Param("ownerId") Integer ownerId);
+
+    // Grouped aggregations for performance
+    @Query("SELECT fb.flightSlot.flight.owner.id, COALESCE(SUM(fb.totalPrice), 0) FROM FlightBooking fb GROUP BY fb.flightSlot.flight.owner.id")
+    java.util.List<Object[]> sumRevenueByOwnerGrouped();
+
+    @Query("SELECT fb.flightSlot.flight.owner.id, COUNT(fb) FROM FlightBooking fb GROUP BY fb.flightSlot.flight.owner.id")
+    java.util.List<Object[]> countByOwnerGrouped();
 }

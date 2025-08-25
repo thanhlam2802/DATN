@@ -1,7 +1,6 @@
 package backend.backend.dao;
 
 import backend.backend.entity.Flight;
-import backend.backend.entity.FlightBooking;
 import backend.backend.entity.FlightSlot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
@@ -79,6 +78,8 @@ AND f.departure_time >= CURRENT_TIMESTAMP
     // ===== Super Admin Dashboard =====
     @Query("SELECT COUNT(f) FROM Flight f WHERE f.owner.id = :ownerId")
     int countByOwnerId(@Param("ownerId") Integer ownerId);
+    @Query("SELECT f.owner.id, COUNT(f) FROM Flight f GROUP BY f.owner.id")
+    java.util.List<Object[]> countByOwnerGrouped();
     
     @Query("SELECT f FROM Flight f WHERE f.owner.id = :ownerId ORDER BY f.createdAt DESC")
     List<Flight> findRecentFlightsByOwnerId(@Param("ownerId") Integer ownerId, @Param("limit") int limit);
@@ -97,7 +98,7 @@ AND f.departure_time >= CURRENT_TIMESTAMP
             SELECT f.id AS flight_id, COUNT(fs.id) AS total_slots
             FROM flights f
             LEFT JOIN flight_slots fs ON fs.flight_id = f.id
-            WHERE EXTRACT(YEAR FROM f.created_at) = :year AND EXTRACT(MONTH FROM f.created_at) = :month
+            WHERE DATEPART(YEAR, f.created_at) = :year AND DATEPART(MONTH, f.created_at) = :month
             GROUP BY f.id
         ) totals
         LEFT JOIN (
@@ -105,7 +106,7 @@ AND f.departure_time >= CURRENT_TIMESTAMP
             FROM flights f
             LEFT JOIN flight_slots fs ON fs.flight_id = f.id
             LEFT JOIN flight_bookings b ON b.flight_slot_id = fs.id
-            WHERE EXTRACT(YEAR FROM f.created_at) = :year AND EXTRACT(MONTH FROM f.created_at) = :month
+            WHERE DATEPART(YEAR, f.created_at) = :year AND DATEPART(MONTH, f.created_at) = :month
             GROUP BY f.id
         ) sold ON totals.flight_id = sold.flight_id
       """, nativeQuery = true)
@@ -113,4 +114,30 @@ AND f.departure_time >= CURRENT_TIMESTAMP
       
     @Query("SELECT f FROM Flight f WHERE f.owner.id = :ownerId")
     Page<Flight> findByOwnerIdWithPagination(@Param("ownerId") Integer ownerId, Pageable pageable);
+
+    @Query(value = """
+        SELECT
+          (SELECT COUNT(*) FROM flights f WHERE DATEPART(YEAR, f.departure_time) = :year AND DATEPART(MONTH, f.departure_time) = :month) AS total_flights,
+          (SELECT COUNT(*) FROM flight_bookings fb WHERE DATEPART(YEAR, fb.booking_date) = :year AND DATEPART(MONTH, fb.booking_date) = :month) AS total_bookings,
+          (SELECT COALESCE(SUM(fb.total_price), 0) FROM flight_bookings fb WHERE DATEPART(YEAR, fb.booking_date) = :year AND DATEPART(MONTH, fb.booking_date) = :month) AS total_revenue,
+          (
+            SELECT AVG(CASE WHEN totals.total_slots > 0 THEN (COALESCE(sold.sold_seats,0) * 100.0 / totals.total_slots) ELSE 0 END)
+            FROM (
+                SELECT f.id AS flight_id, COUNT(fs.id) AS total_slots
+                FROM flights f
+                LEFT JOIN flight_slots fs ON fs.flight_id = f.id
+                WHERE DATEPART(YEAR, f.created_at) = :year AND DATEPART(MONTH, f.created_at) = :month
+                GROUP BY f.id
+            ) totals
+            LEFT JOIN (
+                SELECT f.id AS flight_id, COUNT(b.id) AS sold_seats
+                FROM flights f
+                LEFT JOIN flight_slots fs ON fs.flight_id = f.id
+                LEFT JOIN flight_bookings b ON b.flight_slot_id = fs.id
+                WHERE DATEPART(YEAR, f.created_at) = :year AND DATEPART(MONTH, f.created_at) = :month
+                GROUP BY f.id
+            ) sold ON totals.flight_id = sold.flight_id
+          ) AS avg_occupancy
+      """, nativeQuery = true)
+    java.util.List<Object[]> getMonthlyAggregate(@Param("year") Integer year, @Param("month") Integer month);
 }

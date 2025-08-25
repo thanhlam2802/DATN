@@ -240,6 +240,7 @@ const yearFilter = ref('')
 const currentPage = ref(1)
 const pageSize = 10
 const flights = ref([])
+const totalElements = ref(0)
 const loading = ref(false)
 const error = ref('')
 const loadingDelete = ref({})
@@ -249,8 +250,9 @@ async function loadFlights() {
   loading.value = true
   error.value = ''
   try {
-    const res = await getAdminFlights()
-    flights.value = res.data
+    const res = await getAdminFlights({ page: currentPage.value - 1, size: pageSize })
+    flights.value = Array.isArray(res.data) ? res.data : (res.data?.content || [])
+    totalElements.value = Array.isArray(res.data) ? res.data.length : (res.data?.totalElements || flights.value.length)
   } catch (e) {
     error.value = 'Không thể tải danh sách chuyến bay.'
   } finally {
@@ -317,20 +319,16 @@ const filteredFlights = computed(() => {
 })
 
 // Phân trang
-const paginatedFlights = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return filteredFlights.value.slice(start, end)
-})
+const paginatedFlights = computed(() => flights.value)
 
 const paginationInfo = computed(() => {
-  const total = filteredFlights.value.length
+  const total = totalElements.value
   const start = total === 0 ? 0 : (currentPage.value - 1) * pageSize + 1
   const end = Math.min(currentPage.value * pageSize, total)
   return { start, end, total }
 })
 
-const totalPages = computed(() => Math.ceil(filteredFlights.value.length / pageSize))
+const totalPages = computed(() => Math.ceil(totalElements.value / pageSize))
 
 // Hiển thị các trang trong phân trang
 const displayedPages = computed(() => {
@@ -397,18 +395,26 @@ function clearFilters() {
   monthFilter.value = ''
   yearFilter.value = ''
   currentPage.value = 1 // Reset về trang đầu tiên khi xóa bộ lọc
+  loadFlights()
 }
 
 function goToPage(page) {
   currentPage.value = page
+  loadFlights()
 }
 
 function prevPage() {
-  if (currentPage.value > 1) currentPage.value--
+  if (currentPage.value > 1) {
+    currentPage.value--
+    loadFlights()
+  }
 }
 
 function nextPage() {
-  if (currentPage.value < totalPages.value) currentPage.value++
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    loadFlights()
+  }
 }
 
 function editFlight(flight) {

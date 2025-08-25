@@ -8,7 +8,7 @@ import org.springframework.data.domain.Page;
 public interface AdminFlightService {
 
     // Quản lý chuyến bay
-    List<FlightDto> getFlights(int page, int size, String filter);
+    Page<FlightDto> getFlights(int page, int size, String filter);
 
     FlightDto getFlightDetail(Integer flightId);
 

@@ -31,6 +31,9 @@ import backend.backend.entity.HotelBooking;
 import backend.backend.entity.Review;
 import backend.backend.entity.User;
 import jakarta.validation.Valid;
+import backend.backend.dto.Hotel.HotelSearchRequestDto;
+import backend.backend.dto.PageDto;
+import backend.backend.dto.Hotel.HotelDto;
 
 @RestController
 @RequestMapping("/api/v1/admin/hotels")
@@ -59,6 +62,44 @@ public class HotelAdminController {
     @Autowired
     private UserDAO userDAO;
 
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<PageDto<HotelDto>>> searchHotelsForAdmin(
+            @Valid @ModelAttribute HotelSearchRequestDto requestDto) {
+        requestDto.setIsAdminRequest(true);
+        PageDto<HotelDto> hotelPage = hotelService.searchHotels(requestDto);
+        return ResponseFactory.success(hotelPage, "Lấy danh sách khách sạn thành công");
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<HotelDetailDto>> getHotelDetailsForAdmin(
+            @PathVariable Integer id,
+            @Valid @ModelAttribute HotelSearchRequestDto requestDto) {
+        requestDto.setIsAdminRequest(true);
+        HotelDetailDto hotelDetail = hotelService.getHotelDetailsForAdmin(id, requestDto);
+        return ResponseFactory.success(hotelDetail, "Lấy chi tiết khách sạn thành công");
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<Void>> updateHotelStatus(
+            @PathVariable Integer id,
+            @RequestBody Map<String, String> request) {
+        String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+        if (currentUserEmail == null) {
+            return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Không có quyền truy cập", null);
+        }
+
+        String status = request.get("status");
+        if (status == null || (!status.equals("ACTIVE") && !status.equals("INACTIVE"))) {
+            return ResponseFactory.error(HttpStatus.BAD_REQUEST, "Trạng thái không hợp lệ", null);
+        }
+
+        hotelService.updateHotelStatus(id, status);
+        return ResponseFactory.success(null, "Cập nhật trạng thái khách sạn thành công");
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
     public ResponseEntity<ApiResponse<HotelDetailDto>> createHotel(MultipartHttpServletRequest request) {
@@ -71,6 +112,9 @@ public class HotelAdminController {
             ObjectMapper mapper = new ObjectMapper();
             String hotelJson = request.getParameter("hotel");
             HotelDetailDto hotelDto = mapper.readValue(hotelJson, HotelDetailDto.class);
+            
+            hotelDto.setApprovalStatus("PENDING");
+            
             List<MultipartFile> images = request.getFiles("images");
             Map<String, List<MultipartFile>> roomImagesMap = new java.util.HashMap<>();
             java.util.Iterator<String> fileNames = request.getFileNames();
@@ -589,6 +633,27 @@ public class HotelAdminController {
         } catch (Exception e) {
             logger.error("Error getting hotel statistics: ", e);
             return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi lấy thống kê khách sạn", null);
+        }
+    }
+
+    @PutMapping("/{id}/resubmit")
+    @PreAuthorize("hasAnyRole('ADMIN_HOTELS', 'SUPER_ADMIN', 'HOTEL_SUPPLIER')")
+    public ResponseEntity<ApiResponse<Void>> resubmitHotel(@PathVariable Integer id) {
+        try {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (currentUserEmail == null) {
+                return ResponseFactory.error(HttpStatus.UNAUTHORIZED, "Không có quyền truy cập", null);
+            }
+
+            hotelService.resubmitHotel(id);
+            
+            logger.info("[RESUBMIT] Hotel {} resubmitted by admin {}", id, currentUserEmail);
+            return ResponseFactory.success(null, "Đã gửi lại khách sạn để Super Admin duyệt thành công");
+            
+        } catch (Exception e) {
+            logger.error("[RESUBMIT] Error resubmitting hotel {}: {}", id, e.getMessage(), e);
+            return ResponseFactory.error(HttpStatus.INTERNAL_SERVER_ERROR, 
+                "Lỗi khi gửi lại khách sạn: " + e.getMessage(), null);
         }
     }
 

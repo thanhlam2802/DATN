@@ -46,4 +46,21 @@ export const AccountApi = {
             }
         }
     },
+
+    changePassword: async (request) => {
+        try {
+            const res = await apiClient.post("/v1/account/change-password", request, {
+                headers: {
+                    Authorization: getBearerToken()
+                }
+            });
+            return res.data;
+        } catch (err) {
+            return {
+                errorCode: err.response?.data?.errorCode || null,
+                error: err.response?.data || err,
+            };
+        }
+    },
+
 }

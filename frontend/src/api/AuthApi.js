@@ -2,7 +2,7 @@ import axios from "axios";
 import {saveAccessToken} from "@/services/TokenService";
 
 const apiClient = axios.create({
-    baseURL: "http://localhost:8080/api", // sửa lại nếu baseURL khác
+    baseURL: "http://localhost:8080/api",
     headers: {
         "Content-Type": "application/json",
     },

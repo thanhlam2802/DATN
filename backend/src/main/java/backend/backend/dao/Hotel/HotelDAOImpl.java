@@ -61,15 +61,23 @@ public class HotelDAOImpl implements HotelDAOCustom {
                 HotelDto.class,
                 hotelRoot.get("id"),
                 hotelRoot.get("name"),
-                cb.nullLiteral(String.class),
+                cb.literal(null),
+                cb.literal(null),
                 hotelRoot.get("address"),
                 provinceJoin.get("name"),
                 hotelRoot.get("starRating"),
                 avgRatingSubquery.getSelection(),
                 reviewCountSubquery.getSelection().as(Integer.class),
                 minPriceSubquery.getSelection(),
+                cb.literal(null), 
+                cb.literal(null), 
                 hotelRoot.get("createdAt"),
-                hotelRoot.get("updatedAt")
+                hotelRoot.get("updatedAt"),
+                hotelRoot.get("approvalStatus"),
+                hotelRoot.get("approvalReason"),
+                hotelRoot.get("approvedAt"),
+                hotelRoot.get("approvedBy"),
+                hotelRoot.get("status")
         ));
 
         Predicate filterPredicate = spec.toPredicate(hotelRoot, query, cb);
@@ -257,19 +265,33 @@ public class HotelDAOImpl implements HotelDAOCustom {
 
         Join<Hotel, Province> provinceJoin = hotelRoot.join("province", JoinType.LEFT);
 
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.equal(hotelRoot.get("approvalStatus"), "APPROVED"));
+        predicates.add(cb.equal(hotelRoot.get("status"), "ACTIVE"));
+        
+        query.where(cb.and(predicates.toArray(new Predicate[0])));
+        
         query.select(cb.construct(
                 HotelDto.class,
                 hotelRoot.get("id"),
                 hotelRoot.get("name"),
-                cb.nullLiteral(String.class),
+                cb.literal(null), 
+                cb.literal(null),
                 hotelRoot.get("address"),
                 provinceJoin.get("name"),
                 hotelRoot.get("starRating"),
                 avgRatingSubquery.getSelection(),
                 reviewCountSubquery.getSelection().as(Integer.class),
                 minPriceSubquery.getSelection(),
+                cb.literal(null), 
+                cb.literal(null), 
                 hotelRoot.get("createdAt"),
-                hotelRoot.get("updatedAt")
+                hotelRoot.get("updatedAt"),
+                hotelRoot.get("approvalStatus"),
+                hotelRoot.get("approvalReason"),
+                hotelRoot.get("approvedAt"),
+                hotelRoot.get("approvedBy"),
+                hotelRoot.get("status")
         ));
 
         query.orderBy(cb.desc(bookingCountSubquery.getSelection()));

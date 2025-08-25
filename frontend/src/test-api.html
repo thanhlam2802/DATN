@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test BusManagement API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .test-button:hover { background: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 3px; white-space: pre-wrap; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>🚌 Test BusManagement API</h1>
+    
+    <div class="test-section">
+        <h3>Overview</h3>
+        <button class="test-button" onclick="testOverviewKPIs()">Test KPI</button>
+        <button class="test-button" onclick="testDataQualityAlerts()">Test Alerts</button>
+        <div id="overview-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Providers</h3>
+        <button class="test-button" onclick="testGetProviders()">Get Providers</button>
+        <button class="test-button" onclick="testCreateProvider()">Create Provider</button>
+        <div id="providers-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Routes</h3>
+        <button class="test-button" onclick="testGetRoutes()">Get Routes</button>
+        <button class="test-button" onclick="testCreateRoute()">Create Route</button>
+        <div id="routes-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Slots</h3>
+        <button class="test-button" onclick="testGetSlots()">Get Slots</button>
+        <button class="test-button" onclick="testBulkGenerateSlots()">Bulk Generate</button>
+        <div id="slots-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Moderation</h3>
+        <button class="test-button" onclick="testGetModeration()">Get Moderation</button>
+        <div id="moderation-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/bus-management';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = JSON.stringify(data, null, 2);
+            element.className = `result ${isError ? 'error' : 'success'}`;
+        }
+
+        // Overview Tests
+        async function testOverviewKPIs() {
+            try {
+                const result = await makeRequest(`${API_BASE}/overview/kpis`);
+                showResult('overview-result', result);
+            } catch (error) {
+                showResult('overview-result', { error: error.message }, true);
+            }
+        }
+
+        async function testDataQualityAlerts() {
+            try {
+                const result = await makeRequest(`${API_BASE}/overview/alerts?query=test`);
+                showResult('overview-result', result);
+            } catch (error) {
+                showResult('overview-result', { error: error.message }, true);
+            }
+        }
+
+        // Providers Tests
+        async function testGetProviders() {
+            try {
+                const result = await makeRequest(`${API_BASE}/providers`);
+                showResult('providers-result', result);
+            } catch (error) {
+                showResult('providers-result', { error: error.message }, true);
+            }
+        }
+
+        async function testCreateProvider() {
+            try {
+                const result = await makeRequest(`${API_BASE}/providers`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        code: 'test@provider.com',
+                        name: 'Test Provider'
+                    })
+                });
+                showResult('providers-result', result);
+            } catch (error) {
+                showResult('providers-result', { error: error.message }, true);
+            }
+        }
+
+        // Routes Tests
+        async function testGetRoutes() {
+            try {
+                const result = await makeRequest(`${API_BASE}/routes`);
+                showResult('routes-result', result);
+            } catch (error) {
+                showResult('routes-result', { error: error.message }, true);
+            }
+        }
+
+        async function testCreateRoute() {
+            try {
+                const result = await makeRequest(`${API_BASE}/routes`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        ownerCode: 'test@provider.com',
+                        routeCode: 'TEST-SGN-DAD-01',
+                        origin: 'Saigon',
+                        destination: 'Da Nang',
+                        status: 'DRAFT'
+                    })
+                });
+                showResult('routes-result', result);
+            } catch (error) {
+                showResult('routes-result', { error: error.message }, true);
+            }
+        }
+
+        // Slots Tests
+        async function testGetSlots() {
+            try {
+                const result = await makeRequest(`${API_BASE}/slots`);
+                showResult('slots-result', result);
+            } catch (error) {
+                showResult('slots-result', { error: error.message }, true);
+            }
+        }
+
+        async function testBulkGenerateSlots() {
+            try {
+                const result = await makeRequest(`${API_BASE}/slots/bulk-generate`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        ownerCode: 'test@provider.com',
+                        routeCode: 'TEST-SGN-DAD-01',
+                        startDate: '2025-01-15',
+                        endDate: '2025-01-20',
+                        daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+                        departTime: '22:00',
+                        durationMinutes: 900
+                    })
+                });
+                showResult('slots-result', result);
+            } catch (error) {
+                showResult('slots-result', { error: error.message }, true);
+            }
+        }
+
+        // Moderation Tests
+        async function testGetModeration() {
+            try {
+                const result = await makeRequest(`${API_BASE}/moderation/queue`);
+                showResult('moderation-result', result);
+            } catch (error) {
+                showResult('moderation-result', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>

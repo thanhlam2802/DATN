@@ -2,6 +2,7 @@ package backend.backend.service.busService;
 
 import backend.backend.dto.BusDTO.CreateRouteRequest;
 import backend.backend.dto.BusDTO.RouteResponse;
+import backend.backend.dto.BusDTO.RouteCard;
 import backend.backend.dto.BusDTO.UpdateRouteRequest;
 import backend.backend.entity.Route;
 
@@ -22,5 +23,8 @@ public interface RouteService {
     
     // ✅ THÊM MỚI: Lấy routes theo ownerId
     List<Route> getRoutesByOwnerId(Integer ownerId);
+    
+    // ✅ THÊM MỚI: Lấy popular routes cho trang chủ
+    List<RouteCard> getPopularRoutes(Integer limit);
 
 }

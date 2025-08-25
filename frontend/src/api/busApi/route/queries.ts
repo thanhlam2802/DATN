@@ -40,4 +40,17 @@ export const FIND_BY_ORIGIN_AND_DESTINATION = gql`
     }
   }
   ${ROUTE_FRAGMENT}
+`;
+
+// ✅ THÊM MỚI: Query cho popular routes
+export const GET_POPULAR_ROUTES = gql`
+  query GetPopularRoutes($limit: Int) {
+    popularRoutes(limit: $limit) {
+      id
+      origin
+      destination
+      imageUrl
+      price
+    }
+  }
 `; 

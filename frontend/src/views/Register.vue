@@ -2,39 +2,39 @@
   <div class="w-full px-4 sm:px-6 lg:px-2 py-5">
     <div class="relative w-full rounded-md overflow-hidden shadow-md">
       <img
-        alt="Scenic lake"
-        class="w-full lg:h-[850px] object-cover brightness-75"
-        src="https://storage.googleapis.com/a1aa/image/f092f5e2-89b2-445b-38d1-ef49b53e6262.jpg"
+          alt="Scenic lake"
+          class="w-full lg:h-[850px] object-cover brightness-75"
+          src="https://storage.googleapis.com/a1aa/image/f092f5e2-89b2-445b-38d1-ef49b53e6262.jpg"
       />
 
       <div class="absolute inset-0 flex items-center justify-center px-6 py-5">
         <form
-          @submit.prevent="submitForm"
-          class="bg-white rounded-md shadow-lg max-w-md w-full p-8"
+            @submit.prevent="submitForm"
+            class="bg-white rounded-md shadow-lg max-w-md w-full p-8"
         >
           <h2 class="text-center font-extrabold text-xl mb-6">Sign up</h2>
 
           <div class="mb-4">
             <label
-              class="block text-xs font-semibold text-gray-900 mb-1"
-              for="name"
+                class="block text-xs font-semibold text-gray-900 mb-1"
+                for="name"
             >
               <span class="text-red-500">*</span>
               Full Name</label
             >
             <div class="relative">
               <span
-                class="absolute inset-y-0 left-3 flex items-center text-gray-400"
+                  class="absolute inset-y-0 left-3 flex items-center text-gray-400"
               >
                 <i class="fas fa-user"></i>
               </span>
               <input
-                v-model="name"
-                type="text"
-                id="name"
-                placeholder="Enter your full name"
-                class="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
+                  v-model="name"
+                  type="text"
+                  id="name"
+                  placeholder="Enter your full name"
+                  class="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  required
               />
             </div>
             <p v-if="nameError" class="text-red-500 text-xs mt-1">
@@ -44,25 +44,25 @@
 
           <div class="mb-4">
             <label
-              class="block text-xs font-semibold text-gray-900 mb-1"
-              for="email"
+                class="block text-xs font-semibold text-gray-900 mb-1"
+                for="email"
             >
               <span class="text-red-500">*</span>
               Email</label
             >
             <div class="relative">
               <span
-                class="absolute inset-y-0 left-3 flex items-center text-gray-400"
+                  class="absolute inset-y-0 left-3 flex items-center text-gray-400"
               >
                 <i class="fas fa-envelope"></i>
               </span>
               <input
-                v-model="email"
-                type="email"
-                id="email"
-                placeholder="Enter your email"
-                class="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
+                  v-model="email"
+                  type="email"
+                  id="email"
+                  placeholder="Enter your email"
+                  class="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  required
               />
 
               <p v-if="emailError" class="text-red-500 text-xs mt-1">
@@ -73,35 +73,35 @@
 
           <div class="mb-4">
             <label
-              class="block text-xs font-semibold text-gray-900 mb-1"
-              for="password"
+                class="block text-xs font-semibold text-gray-900 mb-1"
+                for="password"
             >
               <span class="text-red-500">*</span>
               Password</label
             >
             <div class="relative">
               <span
-                class="absolute inset-y-0 left-3 flex items-center text-gray-400"
+                  class="absolute inset-y-0 left-3 flex items-center text-gray-400"
               >
                 <i class="fas fa-lock"></i>
               </span>
               <input
-                @keydown.space.prevent
-                :type="showPassword ? 'text' : 'password'"
-                v-model="password"
-                id="password"
-                placeholder="Enter your password"
-                class="w-full pl-9 pr-9 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
+                  @keydown.space.prevent
+                  :type="showPassword ? 'text' : 'password'"
+                  v-model="password"
+                  id="password"
+                  placeholder="Enter your password"
+                  class="w-full pl-9 pr-9 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  required
               />
               <button
-                type="button"
-                @click="togglePassword"
-                class="absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-gray-900"
-                aria-label="Toggle password visibility"
+                  type="button"
+                  @click="togglePassword"
+                  class="absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-gray-900"
+                  aria-label="Toggle password visibility"
               >
                 <i
-                  :class="showPassword ? 'fas fa-eye' : 'fas fa-eye-slash'"
+                    :class="showPassword ? 'fas fa-eye' : 'fas fa-eye-slash'"
                 ></i>
               </button>
             </div>
@@ -112,34 +112,34 @@
 
           <div class="mb-6">
             <label
-              class="block text-xs font-semibold text-gray-900 mb-1"
-              for="confirmPassword"
+                class="block text-xs font-semibold text-gray-900 mb-1"
+                for="confirmPassword"
             >
               <span class="text-red-500">*</span>
               Confirm Password</label
             >
             <div class="relative">
               <span
-                class="absolute inset-y-0 left-3 flex items-center text-gray-400"
+                  class="absolute inset-y-0 left-3 flex items-center text-gray-400"
               >
                 <i class="fas fa-lock"></i>
               </span>
               <input
-                :type="showConfirmPassword ? 'text' : 'password'"
-                v-model="confirmPassword"
-                id="confirmPassword"
-                placeholder="Confirm your password"
-                class="w-full pl-9 pr-9 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  v-model="confirmPassword"
+                  id="confirmPassword"
+                  placeholder="Confirm your password"
+                  class="w-full pl-9 pr-9 py-2 text-sm rounded-md border border-gray-200 bg-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  required
               />
               <button
-                type="button"
-                @click="toggleConfirmPassword"
-                class="absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-gray-900"
-                aria-label="Toggle confirm password visibility"
+                  type="button"
+                  @click="toggleConfirmPassword"
+                  class="absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-gray-900"
+                  aria-label="Toggle confirm password visibility"
               >
                 <i
-                  :class="
+                    :class="
                     showConfirmPassword ? 'fas fa-eye' : 'fas fa-eye-slash'
                   "
                 ></i>
@@ -151,8 +151,8 @@
           </div>
 
           <button
-            type="submit"
-            class="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-2 rounded-md"
+              type="submit"
+              class="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-2 rounded-md"
           >
             Sign up
           </button>
@@ -160,7 +160,8 @@
           <p class="text-center text-xs mt-4 text-gray-900">
             Already have an account?
             <router-link to="/login" class="text-purple-700 hover:underline"
-              >Sign in</router-link
+            >Sign in
+            </router-link
             >
           </p>
         </form>
@@ -170,10 +171,10 @@
 </template>
 
 <script>
-import { AuthApi } from "@/api/AuthApi.js";
-import { saveAccessToken } from "@/services/TokenService.js";
-import { useUserStore } from "@/store/UserStore.js";
-import { useLoadingStore } from "@/store/GlobalStore.js";
+import {AuthApi} from "@/api/AuthApi.js";
+import {saveAccessToken} from "@/services/TokenService.js";
+import {useUserStore} from "@/store/UserStore.js";
+import {useLoadingStore} from "@/store/GlobalStore.js";
 
 export default {
   name: "Register",
@@ -192,6 +193,13 @@ export default {
     };
   },
   methods: {
+    togglePassword() {
+      this.showPassword = !this.showPassword;
+    },
+    toggleConfirmPassword() {
+      this.showConfirmPassword = !this.showConfirmPassword;
+    },
+
     validateName() {
       if (!this.name || this.name.trim() === "") {
         this.nameError = "Please enter your username.";
@@ -221,10 +229,16 @@ export default {
     async submitForm() {
       const userStore = useUserStore();
       useLoadingStore().startLoading();
+
+      this.emailError = "";
+      this.passwordError = "";
+      this.nameError = "";
+      this.passwordNotMatch = "";
+
       if (
-        !this.validateName() ||
-        !this.validateEmail() ||
-        !this.validatePassword()
+          !this.validateName() ||
+          !this.validateEmail() ||
+          !this.validatePassword()
       ) {
         useLoadingStore().stopLoading();
         return;
@@ -248,17 +262,28 @@ export default {
 
         const responseData = await AuthApi.register(registerRequest);
         if (responseData && responseData.accessToken) {
-          // useUserStore().login();
           await userStore.handleRegistration(responseData);
           this.$router.push("/post-registration-choice");
         } else {
-          throw new Error(
-            "Đăng ký thành công nhưng không nhận được token xác thực."
-          );
+          // response thành công nhưng không có token
+          this.emailError = "";
+          throw new Error("Đăng ký thành công nhưng không nhận được token xác thực.");
         }
       } catch (error) {
         console.error("Registration failed:", error);
-        alert(`Đăng ký thất bại: ${error.message || "Vui lòng thử lại."}`);
+
+        if (error.response && error.response.data?.message) {
+          const message = error.response.data.message;
+
+          if (message.toLowerCase().includes("email")) {
+            this.emailError = "Email đã được sử dụng.";
+          } else {
+            alert(`Đăng ký thất bại: ${message}`);
+          }
+        } else {
+          // Các lỗi khác (ví dụ mạng, server down...)
+          alert(`Đăng ký thất bại: ${error.message || "Vui lòng thử lại."}`);
+        }
       } finally {
         useLoadingStore().stopLoading();
       }

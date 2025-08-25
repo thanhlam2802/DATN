@@ -12,19 +12,23 @@ import backend.backend.entity.enumBus.BusBookingStatus;
 import backend.backend.event.VoucherUsedUpEvent;
 import backend.backend.exception.ResourceNotFoundException;
 import backend.backend.service.OrderService;
+import backend.backend.service.HotelBookingService;
 import lombok.RequiredArgsConstructor;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
-import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -34,25 +38,53 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+
+import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.UnitValue;
+
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
-    private final ApplicationEventPublisher publisher;
-     private final BusBookingDAO busBookingDAO;
-     private final BookingTourDAO bookingTourDAO;
-     private final CustomerDAO customerDAO;
-     private final DepartureDAO departureDAO;
-     private final FlightBookingDAO flightBookingDAO;
-     private final VoucherDAO voucherDAO;
-     private final FlightSlotDAO flightSlotDAO;
-     private final HotelBookingDAO hotelBookingDAO;
-     private final OrderDAO orderDAO;
-     private final TourDAO tourDAO;
-    private final UserDAO userDAO;
+
+
+
+    @Autowired private BusBookingDAO busBookingDAO;
+    @Autowired private BookingTourDAO bookingTourDAO;
+    @Autowired private CustomerDAO customerDAO;
+    @Autowired private DepartureDAO departureDAO;
+    @Autowired private FlightBookingDAO flightBookingDAO;
+    @Autowired private FlightSlotDAO flightSlotDAO;
+    @Autowired private HotelBookingDAO hotelBookingDAO;
+    @Autowired private OrderDAO orderDAO;
+    @Autowired private TourDAO tourDAO;
+    @Autowired private UserDAO userDAO;
+    @Autowired private VoucherDAO voucherDAO;
+    
+    
+    @Autowired private  ApplicationEventPublisher eventPublisher;
+
+    private ApplicationEventPublisher publisher;
+ 
+     private final HotelBookingService hotelBookingService;
+  
+
     private final BusSlotDAO busSlotDAO;
     private final BusSeatDAO busSeatDAO;
-    private final  ApplicationEventPublisher eventPublisher;
+ 
 
     private User mustGetCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -126,7 +158,7 @@ public class OrderServiceImpl implements OrderService {
         temporaryOrder.setExpiresAt(LocalDateTime.now().plusMinutes(30));
         temporaryOrder.setCreatedAt(LocalDateTime.now());
         Order savedOrder = orderDAO.save(temporaryOrder);
-        publisher.publishEvent(savedOrder);
+        eventPublisher.publishEvent(savedOrder);
         BookingTour bookingTour = new BookingTour();
         bookingTour.setDeparture(departure);
         bookingTour.setOrder(savedOrder);
@@ -178,7 +210,7 @@ public class OrderServiceImpl implements OrderService {
         order.setExpiresAt(expiresAt);
         order.setCreatedAt(now);
         Order savedOrder = orderDAO.save(order);
-        publisher.publishEvent(savedOrder);
+        eventPublisher.publishEvent(savedOrder);
         // 7. Lưu thông tin khách hàng
         Customer customer = new Customer();
         customer.setFullName(directRequest.getCustomerName());
@@ -335,7 +367,7 @@ public class OrderServiceImpl implements OrderService {
             order.setTransactionId(transactionId);
             order.setStatus("PAID");
             order.setPayDate(LocalDateTime.now());
-            publisher.publishEvent(order);
+            eventPublisher.publishEvent(order);
             orderDAO.save(order);
             logger.info("––– Order Saved –––");
         }
@@ -427,6 +459,10 @@ public class OrderServiceImpl implements OrderService {
                 .childPrice(departure.getChildPrice())
                 .totalPrice(tourBooking.getTotalPrice())
                 .orderId(tourBooking.getOrder() != null ? tourBooking.getOrder().getId() : null)
+                .customerName(tourBooking.getCustomerName())
+                .phone(tourBooking.getPhone())
+                .email(tourBooking.getEmail())
+                .notes(tourBooking.getNotes()) 
                 .build();
     }
 
@@ -645,7 +681,7 @@ public class OrderServiceImpl implements OrderService {
         // Cập nhật trạng thái đơn hàng thành CANCELLED
         order.setStatus("REFUNDED");
         orderDAO.save(order);
-        publisher.publishEvent(order);
+        eventPublisher.publishEvent(order);
         // Xử lý các booking trong đơn hàng
         // 1. Flight bookings - cập nhật flight slots thành AVAILABLE
         if (order.getFlightBookings() != null && !order.getFlightBookings().isEmpty()) {
@@ -658,15 +694,48 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
         }
-        // 2. Hotel bookings - placeholder logic
+        // 2. Hotel bookings - ✅ IMPLEMENTED: Gọi service để hủy booking và hoàn trả phòng
         if (order.getHotelBookings() != null && !order.getHotelBookings().isEmpty()) {
-            logger.info("Đơn hàng có {} hotel bookings - xử lý placeholder", order.getHotelBookings().size());
-            // TODO: Implement hotel booking cancellation logic
+            logger.info("Đơn hàng có {} hotel bookings - xử lý hủy booking", order.getHotelBookings().size());
+            for (HotelBooking hotelBooking : order.getHotelBookings()) {
+                try {
+                    // Gọi service để hủy booking và hoàn trả phòng
+                    hotelBookingService.cancelHotelBooking(hotelBooking.getId());
+                    logger.info("Đã hủy hotel booking {} thành công", hotelBooking.getId());
+                } catch (Exception e) {
+                    logger.error("Lỗi khi hủy hotel booking {}: {}", hotelBooking.getId(), e.getMessage());
+                    // Không throw exception để không ảnh hưởng đến việc hủy các booking khác
+                }
+            }
         }
+
         // 3. Tour bookings - placeholder logic
+
         if (order.getBookingTours() != null && !order.getBookingTours().isEmpty()) {
-            logger.info("Đơn hàng có {} tour bookings - xử lý placeholder", order.getBookingTours().size());
-            // TODO: Implement tour booking cancellation logic
+            logger.info("Đơn hàng có {} tour bookings. Bắt đầu xử lý hoàn lại số chỗ.", order.getBookingTours().size());
+            for (BookingTour bookingTour : order.getBookingTours()) {
+                Departure departure = bookingTour.getDeparture();
+                if (departure != null) {
+                   
+                    int adults = bookingTour.getNumberOfAdults() != null ? bookingTour.getNumberOfAdults() : 0;
+                    int children = bookingTour.getNumberOfChildren() != null ? bookingTour.getNumberOfChildren() : 0;
+                    int seatsToRelease = adults + children;
+
+                    if (seatsToRelease > 0) {
+                        // Lấy số ghế đã đặt hiện tại và trừ đi số ghế vừa hủy
+                        int currentBookedSeats = departure.getBookedSeats();
+                        // Đảm bảo số ghế không bị âm
+                        int newBookedSeats = Math.max(0, currentBookedSeats - seatsToRelease);
+                        departure.setBookedSeats(newBookedSeats);
+
+                        departureDAO.save(departure);
+                        logger.info("Đã cập nhật Departure ID {}: giải phóng {} chỗ. Số chỗ đã đặt mới: {}",
+                                    departure.getId(), seatsToRelease, newBookedSeats);
+                    }
+                } else {
+                     logger.warn("BookingTour ID {} không có thông tin Departure liên kết.", bookingTour.getId());
+                }
+            }
         }
         // 4. Bus bookings - placeholder logic
         if (order.getBusBookings() != null && !order.getBusBookings().isEmpty()) {
@@ -677,6 +746,160 @@ public class OrderServiceImpl implements OrderService {
         logger.info("Hủy đơn hàng thành công cho Order ID: {}", orderId);
         return toOrderDTO(order);
     }
+
+
+
+   
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generateInvoicePdf(Integer id) {
+        Order order = orderDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng với ID: " + id));
+
+        // Dùng NumberFormat để định dạng số, không bao gồm ký tự tiền tệ
+        NumberFormat numberFormatter = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
+
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+
+            PdfFont fontRegular = PdfFontFactory.createFont("fonts/DejaVuSerif.ttf", PdfEncodings.IDENTITY_H, pdf);
+            PdfFont fontBold = PdfFontFactory.createFont("fonts/DejaVuSerif-Bold.ttf", PdfEncodings.IDENTITY_H, pdf);
+
+
+            // --- TÍNH TOÁN LẠI TỔNG TIỀN ĐỂ ĐẢM BẢO CHÍNH XÁC ---
+            BigDecimal calculatedSubtotal = BigDecimal.ZERO;
+            for (FlightBooking booking : order.getFlightBookings()) {
+                calculatedSubtotal = calculatedSubtotal.add(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO);
+            }
+            for (HotelBooking booking : order.getHotelBookings()) {
+                calculatedSubtotal = calculatedSubtotal.add(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO);
+            }
+            for (BookingTour booking : order.getBookingTours()) {
+                calculatedSubtotal = calculatedSubtotal.add(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO);
+            }
+
+            // A. Phần Header
+            Table headerTable = new Table(UnitValue.createPercentArray(new float[]{50, 50})).useAllAvailableWidth();
+            headerTable.setBorder(Border.NO_BORDER).setMarginBottom(20f);
+
+            Cell leftCell = new Cell().setBorder(Border.NO_BORDER);
+            leftCell.add(new Paragraph("Đi Muôn Nơi").setFont(fontBold).setFontSize(20));
+            leftCell.add(new Paragraph("\n"));
+            leftCell.add(new Paragraph("GỬI ĐẾN:").setFont(fontBold));
+            if (order.getUser() != null) {
+                leftCell.add(new Paragraph(safeString(order.getUser().getName())).setFont(fontRegular));
+                leftCell.add(new Paragraph(safeString(order.getUser().getPhone())).setFont(fontRegular));
+                leftCell.add(new Paragraph(safeString(order.getUser().getAddress())).setFont(fontRegular));
+            }
+            headerTable.addCell(leftCell);
+
+            Cell rightCell = new Cell().setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT);
+            rightCell.add(new Paragraph("HÓA ĐƠN").setFont(fontBold).setFontSize(36));
+            rightCell.add(new Paragraph("Số Hóa Đơn: " + (order.getTransactionId() != null ? order.getTransactionId() : String.valueOf(order.getId()))).setFont(fontRegular));
+            rightCell.add(new Paragraph("Ngày: " + (order.getPayDate() != null ? order.getPayDate().format(DateTimeFormatter.ofPattern("dd 'tháng' MM, yyyy", new Locale("vi", "VN"))) : "")).setFont(fontRegular));
+            headerTable.addCell(rightCell);
+            document.add(headerTable);
+
+            // B. Bảng chi tiết các mục
+            Table itemTable = new Table(UnitValue.createPercentArray(new float[]{55, 15, 15, 15})).useAllAvailableWidth();
+            float cellPadding = 10f;
+
+            itemTable.addHeaderCell(new Cell().add(new Paragraph("Sản phẩm/Dịch vụ").setFont(fontBold)).setPadding(cellPadding).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(ColorConstants.BLACK, 1.5f)));
+            itemTable.addHeaderCell(new Cell().add(new Paragraph("Số lượng").setFont(fontBold)).setTextAlignment(TextAlignment.CENTER).setPadding(cellPadding).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(ColorConstants.BLACK, 1.5f)));
+            itemTable.addHeaderCell(new Cell().add(new Paragraph("Đơn giá").setFont(fontBold)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(ColorConstants.BLACK, 1.5f)));
+            itemTable.addHeaderCell(new Cell().add(new Paragraph("Tổng").setFont(fontBold)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(ColorConstants.BLACK, 1.5f)));
+
+            for (FlightBooking booking : order.getFlightBookings()) {
+                String flightName = (booking.getFlightSlot() != null && booking.getFlightSlot().getFlight() != null) ? safeString(booking.getFlightSlot().getFlight().getName()) : "Chuyến bay";
+                itemTable.addCell(new Cell().add(new Paragraph("Vé máy bay: " + flightName).setFont(fontRegular)).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph("1").setFont(fontRegular)).setTextAlignment(TextAlignment.CENTER).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+            }
+            for (HotelBooking booking : order.getHotelBookings()) {
+                String hotelName = (booking.getRoomVariant() != null) ? safeString(booking.getRoomVariant().getVariantName()) : "Phòng khách sạn";
+                short numberOfRooms = booking.getRooms();
+                BigDecimal totalPrice = booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO;
+                BigDecimal unitPrice = (numberOfRooms > 0) ? totalPrice.divide(BigDecimal.valueOf(numberOfRooms), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+                
+                itemTable.addCell(new Cell().add(new Paragraph("Khách sạn: " + hotelName).setFont(fontRegular)).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(String.valueOf(numberOfRooms)).setFont(fontRegular)).setTextAlignment(TextAlignment.CENTER).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(unitPrice)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(totalPrice)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+            }
+            for (BookingTour booking : order.getBookingTours()) {
+                String tourName = "Tour không xác định";
+                if (booking.getDeparture() != null && booking.getDeparture().getTour() != null) {
+                    tourName = safeString(booking.getDeparture().getTour().getName());
+                }
+                itemTable.addCell(new Cell().add(new Paragraph("Tour: " + tourName).setFont(fontRegular)).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph("1").setFont(fontRegular)).setTextAlignment(TextAlignment.CENTER).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+                itemTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(booking.getTotalPrice() != null ? booking.getTotalPrice() : BigDecimal.ZERO)).setFont(fontRegular)).setTextAlignment(TextAlignment.RIGHT).setPadding(cellPadding).setBorder(Border.NO_BORDER));
+            }
+            document.add(itemTable);
+
+            // C. Phần tổng kết
+            Table totalTable = new Table(UnitValue.createPercentArray(new float[]{70, 30})).useAllAvailableWidth().setMarginTop(20f);
+            totalTable.setBorder(Border.NO_BORDER);
+
+            BigDecimal amount = order.getAmount() != null ? order.getAmount() : BigDecimal.ZERO;
+            
+            totalTable.addCell(new Cell().add(new Paragraph("Tổng phụ").setFont(fontRegular)).setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT).setPadding(2f));
+            totalTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(calculatedSubtotal)).setFont(fontRegular)).setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT).setPadding(2f));
+
+            BigDecimal discount = calculatedSubtotal.subtract(amount);
+            if (discount.compareTo(BigDecimal.ZERO) > 0) {
+                 totalTable.addCell(new Cell().add(new Paragraph("Giảm giá").setFont(fontRegular)).setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT).setPadding(2f));
+                 totalTable.addCell(new Cell().add(new Paragraph("- " + numberFormatter.format(discount)).setFont(fontRegular)).setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT).setPadding(2f));
+            }
+
+            totalTable.addCell(new Cell().add(new Paragraph("Thuế (0%)").setFont(fontRegular)).setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT).setPadding(2f));
+            totalTable.addCell(new Cell().add(new Paragraph(numberFormatter.format(0)).setFont(fontRegular)).setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT).setPadding(2f));
+
+            Cell totalLabelCell = new Cell().add(new Paragraph("Tổng cộng").setFont(fontBold).setFontSize(14)).setPaddingTop(10f).setBorder(Border.NO_BORDER).setBorderTop(new SolidBorder(ColorConstants.BLACK, 1.5f)).setTextAlignment(TextAlignment.RIGHT);
+            Cell totalValueCell = new Cell().add(new Paragraph(numberFormatter.format(amount)).setFont(fontBold).setFontSize(14)).setPaddingTop(10f).setBorder(Border.NO_BORDER).setBorderTop(new SolidBorder(ColorConstants.BLACK, 1.5f)).setTextAlignment(TextAlignment.RIGHT);
+            totalTable.addCell(totalLabelCell);
+            totalTable.addCell(totalValueCell);
+            document.add(totalTable);
+
+            // D. Lời cảm ơn và Chân trang
+            document.add(new Paragraph("\n\nCảm ơn bạn đã sử dụng dịch vụ!").setFont(fontRegular).setTextAlignment(TextAlignment.CENTER).setMarginTop(30f).setMarginBottom(30f));
+            
+            Table footerTable = new Table(UnitValue.createPercentArray(new float[]{50, 50})).useAllAvailableWidth().setMarginTop(20f);
+         
+            footerTable.setBorder(Border.NO_BORDER);
+            
+            Cell paymentCell = new Cell().setBorder(Border.NO_BORDER);
+            paymentCell.add(new Paragraph("THÔNG TIN THANH TOÁN").setBold());
+            paymentCell.add(new Paragraph("Tên ngân hàng: Your Bank Name"));
+            paymentCell.add(new Paragraph("Tên tài khoản: Your Business Name"));
+            paymentCell.add(new Paragraph("Số tài khoản: 987-654-321"));
+            footerTable.addCell(paymentCell);
+
+            Cell companyCell = new Cell().setBorder(Border.NO_BORDER).setTextAlignment(TextAlignment.RIGHT);
+            companyCell.add(new Paragraph("Your Business Name").setBold());
+            companyCell.add(new Paragraph("987 Anywhere St, Any City"));
+            companyCell.add(new Paragraph("Any State 987655"));
+            footerTable.addCell(companyCell);
+            document.add(footerTable);
+
+            document.close();
+            return baos.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi tạo hóa đơn PDF", e);
+        }
+    }
+
+    // Hàm trợ giúp để tránh lỗi NullPointerException
+    private String safeString(String input) {
+        return input != null ? input : "";
+    }
+    
+    
 
     @Transactional(readOnly = true)
     protected BusBookingDto toBusBookingDto(BusBooking busBooking) {
@@ -734,4 +957,5 @@ public class OrderServiceImpl implements OrderService {
 
         return dto;
     }
+
 }

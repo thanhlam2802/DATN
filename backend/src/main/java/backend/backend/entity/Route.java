@@ -10,6 +10,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.util.List;
+import backend.backend.entity.enumBus.RouteStatus;
 
 @Getter
 @Setter
@@ -44,6 +45,8 @@ public class Route {
     @Column(name = "estimated_duration_minutes")
     private Integer estimatedDurationMinutes;
 
+    // Removed status field as it doesn't exist in database schema
+
     @NotNull
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -54,6 +57,9 @@ public class Route {
 
     @OneToMany(mappedBy = "route")
     private List<BusRoute> busRoutes;
+
+    @OneToMany(mappedBy = "route")
+    private List<RouteBusCategoryPrice> routeBusCategoryPrices;
 
     @PrePersist
     public void prePersist() {

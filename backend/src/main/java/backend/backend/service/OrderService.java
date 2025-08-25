@@ -38,5 +38,7 @@ public interface OrderService {
 	 * @return OrderDto của đơn hàng đã được hủy
 	 */
 	OrderDto cancelOrderAfterRefund(Integer orderId);
+	byte[] generateInvoicePdf(Integer id);
+	
 	
 }

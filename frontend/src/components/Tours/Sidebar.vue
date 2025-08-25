@@ -49,7 +49,7 @@
           <input
             type="range"
             :min="0"
-            :max="5000000"
+            :max="10000000"
             step="100000"
             v-model.number="minPrice"
             class="absolute w-full h-1 top-0 bg-transparent appearance-none pointer-events-none"
@@ -57,7 +57,7 @@
           <input
             type="range"
             :min="0"
-            :max="5000000"
+            :max="10000000"
             step="100000"
             v-model.number="maxPrice"
             class="absolute w-full h-1 top-0 bg-transparent appearance-none pointer-events-none"
@@ -121,7 +121,7 @@ const emit = defineEmits(["update-filters"]);
 
 // --- Giá trị mặc định cho các bộ lọc ---
 const DEFAULT_MIN_PRICE = 0;
-const DEFAULT_MAX_PRICE = 5000000;
+const DEFAULT_MAX_PRICE = 10000000;
 
 // --- State cho tất cả bộ lọc ---
 const destination = ref("");
@@ -182,7 +182,7 @@ onMounted(fetchTags);
 
 // --- Style cho slider không đổi ---
 const sliderStyle = computed(() => {
-  const max = 5000000;
+  const max = 10000000;
   const leftPercent = (minPrice.value / max) * 100;
   const rightPercent = (maxPrice.value / max) * 100;
   return {

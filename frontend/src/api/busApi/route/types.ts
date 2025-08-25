@@ -81,5 +81,14 @@ export interface UpdateRouteInput {
 
 // DeleteRouteInput không cần thiết vì schema chỉ dùng deleteRoute(id: ID!)
 
+// === RouteCard Type ===
+export interface RouteCard {
+  id: number;
+  origin: string;
+  destination: string;
+  imageUrl?: string;
+  price?: number;
+}
+
 // === Re-export Common Types ===
 export type { Route, User, Location }; 
